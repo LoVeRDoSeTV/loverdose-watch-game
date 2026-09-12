@@ -1,201 +1,1446 @@
 import 'dotenv/config';
 import express from 'express';
 import session from 'express-session';
-import Database from 'better-sqlite3';
+import pg from 'pg';
+import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 
-const app = express();app.set('trust proxy', 1);
-const db = new Database('game.db');
+const { Pool } = pg;
+
+const app = express();
+
+app.set('trust proxy', 1);
+
 const PORT = Number(process.env.PORT || 3000);
-const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
-const CHANNEL = (process.env.TWITCH_CHANNEL || 'loverdosetv').toLowerCase();
+
+const BASE_URL =
+  process.env.BASE_URL ||
+  `http://localhost:${PORT}`;
+
+const CHANNEL =
+  (process.env.TWITCH_CHANNEL || 'loverdosetv')
+    .toLowerCase();
+
 const XP_PER_MINUTE = 100 / 60;
+
 const SUB_MULTIPLIER = 1.10;
+
 const POINTS_PER_MINUTE = 10 / 60;
 
-// Progression: 50 levels, with evolutions at 10, 25 and 50.
-const LEVEL_XP = [0, 1000, 3500, 10000]; // XP required for levels 1, 10, 25, 50
 
-function progressionFromXp(xp) {
-  const value = Math.max(0, Number(xp) || 0);
-  let level = 1;
-  if (value >= LEVEL_XP[3]) level = 50;
-  else if (value >= LEVEL_XP[2]) level = 25 + Math.min(24, Math.floor((value - LEVEL_XP[2]) / ((LEVEL_XP[3] - LEVEL_XP[2]) / 25)));
-  else if (value >= LEVEL_XP[1]) level = 10 + Math.min(14, Math.floor((value - LEVEL_XP[1]) / ((LEVEL_XP[2] - LEVEL_XP[1]) / 15)));
-  else level = 1 + Math.min(8, Math.floor(value / (LEVEL_XP[1] / 9)));
+/* =========================================
+   BASE DE DONNÉES POSTGRESQL
+========================================= */
 
-  let currentThreshold = 0;
-  let nextThreshold = LEVEL_XP[1];
-  if (level >= 10 && level < 25) {
-    currentThreshold = LEVEL_XP[1] + (level - 10) * ((LEVEL_XP[2] - LEVEL_XP[1]) / 15);
-    nextThreshold = currentThreshold + ((LEVEL_XP[2] - LEVEL_XP[1]) / 15);
-  } else if (level >= 25 && level < 50) {
-    currentThreshold = LEVEL_XP[2] + (level - 25) * ((LEVEL_XP[3] - LEVEL_XP[2]) / 25);
-    nextThreshold = currentThreshold + ((LEVEL_XP[3] - LEVEL_XP[2]) / 25);
-  } else if (level < 10) {
-    currentThreshold = (level - 1) * (LEVEL_XP[1] / 9);
-    nextThreshold = level * (LEVEL_XP[1] / 9);
-  } else {
-    currentThreshold = LEVEL_XP[3];
-    nextThreshold = LEVEL_XP[3];
-  }
-  const evolution = level >= 50 ? 3 : level >= 25 ? 2 : level >= 10 ? 1 : 0;
-  const evolutionName = ['Forme de départ', 'Évolution 1', 'Évolution 2', 'Forme finale'][evolution];
-  return { level, evolution, evolutionName, currentThreshold, nextThreshold, maxLevel: level >= 50 };
+if (!process.env.DATABASE_URL) {
+  console.error(
+    'ERREUR : DATABASE_URL est manquant.'
+  );
+
+  process.exit(1);
 }
 
-const creatures = [
-  { id:'fire', name:'Flamby', type:'Feu', description:'Petit renard-dragon aux flammes vives.' },
-  { id:'water', name:'Nyméa', type:'Eau', description:'Petite créature aquatique mystique.' },
-  { id:'plant', name:'Mossy', type:'Plante', description:'Petit hybride écureuil et plante.' },
-  { id:'dark', name:'Nocty', type:'Obscur', description:'Petit félin mystérieux lié aux ombres.' },
-  { id:'dream', name:'Mimo', type:'Rêve', description:'Petite créature céleste née des rêves.' }
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+
+
+pool.on('error', error => {
+  console.error(
+    'Erreur PostgreSQL inattendue :',
+    error
+  );
+});
+
+
+/* =========================================
+   PROGRESSION
+========================================= */
+
+const LEVEL_XP = [
+  0,
+  1000,
+  3500,
+  10000
 ];
 
-db.exec(`CREATE TABLE IF NOT EXISTS users (
- id INTEGER PRIMARY KEY AUTOINCREMENT,
- twitch_id TEXT UNIQUE NOT NULL,
- login TEXT NOT NULL,
- display_name TEXT NOT NULL,
- is_sub INTEGER NOT NULL DEFAULT 0,
- creature_id TEXT,
- xp REAL NOT NULL DEFAULT 0,
- points REAL NOT NULL DEFAULT 0,
- watch_seconds INTEGER NOT NULL DEFAULT 0,
- created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
- updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);`);
 
-db.exec(`CREATE TABLE IF NOT EXISTS sessions_watch (
- user_id INTEGER PRIMARY KEY,
- last_heartbeat INTEGER NOT NULL,
- FOREIGN KEY(user_id) REFERENCES users(id)
-);`);
+function progressionFromXp(xp) {
+
+  const value =
+    Math.max(0, Number(xp) || 0);
+
+  let level = 1;
+
+
+  if (value >= LEVEL_XP[3]) {
+
+    level = 50;
+
+  }
+
+  else if (value >= LEVEL_XP[2]) {
+
+    level =
+      25 +
+      Math.min(
+        24,
+        Math.floor(
+          (value - LEVEL_XP[2]) /
+          (
+            (LEVEL_XP[3] - LEVEL_XP[2]) /
+            25
+          )
+        )
+      );
+
+  }
+
+  else if (value >= LEVEL_XP[1]) {
+
+    level =
+      10 +
+      Math.min(
+        14,
+        Math.floor(
+          (value - LEVEL_XP[1]) /
+          (
+            (LEVEL_XP[2] - LEVEL_XP[1]) /
+            15
+          )
+        )
+      );
+
+  }
+
+  else {
+
+    level =
+      1 +
+      Math.min(
+        8,
+        Math.floor(
+          value /
+          (LEVEL_XP[1] / 9)
+        )
+      );
+
+  }
+
+
+  let currentThreshold = 0;
+
+  let nextThreshold =
+    LEVEL_XP[1];
+
+
+  if (
+    level >= 10 &&
+    level < 25
+  ) {
+
+    currentThreshold =
+      LEVEL_XP[1] +
+      (level - 10) *
+      (
+        (LEVEL_XP[2] - LEVEL_XP[1]) /
+        15
+      );
+
+    nextThreshold =
+      currentThreshold +
+      (
+        (LEVEL_XP[2] - LEVEL_XP[1]) /
+        15
+      );
+
+  }
+
+  else if (
+    level >= 25 &&
+    level < 50
+  ) {
+
+    currentThreshold =
+      LEVEL_XP[2] +
+      (level - 25) *
+      (
+        (LEVEL_XP[3] - LEVEL_XP[2]) /
+        25
+      );
+
+    nextThreshold =
+      currentThreshold +
+      (
+        (LEVEL_XP[3] - LEVEL_XP[2]) /
+        25
+      );
+
+  }
+
+  else if (level < 10) {
+
+    currentThreshold =
+      (level - 1) *
+      (LEVEL_XP[1] / 9);
+
+    nextThreshold =
+      level *
+      (LEVEL_XP[1] / 9);
+
+  }
+
+  else {
+
+    currentThreshold =
+      LEVEL_XP[3];
+
+    nextThreshold =
+      LEVEL_XP[3];
+
+  }
+
+
+  const evolution =
+    level >= 50
+      ? 3
+      : level >= 25
+      ? 2
+      : level >= 10
+      ? 1
+      : 0;
+
+
+  const evolutionName = [
+    'Forme de départ',
+    'Évolution 1',
+    'Évolution 2',
+    'Forme finale'
+  ][evolution];
+
+
+  return {
+
+    level,
+
+    evolution,
+
+    evolutionName,
+
+    currentThreshold,
+
+    nextThreshold,
+
+    maxLevel:
+      level >= 50
+
+  };
+
+}
+
+
+/* =========================================
+   CRÉATURES
+========================================= */
+
+const creatures = [
+
+  {
+    id: 'fire',
+    name: 'Flamby',
+    type: 'Feu',
+    description:
+      'Petit renard-dragon aux flammes vives.'
+  },
+
+  {
+    id: 'water',
+    name: 'Nyméa',
+    type: 'Eau',
+    description:
+      'Petite créature aquatique mystique.'
+  },
+
+  {
+    id: 'plant',
+    name: 'Mossy',
+    type: 'Plante',
+    description:
+      'Petit hybride écureuil et plante.'
+  },
+
+  {
+    id: 'dark',
+    name: 'Nocty',
+    type: 'Obscur',
+    description:
+      'Petit félin mystérieux lié aux ombres.'
+  },
+
+  {
+    id: 'dream',
+    name: 'Mimo',
+    type: 'Rêve',
+    description:
+      'Petite créature céleste née des rêves.'
+  }
+
+];
+
+
+/* =========================================
+   CRÉATION DES TABLES
+========================================= */
+
+async function initDatabase() {
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS users (
+
+      id SERIAL PRIMARY KEY,
+
+      twitch_id TEXT UNIQUE NOT NULL,
+
+      login TEXT NOT NULL,
+
+      display_name TEXT NOT NULL,
+
+      is_sub BOOLEAN NOT NULL
+        DEFAULT FALSE,
+
+      creature_id TEXT,
+
+      xp DOUBLE PRECISION NOT NULL
+        DEFAULT 0,
+
+      points DOUBLE PRECISION NOT NULL
+        DEFAULT 0,
+
+      watch_seconds BIGINT NOT NULL
+        DEFAULT 0,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+
+    );
+  `);
+
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS sessions_watch (
+
+      user_id INTEGER PRIMARY KEY
+        REFERENCES users(id)
+        ON DELETE CASCADE,
+
+      last_heartbeat BIGINT NOT NULL
+
+    );
+  `);
+
+
+  console.log(
+    'PostgreSQL connecté ✅'
+  );
+
+}
+
+
+/* =========================================
+   TWITCH
+========================================= */
 
 function twitchAuthUrl(state) {
-  const params = new URLSearchParams({
-    client_id: process.env.TWITCH_CLIENT_ID,
-    redirect_uri: `${BASE_URL}/auth/twitch/callback`,
-    response_type: 'code',
-    scope: 'user:read:subscriptions',
-    state
-  });
-  return `https://id.twitch.tv/oauth2/authorize?${params}`;
+
+  const params =
+    new URLSearchParams({
+
+      client_id:
+        process.env.TWITCH_CLIENT_ID,
+
+      redirect_uri:
+        `${BASE_URL}/auth/twitch/callback`,
+
+      response_type:
+        'code',
+
+      scope:
+        'user:read:subscriptions',
+
+      state
+
+    });
+
+
+  return (
+    'https://id.twitch.tv/oauth2/authorize?' +
+    params
+  );
+
 }
 
-async function twitchFetch(path, token, options = {}) {
-  const r = await fetch(`https://api.twitch.tv/helix${path}`, {
-    ...options,
-    headers: { 'Client-Id': process.env.TWITCH_CLIENT_ID, Authorization: `Bearer ${token}`, ...(options.headers || {}) }
-  });
-  if (!r.ok) throw new Error(`Twitch API ${r.status}: ${await r.text()}`);
+
+async function twitchFetch(
+  path,
+  token,
+  options = {}
+) {
+
+  const r =
+    await fetch(
+      `https://api.twitch.tv/helix${path}`,
+      {
+
+        ...options,
+
+        headers: {
+
+          'Client-Id':
+            process.env.TWITCH_CLIENT_ID,
+
+          Authorization:
+            `Bearer ${token}`,
+
+          ...(options.headers || {})
+
+        }
+
+      }
+    );
+
+
+  if (!r.ok) {
+
+    throw new Error(
+      `Twitch API ${r.status}: ` +
+      await r.text()
+    );
+
+  }
+
+
   return r.json();
+
 }
+
+
+/* =========================================
+   EXPRESS
+========================================= */
 
 app.use(express.json());
-app.use(session({ secret: process.env.SESSION_SECRET || 'dev-secret-change-me', resave:false, saveUninitialized:false, cookie:{httpOnly:true,sameSite:'lax',secure:BASE_URL.startsWith('https://')} }));
-app.use(express.static('public'));
 
-app.get('/auth/twitch', (req,res) => {
-  if (!process.env.TWITCH_CLIENT_ID || !process.env.TWITCH_CLIENT_SECRET) return res.status(500).send('Configure TWITCH_CLIENT_ID et TWITCH_CLIENT_SECRET dans .env');
-  const state = crypto.randomBytes(24).toString('hex');
-  req.session.oauthState = state;
-  res.redirect(twitchAuthUrl(state));
-});
 
-app.get('/auth/twitch/callback', async (req,res) => {
-  try {
-    if (!req.query.code || req.query.state !== req.session.oauthState) return res.status(400).send('OAuth invalide.');
-    const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body:new URLSearchParams({client_id:process.env.TWITCH_CLIENT_ID,client_secret:process.env.TWITCH_CLIENT_SECRET,code:req.query.code,grant_type:'authorization_code',redirect_uri:`${BASE_URL}/auth/twitch/callback`}) });
-    if (!tokenRes.ok) return res.status(400).send('Impossible de finaliser la connexion Twitch.');
-    const tokens = await tokenRes.json();
-    const me = await twitchFetch('/users', tokens.access_token);
-    const t = me.data[0];
-    let isSub = false;
-    try { const sub = await twitchFetch(`/subscriptions/user?broadcaster_id=${encodeURIComponent(process.env.TWITCH_BROADCASTER_ID || '')}&user_id=${encodeURIComponent(t.id)}`, tokens.access_token); isSub = !!sub.data?.length; } catch {}
-    const existing = db.prepare('SELECT * FROM users WHERE twitch_id=?').get(t.id);
-    if (!existing) db.prepare('INSERT INTO users(twitch_id,login,display_name,is_sub) VALUES(?,?,?,?)').run(t.id,t.login,t.display_name,isSub?1:0);
-    else db.prepare('UPDATE users SET login=?,display_name=?,is_sub=?,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=?').run(t.login,t.display_name,isSub?1:0,t.id);
-    req.session.user = { twitchId:t.id, login:t.login };
-    res.redirect('/');
-  } catch (e) { console.error(e); res.status(500).send('Erreur de connexion Twitch.'); }
-});
+/* =========================================
+   SESSION POSTGRESQL
+========================================= */
 
-app.post('/api/logout',(req,res)=>req.session.destroy(()=>res.json({ok:true})));
+const PgSession =
+  connectPgSimple(session);
 
-app.get('/api/me',(req,res)=>{
-  if(!req.session.user) return res.json({authenticated:false});
-  const u=db.prepare('SELECT twitch_id,login,display_name,is_sub,creature_id,xp,points,watch_seconds FROM users WHERE twitch_id=?').get(req.session.user.twitchId);
-  res.json({authenticated:true,user:{...u, progression:progressionFromXp(u.xp)},creatures});
-});
 
-app.post('/api/creature',(req,res)=>{
-  if(!req.session.user) return res.status(401).json({error:'Connexion Twitch requise'});
-  if(!creatures.some(c=>c.id===req.body.creatureId)) return res.status(400).json({error:'Créature invalide'});
-  const u=db.prepare('SELECT * FROM users WHERE twitch_id=?').get(req.session.user.twitchId);
-  if(u.creature_id) return res.status(400).json({error:'Créature déjà choisie'});
-  db.prepare('UPDATE users SET creature_id=?,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=?').run(req.body.creatureId,u.twitch_id);
-  res.json({ok:true});
-});
+app.use(
+  session({
 
-app.post('/api/watch/heartbeat',(req,res)=>{
-  if(!req.session.user) return res.status(401).json({error:'Connexion requise'});
-  const u=db.prepare('SELECT * FROM users WHERE twitch_id=?').get(req.session.user.twitchId);
-  if(!u?.creature_id) return res.status(400).json({error:'Choisis une créature'});
-  const now=Date.now();
-  const prev=db.prepare('SELECT * FROM sessions_watch WHERE user_id=?').get(u.id);
-  let delta=0;
-  if(prev){ delta=Math.min(Math.max((now-prev.last_heartbeat)/1000,0),90); }
-  db.prepare('INSERT INTO sessions_watch(user_id,last_heartbeat) VALUES(?,?) ON CONFLICT(user_id) DO UPDATE SET last_heartbeat=excluded.last_heartbeat').run(u.id,now);
-  // The client only sends heartbeats while the embedded Twitch player is actually playing.
-  const xp=delta/60*XP_PER_MINUTE*(u.is_sub?SUB_MULTIPLIER:1);
-  const points=delta/60*POINTS_PER_MINUTE;
-  db.prepare('UPDATE users SET xp=xp+?,points=points+?,watch_seconds=watch_seconds+?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(xp,points,Math.floor(delta),u.id);
-  const updated=db.prepare('SELECT xp,points,watch_seconds,is_sub,creature_id FROM users WHERE id=?').get(u.id);
-  res.json({ok:true,delta,stats:{...updated,progression:progressionFromXp(updated.xp)}});
-});
-app.get('/api/leaderboard', (req, res) => {
-  try {
-    const players = db.prepare(`
-      SELECT
-        twitch_id,
-        login,
-        display_name,
-        is_sub,
-        creature_id,
-        xp,
-        points,
-        watch_seconds
-      FROM users
-      WHERE creature_id IS NOT NULL
-      ORDER BY xp DESC, watch_seconds DESC
-      LIMIT 25
-    `).all();
+    store:
+      new PgSession({
 
-    const leaderboard = players.map((player, index) => ({
-      rank: index + 1,
-      twitch_id: player.twitch_id,
-      login: player.login,
-      display_name: player.display_name,
-      is_sub: Boolean(player.is_sub),
-      creature_id: player.creature_id,
-      xp: player.xp,
-      points: player.points,
-      watch_seconds: player.watch_seconds,
-      progression: progressionFromXp(player.xp)
-    }));
+        pool,
 
-    res.json({
-      ok: true,
-      leaderboard
-    });
+        tableName:
+          'user_sessions',
 
-  } catch (error) {
-    console.error('Erreur classement :', error);
+        createTableIfMissing:
+          true
 
-    res.status(500).json({
-      error: 'Impossible de charger le classement'
-    });
+      }),
+
+    secret:
+      process.env.SESSION_SECRET ||
+      'dev-secret-change-me',
+
+    resave:
+      false,
+
+    saveUninitialized:
+      false,
+
+    cookie: {
+
+      httpOnly:
+        true,
+
+      sameSite:
+        'lax',
+
+      secure:
+        BASE_URL.startsWith(
+          'https://'
+        ),
+
+      maxAge:
+        1000 *
+        60 *
+        60 *
+        24 *
+        30
+
+    }
+
+  })
+);
+
+
+app.use(
+  express.static('public')
+);
+
+
+/* =========================================
+   CONNEXION TWITCH
+========================================= */
+
+app.get(
+  '/auth/twitch',
+  (req, res) => {
+
+    if (
+      !process.env.TWITCH_CLIENT_ID ||
+      !process.env.TWITCH_CLIENT_SECRET
+    ) {
+
+      return res
+        .status(500)
+        .send(
+          'Configure TWITCH_CLIENT_ID et TWITCH_CLIENT_SECRET.'
+        );
+
+    }
+
+
+    const state =
+      crypto
+        .randomBytes(24)
+        .toString('hex');
+
+
+    req.session.oauthState =
+      state;
+
+
+    res.redirect(
+      twitchAuthUrl(state)
+    );
+
   }
-});
-app.listen(PORT,()=>console.log(`LoVeRDoSe Watch Game: ${BASE_URL}`));
+);
+
+
+/* =========================================
+   CALLBACK TWITCH
+========================================= */
+
+app.get(
+  '/auth/twitch/callback',
+  async (req, res) => {
+
+    try {
+
+      if (
+        !req.query.code ||
+        req.query.state !==
+          req.session.oauthState
+      ) {
+
+        return res
+          .status(400)
+          .send(
+            'OAuth invalide.'
+          );
+
+      }
+
+
+      const tokenRes =
+        await fetch(
+          'https://id.twitch.tv/oauth2/token',
+          {
+
+            method:
+              'POST',
+
+            headers: {
+
+              'Content-Type':
+                'application/x-www-form-urlencoded'
+
+            },
+
+            body:
+              new URLSearchParams({
+
+                client_id:
+                  process.env
+                    .TWITCH_CLIENT_ID,
+
+                client_secret:
+                  process.env
+                    .TWITCH_CLIENT_SECRET,
+
+                code:
+                  req.query.code,
+
+                grant_type:
+                  'authorization_code',
+
+                redirect_uri:
+                  `${BASE_URL}/auth/twitch/callback`
+
+              })
+
+          }
+        );
+
+
+      if (!tokenRes.ok) {
+
+        return res
+          .status(400)
+          .send(
+            'Impossible de finaliser la connexion Twitch.'
+          );
+
+      }
+
+
+      const tokens =
+        await tokenRes.json();
+
+
+      const me =
+        await twitchFetch(
+          '/users',
+          tokens.access_token
+        );
+
+
+      const t =
+        me.data[0];
+
+
+      let isSub =
+        false;
+
+
+      try {
+
+        const sub =
+          await twitchFetch(
+
+            `/subscriptions/user?broadcaster_id=${
+              encodeURIComponent(
+                process.env
+                  .TWITCH_BROADCASTER_ID ||
+                ''
+              )
+            }&user_id=${
+              encodeURIComponent(t.id)
+            }`,
+
+            tokens.access_token
+
+          );
+
+
+        isSub =
+          !!sub.data?.length;
+
+      }
+
+      catch {
+
+        isSub =
+          false;
+
+      }
+
+
+      await pool.query(
+        `
+        INSERT INTO users (
+          twitch_id,
+          login,
+          display_name,
+          is_sub
+        )
+
+        VALUES (
+          $1,
+          $2,
+          $3,
+          $4
+        )
+
+        ON CONFLICT (twitch_id)
+
+        DO UPDATE SET
+
+          login =
+            EXCLUDED.login,
+
+          display_name =
+            EXCLUDED.display_name,
+
+          is_sub =
+            EXCLUDED.is_sub,
+
+          updated_at =
+            CURRENT_TIMESTAMP
+        `,
+        [
+          t.id,
+          t.login,
+          t.display_name,
+          isSub
+        ]
+      );
+
+
+      req.session.user = {
+
+        twitchId:
+          t.id,
+
+        login:
+          t.login
+
+      };
+
+
+      res.redirect('/');
+
+    }
+
+    catch (error) {
+
+      console.error(
+        'Erreur connexion Twitch :',
+        error
+      );
+
+
+      res
+        .status(500)
+        .send(
+          'Erreur de connexion Twitch.'
+        );
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   DÉCONNEXION
+========================================= */
+
+app.post(
+  '/api/logout',
+  (req, res) => {
+
+    req.session.destroy(
+      () => {
+
+        res.json({
+          ok: true
+        });
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================================
+   PROFIL JOUEUR
+========================================= */
+
+app.get(
+  '/api/me',
+  async (req, res) => {
+
+    try {
+
+      if (!req.session.user) {
+
+        return res.json({
+          authenticated:
+            false
+        });
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            twitch_id,
+
+            login,
+
+            display_name,
+
+            is_sub,
+
+            creature_id,
+
+            xp,
+
+            points,
+
+            watch_seconds
+
+          FROM users
+
+          WHERE twitch_id = $1
+          `,
+          [
+            req.session.user
+              .twitchId
+          ]
+        );
+
+
+      const u =
+        result.rows[0];
+
+
+      if (!u) {
+
+        return res.json({
+          authenticated:
+            false
+        });
+
+      }
+
+
+      res.json({
+
+        authenticated:
+          true,
+
+        user: {
+
+          ...u,
+
+          watch_seconds:
+            Number(
+              u.watch_seconds
+            ),
+
+          xp:
+            Number(u.xp),
+
+          points:
+            Number(u.points),
+
+          progression:
+            progressionFromXp(
+              u.xp
+            )
+
+        },
+
+        creatures
+
+      });
+
+    }
+
+    catch (error) {
+
+      console.error(
+        'Erreur /api/me :',
+        error
+      );
+
+
+      res.status(500).json({
+        error:
+          'Erreur profil'
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   CHOIX DE LA CRÉATURE
+========================================= */
+
+app.post(
+  '/api/creature',
+  async (req, res) => {
+
+    try {
+
+      if (!req.session.user) {
+
+        return res
+          .status(401)
+          .json({
+            error:
+              'Connexion Twitch requise'
+          });
+
+      }
+
+
+      if (
+        !creatures.some(
+          c =>
+            c.id ===
+            req.body.creatureId
+        )
+      ) {
+
+        return res
+          .status(400)
+          .json({
+            error:
+              'Créature invalide'
+          });
+
+      }
+
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+            twitch_id,
+            creature_id
+
+          FROM users
+
+          WHERE twitch_id = $1
+          `,
+          [
+            req.session.user
+              .twitchId
+          ]
+        );
+
+
+      const u =
+        result.rows[0];
+
+
+      if (!u) {
+
+        return res
+          .status(404)
+          .json({
+            error:
+              'Joueur introuvable'
+          });
+
+      }
+
+
+      if (u.creature_id) {
+
+        return res
+          .status(400)
+          .json({
+            error:
+              'Créature déjà choisie'
+          });
+
+      }
+
+
+      await pool.query(
+        `
+        UPDATE users
+
+        SET
+
+          creature_id = $1,
+
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE twitch_id = $2
+        `,
+        [
+          req.body
+            .creatureId,
+
+          u.twitch_id
+        ]
+      );
+
+
+      res.json({
+        ok: true
+      });
+
+    }
+
+    catch (error) {
+
+      console.error(
+        'Erreur choix créature :',
+        error
+      );
+
+
+      res.status(500).json({
+        error:
+          'Impossible de sauvegarder la créature'
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   TEMPS DE VISIONNAGE
+========================================= */
+
+app.post(
+  '/api/watch/heartbeat',
+  async (req, res) => {
+
+    try {
+
+      if (!req.session.user) {
+
+        return res
+          .status(401)
+          .json({
+            error:
+              'Connexion requise'
+          });
+
+      }
+
+
+      const userResult =
+        await pool.query(
+          `
+          SELECT *
+
+          FROM users
+
+          WHERE twitch_id = $1
+          `,
+          [
+            req.session.user
+              .twitchId
+          ]
+        );
+
+
+      const u =
+        userResult.rows[0];
+
+
+      if (!u?.creature_id) {
+
+        return res
+          .status(400)
+          .json({
+            error:
+              'Choisis une créature'
+          });
+
+      }
+
+
+      const now =
+        Date.now();
+
+
+      const previousResult =
+        await pool.query(
+          `
+          SELECT
+            last_heartbeat
+
+          FROM sessions_watch
+
+          WHERE user_id = $1
+          `,
+          [u.id]
+        );
+
+
+      const previous =
+        previousResult.rows[0];
+
+
+      let delta = 0;
+
+
+      if (previous) {
+
+        delta =
+          Math.min(
+            Math.max(
+              (
+                now -
+                Number(
+                  previous
+                    .last_heartbeat
+                )
+              ) /
+              1000,
+              0
+            ),
+            90
+          );
+
+      }
+
+
+      await pool.query(
+        `
+        INSERT INTO sessions_watch (
+          user_id,
+          last_heartbeat
+        )
+
+        VALUES (
+          $1,
+          $2
+        )
+
+        ON CONFLICT (user_id)
+
+        DO UPDATE SET
+
+          last_heartbeat =
+            EXCLUDED.last_heartbeat
+        `,
+        [
+          u.id,
+          now
+        ]
+      );
+
+
+      const xp =
+        delta /
+        60 *
+        XP_PER_MINUTE *
+        (
+          u.is_sub
+            ? SUB_MULTIPLIER
+            : 1
+        );
+
+
+      const points =
+        delta /
+        60 *
+        POINTS_PER_MINUTE;
+
+
+      await pool.query(
+        `
+        UPDATE users
+
+        SET
+
+          xp =
+            xp + $1,
+
+          points =
+            points + $2,
+
+          watch_seconds =
+            watch_seconds + $3,
+
+          updated_at =
+            CURRENT_TIMESTAMP
+
+        WHERE id = $4
+        `,
+        [
+          xp,
+          points,
+          Math.floor(delta),
+          u.id
+        ]
+      );
+
+
+      const updatedResult =
+        await pool.query(
+          `
+          SELECT
+
+            xp,
+
+            points,
+
+            watch_seconds,
+
+            is_sub,
+
+            creature_id
+
+          FROM users
+
+          WHERE id = $1
+          `,
+          [
+            u.id
+          ]
+        );
+
+
+      const updated =
+        updatedResult.rows[0];
+
+
+      const stats = {
+
+        ...updated,
+
+        xp:
+          Number(updated.xp),
+
+        points:
+          Number(updated.points),
+
+        watch_seconds:
+          Number(
+            updated.watch_seconds
+          ),
+
+        progression:
+          progressionFromXp(
+            updated.xp
+          )
+
+      };
+
+
+      res.json({
+
+        ok: true,
+
+        delta,
+
+        stats
+
+      });
+
+    }
+
+    catch (error) {
+
+      console.error(
+        'Erreur heartbeat :',
+        error
+      );
+
+
+      res.status(500).json({
+        error:
+          'Impossible de sauvegarder la progression'
+      });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   CLASSEMENT
+========================================= */
+
+app.get(
+  '/api/leaderboard',
+  async (req, res) => {
+
+    try {
+
+      const result =
+        await pool.query(
+          `
+          SELECT
+
+            twitch_id,
+
+            login,
+
+            display_name,
+
+            is_sub,
+
+            creature_id,
+
+            xp,
+
+            points,
+
+            watch_seconds
+
+          FROM users
+
+          WHERE creature_id
+            IS NOT NULL
+
+          ORDER BY
+
+            xp DESC,
+
+            watch_seconds DESC
+
+          LIMIT 25
+          `
+        );
+
+
+      const leaderboard =
+        result.rows.map(
+          (
+            player,
+            index
+          ) => ({
+
+            rank:
+              index + 1,
+
+            twitch_id:
+              player.twitch_id,
+
+            login:
+              player.login,
+
+            display_name:
+              player.display_name,
+
+            is_sub:
+              Boolean(
+                player.is_sub
+              ),
+
+            creature_id:
+              player.creature_id,
+
+            xp:
+              Number(
+                player.xp
+              ),
+
+            points:
+              Number(
+                player.points
+              ),
+
+            watch_seconds:
+              Number(
+                player
+                  .watch_seconds
+              ),
+
+            progression:
+              progressionFromXp(
+                player.xp
+              )
+
+          })
+        );
+
+
+      res.json({
+
+        ok:
+          true,
+
+        leaderboard
+
+      });
+
+    }
+
+    catch (error) {
+
+      console.error(
+        'Erreur classement :',
+        error
+      );
+
+
+      res
+        .status(500)
+        .json({
+          error:
+            'Impossible de charger le classement'
+        });
+
+    }
+
+  }
+);
+
+
+/* =========================================
+   DÉMARRAGE
+========================================= */
+
+async function start() {
+
+  try {
+
+    await initDatabase();
+
+
+    app.listen(
+      PORT,
+      () => {
+
+        console.log(
+          `LoVeRDoSe Watch Game: ${BASE_URL}`
+        );
+
+      }
+    );
+
+  }
+
+  catch (error) {
+
+    console.error(
+      'Impossible de démarrer le serveur :',
+      error
+    );
+
+
+    process.exit(1);
+
+  }
+
+}
+
+
+start();
