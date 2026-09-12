@@ -80,23 +80,35 @@ body{
 let me=null,player=null,playing=false;
 const $=id=>document.getElementById(id);
 const creatureById=id=>me.creatures.find(c=>c.id===id);
-function art(type,evo=0,small=false){
- const palettes={fire:['#ff5d4d','#ffb13b'],water:['#38bdf8','#93e5ff'],plant:['#55c878','#b8ee76'],dark:['#6d5ce7','#b8a9ff'],dream:['#f4a6ff','#fff1ff']};
- const [a,b]=palettes[type]||palettes.fire; const scale=small?0.78:1; const body=evo===0?54:evo===1?63:evo===2?72:80; const eye=evo>=2?'#fff':'#171827';
- return `<svg viewBox="0 0 180 150" style="transform:scale(${scale})" aria-label="créature">
- <defs><linearGradient id="g${type}${evo}" x1="0" x2="1"><stop stop-color="${a}"/><stop offset="1" stop-color="${b}"/></linearGradient></defs>
- ${type==='fire'?`<path d="M48 61 Q24 36 40 18 Q57 39 68 45 M132 61 Q156 36 140 18 Q123 39 112 45" fill="${a}"/><path d="M48 104 Q28 128 50 133 Q76 135 83 115 Q98 140 124 133 Q145 128 130 104" fill="${a}"/>`:''}
- ${type==='water'?`<path d="M43 70 Q18 52 29 31 Q53 40 62 55 M137 70 Q162 52 151 31 Q127 40 118 55" fill="${b}"/><path d="M136 91 Q160 101 146 126 Q131 142 114 126" fill="none" stroke="${a}" stroke-width="9"/>`:''}
- ${type==='plant'?`<path d="M52 56 Q23 37 27 17 Q49 24 64 44 M128 56 Q157 37 153 17 Q131 24 116 44" fill="${b}"/><path d="M92 34 Q105 13 123 20 Q112 42 95 46" fill="${a}"/>`:''}
- ${type==='dark'?`<path d="M45 58 Q20 24 37 13 Q59 31 67 49 M135 58 Q160 24 143 13 Q121 31 113 49" fill="${a}"/><path d="M138 91 Q164 83 154 111 Q143 132 119 127" fill="none" stroke="${a}" stroke-width="10"/>`:''}
- ${type==='dream'?`<path d="M45 61 Q20 39 38 18 Q55 35 67 48 M135 61 Q160 39 142 18 Q125 35 113 48" fill="${b}"/><circle cx="92" cy="27" r="8" fill="${a}"/><path d="M140 100 Q164 82 157 62" fill="none" stroke="${a}" stroke-width="8"/>`:''}
- <ellipse cx="90" cy="91" rx="${body}" ry="${body-7}" fill="url(#g${type}${evo})" stroke="#101322" stroke-width="4"/>
- <circle cx="68" cy="86" r="9" fill="white"/><circle cx="112" cy="86" r="9" fill="white"/><circle cx="68" cy="86" r="4" fill="${eye}"/><circle cx="112" cy="86" r="4" fill="${eye}"/>
- <path d="M82 105 Q90 112 98 105" fill="none" stroke="#171827" stroke-width="4" stroke-linecap="round"/>
- ${evo>=1?`<circle cx="90" cy="55" r="8" fill="${b}" stroke="#101322" stroke-width="3"/>`:''}
- ${evo>=2?`<path d="M35 112 Q90 145 145 112" fill="none" stroke="${b}" stroke-width="5" stroke-linecap="round" opacity=".8"/>`:''}
- ${evo>=3?`<circle cx="90" cy="91" r="${body+16}" fill="none" stroke="${b}" stroke-width="3" stroke-dasharray="7 9" opacity=".9"/>`:''}
- </svg>`;
+function art(type, evo=0, small=false) {
+
+  const monsterImages = {
+    fire: '/Flamby.png',
+    water: '/Nymea.png',
+    plant: '/Mossy.png',
+    dark: '/Nocty.png',
+    dream: '/Mimo.png'
+  };
+
+  const monsterNames = {
+    fire: 'Flamby',
+    water: 'Nyméa',
+    plant: 'Mossy',
+    dark: 'Nocty',
+    dream: 'Mimo'
+  };
+
+  const image = monsterImages[type];
+
+  if (!image) return '';
+
+  return `
+    <img
+      src="${image}"
+      alt="${monsterNames[type]}"
+      class="${small ? 'monster-image-small' : 'monster-image'}"
+    >
+  `;
 }
 async function load(){const r=await fetch('/api/me');me=await r.json();if(!me.authenticated)return;$('auth').classList.add('hidden');$('app').classList.remove('hidden');$('welcome').innerHTML=`Bienvenue <b>${me.user.display_name}</b>`;$('topUser').innerHTML=me.user.is_sub?'<span class="pill sub">⭐ Sub</span>':'';render();}
 function render(){if(me.user.creature_id){$('pick').classList.add('hidden');$('game').classList.remove('hidden');initPlayer();updateStats(me.user);return;}$('creatures').innerHTML=me.creatures.map(c=>`<div class="card creature" onclick="choose('${c.id}')"><div class="creature-art">${art(c.id,0,true)}</div><h3>${c.name}</h3><span class="pill">${c.type}</span><p class="muted">${c.description}</p></div>`).join('');}
