@@ -154,5 +154,48 @@ app.post('/api/watch/heartbeat',(req,res)=>{
   const updated=db.prepare('SELECT xp,points,watch_seconds,is_sub,creature_id FROM users WHERE id=?').get(u.id);
   res.json({ok:true,delta,stats:{...updated,progression:progressionFromXp(updated.xp)}});
 });
+app.get('/api/leaderboard', (req, res) => {
+  try {
+    const players = db.prepare(`
+      SELECT
+        twitch_id,
+        login,
+        display_name,
+        is_sub,
+        creature_id,
+        xp,
+        points,
+        watch_seconds
+      FROM users
+      WHERE creature_id IS NOT NULL
+      ORDER BY xp DESC, watch_seconds DESC
+      LIMIT 25
+    `).all();
 
+    const leaderboard = players.map((player, index) => ({
+      rank: index + 1,
+      twitch_id: player.twitch_id,
+      login: player.login,
+      display_name: player.display_name,
+      is_sub: Boolean(player.is_sub),
+      creature_id: player.creature_id,
+      xp: player.xp,
+      points: player.points,
+      watch_seconds: player.watch_seconds,
+      progression: progressionFromXp(player.xp)
+    }));
+
+    res.json({
+      ok: true,
+      leaderboard
+    });
+
+  } catch (error) {
+    console.error('Erreur classement :', error);
+
+    res.status(500).json({
+      error: 'Impossible de charger le classement'
+    });
+  }
+});
 app.listen(PORT,()=>console.log(`LoVeRDoSe Watch Game: ${BASE_URL}`));
