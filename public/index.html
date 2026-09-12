@@ -80,10 +80,292 @@ body{
   transform:scale(1.08);
   filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
 }
-  
+.creature:hover .monster-image{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
+}
+
+
+/* =========================================
+   ECRAN COMPTE - BANDEAU HORIZONTAL
+========================================= */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 100vh;
+
+  background:
+    linear-gradient(
+      rgba(3, 5, 18, 0.10),
+      rgba(3, 5, 18, 0.25)
+    ),
+    url('/presentation.png') center center / cover no-repeat;
+}
+
+.auth-panel {
+  width: 100%;
+  padding: 22px 32px 26px;
+  background: rgba(8, 10, 24, 0.90);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(145, 71, 255, 0.65);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.45);
+}
+
+.auth-panel-inner {
+  width: 100%;
+  max-width: 1450px;
+  margin: 0 auto;
+}
+
+.auth-title {
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.auth-title h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.auth-title p {
+  margin: 5px 0 0;
+  color: #aeb6d8;
+  font-size: 14px;
+}
+
+.auth-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.auth-tab {
+  border: 1px solid #343b5f;
+  background: #11162a;
+  color: #fff;
+  padding: 9px 22px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.auth-tab.active {
+  background: #9147ff;
+  border-color: #9147ff;
+}
+
+.auth-form {
+  display: none;
+}
+
+.auth-form.active {
+  display: block;
+}
+
+.auth-row {
+  display: grid;
+  grid-template-columns:
+    minmax(170px, 1fr)
+    minmax(220px, 1.3fr)
+    minmax(220px, 1.3fr)
+    180px;
+  gap: 12px;
+  align-items: end;
+}
+
+.auth-row.login-row {
+  grid-template-columns:
+    minmax(220px, 1fr)
+    minmax(220px, 1fr)
+    180px;
+}
+
+.auth-field label {
+  display: block;
+  margin-bottom: 6px;
+  color: #c9cde2;
+  font-size: 13px;
+}
+
+.auth-field input {
+  width: 100%;
+  border: 1px solid #303751;
+  background: rgba(5, 8, 20, 0.92);
+  color: #fff;
+  padding: 12px 13px;
+  border-radius: 9px;
+  outline: none;
+}
+
+.auth-field input:focus {
+  border-color: #9147ff;
+  box-shadow: 0 0 0 2px rgba(145, 71, 255, 0.18);
+}
+
+.auth-submit {
+  width: 100%;
+  min-height: 43px;
+  border: 0;
+  border-radius: 9px;
+  background: #9147ff;
+  color: white;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-submit:hover {
+  filter: brightness(1.08);
+}
+
+.auth-error {
+  display: none;
+  margin-top: 12px;
+  color: #ff9a9a;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-overlay.hidden {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .auth-overlay {
+    background-position: center top;
+  }
+
+  .auth-panel {
+    padding: 18px;
+  }
+
+  .auth-row,
+  .auth-row.login-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-title h2 {
+    font-size: 20px;
+  }
+}
+
 </style>
 </head>
 <body>
+  <div id="authOverlay" class="auth-overlay">
+
+  <div class="auth-panel">
+    <div class="auth-panel-inner">
+
+      <div class="auth-title">
+        <h2>Bienvenue sur LoVeRDoSeTV</h2>
+        <p>Crée ton compte ou connecte-toi pour accéder au Watch Game.</p>
+      </div>
+
+      <div class="auth-tabs">
+        <button id="registerTab" class="auth-tab active" type="button">
+          Inscription
+        </button>
+
+        <button id="loginTab" class="auth-tab" type="button">
+          Connexion
+        </button>
+      </div>
+
+      <!-- INSCRIPTION -->
+      <form id="registerForm" class="auth-form active">
+
+        <div class="auth-row">
+
+          <div class="auth-field">
+            <label for="registerUsername">Pseudo</label>
+            <input
+              id="registerUsername"
+              type="text"
+              minlength="3"
+              maxlength="24"
+              autocomplete="username"
+              required
+            >
+          </div>
+
+          <div class="auth-field">
+            <label for="registerEmail">Adresse e-mail</label>
+            <input
+              id="registerEmail"
+              type="email"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+          <div class="auth-field">
+            <label for="registerPassword">Mot de passe</label>
+            <input
+              id="registerPassword"
+              type="password"
+              minlength="8"
+              maxlength="72"
+              autocomplete="new-password"
+              required
+            >
+          </div>
+
+          <button class="auth-submit" type="submit">
+            S'inscrire
+          </button>
+
+        </div>
+
+        <div id="registerError" class="auth-error"></div>
+
+      </form>
+
+
+      <!-- CONNEXION -->
+      <form id="loginForm" class="auth-form">
+
+        <div class="auth-row login-row">
+
+          <div class="auth-field">
+            <label for="loginEmail">Adresse e-mail</label>
+            <input
+              id="loginEmail"
+              type="email"
+              autocomplete="email"
+              required
+            >
+          </div>
+
+          <div class="auth-field">
+            <label for="loginPassword">Mot de passe</label>
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+          </div>
+
+          <button class="auth-submit" type="submit">
+            Se connecter
+          </button>
+
+        </div>
+
+        <div id="loginError" class="auth-error"></div>
+
+      </form>
+
+    </div>
+  </div>
+
+</div>
  <aside class="global-leaderboard">
   <h2>🏆 Classement</h2>
 
@@ -193,4 +475,210 @@ function initPlayer(){if(player)return;player=new Twitch.Player('player',{width:
 function updateStats(u){const p=u.progression;const c=creatureById(u.creature_id);$('creatureTitle').textContent=`${c.name} — niveau ${p.level}`;$('evolution').textContent=p.evolutionName;$('mainCreature').innerHTML=art(c.id,p.evolution);$('xp').textContent=Math.floor(u.xp);$('points').textContent=Math.floor(u.points);$('watch').innerHTML=`${Math.floor(u.watch_seconds/60)} <small>min</small>`;const pct=p.maxLevel?100:Math.max(0,Math.min(100,((u.xp-p.currentThreshold)/(p.nextThreshold-p.currentThreshold))*100));$('xpbar').style.width=pct+'%';$('levelText').textContent=p.maxLevel?'Niveau maximum atteint · XP continue à être enregistrée':`${Math.floor(u.xp-p.currentThreshold)} / ${Math.ceil(p.nextThreshold-p.currentThreshold)} XP pour le niveau suivant`;$('subBadge').classList.toggle('hidden',!u.is_sub);}
 async function heartbeat(){if(!playing)return;try{const r=await fetch('/api/watch/heartbeat',{method:'POST'});if(r.ok){const x=await r.json();updateStats(x.stats)}}catch(e){}}
 $('logout').onclick=()=>fetch('/api/logout',{method:'POST'}).then(()=>location.reload());load();setInterval(heartbeat,60000);
+/* =========================================
+   INSCRIPTION / CONNEXION COMPTE
+========================================= */
+
+const authOverlay = document.getElementById('authOverlay');
+
+const registerTab = document.getElementById('registerTab');
+const loginTab = document.getElementById('loginTab');
+
+const registerForm = document.getElementById('registerForm');
+const loginForm = document.getElementById('loginForm');
+
+const registerError = document.getElementById('registerError');
+const loginError = document.getElementById('loginError');
+
+
+/* CHANGER ENTRE INSCRIPTION ET CONNEXION */
+
+registerTab.addEventListener('click', () => {
+
+  registerTab.classList.add('active');
+  loginTab.classList.remove('active');
+
+  registerForm.classList.add('active');
+  loginForm.classList.remove('active');
+
+  registerError.style.display = 'none';
+  loginError.style.display = 'none';
+});
+
+
+loginTab.addEventListener('click', () => {
+
+  loginTab.classList.add('active');
+  registerTab.classList.remove('active');
+
+  loginForm.classList.add('active');
+  registerForm.classList.remove('active');
+
+  registerError.style.display = 'none';
+  loginError.style.display = 'none';
+});
+
+
+/* =========================================
+   INSCRIPTION
+========================================= */
+
+registerForm.addEventListener('submit', async (event) => {
+
+  event.preventDefault();
+
+  registerError.style.display = 'none';
+
+  try {
+
+    const response = await fetch('/api/register', {
+
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json'
+      },
+
+      body: JSON.stringify({
+
+        username:
+          document.getElementById('registerUsername').value,
+
+        email:
+          document.getElementById('registerEmail').value,
+
+        password:
+          document.getElementById('registerPassword').value
+
+      })
+
+    });
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      registerError.textContent =
+        data.error || "Impossible de créer le compte.";
+
+      registerError.style.display = 'block';
+
+      return;
+    }
+
+
+    location.reload();
+
+  } catch (error) {
+
+    console.error(error);
+
+    registerError.textContent =
+      "Impossible de contacter le serveur.";
+
+    registerError.style.display = 'block';
+  }
+
+});
+
+
+/* =========================================
+   CONNEXION
+========================================= */
+
+loginForm.addEventListener('submit', async (event) => {
+
+  event.preventDefault();
+
+  loginError.style.display = 'none';
+
+  try {
+
+    const response = await fetch('/api/account/login', {
+
+      method: 'POST',
+
+      headers: {
+        'Content-Type': 'application/json'
+      },
+
+      body: JSON.stringify({
+
+        email:
+          document.getElementById('loginEmail').value,
+
+        password:
+          document.getElementById('loginPassword').value
+
+      })
+
+    });
+
+
+    const data = await response.json();
+
+
+    if (!response.ok) {
+
+      loginError.textContent =
+        data.error || "Connexion impossible.";
+
+      loginError.style.display = 'block';
+
+      return;
+    }
+
+
+    location.reload();
+
+  } catch (error) {
+
+    console.error(error);
+
+    loginError.textContent =
+      "Impossible de contacter le serveur.";
+
+    loginError.style.display = 'block';
+  }
+
+});
+
+
+/* =========================================
+   VERIFIER SI LE COMPTE EST CONNECTE
+========================================= */
+
+async function checkAccount() {
+
+  try {
+
+    const response =
+      await fetch('/api/account/me');
+
+    const data =
+      await response.json();
+
+
+    if (data.authenticated) {
+
+      authOverlay.classList.add('hidden');
+
+    } else {
+
+      authOverlay.classList.remove('hidden');
+
+    }
+
+  } catch (error) {
+
+    console.error(error);
+
+    authOverlay.classList.remove('hidden');
+  }
+
+}
+
+checkAccount();
 </script></body></html>
