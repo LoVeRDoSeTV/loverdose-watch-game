@@ -4,6 +4,7 @@ import session from 'express-session';
 import pg from 'pg';
 import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 const { Pool } = pg;
 
@@ -326,6 +327,25 @@ async function initDatabase() {
       updated_at TIMESTAMPTZ NOT NULL
         DEFAULT CURRENT_TIMESTAMP
 
+    );
+  `);
+    await pool.query(`
+    CREATE TABLE IF NOT EXISTS accounts (
+      id SERIAL PRIMARY KEY,
+
+      email TEXT UNIQUE NOT NULL,
+
+      username TEXT UNIQUE NOT NULL,
+
+      password_hash TEXT NOT NULL,
+
+      twitch_id TEXT UNIQUE,
+
+      created_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP,
+
+      updated_at TIMESTAMPTZ NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
     );
   `);
 
