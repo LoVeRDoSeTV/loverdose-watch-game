@@ -93,18 +93,32 @@ body{
 .auth-overlay {
   position: fixed;
   inset: 0;
-  z-index: 99999;
+
+  width: 100%;
+  height: 100%;
+
+  z-index: 999999;
+
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  min-height: 100vh;
 
   background:
     linear-gradient(
-      rgba(3, 5, 18, 0.10),
-      rgba(3, 5, 18, 0.25)
+      rgba(3, 5, 18, 0.08),
+      rgba(3, 5, 18, 0.18)
     ),
     url('/presentation.png') center center / cover no-repeat;
+
+  overflow: hidden;
+}
+  body.auth-locked {
+  overflow: hidden;
+}
+
+body.auth-locked .global-leaderboard,
+body.auth-locked .wrap {
+  visibility: hidden;
 }
 
 .auth-panel {
@@ -652,6 +666,8 @@ loginForm.addEventListener('submit', async (event) => {
 
 async function checkAccount() {
 
+  document.body.classList.add('auth-locked');
+
   try {
 
     const response =
@@ -660,14 +676,17 @@ async function checkAccount() {
     const data =
       await response.json();
 
-
     if (data.authenticated) {
 
       authOverlay.classList.add('hidden');
 
+      document.body.classList.remove('auth-locked');
+
     } else {
 
       authOverlay.classList.remove('hidden');
+
+      document.body.classList.add('auth-locked');
 
     }
 
@@ -676,6 +695,8 @@ async function checkAccount() {
     console.error(error);
 
     authOverlay.classList.remove('hidden');
+
+    document.body.classList.add('auth-locked');
   }
 
 }
