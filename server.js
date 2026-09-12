@@ -4,7 +4,7 @@ import session from 'express-session';
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 
-const app = express();
+const app = express();app.set('trust proxy', 1);
 const db = new Database('game.db');
 const PORT = Number(process.env.PORT || 3000);
 const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
