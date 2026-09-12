@@ -123,152 +123,139 @@ body.auth-locked .wrap {
   visibility: hidden;
 }
 
-.auth-panel {
-  width: 100%;
-  padding: 22px 32px 26px;
-  
-  background: transparent;
-backdrop-filter: none;
-border-top: none;
-box-shadow: none;
-}
+.auth-home {
+  position: absolute;
+  inset: 0;
 
-.auth-panel-inner {
-  width: 100%;
-  max-width: 1450px;
-  margin: 0 auto;
-}
-
-.auth-title {
-  text-align: center;
-  margin-bottom: 16px;
-}
-
-.auth-title h2 {
-  margin: 0;
-  font-size: 24px;
-}
-
-.auth-title p {
-  margin: 5px 0 0;
-  color: #aeb6d8;
-  font-size: 14px;
-}
-
-.auth-tabs {
   display: flex;
+  align-items: flex-end;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 16px;
+
+  padding-bottom: 40px;
 }
 
-.auth-tab {
-  border: 1px solid #343b5f;
-  background: #11162a;
-  color: #fff;
-  padding: 9px 22px;
-  border-radius: 9px;
+.auth-home-buttons {
+  display: flex;
+  gap: 18px;
+}
+
+.auth-main-button {
+  min-width: 180px;
+  padding: 14px 28px;
+
+  border: 1px solid rgba(145, 71, 255, 0.8);
+  border-radius: 14px;
+
+  background: rgba(145, 71, 255, 0.92);
+  color: white;
+
+  font-size: 16px;
+  font-weight: 800;
+
   cursor: pointer;
-  font-weight: 700;
+
+  backdrop-filter: blur(8px);
 }
 
-.auth-tab.active {
-  background: #9147ff;
-  border-color: #9147ff;
+.auth-main-button.secondary {
+  background: rgba(10, 13, 28, 0.82);
 }
 
-.auth-form {
+.auth-screen {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(5, 7, 20, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.auth-screen.hidden {
   display: none;
 }
 
-.auth-form.active {
-  display: block;
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+
+  padding: 28px;
+
+  background: rgba(12, 15, 32, 0.92);
+
+  border: 1px solid rgba(145, 71, 255, 0.65);
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
-.auth-row {
-  display: grid;
-  grid-template-columns:
-    minmax(170px, 1fr)
-    minmax(220px, 1.3fr)
-    minmax(220px, 1.3fr)
-    180px;
-  gap: 12px;
-  align-items: end;
+.auth-box h2 {
+  margin: 0 0 22px;
+  text-align: center;
 }
 
-.auth-row.login-row {
-  grid-template-columns:
-    minmax(220px, 1fr)
-    minmax(220px, 1fr)
-    180px;
+.auth-field {
+  margin-bottom: 14px;
 }
 
 .auth-field label {
   display: block;
+
   margin-bottom: 6px;
-  color: #c9cde2;
+
+  color: #d6d9eb;
   font-size: 13px;
 }
 
 .auth-field input {
   width: 100%;
-  border: 1px solid #303751;
-  background: rgba(5, 8, 20, 0.92);
-  color: #fff;
+
   padding: 12px 13px;
-  border-radius: 9px;
+
+  border: 1px solid #343b5f;
+  border-radius: 10px;
+
+  background: rgba(5, 8, 20, 0.92);
+  color: white;
+
   outline: none;
 }
 
 .auth-field input:focus {
   border-color: #9147ff;
-  box-shadow: 0 0 0 2px rgba(145, 71, 255, 0.18);
 }
 
 .auth-submit {
   width: 100%;
-  min-height: 43px;
+
+  padding: 13px;
+
   border: 0;
-  border-radius: 9px;
+  border-radius: 10px;
+
   background: #9147ff;
   color: white;
+
   font-weight: 800;
   cursor: pointer;
 }
 
-.auth-submit:hover {
-  filter: brightness(1.08);
-}
+.auth-back {
+  width: 100%;
 
-.auth-error {
-  display: none;
   margin-top: 12px;
-  color: #ff9a9a;
-  text-align: center;
-  font-size: 14px;
-}
+  padding: 10px;
 
-.auth-overlay.hidden {
-  display: none;
-}
+  border: 1px solid #343b5f;
+  border-radius: 10px;
 
-@media (max-width: 800px) {
-  .auth-overlay {
-    background-position: center top;
-  }
+  background: transparent;
+  color: white;
 
-  .auth-panel {
-    padding: 18px;
-  }
-
-  .auth-row,
-  .auth-row.login-row {
-    grid-template-columns: 1fr;
-  }
-
-  .auth-title h2 {
-    font-size: 20px;
-  }
+  cursor: pointer;
 }
 
 </style>
@@ -276,110 +263,144 @@ box-shadow: none;
 <body>
   <div id="authOverlay" class="auth-overlay">
 
-  <div class="auth-panel">
-    <div class="auth-panel-inner">
+  <div class="auth-home">
 
-      <div class="auth-title">
-        <h2>Bienvenue sur LoVeRDoSeTV</h2>
-        <p>Crée ton compte ou connecte-toi pour accéder au Watch Game.</p>
-      </div>
+    <div class="auth-home-buttons">
 
-      <div class="auth-tabs">
-        <button id="registerTab" class="auth-tab active" type="button">
-          Inscription
-        </button>
+      <button
+        id="showRegister"
+        class="auth-main-button"
+        type="button"
+      >
+        Inscription
+      </button>
 
-        <button id="loginTab" class="auth-tab" type="button">
-          Connexion
-        </button>
-      </div>
-
-      <!-- INSCRIPTION -->
-      <form id="registerForm" class="auth-form active">
-
-        <div class="auth-row">
-
-          <div class="auth-field">
-            <label for="registerUsername">Pseudo</label>
-            <input
-              id="registerUsername"
-              type="text"
-              minlength="3"
-              maxlength="24"
-              autocomplete="username"
-              required
-            >
-          </div>
-
-          <div class="auth-field">
-            <label for="registerEmail">Adresse e-mail</label>
-            <input
-              id="registerEmail"
-              type="email"
-              autocomplete="email"
-              required
-            >
-          </div>
-
-          <div class="auth-field">
-            <label for="registerPassword">Mot de passe</label>
-            <input
-              id="registerPassword"
-              type="password"
-              minlength="8"
-              maxlength="72"
-              autocomplete="new-password"
-              required
-            >
-          </div>
-
-          <button class="auth-submit" type="submit">
-            S'inscrire
-          </button>
-
-        </div>
-
-        <div id="registerError" class="auth-error"></div>
-
-      </form>
-
-
-      <!-- CONNEXION -->
-      <form id="loginForm" class="auth-form">
-
-        <div class="auth-row login-row">
-
-          <div class="auth-field">
-            <label for="loginEmail">Adresse e-mail</label>
-            <input
-              id="loginEmail"
-              type="email"
-              autocomplete="email"
-              required
-            >
-          </div>
-
-          <div class="auth-field">
-            <label for="loginPassword">Mot de passe</label>
-            <input
-              id="loginPassword"
-              type="password"
-              autocomplete="current-password"
-              required
-            >
-          </div>
-
-          <button class="auth-submit" type="submit">
-            Se connecter
-          </button>
-
-        </div>
-
-        <div id="loginError" class="auth-error"></div>
-
-      </form>
+      <button
+        id="showLogin"
+        class="auth-main-button secondary"
+        type="button"
+      >
+        Connexion
+      </button>
 
     </div>
+
+  </div>
+
+
+  <!-- PAGE INSCRIPTION -->
+
+  <div id="registerScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Créer mon compte</h2>
+
+      <form id="registerForm">
+
+        <div class="auth-field">
+          <label for="registerUsername">Pseudo</label>
+          <input
+            id="registerUsername"
+            type="text"
+            minlength="3"
+            maxlength="24"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerEmail">Adresse e-mail</label>
+          <input
+            id="registerEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerPassword">Mot de passe</label>
+          <input
+            id="registerPassword"
+            type="password"
+            minlength="8"
+            maxlength="72"
+            autocomplete="new-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Créer mon compte
+        </button>
+
+      </form>
+
+      <div id="registerError" class="auth-error"></div>
+
+      <button
+        id="backFromRegister"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAGE CONNEXION -->
+
+  <div id="loginScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Connexion</h2>
+
+      <form id="loginForm">
+
+        <div class="auth-field">
+          <label for="loginEmail">Adresse e-mail</label>
+          <input
+            id="loginEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Mot de passe</label>
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Se connecter
+        </button>
+
+      </form>
+
+      <div id="loginError" class="auth-error"></div>
+
+      <button
+        id="backFromLogin"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
   </div>
 
 </div>
@@ -666,7 +687,69 @@ loginForm.addEventListener('submit', async (event) => {
 /* =========================================
    VERIFIER SI LE COMPTE EST CONNECTE
 ========================================= */
+/* =========================================
+   NAVIGATION ECRANS AUTH
+========================================= */
 
+const authHome = document.querySelector('.auth-home');
+
+const registerScreen =
+  document.getElementById('registerScreen');
+
+const loginScreen =
+  document.getElementById('loginScreen');
+
+const showRegister =
+  document.getElementById('showRegister');
+
+const showLogin =
+  document.getElementById('showLogin');
+
+const backFromRegister =
+  document.getElementById('backFromRegister');
+
+const backFromLogin =
+  document.getElementById('backFromLogin');
+
+
+showRegister.addEventListener('click', () => {
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.remove('hidden');
+
+  loginScreen.classList.add('hidden');
+
+});
+
+
+showLogin.addEventListener('click', () => {
+
+  authHome.style.display = 'none';
+
+  loginScreen.classList.remove('hidden');
+
+  registerScreen.classList.add('hidden');
+
+});
+
+
+backFromRegister.addEventListener('click', () => {
+
+  registerScreen.classList.add('hidden');
+
+  authHome.style.display = 'flex';
+
+});
+
+
+backFromLogin.addEventListener('click', () => {
+
+  loginScreen.classList.add('hidden');
+
+  authHome.style.display = 'flex';
+
+});
 async function checkAccount() {
 
   document.body.classList.add('auth-locked');
