@@ -518,7 +518,241 @@ app.use(
 app.use(
   express.static('public')
 );
+/* =========================================
+   COMPTE - INSCRIPTION
+========================================= */
 
+app.post('/api/register', async (req, res) => {
+  try {
+    let { email, username, password } = req.body;
+
+    email = String(email || '').trim().toLowerCase();
+    username = String(username || '').trim();
+    password = String(password || '');
+
+    if (!email || !username || !password) {
+      return res.status(400).json({
+        error: 'Tous les champs sont obligatoires.'
+      });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        error: 'Adresse e-mail invalide.'
+      });
+    }
+
+    if (username.length < 3 || username.length > 24) {
+      return res.status(400).json({
+        error: 'Le pseudo doit contenir entre 3 et 24 caractères.'
+      });
+    }
+
+    if (password.length < 8 || password.length > 72) {
+      return res.status(400).json({
+        error: 'Le mot de passe doit contenir entre 8 et 72 caractères.'
+      });
+    }
+
+    const existing = await pool.query(
+      `
+      SELECT id
+      FROM accounts
+      WHERE email = $1
+         OR LOWER(username) = LOWER($2)
+      `,
+      [email, username]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({
+        error: 'Cet e-mail ou ce pseudo est déjà utilisé.'
+      });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 12);
+
+    const result = await pool.query(
+      `
+      INSERT INTO accounts (
+        email,
+        username,
+        password_hash
+      )
+      VALUES ($1, $2, $3)
+      RETURNING id, email, username, twitch_id
+      `,
+      [email, username, passwordHash]
+    );
+
+    const account = result.rows[0];
+
+    req.session.account = {
+      id: account.id,
+      email: account.email,
+      username: account.username
+    };
+
+    res.json({
+      ok: true,
+      account: {
+        id: account.id,
+        email: account.email,
+        username: account.username,
+        twitchConnected: Boolean(account.twitch_id)
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur inscription :', error);
+
+    res.status(500).json({
+      error: 'Impossible de créer le compte.'
+    });
+  }
+});
+
+
+/* =========================================
+   COMPTE - CONNEXION
+========================================= */
+
+app.post('/api/account/login', async (req, res) => {
+  try {
+    let { email, password } = req.body;
+
+    email = String(email || '').trim().toLowerCase();
+    password = String(password || '');
+
+    if (!email || !password) {
+      return res.status(400).json({
+        error: 'E-mail et mot de passe obligatoires.'
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        email,
+        username,
+        password_hash,
+        twitch_id
+      FROM accounts
+      WHERE email = $1
+      `,
+      [email]
+    );
+
+    const account = result.rows[0];
+
+    if (!account) {
+      return res.status(401).json({
+        error: 'E-mail ou mot de passe incorrect.'
+      });
+    }
+
+    const passwordOk = await bcrypt.compare(
+      password,
+      account.password_hash
+    );
+
+    if (!passwordOk) {
+      return res.status(401).json({
+        error: 'E-mail ou mot de passe incorrect.'
+      });
+    }
+
+    req.session.account = {
+      id: account.id,
+      email: account.email,
+      username: account.username
+    };
+
+    res.json({
+      ok: true,
+      account: {
+        id: account.id,
+        email: account.email,
+        username: account.username,
+        twitchConnected: Boolean(account.twitch_id)
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur connexion compte :', error);
+
+    res.status(500).json({
+      error: 'Impossible de se connecter.'
+    });
+  }
+});
+
+
+/* =========================================
+   COMPTE - ÉTAT
+========================================= */
+
+app.get('/api/account/me', async (req, res) => {
+  try {
+    if (!req.session.account) {
+      return res.json({
+        authenticated: false
+      });
+    }
+
+    const result = await pool.query(
+      `
+      SELECT
+        id,
+        email,
+        username,
+        twitch_id
+      FROM accounts
+      WHERE id = $1
+      `,
+      [req.session.account.id]
+    );
+
+    const account = result.rows[0];
+
+    if (!account) {
+      return res.json({
+        authenticated: false
+      });
+    }
+
+    res.json({
+      authenticated: true,
+      account: {
+        id: account.id,
+        email: account.email,
+        username: account.username,
+        twitchConnected: Boolean(account.twitch_id)
+      }
+    });
+
+  } catch (error) {
+    console.error('Erreur compte :', error);
+
+    res.status(500).json({
+      error: 'Impossible de charger le compte.'
+    });
+  }
+});
+
+
+/* =========================================
+   COMPTE - DÉCONNEXION
+========================================= */
+
+app.post('/api/account/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.json({
+      ok: true
+    });
+  });
+});
 
 /* =========================================
    CONNEXION TWITCH
