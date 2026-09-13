@@ -802,7 +802,45 @@ app.post('/api/account/logout', (req, res) => {
     });
   });
 });
+/* =========================================
+   TEMPORAIRE - RESET BASE DE DONNEES
+========================================= */
 
+app.post('/api/admin/reset-db', async (req, res) => {
+  try {
+    const resetToken = req.headers['x-reset-token'];
+
+    if (
+      !process.env.RESET_DB_TOKEN ||
+      resetToken !== process.env.RESET_DB_TOKEN
+    ) {
+      return res.status(403).json({
+        error: 'Accès refusé.'
+      });
+    }
+
+    await pool.query(`
+      TRUNCATE TABLE
+        sessions_watch,
+        user_sessions,
+        users,
+        accounts
+      RESTART IDENTITY CASCADE;
+    `);
+
+    res.json({
+      ok: true,
+      message: 'Base de données vidée.'
+    });
+
+  } catch (error) {
+    console.error('Erreur reset DB :', error);
+
+    res.status(500).json({
+      error: 'Impossible de vider la base.'
+    });
+  }
+});
 /* =========================================
    CONNEXION TWITCH
 ========================================= */
