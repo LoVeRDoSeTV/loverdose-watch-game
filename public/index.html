@@ -92,10 +92,11 @@ body{
 
 .auth-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
 
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
 
   z-index: 999999;
 
@@ -103,15 +104,17 @@ body{
   align-items: flex-end;
   justify-content: center;
 
-  background:
+  background-image:
     linear-gradient(
       rgba(3, 5, 18, 0.08),
       rgba(3, 5, 18, 0.18)
     ),
-    url('/presentation.png') center center / contain no-repeat;
+    url('/presentation.png');
 
-  background-color: #070914;
-  
+  background-position: center center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+
   overflow: hidden;
 }
 
