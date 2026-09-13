@@ -962,7 +962,43 @@ app.get(
           isSub
         ]
       );
+      
+if (!req.session.account) {
+  return res.redirect('/');
+}
 
+const alreadyLinked = await pool.query(
+  `
+  SELECT id
+  FROM accounts
+  WHERE twitch_id = $1
+    AND id <> $2
+  `,
+  [
+    t.id,
+    req.session.account.id
+  ]
+);
+
+if (alreadyLinked.rows.length > 0) {
+  return res
+    .status(409)
+    .send('Ce compte Twitch est déjà lié à un autre compte.');
+}
+
+await pool.query(
+  `
+  UPDATE accounts
+  SET
+    twitch_id = $1,
+    updated_at = CURRENT_TIMESTAMP
+  WHERE id = $2
+  `,
+  [
+    t.id,
+    req.session.account.id
+  ]
+);
 
       req.session.user = {
 
