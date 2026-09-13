@@ -697,6 +697,9 @@ const registerScreen =
 const loginScreen =
   document.getElementById('loginScreen');
 
+  const twitchScreen =
+  document.getElementById('twitchScreen');
+
 const showRegister =
   document.getElementById('showRegister');
 
@@ -760,25 +763,64 @@ async function checkAccount() {
     const data =
       await response.json();
 
-    if (data.authenticated) {
 
-      authOverlay.classList.add('hidden');
+    /* PAS CONNECTÉ AU COMPTE LOVERDOSE */
 
-      document.body.classList.remove('auth-locked');
-
-    } else {
+    if (!data.authenticated) {
 
       authOverlay.classList.remove('hidden');
 
+      authHome.style.display = 'flex';
+
+      registerScreen.classList.add('hidden');
+      loginScreen.classList.add('hidden');
+      twitchScreen.classList.add('hidden');
+
       document.body.classList.add('auth-locked');
 
+      return;
     }
+
+
+    /* COMPTE LOVERDOSE OK MAIS TWITCH PAS ENCORE LIÉ */
+
+    if (!data.account.twitchConnected) {
+
+      authOverlay.classList.remove('hidden');
+
+      authHome.style.display = 'none';
+
+      registerScreen.classList.add('hidden');
+      loginScreen.classList.add('hidden');
+
+      twitchScreen.classList.remove('hidden');
+
+      document.body.classList.add('auth-locked');
+
+      return;
+    }
+
+
+    /* COMPTE + TWITCH OK */
+
+    authOverlay.classList.add('hidden');
+
+    twitchScreen.classList.add('hidden');
+
+    document.body.classList.remove('auth-locked');
+
 
   } catch (error) {
 
     console.error(error);
 
     authOverlay.classList.remove('hidden');
+
+    authHome.style.display = 'flex';
+
+    registerScreen.classList.add('hidden');
+    loginScreen.classList.add('hidden');
+    twitchScreen.classList.add('hidden');
 
     document.body.classList.add('auth-locked');
   }
