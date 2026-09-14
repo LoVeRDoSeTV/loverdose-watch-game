@@ -1346,6 +1346,8 @@ if (elapsed < 700) {
 hideLoading();
 
     if (!response.ok) {
+      loginScreen.classList.remove('hidden');
+      
       loginError.textContent = data.error || 'Connexion impossible.';
       loginError.style.display = 'block';
       return;
