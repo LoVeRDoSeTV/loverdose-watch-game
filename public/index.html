@@ -437,7 +437,71 @@ body.auth-locked .wrap { visibility:hidden; }
 
   cursor: pointer;
 }
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
 
+  margin-bottom: 18px;
+
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 1px;
+
+  color: #ffffff;
+}
+
+.home-brand span {
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.home-brand small {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,.25);
+
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #b9a5df;
+}
+
+.home-twitch-logo {
+  width: 32px;
+  height: 32px;
+
+  fill: #9147ff;
+
+  filter: drop-shadow(0 0 10px rgba(145,71,255,.45));
+}
+
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  .home-brand {
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+
+  .home-brand span {
+    font-size: 25px;
+  }
+
+  .home-brand small {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    padding-left: 9px;
+  }
+
+  .home-twitch-logo {
+    width: 27px;
+    height: 27px;
+  }
+
+}
 </style>
 </head>
 <body class="auth-locked">
