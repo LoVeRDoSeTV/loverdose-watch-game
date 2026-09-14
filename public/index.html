@@ -502,7 +502,25 @@ body.auth-locked .wrap { visibility:hidden; }
   }
 
 }
+  
+<!-- ECRAN DE CHARGEMENT -->
 
+<div id="loadingScreen" class="auth-screen hidden">
+
+  <div class="auth-box loading-box">
+
+    <div class="loading-spinner"></div>
+
+    <h2 id="loadingTitle">Connexion en cours...</h2>
+
+    <p class="loading-message">
+      Vérification de ton compte
+    </p>
+
+  </div>
+
+</div>
+  
 /* =========================================
    FENETRE DE CONFIRMATION
 ========================================= */
@@ -552,7 +570,47 @@ body.auth-locked .wrap { visibility:hidden; }
     font-size: 32px;
   }
 }
+  
+/* =========================================
+   ECRAN DE CHARGEMENT
+========================================= */
 
+.loading-box {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 58px;
+  height: 58px;
+
+  margin: 0 auto 22px;
+
+  border: 5px solid rgba(145, 71, 255, 0.18);
+  border-top-color: #9147ff;
+
+  border-radius: 50%;
+
+  animation: loadingSpin 0.8s linear infinite;
+
+  box-shadow: 0 0 25px rgba(145, 71, 255, 0.18);
+}
+
+.loading-message {
+  margin: 0;
+  color: #aeb5d3;
+  font-size: 14px;
+}
+
+@keyframes loadingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+  
 </style>
 </style>
 </head>
@@ -797,6 +855,8 @@ const registerForm = $('registerForm');
 const loginForm = $('loginForm');
 const registerError = $('registerError');
 const loginError = $('loginError');
+
+const loadingScreen = $('loadingScreen');
   
 const successScreen = $('successScreen');
 const successTitle = $('successTitle');
@@ -924,6 +984,27 @@ function art(type, evo = 0, small = false) {
   `;
 }
   
+function showLoading() {
+
+  authOverlay.classList.remove('hidden');
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+
+  loadingScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+
+
+function hideLoading() {
+  loadingScreen.classList.add('hidden');
+}
+  
 function showSuccess(title, message, buttonText, callback) {
 
   successTitle.textContent = title;
@@ -965,6 +1046,7 @@ function showAuthHome() {
   loginScreen.classList.add('hidden');
   twitchScreen.classList.add('hidden');
   successScreen.classList.add('hidden');
+  loadingScreen.classList.add('hidden');
   
   document.body.classList.add('auth-locked');
 }
@@ -1240,6 +1322,10 @@ loginForm.addEventListener('submit', async event => {
   event.preventDefault();
   loginError.style.display = 'none';
 
+  showLoading();
+
+const loadingStart = Date.now();
+
   try {
     const response = await fetch('/api/account/login', {
       method: 'POST',
@@ -1251,6 +1337,13 @@ loginForm.addEventListener('submit', async event => {
     });
 
     const data = await response.json();
+    const elapsed = Date.now() - loadingStart;
+
+if (elapsed < 700) {
+  await new Promise(resolve => setTimeout(resolve, 700 - elapsed));
+}
+
+hideLoading();
 
     if (!response.ok) {
       loginError.textContent = data.error || 'Connexion impossible.';
