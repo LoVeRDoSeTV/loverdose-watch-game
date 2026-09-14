@@ -690,6 +690,38 @@ if (dotsContainer) {
 }
 $('carouselPrev')?.addEventListener('click', () => moveHomeCarousel(-1));
 $('carouselNext')?.addEventListener('click', () => moveHomeCarousel(1));
+  
+  const carouselCard = $('carouselCard');
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+if (carouselCard) {
+
+  carouselCard.addEventListener('touchstart', event => {
+    touchStartX = event.changedTouches[0].screenX;
+  }, { passive: true });
+
+  carouselCard.addEventListener('touchend', event => {
+    touchEndX = event.changedTouches[0].screenX;
+
+    const swipeDistance = touchEndX - touchStartX;
+
+    // Évite qu'un petit mouvement du doigt change de monstre
+    if (Math.abs(swipeDistance) < 50) return;
+
+    // Swipe vers la gauche = monstre suivant
+    if (swipeDistance < 0) {
+      moveHomeCarousel(1);
+    }
+
+    // Swipe vers la droite = monstre précédent
+    if (swipeDistance > 0) {
+      moveHomeCarousel(-1);
+    }
+  }, { passive: true });
+
+}
 renderHomeMonster();
 
 function escapeHtml(value) {
