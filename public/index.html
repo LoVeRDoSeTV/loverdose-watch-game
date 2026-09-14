@@ -502,6 +502,58 @@ body.auth-locked .wrap { visibility:hidden; }
   }
 
 }
+
+/* =========================================
+   FENETRE DE CONFIRMATION
+========================================= */
+
+.success-box {
+  text-align: center;
+}
+
+.success-icon {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(145, 71, 255, 0.16);
+  border: 2px solid #9147ff;
+
+  color: #b982ff;
+
+  font-size: 38px;
+  font-weight: 900;
+
+  box-shadow: 0 0 30px rgba(145, 71, 255, 0.25);
+}
+
+.success-message {
+  margin: 0 0 24px;
+  color: #c7cbe0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .success-box {
+    width: calc(100% - 32px);
+    padding: 24px 20px;
+  }
+
+  .success-icon {
+    width: 62px;
+    height: 62px;
+    font-size: 32px;
+  }
+}
+
+</style>
 </style>
 </head>
 <body class="auth-locked">
@@ -569,6 +621,32 @@ body.auth-locked .wrap { visibility:hidden; }
 
 </div>
 
+    <!-- FENETRE DE CONFIRMATION -->
+
+<div id="successScreen" class="auth-screen hidden">
+
+  <div class="auth-box success-box">
+
+    <div class="success-icon">✓</div>
+
+    <h2 id="successTitle">C'est réussi !</h2>
+
+    <p id="successMessage" class="success-message">
+      Ton action a bien été prise en compte.
+    </p>
+
+    <button
+      id="successAction"
+      class="auth-submit"
+      type="button"
+    >
+      Continuer
+    </button>
+
+  </div>
+
+</div>
+    
   <!-- PAGE INSCRIPTION -->
 
   <div id="registerScreen" class="auth-screen hidden">
@@ -719,6 +797,13 @@ const registerForm = $('registerForm');
 const loginForm = $('loginForm');
 const registerError = $('registerError');
 const loginError = $('loginError');
+  
+const successScreen = $('successScreen');
+const successTitle = $('successTitle');
+const successMessage = $('successMessage');
+const successAction = $('successAction');
+
+let successCallback = null;
 
 const homeMonsters = [
   { id:'fire', name:'Flamby', type:'Feu', image:'/Flamby.png', glow:'rgba(255,123,58,.30)', description:'Un petit compagnon ardent qui transforme chaque combat en étincelles.' },
@@ -838,13 +923,49 @@ function art(type, evo = 0, small = false) {
     >
   `;
 }
+  
+function showSuccess(title, message, buttonText, callback) {
 
-function showAuthHome() {
+  successTitle.textContent = title;
+  successMessage.textContent = message;
+  successAction.textContent = buttonText;
+
+  successCallback = callback;
+
   authOverlay.classList.remove('hidden');
-  authHome.style.display = 'flex';
+
+  authHome.style.display = 'none';
+
   registerScreen.classList.add('hidden');
   loginScreen.classList.add('hidden');
   twitchScreen.classList.add('hidden');
+
+  successScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+  successAction.addEventListener('click', async () => {
+
+  successScreen.classList.add('hidden');
+
+  const callback = successCallback;
+  successCallback = null;
+
+  if (callback) {
+    await callback();
+  }
+
+});
+  
+function showAuthHome() {
+  authOverlay.classList.remove('hidden');
+  authHome.style.display = 'flex';
+  
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+  
   document.body.classList.add('auth-locked');
 }
 
@@ -1099,7 +1220,15 @@ registerForm.addEventListener('submit', async event => {
     }
 
     registerForm.reset();
-    showTwitchLink('Compte créé avec succès ! Il reste à lier ton compte Twitch pour continuer.');
+    
+showSuccess(
+  'Inscription réussie !',
+  'Ton compte a bien été créé. Il ne te reste plus qu’à connecter ton compte Twitch pour commencer l’aventure.',
+  'Connecter Twitch',
+  () => {
+    showTwitchLink();
+  }
+);
   } catch (error) {
     console.error(error);
     registerError.textContent = 'Impossible de contacter le serveur.';
@@ -1131,13 +1260,29 @@ loginForm.addEventListener('submit', async event => {
 
     loginForm.reset();
 
-    if (!data.account?.twitchConnected || !data.account?.gameReady) {
-      showTwitchLink('Connexion réussie ! Il reste à lier ton compte Twitch pour continuer.');
-      return;
-    }
+if (!data.account?.twitchConnected || !data.account?.gameReady) {
 
+  showSuccess(
+    'Connexion réussie !',
+    'Tu es bien connecté. Il ne te reste plus qu’à connecter ton compte Twitch.',
+    'Connecter Twitch',
+    () => {
+      showTwitchLink();
+    }
+  );
+
+  return;
+}
+
+showSuccess(
+  'Connexion réussie !',
+  'Bon retour dans le Watch Game. Ton monstre t’attend !',
+  'Entrer dans le jeu',
+  async () => {
     showGame();
     await loadGame();
+  }
+);
   } catch (error) {
     console.error(error);
     loginError.textContent = 'Impossible de contacter le serveur.';
