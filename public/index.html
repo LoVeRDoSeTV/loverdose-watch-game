@@ -1379,10 +1379,16 @@ showSuccess(
   }
 );
   } catch (error) {
-    console.error(error);
-    loginError.textContent = 'Impossible de contacter le serveur.';
-    loginError.style.display = 'block';
-  }
+
+  hideLoading();
+
+  loginScreen.classList.remove('hidden');
+
+  console.error(error);
+
+  loginError.textContent = 'Impossible de contacter le serveur.';
+  loginError.style.display = 'block';
+}
 });
 
 $('logout').addEventListener('click', async () => {
