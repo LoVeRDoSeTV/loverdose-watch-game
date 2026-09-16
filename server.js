@@ -2769,7 +2769,7 @@ app.get('/api/badges', async (req, res) => {
           leaderboardSlot: palworldUnlocked?.leaderboard_slot === null || palworldUnlocked?.leaderboard_slot === undefined
             ? null
             : Number(palworldUnlocked.leaderboard_slot)
-        ,
+        },
         {
           badgeKey: mw4BadgeKey,
           badgeName: 'Opérateur d’Élite',
