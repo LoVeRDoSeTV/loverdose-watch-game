@@ -1,0 +1,2097 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LoVeRDoSe — Watch Game</title>
+<style>
+:root{--bg:#0b0d18;--card:#15192b;--line:#292f4b;--purple:#9147ff;--text:#f7f7fb;--muted:#9ea6c3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17132b 0,#0b0d18 48%);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}.wrap{max-width:1120px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.logo{font-size:28px;font-weight:900}.card{background:rgba(21,25,43,.94);border:1px solid var(--line);border-radius:20px;padding:20px;margin:16px 0;box-shadow:0 14px 40px #0003}.btn{border:0;border-radius:12px;padding:12px 17px;background:var(--purple);color:white;font-weight:800;cursor:pointer;text-decoration:none}.btn.secondary{background:#252a43}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}.creature{cursor:pointer;text-align:center;transition:.15s}.creature:hover{transform:translateY(-3px);border-color:#7650bd}.creature.selected{outline:2px solid var(--purple)}.muted{color:var(--muted)}.hidden{display:none}.stat{font-size:30px;font-weight:900}.stat small{font-size:13px;color:var(--muted)}.progress{height:13px;background:#292f4b;border-radius:999px;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,#9147ff,#c08cff);width:0;transition:width .3s}.creature-art{height:150px;display:flex;align-items:center;justify-content:center}.creature-art svg{width:150px;height:150px}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#252a43;font-size:12px;font-weight:800}.sub{background:#5d2ca5}.level{display:flex;align-items:center;justify-content:space-between;gap:12px}.notice{padding:12px 14px;border-radius:12px;background:#111528;border:1px solid var(--line)}
+
+  /* CLASSEMENT FIXE À GAUCHE */
+.global-leaderboard{
+  position:fixed;
+  top:0;
+  left:0;
+  width:280px;
+  height:100vh;
+  padding:20px;
+  background:#111528;
+  border-right:1px solid var(--line);
+  overflow-y:auto;
+  z-index:1000;
+}
+
+.global-leaderboard h2{
+  margin-top:0;
+  margin-bottom:20px;
+}
+
+#leaderboard table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+#leaderboard th,
+#leaderboard td{
+  padding:8px 4px;
+  font-size:13px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+
+/* Décale le site pour laisser la place au classement */
+body{
+  padding-left:280px;
+}
+
+@media(max-width:900px){
+  .global-leaderboard{
+    position:static;
+    width:100%;
+    height:auto;
+  }
+
+  body{
+    padding-left:0;
+  }
+}
+/* Images des nouveaux monstres */
+
+.monster-image{
+  width:100%;
+  max-width:180px;
+  height:180px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+  transition:transform .25s ease, filter .25s ease;
+}
+
+.monster-image-small{
+  width:100%;
+  max-width:220px;
+  height:220px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+}
+
+.creature:hover .monster-image{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
+}
+.creature:hover .monster-image{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
+}
+
+
+/* =========================================
+   ACCUEIL / AUTHENTIFICATION
+========================================= */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  min-height: 100dvh;
+  z-index: 999999;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(145,71,255,.18), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(71,139,255,.10), transparent 30%),
+    linear-gradient(180deg, #090b16 0%, #0d1020 55%, #090b16 100%);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.auth-overlay.hidden { display:none; }
+
+body.auth-locked { overflow:hidden; }
+
+body.auth-locked .global-leaderboard,
+body.auth-locked .wrap { visibility:hidden; }
+
+.auth-home {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 20px 44px;
+}
+
+.home-shell {
+  width: min(1080px, 100%);
+  text-align: center;
+}
+
+.home-kicker {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 12px;
+  border:1px solid rgba(145,71,255,.32);
+  border-radius:999px;
+  background:rgba(145,71,255,.08);
+  color:#cbb5ff;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.home-title {
+  margin:16px 0 8px;
+  font-size:clamp(34px, 6vw, 68px);
+  line-height:.98;
+  font-weight:950;
+  letter-spacing:-.04em;
+}
+
+.home-title span { color:#a873ff; }
+
+.home-subtitle {
+  margin:0 auto 22px;
+  max-width:680px;
+  color:#aeb5d1;
+  font-size:clamp(15px, 2vw, 18px);
+}
+
+.home-carousel {
+  position:relative;
+  display:grid;
+  grid-template-columns:70px minmax(0, 1fr) 70px;
+  align-items:center;
+  gap:10px;
+  width:min(760px, 100%);
+  margin:0 auto;
+}
+
+.carousel-card {
+  position:relative;
+  min-height:390px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:18px 24px 20px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:28px;
+  background:rgba(16,20,39,.72);
+  box-shadow:0 24px 80px rgba(0,0,0,.34);
+  overflow:hidden;
+}
+
+.carousel-card::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at 50% 42%, var(--monster-glow, rgba(145,71,255,.24)), transparent 38%);
+  pointer-events:none;
+}
+
+.carousel-monster {
+  position:relative;
+  width:min(330px, 70vw);
+  height:260px;
+  object-fit:contain;
+  filter:drop-shadow(0 22px 35px rgba(0,0,0,.35));
+  animation:homeFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes homeFloat {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-8px); }
+}
+
+.carousel-name {
+  position:relative;
+  margin:4px 0 2px;
+  font-size:30px;
+  font-weight:950;
+}
+
+.carousel-type {
+  position:relative;
+  margin-bottom:8px;
+  color:#cbb5ff;
+  font-size:13px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.carousel-drop {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 10px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(145,71,255,.12);
+  border:1px solid rgba(145,71,255,.28);
+  color:#e7dcff;
+  font-size:12px;
+  font-weight:850;
+}
+
+.carousel-description {
+  position:relative;
+  margin:0;
+  min-height:42px;
+  max-width:500px;
+  color:#aeb5d1;
+  font-size:14px;
+}
+
+.carousel-arrow {
+  width:56px;
+  height:56px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:50%;
+  background:rgba(20,24,45,.86);
+  color:white;
+  font-size:28px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.carousel-arrow:hover {
+  transform:scale(1.06);
+  background:rgba(145,71,255,.28);
+  border-color:rgba(145,71,255,.55);
+}
+
+.carousel-dots {
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin:15px 0 20px;
+}
+
+.carousel-dot {
+  width:8px;
+  height:8px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#343a57;
+  cursor:pointer;
+}
+.carousel-dot.active { background:#a873ff; transform:scale(1.25); }
+
+.auth-home-buttons {
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.auth-main-button {
+  min-width:190px;
+  padding:14px 28px;
+  border:1px solid rgba(145,71,255,.8);
+  border-radius:14px;
+  background:rgba(145,71,255,.96);
+  color:white;
+  font-size:16px;
+  font-weight:850;
+  cursor:pointer;
+  box-shadow:0 10px 30px rgba(145,71,255,.18);
+}
+
+.auth-main-button.secondary {
+  background:rgba(18,22,42,.92);
+  border-color:rgba(255,255,255,.14);
+}
+
+@media(max-width:700px) {
+  .auth-home {
+    align-items:flex-start;
+    padding:24px 14px 34px;
+  }
+  .home-title { margin-top:13px; }
+  .home-subtitle { margin-bottom:16px; }
+  .home-carousel {
+    grid-template-columns:44px minmax(0,1fr) 44px;
+    gap:5px;
+  }
+  .carousel-card {
+    min-height:340px;
+    padding:12px 12px 16px;
+    border-radius:22px;
+  }
+  .carousel-monster {
+    width:min(250px, 64vw);
+    height:215px;
+  }
+  .carousel-name { font-size:25px; }
+  .carousel-description { font-size:13px; min-height:38px; }
+  .carousel-arrow { width:42px; height:42px; font-size:22px; }
+  .auth-home-buttons {
+    width:100%;
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+  }
+  .auth-main-button {
+    min-width:0;
+    flex:1 1 145px;
+    max-width:260px;
+  }
+}
+
+@media(max-height:720px) {
+  .auth-home { align-items:flex-start; }
+  .carousel-card { min-height:300px; }
+  .carousel-monster { height:185px; }
+}
+
+.auth-screen {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(5, 7, 20, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.auth-screen.hidden {
+  display: none;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+
+  padding: 28px;
+
+  background: rgba(12, 15, 32, 0.92);
+
+  border: 1px solid rgba(145, 71, 255, 0.65);
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.auth-box h2 {
+  margin: 0 0 22px;
+  text-align: center;
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+
+.auth-field label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #d6d9eb;
+  font-size: 13px;
+}
+
+.auth-field input {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  border: 1px solid #343b5f;
+  border-radius: 10px;
+
+  background: rgba(5, 8, 20, 0.92);
+  color: white;
+
+  outline: none;
+}
+
+.auth-field input:focus {
+  border-color: #9147ff;
+}
+
+.auth-submit {
+  width: 100%;
+
+  padding: 13px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: #9147ff;
+  color: white;
+
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-error {
+  display: none;
+  margin-top: 12px;
+  color: #ff9b9b;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-back {
+  width: 100%;
+
+  margin-top: 12px;
+  padding: 10px;
+
+  border: 1px solid #343b5f;
+  border-radius: 10px;
+
+  background: transparent;
+  color: white;
+
+  cursor: pointer;
+}
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  margin-bottom: 18px;
+
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 1px;
+
+  color: #ffffff;
+}
+
+.home-brand span {
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.home-brand small {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,.25);
+
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #b9a5df;
+}
+
+.home-twitch-logo {
+  width: 32px;
+  height: 32px;
+
+  fill: #9147ff;
+
+  filter: drop-shadow(0 0 10px rgba(145,71,255,.45));
+}
+
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  .home-brand {
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+
+  .home-brand span {
+    font-size: 25px;
+  }
+
+  .home-brand small {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    padding-left: 9px;
+  }
+
+  .home-twitch-logo {
+    width: 27px;
+    height: 27px;
+  }
+
+}
+  
+/* =========================================
+   FENETRE DE CONFIRMATION
+========================================= */
+
+.success-box {
+  text-align: center;
+}
+
+.success-icon {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(145, 71, 255, 0.16);
+  border: 2px solid #9147ff;
+
+  color: #b982ff;
+
+  font-size: 38px;
+  font-weight: 900;
+
+  box-shadow: 0 0 30px rgba(145, 71, 255, 0.25);
+}
+
+.success-message {
+  margin: 0 0 24px;
+  color: #c7cbe0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .success-box {
+    width: calc(100% - 32px);
+    padding: 24px 20px;
+  }
+
+  .success-icon {
+    width: 62px;
+    height: 62px;
+    font-size: 32px;
+  }
+}
+  
+/* =========================================
+   ECRAN DE CHARGEMENT
+========================================= */
+
+.loading-box {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 58px;
+  height: 58px;
+
+  margin: 0 auto 22px;
+
+  border: 5px solid rgba(145, 71, 255, 0.18);
+  border-top-color: #9147ff;
+
+  border-radius: 50%;
+
+  animation: loadingSpin 0.8s linear infinite;
+
+  box-shadow: 0 0 25px rgba(145, 71, 255, 0.18);
+}
+
+.loading-message {
+  margin: 0;
+  color: #aeb5d3;
+  font-size: 14px;
+}
+
+@keyframes loadingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+  
+
+
+/* =========================================
+   ŒUF / INCUBATION
+========================================= */
+.egg-panel{text-align:center;overflow:hidden;position:relative}
+.egg-panel::before{
+  content:'';position:absolute;inset:-35% -10% auto;height:360px;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,rgba(145,71,255,.17),transparent 62%);
+  filter:blur(14px)
+}
+.egg-visual{
+  width:190px;height:230px;margin:20px auto 22px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 26px 38px rgba(78,31,145,.38));
+  animation:eggFloat 3.3s ease-in-out infinite;
+}
+.egg-shell{
+  width:138px;height:178px;position:relative;border-radius:52% 48% 48% 52% / 62% 62% 38% 38%;
+  background:
+    radial-gradient(circle at 36% 26%,rgba(255,255,255,.85) 0 3%,transparent 4%),
+    radial-gradient(circle at 62% 42%,rgba(210,173,255,.75) 0 4%,transparent 5%),
+    radial-gradient(circle at 47% 68%,rgba(122,73,213,.55) 0 7%,transparent 8%),
+    linear-gradient(145deg,#f4ecff 0%,#c8a7ff 22%,#8e5bd4 53%,#4b286f 78%,#231335 100%);
+  border:1px solid rgba(233,216,255,.65);
+  box-shadow:
+    inset 16px 12px 22px rgba(255,255,255,.18),
+    inset -18px -22px 30px rgba(31,11,55,.42),
+    0 0 26px rgba(174,118,255,.48),
+    0 0 68px rgba(145,71,255,.28);
+}
+.egg-shell::before{
+  content:'';position:absolute;inset:14px 18px;border-radius:50%;
+  background:linear-gradient(130deg,transparent 34%,rgba(255,255,255,.23) 38%,transparent 44%);
+  transform:rotate(-12deg);opacity:.9
+}
+.egg-shell::after{
+  content:'';position:absolute;left:50%;top:43%;width:42px;height:54px;transform:translate(-50%,-50%) rotate(7deg);
+  border-left:2px solid rgba(229,207,255,.72);border-bottom:2px solid rgba(229,207,255,.40);
+  clip-path:polygon(44% 0,70% 27%,52% 44%,80% 67%,55% 100%,37% 70%,8% 54%,35% 36%);
+  filter:drop-shadow(0 0 6px rgba(224,195,255,.65));opacity:.7
+}
+.egg-aura{position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.egg-aura::before,.egg-aura::after{content:'';position:absolute;border-radius:50%;inset:18px;animation:eggPulse 2.5s ease-in-out infinite}
+.egg-aura::before{border:1px solid rgba(190,145,255,.24);box-shadow:0 0 22px rgba(145,71,255,.22)}
+.egg-aura::after{inset:0;background:radial-gradient(circle,transparent 42%,rgba(145,71,255,.08) 58%,transparent 72%);animation-delay:.6s}
+.egg-sparkles{position:absolute;inset:0;pointer-events:none}
+.egg-sparkles::before{
+  content:'✦  ·  ✧  ·  ✦';position:absolute;left:50%;top:48%;width:230px;transform:translate(-50%,-50%);
+  color:#d8bfff;font-size:18px;letter-spacing:20px;text-shadow:0 0 10px #b982ff;opacity:.72;
+  animation:eggSparkle 3s ease-in-out infinite
+}
+@keyframes eggFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-9px) rotate(1deg)}}
+@keyframes eggPulse{0%,100%{transform:scale(.96);opacity:.45}50%{transform:scale(1.08);opacity:1}}
+@keyframes eggSparkle{0%,100%{transform:translate(-50%,-50%) rotate(0deg);opacity:.38}50%{transform:translate(-50%,-50%) rotate(8deg);opacity:.9}}
+.egg-progress-wrap{max-width:620px;margin:18px auto;position:relative}
+.egg-progress{height:16px;background:#292f4b;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.egg-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff);box-shadow:0 0 16px rgba(185,130,255,.4);transition:width .35s ease}
+.egg-time{margin-top:10px;font-weight:850;font-size:18px}
+.egg-ready{color:#d7c0ff}
+.egg-hatch-button{margin-top:14px;min-width:220px}
+.egg-hatch-button:disabled{opacity:.45;cursor:not-allowed}
+.egg-rates{max-width:760px;margin:24px auto 0;text-align:left;position:relative}
+.egg-rarity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}
+.egg-rarity{padding:12px;border:1px solid var(--line);border-radius:14px;background:#111528;text-align:center}
+.egg-rarity strong{display:block;font-size:20px;margin-top:4px}
+.egg-drop-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.egg-drop-row{display:flex;justify-content:space-between;gap:12px;padding:9px 11px;border-radius:10px;background:#111528;border:1px solid rgba(255,255,255,.05);font-size:13px}
+.monster-placeholder{width:170px;height:170px;margin:auto;display:none;align-items:center;justify-content:center;border:1px dashed #49516f;border-radius:18px;background:#111528;color:var(--muted);text-align:center;padding:14px}
+
+/* Pop-up de bienvenue du jeu */
+.game-intro-modal{position:fixed;inset:0;z-index:1000003;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(10px)}
+.game-intro-modal.hidden{display:none}
+.game-intro-panel{width:min(520px,100%);padding:28px;border:1px solid rgba(172,116,255,.55);border-radius:24px;background:linear-gradient(180deg,#17142a,#0f1325);box-shadow:0 28px 90px rgba(0,0,0,.62);text-align:center}
+.game-intro-icon{width:82px;height:82px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle,#b988ff33,#6c35b522 58%,transparent 60%);border:1px solid rgba(185,136,255,.38);font-size:43px;box-shadow:0 0 34px rgba(145,71,255,.2)}
+.game-intro-panel h2{margin:0 0 10px;font-size:27px}
+.game-intro-panel p{margin:0;color:#c6cbe0;line-height:1.6;font-size:14px}
+.game-intro-steps{display:grid;gap:9px;margin:20px 0;text-align:left}
+.game-intro-step{padding:11px 13px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#101427;color:#d8dced;font-size:13px;line-height:1.45}
+.game-intro-rates{font-size:12px;color:#aeb5d1;margin:0 0 18px}
+@media(max-width:700px){
+  .egg-rarity-grid{grid-template-columns:repeat(2,1fr)}
+  .egg-drop-list{grid-template-columns:1fr}
+  .egg-visual{width:160px;height:200px}
+  .egg-shell{width:118px;height:154px}
+  .game-intro-panel{padding:24px 18px}
+}
+
+
+/* =========================================
+   ACCÈS / GESTION DU COMPTE
+========================================= */
+.account-access{display:flex;align-items:center;gap:10px}
+.account-icon-button{
+  width:44px;height:44px;border:1px solid rgba(255,255,255,.14);border-radius:50%;
+  background:#1a1f35;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:transform .18s ease,background .18s ease,border-color .18s ease
+}
+.account-icon-button:hover{transform:scale(1.05);background:rgba(145,71,255,.22);border-color:rgba(145,71,255,.55)}
+.account-modal{
+  position:fixed;inset:0;z-index:1000001;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(3,5,15,.72);backdrop-filter:blur(8px)
+}
+.account-modal.hidden{display:none}
+.account-panel{
+  width:min(430px,100%);padding:26px;border:1px solid rgba(145,71,255,.48);border-radius:22px;
+  background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.5)
+}
+.account-panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.account-panel-head h2{margin:0}
+.account-close{
+  width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;
+  font-size:22px;cursor:pointer
+}
+.account-info-row{padding:13px 0;border-bottom:1px solid var(--line)}
+.account-info-row:last-of-type{border-bottom:0}
+.account-info-label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+.account-info-value{font-weight:800;word-break:break-word}
+.account-edit-row{display:flex;gap:8px;align-items:center}
+.account-username-input{flex:1;min-width:0;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:#090c18;color:white;font:inherit;font-weight:800;outline:none}
+.account-username-input:focus{border-color:#9147ff;box-shadow:0 0 0 3px rgba(145,71,255,.12)}
+.account-save-button{padding:10px 13px;white-space:nowrap}
+.account-edit-help{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.4}
+.account-edit-status{min-height:18px;margin-top:7px;font-size:12px;font-weight:700}
+.account-edit-status.ok{color:#8ee7ad}
+.account-edit-status.error{color:#ff9b9b}
+.account-username-edit{display:flex;gap:8px;align-items:center;margin-top:10px}
+.account-username-edit input{flex:1;min-width:0;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:rgba(5,8,20,.92);color:white;outline:none}
+.account-username-edit input:focus{border-color:#9147ff}
+.account-username-save{white-space:nowrap;padding:10px 14px}
+.account-username-message{display:none;margin-top:8px;font-size:12px;line-height:1.4}
+.account-username-message.success{display:block;color:#91e6ad}
+.account-username-message.error{display:block;color:#ff9b9b}
+.account-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.account-actions .btn{flex:1 1 160px;text-align:center}
+.tracker-admin{margin-top:14px;padding:14px;border:1px solid rgba(145,71,255,.22);border-radius:14px;background:rgba(145,71,255,.06)}
+.tracker-admin.hidden{display:none}
+.tracker-status{font-weight:850;margin-top:4px}
+.tracker-help{margin:7px 0 12px;color:var(--muted);font-size:11px;line-height:1.45}
+.tracker-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tracker-actions .btn{flex:1 1 150px;text-align:center}
+.account-danger-zone{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.10)}
+.account-danger-title{margin:0 0 6px;font-size:14px;font-weight:900;color:#f2c1c1}
+.account-danger-text{margin:0 0 13px;font-size:12px;line-height:1.5;color:var(--muted)}
+.btn.warning{background:#6f521b;color:#fff}
+.btn.danger{background:#8e2e3b;color:#fff}
+.btn.warning:hover{background:#866421}.btn.danger:hover{background:#a23746}
+.confirm-modal{position:fixed;inset:0;z-index:1000002;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.78);backdrop-filter:blur(9px)}
+.confirm-modal.hidden{display:none}
+.confirm-panel{width:min(430px,100%);padding:26px;border:1px solid rgba(255,255,255,.13);border-radius:22px;background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center}
+.confirm-icon{width:62px;height:62px;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,179,71,.10);border:1px solid rgba(255,179,71,.35);font-size:30px}
+.confirm-panel h2{margin:0 0 10px}.confirm-panel p{margin:0;color:#c7cbe0;line-height:1.55;font-size:14px}
+.confirm-actions{display:flex;gap:10px;margin-top:22px}.confirm-actions .btn{flex:1}
+.confirm-error{display:none;margin-top:12px;color:#ff9b9b;font-size:13px}
+@media(max-width:600px){.account-icon-button{width:40px;height:40px}.account-panel,.confirm-panel{padding:22px 18px}.confirm-actions{flex-direction:column}}
+
+</style>
+</head>
+<body class="auth-locked">
+  <div id="authOverlay" class="auth-overlay">
+
+  <div class="auth-home">
+    <div class="home-shell">
+      <div class="home-brand">
+  <svg class="home-twitch-logo" viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/>
+    <path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/>
+  </svg>
+
+  <span>LoVeRDoSeTV</span>
+
+  <small>WATCH GAME</small>
+</div>
+      <h1 class="home-title">Regarde. Gagne. <span>Évolue.</span></h1>
+      <p class="home-subtitle">Lie ton compte Twitch, fais éclore ton œuf et fais progresser ton compagnon pendant les lives.</p>
+
+      <div class="home-carousel" aria-label="Présentation des monstres">
+        <button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Monstre précédent">‹</button>
+
+        <div id="carouselCard" class="carousel-card">
+          <img id="carouselMonster" class="carousel-monster" src="/Flamby.png" alt="Flamby">
+          <div id="carouselName" class="carousel-name">Flamby</div>
+          <div id="carouselType" class="carousel-type">Cendre</div>
+          <div id="carouselDrop" class="carousel-drop">Rare • 8 %</div>
+          <p id="carouselDescription" class="carousel-description">Un petit compagnon ardent qui transforme chaque combat en étincelles.</p>
+        </div>
+
+        <button id="carouselNext" class="carousel-arrow" type="button" aria-label="Monstre suivant">›</button>
+      </div>
+
+      <div id="carouselDots" class="carousel-dots" aria-label="Choisir un monstre"></div>
+
+      <div class="auth-home-buttons">
+        <button id="showRegister" class="auth-main-button" type="button">Inscription</button>
+        <button id="showLogin" class="auth-main-button secondary" type="button">Connexion</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- ECRAN DE CHARGEMENT -->
+
+    <div id="loadingScreen" class="auth-screen hidden">
+
+      <div class="auth-box loading-box">
+
+        <div class="loading-spinner"></div>
+
+        <h2 id="loadingTitle">Connexion en cours...</h2>
+
+        <p id="loadingMessage" class="loading-message">
+          Vérification de ton compte
+        </p>
+
+      </div>
+
+    </div>
+
+    <!-- PAGE CONNEXION TWITCH -->
+
+<div id="twitchScreen" class="auth-screen hidden">
+
+  <div class="auth-box">
+
+    <h2>Connecte ton compte Twitch</h2>
+
+    <p id="twitchMessage" style="text-align:center;color:#c7cbe0;margin-bottom:20px;">
+      Ton compte est connecté.
+      Il reste à lier ton compte Twitch pour continuer.
+    </p>
+
+    <a
+      href="/auth/twitch"
+      class="auth-submit"
+      style="display:block;text-align:center;text-decoration:none;"
+    >
+      Se connecter avec Twitch
+    </a>
+
+  </div>
+
+</div>
+
+    <!-- FENETRE DE CONFIRMATION -->
+
+<div id="successScreen" class="auth-screen hidden">
+
+  <div class="auth-box success-box">
+
+    <div class="success-icon">✓</div>
+
+    <h2 id="successTitle">C'est réussi !</h2>
+
+    <p id="successMessage" class="success-message">
+      Ton action a bien été prise en compte.
+    </p>
+
+    <button
+      id="successAction"
+      class="auth-submit"
+      type="button"
+    >
+      Continuer
+    </button>
+
+  </div>
+
+</div>
+    
+  <!-- PAGE INSCRIPTION -->
+
+  <div id="registerScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Créer mon compte</h2>
+
+      <form id="registerForm">
+
+        <div class="auth-field">
+          <label for="registerUsername">Pseudo</label>
+          <input
+            id="registerUsername"
+            type="text"
+            minlength="3"
+            maxlength="24"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerEmail">Adresse e-mail</label>
+          <input
+            id="registerEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerPassword">Mot de passe</label>
+          <input
+            id="registerPassword"
+            type="password"
+            minlength="8"
+            maxlength="72"
+            autocomplete="new-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Créer mon compte
+        </button>
+
+      </form>
+
+      <div id="registerError" class="auth-error"></div>
+
+      <button
+        id="backFromRegister"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAGE CONNEXION -->
+
+  <div id="loginScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Connexion</h2>
+
+      <form id="loginForm">
+
+        <div class="auth-field">
+          <label for="loginEmail">Adresse e-mail</label>
+          <input
+            id="loginEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Mot de passe</label>
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Se connecter
+        </button>
+
+      </form>
+
+      <div id="loginError" class="auth-error"></div>
+
+      <button
+        id="backFromLogin"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+ <aside class="global-leaderboard">
+  <h2>🏆 Classement</h2>
+
+  <div id="leaderboard">
+    Chargement...
+  </div>
+</aside><div class="wrap">
+<div class="top">
+  <div class="logo">🐾 LoVeRDoSeTV Watch Game</div>
+  <div class="account-access">
+    <div id="topUser"></div>
+    <button id="infoButton" class="account-icon-button" type="button" aria-label="Voir les informations du jeu" title="Comment jouer">ⓘ</button>
+    <button id="accountButton" class="account-icon-button" type="button" aria-label="Accéder à mon compte" title="Mon compte">👤</button>
+  </div>
+</div>
+<div id="auth" class="card hidden"></div>
+<div id="app" class="hidden">
+<div class="card"><div class="top"><div id="welcome"></div></div></div>
+
+<div id="pick" class="card egg-panel">
+  <h2>Œuf en incubation</h2>
+  <p class="muted">Ton premier compagnon éclora après <b>6 heures de présence cumulée</b> pendant les lives.</p>
+  <div class="egg-visual" aria-label="Œuf en incubation"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
+  <div class="egg-progress-wrap">
+    <div class="egg-progress"><div id="eggProgressBar" class="egg-progress-bar"></div></div>
+    <div id="eggTime" class="egg-time">0 h 00 / 6 h 00</div>
+    <p id="eggStatus" class="muted">Ton œuf commence son incubation.</p>
+  </div>
+  <button id="hatchEgg" class="btn egg-hatch-button" type="button" disabled>Faire éclore l'œuf</button>
+
+  <div class="egg-rates">
+    <h3>Chances de l'œuf</h3>
+    <div class="egg-rarity-grid">
+      <div class="egg-rarity">Commun<strong>70 %</strong></div>
+      <div class="egg-rarity">Rare<strong>22 %</strong></div>
+      <div class="egg-rarity">Épique<strong>7 %</strong></div>
+      <div class="egg-rarity">Mythique<strong>1 %</strong></div>
+    </div>
+    <div class="egg-drop-list">
+      <div class="egg-drop-row"><span>Mossy · Commun</span><b>17,5 %</b></div>
+      <div class="egg-drop-row"><span>Nyméa · Commun</span><b>17,5 %</b></div>
+      <div class="egg-drop-row"><span>Voltis · Commun</span><b>17,5 %</b></div>
+      <div class="egg-drop-row"><span>Brumee · Commun</span><b>17,5 %</b></div>
+      <div class="egg-drop-row"><span>Flamby · Rare</span><b>8 %</b></div>
+      <div class="egg-drop-row"><span>Crysal · Rare</span><b>7 %</b></div>
+      <div class="egg-drop-row"><span>Ferox · Rare</span><b>7 %</b></div>
+      <div class="egg-drop-row"><span>Nocty · Épique</span><b>3,5 %</b></div>
+      <div class="egg-drop-row"><span>Solka · Épique</span><b>3,5 %</b></div>
+      <div class="egg-drop-row"><span>Mimo · Mythique</span><b>1 %</b></div>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="card"><div class="level"><div><h2 id="creatureTitle">Ta créature</h2><div id="evolution" class="muted"></div></div><span id="subBadge" class="pill hidden">⭐ SUB +20 % XP</span></div><div class="creature-art" id="mainCreature"></div><div class="progress"><div id="xpbar" class="bar"></div></div><p id="levelText" class="muted"></p></div>
+  <div class="grid"><div class="card"><div class="muted">XP totale</div><div id="xp" class="stat">0</div></div><div class="card"><div class="muted">Points</div><div id="points" class="stat">0</div></div><div class="card"><div class="muted">Temps regardé</div><div id="watch" class="stat">0 <small>min</small></div></div></div>
+</div>
+
+</div></div>
+
+<!-- BIENVENUE DANS LE JEU -->
+<div id="gameIntroModal" class="game-intro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
+  <div class="game-intro-panel">
+    <div class="game-intro-icon">🥚</div>
+    <h2 id="gameIntroTitle">Bienvenue dans le Watch Game !</h2>
+    <p>Ton aventure commence avec un œuf mystérieux. Voici comment fonctionne ton départ.</p>
+    <div class="game-intro-steps">
+      <div class="game-intro-step">🥚 <b>1.</b> Ton œuf a besoin de <b>6 heures de présence cumulée</b> pendant les lives pour être prêt à éclore.</div>
+      <div class="game-intro-step">✨ <b>2.</b> Une fois prêt, clique sur <b>Faire éclore l'œuf</b> : ton compagnon sera tiré selon sa rareté.</div>
+      <div class="game-intro-step">⭐ <b>3.</b> Après l'éclosion, <b>1 h regardée = 100 XP + 10 points</b>. Si tu es abonné à la chaîne : <b>120 XP/h</b>. Ton compagnon montera de niveau et pourra évoluer.</div>
+    </div>
+    <div class="game-intro-rates">Commun 70 % · Rare 22 % · Épique 7 % · Mythique 1 %</div>
+    <button id="gameIntroClose" class="btn" type="button">J'ai compris</button>
+  </div>
+</div>
+
+<!-- GESTION DU COMPTE -->
+<div id="accountModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+  <div class="account-panel">
+    <div class="account-panel-head">
+      <h2 id="accountModalTitle">👤 Mon compte</h2>
+      <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="account-info-row">
+      <span class="account-info-label">Pseudo du joueur</span>
+      <div id="accountUsername" class="account-info-value">—</div>
+      <div class="account-username-edit">
+        <input id="accountUsernameInput" type="text" minlength="3" maxlength="24" autocomplete="off" placeholder="Nouveau pseudo">
+        <button id="accountUsernameSave" class="btn account-username-save" type="button">Modifier</button>
+      </div>
+      <div id="accountUsernameMessage" class="account-username-message"></div>
+    </div>
+    <div class="account-info-row">
+      <span class="account-info-label">Adresse e-mail</span>
+      <div id="accountEmail" class="account-info-value">—</div>
+    </div>
+    <div class="account-info-row">
+      <span class="account-info-label">Compte Twitch</span>
+      <div id="accountTwitch" class="account-info-value">—</div>
+    </div>
+
+    <div id="trackerAdminSection" class="tracker-admin hidden">
+      <span class="account-info-label">Tracker Twitch · diffuseur</span>
+      <div id="trackerStatus" class="tracker-status">Non configuré</div>
+      <p id="trackerDetail" class="tracker-help">Le tracker compte la présence des comptes liés dans le chat Twitch pendant les lives.</p>
+      <div class="tracker-actions">
+        <a id="trackerConnect" class="btn" href="/auth/twitch/tracker">Configurer le tracker</a>
+        <button id="trackerTest" class="btn secondary" type="button">Tester maintenant</button>
+      </div>
+    </div>
+
+    <div class="account-actions">
+      <button id="accountLogout" class="btn secondary" type="button">Déconnexion</button>
+    </div>
+
+    <div class="account-danger-zone">
+      <h3 class="account-danger-title">Gestion du jeu et du compte</h3>
+      <p class="account-danger-text">La réinitialisation garde ton compte et ton lien Twitch. La suppression du compte efface définitivement ton compte Watch Game et toute sa progression.</p>
+      <div class="account-actions">
+        <button id="resetGameButton" class="btn warning" type="button">↻ Réinitialiser le jeu</button>
+        <button id="deleteAccountButton" class="btn danger" type="button">🗑 Supprimer mon compte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMATION ACTION COMPTE -->
+<div id="confirmAccountModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmAccountTitle">
+  <div class="confirm-panel">
+    <div id="confirmAccountIcon" class="confirm-icon">⚠️</div>
+    <h2 id="confirmAccountTitle">Confirmation</h2>
+    <p id="confirmAccountMessage"></p>
+    <div id="confirmAccountError" class="confirm-error"></div>
+    <div class="confirm-actions">
+      <button id="confirmAccountCancel" class="btn secondary" type="button">Annuler</button>
+      <button id="confirmAccountAction" class="btn danger" type="button">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let me = null;
+let shouldShowGameIntro = false;
+
+const $ = id => document.getElementById(id);
+
+const authOverlay = $('authOverlay');
+const authHome = document.querySelector('.auth-home');
+const registerScreen = $('registerScreen');
+const loginScreen = $('loginScreen');
+const twitchScreen = $('twitchScreen');
+const registerForm = $('registerForm');
+const loginForm = $('loginForm');
+const registerError = $('registerError');
+const loginError = $('loginError');
+
+const loadingScreen = $('loadingScreen');
+  
+const successScreen = $('successScreen');
+const successTitle = $('successTitle');
+const successMessage = $('successMessage');
+const successAction = $('successAction');
+
+let successCallback = null;
+
+const homeMonsters = [
+  { id:'water', name:'Nyméa', type:'Abyssal', rarity:'Commun', chance:'17,5 %', image:'/Nymea.png', glow:'rgba(61,174,255,.30)', description:'Une créature aquatique vive qui maîtrise bulles, vagues et éclats d’eau.' },
+  { id:'plant', name:'Mossy', type:'Verdance', rarity:'Commun', chance:'17,5 %', image:'/Mossy.png', glow:'rgba(84,210,126,.28)', description:'Un compagnon de la forêt qui puise sa force dans la nature.' },
+  { id:'lightning', name:'Voltis', type:'Foudre', rarity:'Commun', chance:'17,5 %', image:'/Voltis.png', glow:'rgba(255,220,70,.30)', description:'Une petite créature vive chargée d’une énergie électrique.' },
+  { id:'mist', name:'Brumee', type:'Brume', rarity:'Commun', chance:'17,5 %', image:'/Brumee.png', glow:'rgba(190,200,230,.25)', description:'Une créature légère et mystérieuse enveloppée de brume magique.' },
+  { id:'fire', name:'Flamby', type:'Cendre', rarity:'Rare', chance:'8 %', image:'/Flamby.png', glow:'rgba(255,123,58,.30)', description:'Un petit compagnon ardent qui transforme chaque combat en étincelles.' },
+  { id:'crystal', name:'Crysal', type:'Cristal', rarity:'Rare', chance:'7 %', image:'/Crysal.png', glow:'rgba(120,230,255,.28)', description:'Une créature lumineuse dont le corps semble taillé dans le cristal.' },
+  { id:'forge', name:'Ferox', type:'Forge', rarity:'Rare', chance:'7 %', image:'/Ferox.png', glow:'rgba(255,140,70,.28)', description:'Une créature robuste marquée par le métal et la chaleur de la forge.' },
+  { id:'dark', name:'Nocty', type:'Néant', rarity:'Épique', chance:'3,5 %', image:'/Nocty.png', glow:'rgba(160,89,255,.32)', description:'Une petite créature lunaire entourée d’une énergie mystérieuse.' },
+  { id:'solar', name:'Solka', type:'Solaire', rarity:'Épique', chance:'3,5 %', image:'/Solka.png', glow:'rgba(255,210,80,.30)', description:'Une créature rayonnante imprégnée d’une énergie solaire.' },
+  { id:'dream', name:'Mimo', type:'Mirage', rarity:'Mythique', chance:'1 %', image:'/Mimo.png', glow:'rgba(255,126,218,.28)', description:'Un compagnon onirique qui combat avec une magie douce et lumineuse.' }
+];
+let homeMonsterIndex = 0;
+
+function renderHomeMonster() {
+  const monster = homeMonsters[homeMonsterIndex];
+  const card = $('carouselCard');
+  if (!card) return;
+  card.style.setProperty('--monster-glow', monster.glow);
+  $('carouselMonster').src = monster.image;
+  $('carouselMonster').alt = monster.name;
+  $('carouselName').textContent = monster.name;
+  $('carouselType').textContent = monster.type;
+  $('carouselDrop').textContent = `${monster.rarity} • ${monster.chance}`;
+  $('carouselDescription').textContent = monster.description;
+  document.querySelectorAll('.carousel-dot').forEach((dot, index) => {
+    dot.classList.toggle('active', index === homeMonsterIndex);
+  });
+}
+
+function moveHomeCarousel(direction) {
+  homeMonsterIndex = (homeMonsterIndex + direction + homeMonsters.length) % homeMonsters.length;
+  renderHomeMonster();
+}
+
+const dotsContainer = $('carouselDots');
+if (dotsContainer) {
+  dotsContainer.innerHTML = homeMonsters.map((monster, index) =>
+    `<button class="carousel-dot${index === 0 ? ' active' : ''}" type="button" aria-label="Afficher ${monster.name}" data-index="${index}"></button>`
+  ).join('');
+  dotsContainer.addEventListener('click', event => {
+    const dot = event.target.closest('.carousel-dot');
+    if (!dot) return;
+    homeMonsterIndex = Number(dot.dataset.index);
+    renderHomeMonster();
+  });
+}
+$('carouselPrev')?.addEventListener('click', () => moveHomeCarousel(-1));
+$('carouselNext')?.addEventListener('click', () => moveHomeCarousel(1));
+  
+  const carouselCard = $('carouselCard');
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+if (carouselCard) {
+
+  carouselCard.addEventListener('touchstart', event => {
+    touchStartX = event.changedTouches[0].screenX;
+  }, { passive: true });
+
+  carouselCard.addEventListener('touchend', event => {
+    touchEndX = event.changedTouches[0].screenX;
+
+    const swipeDistance = touchEndX - touchStartX;
+
+    // Évite qu'un petit mouvement du doigt change de monstre
+    if (Math.abs(swipeDistance) < 50) return;
+
+    // Swipe vers la gauche = monstre suivant
+    if (swipeDistance < 0) {
+      moveHomeCarousel(1);
+    }
+
+    // Swipe vers la droite = monstre précédent
+    if (swipeDistance > 0) {
+      moveHomeCarousel(-1);
+    }
+  }, { passive: true });
+
+}
+renderHomeMonster();
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function creatureById(id) {
+  return me?.creatures?.find(c => c.id === id);
+}
+
+function art(type, evo = 0, small = false) {
+  const monsterImages = {
+    fire: '/Flamby.png',
+    water: '/Nymea.png',
+    plant: '/Mossy.png',
+    dark: '/Nocty.png',
+    dream: '/Mimo.png',
+    voltis: '/Voltis.png',
+    crysal: '/Crysal.png',
+    brumee: '/Brumee.png',
+    solka: '/Solka.png',
+    ferox: '/Ferox.png'
+  };
+
+  const monsterNames = {
+    fire: 'Flamby',
+    water: 'Nyméa',
+    plant: 'Mossy',
+    dark: 'Nocty',
+    dream: 'Mimo',
+    voltis: 'Voltis',
+    crysal: 'Crysal',
+    brumee: 'Brumee',
+    solka: 'Solka',
+    ferox: 'Ferox'
+  };
+
+  const image = monsterImages[type];
+  if (!image) return '';
+
+  return `
+    <img
+      src="${image}"
+      alt="${monsterNames[type]}"
+      class="${small ? 'monster-image-small' : 'monster-image'}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+    >
+    <div class="monster-placeholder">Image de ${monsterNames[type]}<br>à ajouter</div>
+  `;
+}
+  
+function showLoading(
+  title = 'Connexion en cours...',
+  message = 'Vérification de ton compte'
+) {
+
+  $('loadingTitle').textContent = title;
+  $('loadingMessage').textContent = message;
+
+  authOverlay.classList.remove('hidden');
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+
+  loadingScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+
+
+function hideLoading() {
+  loadingScreen.classList.add('hidden');
+}
+  
+function showSuccess(title, message, buttonText, callback) {
+
+  successTitle.textContent = title;
+  successMessage.textContent = message;
+  successAction.textContent = buttonText;
+
+  successCallback = callback;
+
+  authOverlay.classList.remove('hidden');
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+
+  successScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+  successAction.addEventListener('click', async () => {
+
+  successScreen.classList.add('hidden');
+
+  const callback = successCallback;
+  successCallback = null;
+
+  if (callback) {
+    await callback();
+  }
+
+});
+  
+function showAuthHome() {
+  authOverlay.classList.remove('hidden');
+  authHome.style.display = 'flex';
+  
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+  loadingScreen.classList.add('hidden');
+  
+  document.body.classList.add('auth-locked');
+}
+
+function showTwitchLink(message = 'Ton compte est connecté. Il reste à lier ton compte Twitch pour continuer.') {
+  $('twitchMessage').textContent = message;
+  authOverlay.classList.remove('hidden');
+  authHome.style.display = 'none';
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.remove('hidden');
+  document.body.classList.add('auth-locked');
+}
+
+function showGame() {
+  authOverlay.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  document.body.classList.remove('auth-locked');
+}
+
+async function refreshAccountState() {
+  try {
+    const response = await fetch('/api/account/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Impossible de charger le compte.');
+    }
+
+    if (!data.authenticated) {
+      showAuthHome();
+      return;
+    }
+
+    // Un compte peut avoir twitch_id en base mais pas encore de session jeu
+    // (ex. nouvelle connexion sur un autre navigateur). Le serveur restaure
+    // désormais automatiquement cette session via gameReady.
+    if (!data.account.twitchConnected || !data.account.gameReady) {
+      showTwitchLink();
+      return;
+    }
+
+    shouldShowGameIntro = Boolean(data.account.showGameIntro);
+
+    showGame();
+    await loadGame();
+
+  } catch (error) {
+    console.error('Erreur état compte :', error);
+    showAuthHome();
+  }
+}
+
+async function loadGame() {
+  try {
+    const response = await fetch('/api/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok || !data.authenticated) {
+      $('app').classList.add('hidden');
+      return;
+    }
+
+    me = data;
+    $('app').classList.remove('hidden');
+    $('welcome').textContent = `Bienvenue ${me.user.game_username || me.user.display_name}`;
+    $('topUser').innerHTML = me.user.is_sub
+      ? '<span class="pill sub">⭐ Sub</span>'
+      : '';
+
+    renderGame();
+  } catch (error) {
+    console.error('Erreur chargement jeu :', error);
+  }
+}
+
+function formatEggTime(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  return `${hours} h ${String(minutes).padStart(2, '0')}`;
+}
+
+function updateEgg(egg) {
+  if (!egg) return;
+
+  $('eggProgressBar').style.width = `${Math.max(0, Math.min(100, egg.progress || 0))}%`;
+  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+
+  if (egg.ready) {
+    $('eggStatus').textContent = 'Ton œuf est prêt ! Tu peux maintenant le faire éclore.';
+    $('eggStatus').classList.add('egg-ready');
+    $('hatchEgg').disabled = false;
+  } else {
+    $('eggStatus').textContent = `Encore ${formatEggTime(egg.remainingSeconds)} avant l’éclosion.`;
+    $('eggStatus').classList.remove('egg-ready');
+    $('hatchEgg').disabled = true;
+  }
+}
+
+function maybeShowGameIntro() {
+  // L'introduction s'affiche uniquement pour un nouveau compte,
+  // après sa toute première liaison Twitch. Elle ne se réaffiche pas
+  // lors des connexions suivantes ni après une réinitialisation du jeu.
+  if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
+
+  $('gameIntroModal')?.classList.remove('hidden');
+}
+
+async function closeGameIntro() {
+  $('gameIntroModal')?.classList.add('hidden');
+
+  if (!shouldShowGameIntro) return;
+  shouldShowGameIntro = false;
+
+  try {
+    await fetch('/api/account/intro-seen', { method: 'POST' });
+  } catch (error) {
+    console.error('Erreur sauvegarde introduction :', error);
+  }
+}
+
+$('infoButton')?.addEventListener('click', () => {
+  // Aide ouverte manuellement pour tous les joueurs.
+  // Cela ne modifie pas le statut de nouveau joueur.
+  $('gameIntroModal')?.classList.remove('hidden');
+});
+
+$('gameIntroClose')?.addEventListener('click', closeGameIntro);
+$('gameIntroModal')?.addEventListener('click', event => {
+  if (event.target.id === 'gameIntroModal') closeGameIntro();
+});
+
+function renderGame() {
+  if (!me?.user) return;
+
+  if (me.user.creature_id) {
+    $('pick').classList.add('hidden');
+    $('game').classList.remove('hidden');
+    updateStats(me.user);
+    return;
+  }
+
+  $('pick').classList.remove('hidden');
+  $('game').classList.add('hidden');
+  updateEgg(me.user.egg);
+  maybeShowGameIntro();
+}
+
+async function hatchEgg() {
+  const button = $('hatchEgg');
+  if (button.disabled) return;
+
+  button.disabled = true;
+  button.textContent = 'Éclosion...';
+
+  try {
+    const response = await fetch('/api/egg/hatch', { method: 'POST' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (data.egg) updateEgg(data.egg);
+      alert(data.error || 'Impossible de faire éclore l’œuf.');
+      return;
+    }
+
+    const creature = data.creature;
+
+    showSuccess(
+      `${creature.name} est né !`,
+      `Tu as obtenu ${creature.name} · ${creature.type} · ${creature.rarity} (${String(creature.dropRate).replace('.', ',')} %).`,
+      'Découvrir mon compagnon',
+      async () => {
+        showGame();
+        await loadGame();
+      }
+    );
+  } catch (error) {
+    console.error('Erreur éclosion :', error);
+    alert('Impossible de contacter le serveur.');
+  } finally {
+    button.textContent = "Faire éclore l'œuf";
+    if (me?.user?.egg?.ready) button.disabled = false;
+  }
+}
+
+$('hatchEgg')?.addEventListener('click', hatchEgg);
+
+function updateStats(u) {
+  const p = u.progression;
+  const c = creatureById(u.creature_id);
+  if (!c) return;
+
+  $('creatureTitle').textContent = `${c.name} — niveau ${p.level}`;
+  $('evolution').textContent = p.evolutionName;
+  $('mainCreature').innerHTML = art(c.id, p.evolution);
+  $('xp').textContent = Math.floor(u.xp);
+  $('points').textContent = Math.floor(u.points);
+  $('watch').innerHTML = `${Math.floor(u.watch_seconds / 60)} <small>min</small>`;
+
+  const pct = p.maxLevel
+    ? 100
+    : Math.max(0, Math.min(100,
+        ((u.xp - p.currentThreshold) /
+        (p.nextThreshold - p.currentThreshold)) * 100
+      ));
+
+  $('xpbar').style.width = pct + '%';
+  $('levelText').textContent = p.maxLevel
+    ? 'Niveau maximum atteint · XP continue à être enregistrée'
+    : `${Math.floor(u.xp - p.currentThreshold)} / ${Math.ceil(p.nextThreshold - p.currentThreshold)} XP pour le niveau suivant`;
+
+  $('subBadge').classList.toggle('hidden', !u.is_sub);
+}
+
+async function loadLeaderboard() {
+  const container = $('leaderboard');
+
+  try {
+    const response = await fetch('/api/leaderboard', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!data.leaderboard || data.leaderboard.length === 0) {
+      container.innerHTML = '<p class="muted">Aucun joueur pour le moment.</p>';
+      return;
+    }
+
+    container.innerHTML = data.leaderboard.map(playerData => {
+      let rank = '#' + playerData.rank;
+      if (playerData.rank === 1) rank = '🥇';
+      if (playerData.rank === 2) rank = '🥈';
+      if (playerData.rank === 3) rank = '🥉';
+
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid var(--line);">
+          <div style="font-weight:800;">
+            ${rank} ${escapeHtml(playerData.display_name)} ${playerData.is_sub ? '⭐' : ''}
+          </div>
+          <div class="muted" style="font-size:12px;">
+            Niveau ${playerData.progression.level} • ${Math.floor(playerData.xp)} XP
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Erreur classement :', error);
+    container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>';
+  }
+}
+
+function clearAuthErrors() {
+  registerError.style.display = 'none';
+  loginError.style.display = 'none';
+}
+
+$('showRegister').addEventListener('click', () => {
+  clearAuthErrors();
+  authHome.style.display = 'none';
+  registerScreen.classList.remove('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+});
+
+$('showLogin').addEventListener('click', () => {
+  clearAuthErrors();
+  authHome.style.display = 'none';
+  loginScreen.classList.remove('hidden');
+  registerScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+});
+
+$('backFromRegister').addEventListener('click', showAuthHome);
+$('backFromLogin').addEventListener('click', showAuthHome);
+
+registerForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  registerError.style.display = 'none';
+
+  showLoading(
+    'Création du compte...',
+    'Préparation de ton aventure'
+  );
+
+  const loadingStart = Date.now();
+
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: $('registerUsername').value,
+        email: $('registerEmail').value,
+        password: $('registerPassword').value
+      })
+    });
+
+    const data = await response.json();
+
+    const elapsed = Date.now() - loadingStart;
+    if (elapsed < 300) {
+      await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
+    }
+
+    hideLoading();
+
+    if (!response.ok) {
+      registerScreen.classList.remove('hidden');
+      registerError.textContent = data.error || 'Impossible de créer le compte.';
+      registerError.style.display = 'block';
+      return;
+    }
+
+    registerForm.reset();
+
+    showSuccess(
+      'Inscription réussie !',
+      'Ton compte a bien été créé. Il ne te reste plus qu’à connecter ton compte Twitch pour commencer l’aventure.',
+      'Connecter Twitch',
+      () => {
+        showTwitchLink();
+      }
+    );
+  } catch (error) {
+    hideLoading();
+    registerScreen.classList.remove('hidden');
+    console.error(error);
+    registerError.textContent = 'Impossible de contacter le serveur.';
+    registerError.style.display = 'block';
+  }
+});
+
+loginForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  loginError.style.display = 'none';
+
+  showLoading(
+    'Connexion en cours...',
+    'Vérification de ton compte'
+  );
+
+const loadingStart = Date.now();
+
+  try {
+    const response = await fetch('/api/account/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: $('loginEmail').value,
+        password: $('loginPassword').value
+      })
+    });
+
+    const data = await response.json();
+    const elapsed = Date.now() - loadingStart;
+
+if (elapsed < 300) {
+  await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
+}
+
+hideLoading();
+
+    if (!response.ok) {
+      loginScreen.classList.remove('hidden');
+      
+      loginError.textContent = data.error || 'Connexion impossible.';
+      loginError.style.display = 'block';
+      return;
+    }
+
+    loginForm.reset();
+
+if (!data.account?.twitchConnected || !data.account?.gameReady) {
+
+  showSuccess(
+    'Connexion réussie !',
+    'Tu es bien connecté. Il ne te reste plus qu’à connecter ton compte Twitch.',
+    'Connecter Twitch',
+    () => {
+      showTwitchLink();
+    }
+  );
+
+  return;
+}
+
+showSuccess(
+  'Connexion réussie !',
+  'Bon retour dans le Watch Game. Ton monstre t’attend !',
+  'Entrer dans le jeu',
+  async () => {
+    showGame();
+    await loadGame();
+  }
+);
+  } catch (error) {
+
+  hideLoading();
+
+  loginScreen.classList.remove('hidden');
+
+  console.error(error);
+
+  loginError.textContent = 'Impossible de contacter le serveur.';
+  loginError.style.display = 'block';
+}
+});
+
+
+
+async function loadTrackerStatus() {
+  const section = $('trackerAdminSection');
+  const status = $('trackerStatus');
+  const detail = $('trackerDetail');
+  const connect = $('trackerConnect');
+  const test = $('trackerTest');
+  if (!section || !status || !detail || !connect || !test) return;
+
+  try {
+    const response = await fetch('/api/tracker/status', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Statut indisponible');
+    }
+
+    if (!data.authorized) {
+      status.textContent = '⚠️ Non configuré';
+      detail.textContent = 'Autorise une seule fois le compte Twitch diffuseur pour permettre au serveur de lire la liste des personnes présentes dans le chat.';
+      connect.textContent = 'Configurer le tracker';
+      test.disabled = true;
+      return;
+    }
+
+    status.textContent = data.error
+      ? '⚠️ Tracker à vérifier'
+      : data.live
+        ? '🟢 Live détecté · tracker actif'
+        : '⚪ Chaîne hors ligne';
+
+    const matched = Number(data.matchedCount || 0);
+    const chatters = Number(data.chatterCount || 0);
+    detail.textContent = data.error
+      ? `Dernière erreur : ${data.error}`
+      : data.live
+        ? `${chatters} personne(s) dans le chat · ${matched} compte(s) Watch Game reconnu(s).`
+        : 'Le temps sera compté automatiquement lorsque la chaîne sera en live.';
+
+    connect.textContent = 'Reconnecter le tracker';
+    test.disabled = false;
+  } catch (error) {
+    status.textContent = '⚠️ Statut indisponible';
+    detail.textContent = error.message || 'Impossible de charger le tracker.';
+    test.disabled = true;
+  }
+}
+
+$('trackerTest')?.addEventListener('click', async () => {
+  const button = $('trackerTest');
+  if (!button) return;
+
+  button.disabled = true;
+  button.textContent = 'Test...';
+
+  try {
+    const response = await fetch('/api/tracker/run-now', { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || 'Test impossible');
+    }
+    await loadTrackerStatus();
+  } catch (error) {
+    $('trackerStatus').textContent = '⚠️ Test échoué';
+    $('trackerDetail').textContent = error.message || 'Impossible de tester le tracker.';
+  } finally {
+    button.textContent = 'Tester maintenant';
+    button.disabled = false;
+  }
+});
+
+
+async function openAccountModal() {
+  const modal = $('accountModal');
+  const usernameValue = $('accountUsername');
+  const usernameInput = $('accountUsernameInput');
+  const usernameButton = $('accountUsernameSave');
+  const usernameMessage = $('accountUsernameMessage');
+
+  if (!modal || !usernameValue || !usernameInput || !usernameButton || !usernameMessage) return;
+
+  modal.classList.remove('hidden');
+  usernameValue.textContent = 'Chargement...';
+  usernameInput.value = '';
+  usernameInput.disabled = true;
+  usernameButton.disabled = true;
+  usernameMessage.className = 'account-username-message';
+  usernameMessage.textContent = '';
+  $('accountEmail').textContent = 'Chargement...';
+  $('accountTwitch').textContent = 'Chargement...';
+
+  try {
+    const response = await fetch('/api/account/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok || !data.authenticated) {
+      throw new Error(data.error || 'Compte introuvable');
+    }
+
+    const username = data.account.username || '—';
+    usernameValue.textContent = username;
+    usernameInput.value = data.account.username || '';
+    usernameInput.disabled = false;
+    usernameButton.disabled = false;
+    $('accountEmail').textContent = data.account.email || '—';
+    $('accountTwitch').textContent = data.account.twitchConnected
+      ? (me?.user?.login ? `Connecté · ${me.user.login}` : 'Connecté')
+      : 'Non connecté';
+
+
+    const trackerSection = $('trackerAdminSection');
+    if (trackerSection) {
+      trackerSection.classList.toggle('hidden', !data.account.isBroadcaster);
+      if (data.account.isBroadcaster) {
+        await loadTrackerStatus();
+      }
+    }
+  } catch (error) {
+    console.error('Erreur chargement compte :', error);
+    usernameValue.textContent = '—';
+    usernameInput.value = '';
+    usernameInput.disabled = true;
+    usernameButton.disabled = true;
+    usernameMessage.textContent = 'Impossible de charger le compte.';
+    usernameMessage.classList.add('error');
+    $('accountEmail').textContent = '—';
+    $('accountTwitch').textContent = '—';
+  }
+}
+
+async function saveAccountUsername() {
+  const input = $('accountUsernameInput');
+  const button = $('accountUsernameSave');
+  const message = $('accountUsernameMessage');
+  if (!input || !button || !message) return;
+
+  const username = input.value.trim();
+  message.className = 'account-username-message';
+  message.textContent = '';
+
+  if (username.length < 3 || username.length > 24) {
+    message.textContent = 'Le pseudo doit contenir entre 3 et 24 caractères.';
+    message.classList.add('error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = '...';
+
+  try {
+    const response = await fetch('/api/account/username', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Impossible de modifier le pseudo.');
+    }
+
+    $('accountUsername').textContent = data.username;
+    input.value = data.username;
+    message.textContent = '✓ Pseudo modifié avec succès.';
+    message.classList.add('success');
+
+    if (me?.user) {
+      me.user.display_name = data.username;
+      $('welcome').textContent = `Bienvenue ${data.username}`;
+    }
+
+    await loadLeaderboard();
+  } catch (error) {
+    message.textContent = error.message || 'Impossible de modifier le pseudo.';
+    message.classList.add('error');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Modifier';
+  }
+}
+
+$('accountUsernameSave')?.addEventListener('click', saveAccountUsername);
+$('accountUsernameInput')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    saveAccountUsername();
+  }
+});
+
+function closeAccountModal() {
+  $('accountModal')?.classList.add('hidden');
+}
+
+$('accountButton')?.addEventListener('click', openAccountModal);
+$('accountClose')?.addEventListener('click', closeAccountModal);
+
+// Ferme la fenêtre seulement si le clic commence ET se termine sur le fond.
+// Ainsi, sélectionner du texte dans la fenêtre puis relâcher la souris dehors
+// ne ferme plus "Mon compte".
+let accountBackdropMouseDown = false;
+
+$('accountModal')?.addEventListener('mousedown', event => {
+  accountBackdropMouseDown = event.target.id === 'accountModal';
+});
+
+$('accountModal')?.addEventListener('mouseup', event => {
+  const endedOnBackdrop = event.target.id === 'accountModal';
+
+  if (accountBackdropMouseDown && endedOnBackdrop) {
+    closeAccountModal();
+  }
+
+  accountBackdropMouseDown = false;
+});
+
+$('accountModal')?.addEventListener('mouseleave', () => {
+  accountBackdropMouseDown = false;
+});
+
+$('accountLogout')?.addEventListener('click', async () => {
+  await fetch('/api/account/logout', { method: 'POST' });
+  location.reload();
+});
+
+let pendingAccountAction = null;
+
+function openAccountConfirmation({ title, message, buttonText, mode }) {
+  pendingAccountAction = mode;
+  $('confirmAccountTitle').textContent = title;
+  $('confirmAccountMessage').textContent = message;
+  $('confirmAccountAction').textContent = buttonText;
+  $('confirmAccountAction').className = mode === 'reset' ? 'btn warning' : 'btn danger';
+  $('confirmAccountIcon').textContent = mode === 'reset' ? '↻' : '⚠️';
+  $('confirmAccountError').style.display = 'none';
+  $('confirmAccountError').textContent = '';
+  $('confirmAccountModal').classList.remove('hidden');
+}
+
+function closeAccountConfirmation() {
+  pendingAccountAction = null;
+  $('confirmAccountModal')?.classList.add('hidden');
+}
+
+$('resetGameButton')?.addEventListener('click', () => {
+  openAccountConfirmation({
+    title: 'Réinitialiser le jeu ?',
+    message: 'Ton compte et ton lien Twitch seront conservés. Ton monstre, ton œuf, ton XP, tes points et ton temps de jeu seront remis à zéro. Cette action est définitive.',
+    buttonText: 'Oui, réinitialiser',
+    mode: 'reset'
+  });
+});
+
+$('deleteAccountButton')?.addEventListener('click', () => {
+  openAccountConfirmation({
+    title: 'Supprimer définitivement le compte ?',
+    message: 'Ton compte Watch Game, ton lien Twitch, ton monstre, ton XP, tes points et ton temps de jeu seront supprimés définitivement. Cette action est irréversible.',
+    buttonText: 'Supprimer définitivement',
+    mode: 'delete'
+  });
+});
+
+$('confirmAccountCancel')?.addEventListener('click', closeAccountConfirmation);
+$('confirmAccountModal')?.addEventListener('click', event => {
+  if (event.target.id === 'confirmAccountModal') closeAccountConfirmation();
+});
+
+$('confirmAccountAction')?.addEventListener('click', async () => {
+  if (!pendingAccountAction) return;
+
+  const action = pendingAccountAction;
+  const button = $('confirmAccountAction');
+  const errorBox = $('confirmAccountError');
+
+  button.disabled = true;
+  const oldText = button.textContent;
+  button.textContent = 'Traitement...';
+  errorBox.style.display = 'none';
+
+  try {
+    const response = await fetch(
+      action === 'reset' ? '/api/account/reset-game' : '/api/account',
+      { method: action === 'reset' ? 'POST' : 'DELETE' }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Action impossible.');
+    }
+
+    closeAccountConfirmation();
+    closeAccountModal();
+
+    if (action === 'delete') {
+      location.href = '/';
+      return;
+    }
+
+    location.reload();
+  } catch (error) {
+    console.error('Erreur action compte :', error);
+    errorBox.textContent = error.message || 'Action impossible.';
+    errorBox.style.display = 'block';
+  } finally {
+    button.disabled = false;
+    button.textContent = oldText;
+  }
+});
+
+$('logout')?.addEventListener('click', async () => {
+  await fetch('/api/account/logout', { method: 'POST' });
+  location.reload();
+});
+
+loadLeaderboard();
+refreshAccountState();
+
+// Actualise l'œuf, le temps, l'XP et les points pendant que la page du jeu est ouverte.
+setInterval(() => {
+  if (me?.user) loadGame();
+}, 60000);
+</script></body></html>
