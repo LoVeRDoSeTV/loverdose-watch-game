@@ -1,0 +1,3198 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LoVeRDoSe — Watch Game</title>
+<style>
+:root{--bg:#0b0d18;--card:#15192b;--line:#292f4b;--purple:#9147ff;--text:#f7f7fb;--muted:#9ea6c3}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#17132b 0,#0b0d18 48%);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif}.wrap{max-width:1120px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;align-items:center;gap:16px}.logo{font-size:28px;font-weight:900}.card{background:rgba(21,25,43,.94);border:1px solid var(--line);border-radius:20px;padding:20px;margin:16px 0;box-shadow:0 14px 40px #0003}.btn{border:0;border-radius:12px;padding:12px 17px;background:var(--purple);color:white;font-weight:800;cursor:pointer;text-decoration:none}.btn.secondary{background:#252a43}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}.creature{cursor:pointer;text-align:center;transition:.15s}.creature:hover{transform:translateY(-3px);border-color:#7650bd}.creature.selected{outline:2px solid var(--purple)}.muted{color:var(--muted)}.hidden{display:none}.stat{font-size:30px;font-weight:900}.stat small{font-size:13px;color:var(--muted)}.progress{height:13px;background:#292f4b;border-radius:999px;overflow:hidden}.bar{height:100%;background:linear-gradient(90deg,#9147ff,#c08cff);width:0;transition:width .3s}.creature-art{height:150px;display:flex;align-items:center;justify-content:center}.creature-art svg{width:150px;height:150px}.pill{display:inline-block;padding:6px 10px;border-radius:999px;background:#252a43;font-size:12px;font-weight:800}.sub{background:#5d2ca5}.level{display:flex;align-items:center;justify-content:space-between;gap:12px}.notice{padding:12px 14px;border-radius:12px;background:#111528;border:1px solid var(--line)}
+
+  /* CLASSEMENT FIXE À GAUCHE */
+.global-leaderboard{
+  position:fixed;
+  top:0;
+  left:0;
+  width:280px;
+  height:100vh;
+  padding:20px;
+  background:#111528;
+  border-right:1px solid var(--line);
+  overflow-y:auto;
+  z-index:1000;
+}
+
+.global-leaderboard h2{
+  margin-top:0;
+  margin-bottom:20px;
+}
+
+#leaderboard table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+#leaderboard th,
+#leaderboard td{
+  padding:8px 4px;
+  font-size:13px;
+  border-bottom:1px solid var(--line);
+  text-align:left;
+}
+
+/* Décale le site pour laisser la place au classement */
+body{
+  padding-left:280px;
+}
+
+@media(max-width:900px){
+  .global-leaderboard{
+    position:static;
+    width:100%;
+    height:auto;
+  }
+
+  body{
+    padding-left:0;
+  }
+}
+/* Images des nouveaux monstres */
+
+.monster-image{
+  width:100%;
+  max-width:180px;
+  height:180px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+  transition:transform .25s ease, filter .25s ease;
+}
+
+.monster-image-small{
+  width:100%;
+  max-width:220px;
+  height:220px;
+  object-fit:contain;
+  display:block;
+  margin:auto;
+}
+
+.creature:hover .monster-image{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
+}
+.creature:hover .monster-image{
+  transform:scale(1.08);
+  filter:drop-shadow(0 0 15px rgba(145,71,255,.45));
+}
+
+
+/* =========================================
+   ACCUEIL / AUTHENTIFICATION
+========================================= */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  min-height: 100dvh;
+  z-index: 999999;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(145,71,255,.18), transparent 34%),
+    radial-gradient(circle at 18% 82%, rgba(71,139,255,.10), transparent 30%),
+    linear-gradient(180deg, #090b16 0%, #0d1020 55%, #090b16 100%);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+}
+
+.auth-overlay.hidden { display:none; }
+
+body.auth-locked { overflow:hidden; }
+
+body.auth-locked .global-leaderboard,
+body.auth-locked .wrap { visibility:hidden; }
+
+.auth-home {
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 34px 20px 44px;
+}
+
+.home-shell {
+  width: min(1080px, 100%);
+  text-align: center;
+}
+
+.home-kicker {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:7px 12px;
+  border:1px solid rgba(145,71,255,.32);
+  border-radius:999px;
+  background:rgba(145,71,255,.08);
+  color:#cbb5ff;
+  font-size:12px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.home-title {
+  margin:16px 0 8px;
+  font-size:clamp(34px, 6vw, 68px);
+  line-height:.98;
+  font-weight:950;
+  letter-spacing:-.04em;
+}
+
+.home-title span { color:#a873ff; }
+
+.home-subtitle {
+  margin:0 auto 22px;
+  max-width:680px;
+  color:#aeb5d1;
+  font-size:clamp(15px, 2vw, 18px);
+}
+
+.home-carousel {
+  position:relative;
+  display:grid;
+  grid-template-columns:70px minmax(0, 1fr) 70px;
+  align-items:center;
+  gap:10px;
+  width:min(760px, 100%);
+  margin:0 auto;
+}
+
+.carousel-card {
+  position:relative;
+  min-height:390px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:18px 24px 20px;
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:28px;
+  background:rgba(16,20,39,.72);
+  box-shadow:0 24px 80px rgba(0,0,0,.34);
+  overflow:hidden;
+}
+
+.carousel-card::before {
+  content:'';
+  position:absolute;
+  inset:0;
+  background:radial-gradient(circle at 50% 42%, var(--monster-glow, rgba(145,71,255,.24)), transparent 38%);
+  pointer-events:none;
+}
+
+.carousel-monster {
+  position:relative;
+  width:min(330px, 70vw);
+  height:260px;
+  object-fit:contain;
+  filter:drop-shadow(0 22px 35px rgba(0,0,0,.35));
+  animation:homeFloat 3.2s ease-in-out infinite;
+}
+
+@keyframes homeFloat {
+  0%,100% { transform:translateY(0); }
+  50% { transform:translateY(-8px); }
+}
+
+.carousel-name {
+  position:relative;
+  margin:4px 0 2px;
+  font-size:30px;
+  font-weight:950;
+}
+
+.carousel-type {
+  position:relative;
+  margin-bottom:8px;
+  color:#cbb5ff;
+  font-size:13px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.12em;
+}
+
+.carousel-drop {
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  margin:0 0 10px;
+  padding:6px 10px;
+  border-radius:999px;
+  background:rgba(145,71,255,.12);
+  border:1px solid rgba(145,71,255,.28);
+  color:#e7dcff;
+  font-size:12px;
+  font-weight:850;
+}
+
+.carousel-description {
+  position:relative;
+  margin:0;
+  min-height:42px;
+  max-width:500px;
+  color:#aeb5d1;
+  font-size:14px;
+}
+
+.carousel-arrow {
+  width:56px;
+  height:56px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:50%;
+  background:rgba(20,24,45,.86);
+  color:white;
+  font-size:28px;
+  font-weight:800;
+  cursor:pointer;
+  transition:transform .18s ease, background .18s ease, border-color .18s ease;
+}
+
+.carousel-arrow:hover {
+  transform:scale(1.06);
+  background:rgba(145,71,255,.28);
+  border-color:rgba(145,71,255,.55);
+}
+
+.carousel-dots {
+  display:flex;
+  justify-content:center;
+  gap:8px;
+  margin:15px 0 20px;
+}
+
+.carousel-dot {
+  width:8px;
+  height:8px;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:#343a57;
+  cursor:pointer;
+}
+.carousel-dot.active { background:#a873ff; transform:scale(1.25); }
+
+.auth-home-buttons {
+  display:flex;
+  justify-content:center;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.auth-main-button {
+  min-width:190px;
+  padding:14px 28px;
+  border:1px solid rgba(145,71,255,.8);
+  border-radius:14px;
+  background:rgba(145,71,255,.96);
+  color:white;
+  font-size:16px;
+  font-weight:850;
+  cursor:pointer;
+  box-shadow:0 10px 30px rgba(145,71,255,.18);
+}
+
+.auth-main-button.secondary {
+  background:rgba(18,22,42,.92);
+  border-color:rgba(255,255,255,.14);
+}
+
+@media(max-width:700px) {
+  .auth-home {
+    align-items:flex-start;
+    padding:24px 14px 34px;
+  }
+  .home-title { margin-top:13px; }
+  .home-subtitle { margin-bottom:16px; }
+  .home-carousel {
+    grid-template-columns:44px minmax(0,1fr) 44px;
+    gap:5px;
+  }
+  .carousel-card {
+    min-height:340px;
+    padding:12px 12px 16px;
+    border-radius:22px;
+  }
+  .carousel-monster {
+    width:min(250px, 64vw);
+    height:215px;
+  }
+  .carousel-name { font-size:25px; }
+  .carousel-description { font-size:13px; min-height:38px; }
+  .carousel-arrow { width:42px; height:42px; font-size:22px; }
+  .auth-home-buttons {
+    width:100%;
+    padding-bottom:max(8px, env(safe-area-inset-bottom));
+  }
+  .auth-main-button {
+    min-width:0;
+    flex:1 1 145px;
+    max-width:260px;
+  }
+}
+
+@media(max-height:720px) {
+  .auth-home { align-items:flex-start; }
+  .carousel-card { min-height:300px; }
+  .carousel-monster { height:185px; }
+}
+
+.auth-screen {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(5, 7, 20, 0.45);
+  backdrop-filter: blur(6px);
+}
+
+.auth-screen.hidden {
+  display: none;
+}
+
+.auth-box {
+  width: 100%;
+  max-width: 420px;
+
+  padding: 28px;
+
+  background: rgba(12, 15, 32, 0.92);
+
+  border: 1px solid rgba(145, 71, 255, 0.65);
+  border-radius: 18px;
+
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.auth-box h2 {
+  margin: 0 0 22px;
+  text-align: center;
+}
+
+.auth-field {
+  margin-bottom: 14px;
+}
+
+.auth-field label {
+  display: block;
+
+  margin-bottom: 6px;
+
+  color: #d6d9eb;
+  font-size: 13px;
+}
+
+.auth-field input {
+  width: 100%;
+
+  padding: 12px 13px;
+
+  border: 1px solid #343b5f;
+  border-radius: 10px;
+
+  background: rgba(5, 8, 20, 0.92);
+  color: white;
+
+  outline: none;
+}
+
+.auth-field input:focus {
+  border-color: #9147ff;
+}
+
+.auth-submit {
+  width: 100%;
+
+  padding: 13px;
+
+  border: 0;
+  border-radius: 10px;
+
+  background: #9147ff;
+  color: white;
+
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.auth-error {
+  display: none;
+  margin-top: 12px;
+  color: #ff9b9b;
+  text-align: center;
+  font-size: 14px;
+}
+
+.auth-back {
+  width: 100%;
+
+  margin-top: 12px;
+  padding: 10px;
+
+  border: 1px solid #343b5f;
+  border-radius: 10px;
+
+  background: transparent;
+  color: white;
+
+  cursor: pointer;
+}
+.home-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  margin-bottom: 18px;
+
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 1px;
+
+  color: #ffffff;
+}
+
+.home-brand span {
+  font-size: 32px;
+  font-weight: 900;
+}
+
+.home-brand small {
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,.25);
+
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 2px;
+
+  color: #b9a5df;
+}
+
+.home-twitch-logo {
+  width: 32px;
+  height: 32px;
+
+  fill: #9147ff;
+
+  filter: drop-shadow(0 0 10px rgba(145,71,255,.45));
+}
+
+
+/* MOBILE */
+@media (max-width: 600px) {
+
+  .home-brand {
+    gap: 9px;
+    margin-bottom: 18px;
+  }
+
+  .home-brand span {
+    font-size: 25px;
+  }
+
+  .home-brand small {
+    font-size: 10px;
+    letter-spacing: 1.4px;
+    padding-left: 9px;
+  }
+
+  .home-twitch-logo {
+    width: 27px;
+    height: 27px;
+  }
+
+}
+  
+/* =========================================
+   FENETRE DE CONFIRMATION
+========================================= */
+
+.success-box {
+  text-align: center;
+}
+
+.success-icon {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto 18px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(145, 71, 255, 0.16);
+  border: 2px solid #9147ff;
+
+  color: #b982ff;
+
+  font-size: 38px;
+  font-weight: 900;
+
+  box-shadow: 0 0 30px rgba(145, 71, 255, 0.25);
+}
+
+.success-message {
+  margin: 0 0 24px;
+  color: #c7cbe0;
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+@media (max-width: 600px) {
+  .success-box {
+    width: calc(100% - 32px);
+    padding: 24px 20px;
+  }
+
+  .success-icon {
+    width: 62px;
+    height: 62px;
+    font-size: 32px;
+  }
+}
+  
+/* =========================================
+   ECRAN DE CHARGEMENT
+========================================= */
+
+.loading-box {
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 58px;
+  height: 58px;
+
+  margin: 0 auto 22px;
+
+  border: 5px solid rgba(145, 71, 255, 0.18);
+  border-top-color: #9147ff;
+
+  border-radius: 50%;
+
+  animation: loadingSpin 0.8s linear infinite;
+
+  box-shadow: 0 0 25px rgba(145, 71, 255, 0.18);
+}
+
+.loading-message {
+  margin: 0;
+  color: #aeb5d3;
+  font-size: 14px;
+}
+
+@keyframes loadingSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+  
+
+
+/* =========================================
+   ŒUF / INCUBATION
+========================================= */
+.egg-panel{text-align:center;overflow:hidden;position:relative}
+.egg-panel::before{
+  content:'';position:absolute;inset:-35% -10% auto;height:360px;pointer-events:none;
+  background:radial-gradient(circle at 50% 50%,rgba(145,71,255,.17),transparent 62%);
+  filter:blur(14px)
+}
+.egg-visual{
+  width:190px;height:230px;margin:20px auto 22px;position:relative;
+  display:flex;align-items:center;justify-content:center;
+  filter:drop-shadow(0 26px 38px rgba(78,31,145,.38));
+  animation:eggFloat 3.3s ease-in-out infinite;
+}
+.egg-shell{
+  width:138px;height:178px;position:relative;border-radius:52% 48% 48% 52% / 62% 62% 38% 38%;
+  background:
+    radial-gradient(circle at 36% 26%,rgba(255,255,255,.85) 0 3%,transparent 4%),
+    radial-gradient(circle at 62% 42%,rgba(210,173,255,.75) 0 4%,transparent 5%),
+    radial-gradient(circle at 47% 68%,rgba(122,73,213,.55) 0 7%,transparent 8%),
+    linear-gradient(145deg,#f4ecff 0%,#c8a7ff 22%,#8e5bd4 53%,#4b286f 78%,#231335 100%);
+  border:1px solid rgba(233,216,255,.65);
+  box-shadow:
+    inset 16px 12px 22px rgba(255,255,255,.18),
+    inset -18px -22px 30px rgba(31,11,55,.42),
+    0 0 26px rgba(174,118,255,.48),
+    0 0 68px rgba(145,71,255,.28);
+}
+.egg-shell::before{
+  content:'';position:absolute;inset:14px 18px;border-radius:50%;
+  background:linear-gradient(130deg,transparent 34%,rgba(255,255,255,.23) 38%,transparent 44%);
+  transform:rotate(-12deg);opacity:.9
+}
+.egg-shell::after{
+  content:'';position:absolute;left:50%;top:43%;width:42px;height:54px;transform:translate(-50%,-50%) rotate(7deg);
+  border-left:2px solid rgba(229,207,255,.72);border-bottom:2px solid rgba(229,207,255,.40);
+  clip-path:polygon(44% 0,70% 27%,52% 44%,80% 67%,55% 100%,37% 70%,8% 54%,35% 36%);
+  filter:drop-shadow(0 0 6px rgba(224,195,255,.65));opacity:.7
+}
+.egg-aura{position:absolute;inset:0;border-radius:50%;pointer-events:none}
+.egg-aura::before,.egg-aura::after{content:'';position:absolute;border-radius:50%;inset:18px;animation:eggPulse 2.5s ease-in-out infinite}
+.egg-aura::before{border:1px solid rgba(190,145,255,.24);box-shadow:0 0 22px rgba(145,71,255,.22)}
+.egg-aura::after{inset:0;background:radial-gradient(circle,transparent 42%,rgba(145,71,255,.08) 58%,transparent 72%);animation-delay:.6s}
+.egg-sparkles{position:absolute;inset:0;pointer-events:none}
+.egg-sparkles::before{
+  content:'✦  ·  ✧  ·  ✦';position:absolute;left:50%;top:48%;width:230px;transform:translate(-50%,-50%);
+  color:#d8bfff;font-size:18px;letter-spacing:20px;text-shadow:0 0 10px #b982ff;opacity:.72;
+  animation:eggSparkle 3s ease-in-out infinite
+}
+@keyframes eggFloat{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-9px) rotate(1deg)}}
+@keyframes eggPulse{0%,100%{transform:scale(.96);opacity:.45}50%{transform:scale(1.08);opacity:1}}
+@keyframes eggSparkle{0%,100%{transform:translate(-50%,-50%) rotate(0deg);opacity:.38}50%{transform:translate(-50%,-50%) rotate(8deg);opacity:.9}}
+.egg-progress-wrap{max-width:620px;margin:18px auto;position:relative}
+.egg-progress{height:16px;background:#292f4b;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.egg-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff);box-shadow:0 0 16px rgba(185,130,255,.4);transition:width .35s ease}
+.egg-time{margin-top:10px;font-weight:850;font-size:18px}
+.egg-ready{color:#d7c0ff}
+.egg-hatch-button{margin-top:14px;min-width:220px}
+.egg-hatch-button:disabled{opacity:.45;cursor:not-allowed}
+.egg-rates{max-width:760px;margin:24px auto 0;text-align:left;position:relative}
+.egg-rarity-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0 16px}
+.egg-rarity{padding:12px;border:1px solid var(--line);border-radius:14px;background:#111528;text-align:center}
+.egg-rarity strong{display:block;font-size:20px;margin-top:4px}
+.egg-drop-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.egg-drop-row{display:flex;justify-content:space-between;gap:12px;padding:9px 11px;border-radius:10px;background:#111528;border:1px solid rgba(255,255,255,.05);font-size:13px}
+.monster-placeholder{width:170px;height:170px;margin:auto;display:none;align-items:center;justify-content:center;border:1px dashed #49516f;border-radius:18px;background:#111528;color:var(--muted);text-align:center;padding:14px}
+
+/* Pop-up de bienvenue du jeu */
+.game-intro-modal{position:fixed;inset:0;z-index:1000003;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(10px)}
+.game-intro-modal.hidden{display:none}
+.game-intro-panel{width:min(520px,100%);padding:28px;border:1px solid rgba(172,116,255,.55);border-radius:24px;background:linear-gradient(180deg,#17142a,#0f1325);box-shadow:0 28px 90px rgba(0,0,0,.62);text-align:center}
+.game-intro-icon{width:82px;height:82px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:radial-gradient(circle,#b988ff33,#6c35b522 58%,transparent 60%);border:1px solid rgba(185,136,255,.38);font-size:43px;box-shadow:0 0 34px rgba(145,71,255,.2)}
+.game-intro-panel h2{margin:0 0 10px;font-size:27px}
+.game-intro-panel p{margin:0;color:#c6cbe0;line-height:1.6;font-size:14px}
+.game-intro-steps{display:grid;gap:9px;margin:20px 0;text-align:left}
+.game-intro-step{padding:11px 13px;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:#101427;color:#d8dced;font-size:13px;line-height:1.45}
+.game-intro-rates{font-size:12px;color:#aeb5d1;margin:0 0 18px}
+@media(max-width:700px){
+  .egg-rarity-grid{grid-template-columns:repeat(2,1fr)}
+  .egg-drop-list{grid-template-columns:1fr}
+  .egg-visual{width:160px;height:200px}
+  .egg-shell{width:118px;height:154px}
+  .game-intro-panel{padding:24px 18px}
+}
+
+
+/* =========================================
+   ACCÈS / GESTION DU COMPTE
+========================================= */
+.account-access{display:flex;align-items:center;gap:10px}
+.account-icon-button{
+  width:44px;height:44px;border:1px solid rgba(255,255,255,.14);border-radius:50%;
+  background:#1a1f35;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;
+  justify-content:center;transition:transform .18s ease,background .18s ease,border-color .18s ease
+}
+.account-icon-button:hover{transform:scale(1.05);background:rgba(145,71,255,.22);border-color:rgba(145,71,255,.55)}
+.account-modal{
+  position:fixed;inset:0;z-index:1000001;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:rgba(3,5,15,.72);backdrop-filter:blur(8px)
+}
+.account-modal.hidden{display:none}
+.account-panel{
+  width:min(430px,100%);padding:26px;border:1px solid rgba(145,71,255,.48);border-radius:22px;
+  background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.5)
+}
+.account-panel-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.account-panel-head h2{margin:0}
+.account-close{
+  width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;
+  font-size:22px;cursor:pointer
+}
+.account-info-row{padding:13px 0;border-bottom:1px solid var(--line)}
+.account-info-row:last-of-type{border-bottom:0}
+.account-info-label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}
+.account-info-value{font-weight:800;word-break:break-word}
+.account-edit-row{display:flex;gap:8px;align-items:center}
+.account-username-input{flex:1;min-width:0;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:#090c18;color:white;font:inherit;font-weight:800;outline:none}
+.account-username-input:focus{border-color:#9147ff;box-shadow:0 0 0 3px rgba(145,71,255,.12)}
+.account-save-button{padding:10px 13px;white-space:nowrap}
+.account-edit-help{margin-top:7px;color:var(--muted);font-size:11px;line-height:1.4}
+.account-edit-status{min-height:18px;margin-top:7px;font-size:12px;font-weight:700}
+.account-edit-status.ok{color:#8ee7ad}
+.account-edit-status.error{color:#ff9b9b}
+.account-username-edit{display:flex;gap:8px;align-items:center;margin-top:10px}
+.account-username-edit input{flex:1;min-width:0;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:rgba(5,8,20,.92);color:white;outline:none}
+.account-username-edit input:focus{border-color:#9147ff}
+.account-username-save{white-space:nowrap;padding:10px 14px}
+.account-username-message{display:none;margin-top:8px;font-size:12px;line-height:1.4}
+.account-username-message.success{display:block;color:#91e6ad}
+.account-username-message.error{display:block;color:#ff9b9b}
+.account-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.account-actions .btn{flex:1 1 160px;text-align:center}
+.tracker-admin{margin-top:14px;padding:14px;border:1px solid rgba(145,71,255,.22);border-radius:14px;background:rgba(145,71,255,.06)}
+.tracker-admin.hidden{display:none}
+.tracker-status{font-weight:850;margin-top:4px}
+.tracker-help{margin:7px 0 12px;color:var(--muted);font-size:11px;line-height:1.45}
+.tracker-actions{display:flex;gap:8px;flex-wrap:wrap}
+.tracker-actions .btn{flex:1 1 150px;text-align:center}
+.account-danger-zone{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,.10)}
+.account-danger-title{margin:0 0 6px;font-size:14px;font-weight:900;color:#f2c1c1}
+.account-danger-text{margin:0 0 13px;font-size:12px;line-height:1.5;color:var(--muted)}
+.btn.warning{background:#6f521b;color:#fff}
+.btn.danger{background:#8e2e3b;color:#fff}
+.btn.warning:hover{background:#866421}.btn.danger:hover{background:#a23746}
+.confirm-modal{position:fixed;inset:0;z-index:1000002;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.78);backdrop-filter:blur(9px)}
+.confirm-modal.hidden{display:none}
+.confirm-panel{width:min(430px,100%);padding:26px;border:1px solid rgba(255,255,255,.13);border-radius:22px;background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.55);text-align:center}
+.confirm-icon{width:62px;height:62px;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,179,71,.10);border:1px solid rgba(255,179,71,.35);font-size:30px}
+.confirm-panel h2{margin:0 0 10px}.confirm-panel p{margin:0;color:#c7cbe0;line-height:1.55;font-size:14px}
+.confirm-actions{display:flex;gap:10px;margin-top:22px}.confirm-actions .btn{flex:1}
+.confirm-error{display:none;margin-top:12px;color:#ff9b9b;font-size:13px}
+@media(max-width:600px){.account-icon-button{width:40px;height:40px}.account-panel,.confirm-panel{padding:22px 18px}.confirm-actions{flex-direction:column}}
+
+
+/* Couleurs / miniatures / hover des drops */
+.egg-rarity.common{border-color:rgba(131,157,189,.42);background:linear-gradient(180deg,rgba(83,105,135,.18),rgba(17,21,40,.96))}
+.egg-rarity.rare{border-color:rgba(77,153,255,.48);background:linear-gradient(180deg,rgba(48,116,214,.18),rgba(17,21,40,.96))}
+.egg-rarity.epic{border-color:rgba(168,88,255,.52);background:linear-gradient(180deg,rgba(130,61,205,.20),rgba(17,21,40,.96))}
+.egg-rarity.mythic{border-color:rgba(245,194,76,.58);background:linear-gradient(180deg,rgba(191,139,26,.20),rgba(17,21,40,.96))}
+.egg-drop-list{grid-template-rows:repeat(5,auto);grid-auto-flow:column}
+.egg-drop-row{align-items:center;padding:8px 11px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease,background .18s ease}
+.egg-drop-row:hover{transform:translateY(-2px) scale(1.012);box-shadow:0 10px 24px rgba(0,0,0,.24);z-index:2}
+.egg-drop-main{display:flex;align-items:center;gap:9px;min-width:0}
+.egg-drop-thumb{width:34px;height:34px;flex:0 0 34px;object-fit:contain;border-radius:9px;background:rgba(255,255,255,.025);filter:drop-shadow(0 4px 8px rgba(0,0,0,.28));transition:transform .18s ease,filter .18s ease}
+.egg-drop-row:hover .egg-drop-thumb{transform:scale(1.16);filter:drop-shadow(0 6px 12px rgba(0,0,0,.36))}
+.egg-drop-name{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.egg-drop-row.common{border-color:rgba(131,157,189,.36);background:linear-gradient(90deg,rgba(83,105,135,.16),rgba(17,21,40,.96) 34%)}
+.egg-drop-row.rare{border-color:rgba(77,153,255,.38);background:linear-gradient(90deg,rgba(48,116,214,.16),rgba(17,21,40,.96) 34%)}
+.egg-drop-row.epic{border-color:rgba(168,88,255,.42);background:linear-gradient(90deg,rgba(130,61,205,.18),rgba(17,21,40,.96) 34%)}
+.egg-drop-row.mythic{border-color:rgba(245,194,76,.48);background:linear-gradient(90deg,rgba(191,139,26,.18),rgba(17,21,40,.96) 34%)}
+
+/* Vitrine de badges */
+.badge-showcase-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:14px}
+.badge-showcase-head h2{margin:0}
+.badge-showcase-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.badge-slot{min-height:108px;padding:12px 8px;border:1px dashed #3a4262;border-radius:14px;background:#101427;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:5px;color:var(--muted);transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.badge-slot.filled{cursor:pointer;border-style:solid;color:#fff}
+.badge-slot.filled:hover{transform:translateY(-2px);background:#151a31}
+.badge-medal{font-size:30px;line-height:1}
+.badge-game{font-size:12px;font-weight:900;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge-hours{font-size:11px;color:var(--muted)}
+.badge-slot.bronze,.badge-card.bronze{border-color:rgba(205,127,50,.48)}
+.badge-slot.silver,.badge-card.silver{border-color:rgba(192,204,220,.48)}
+.badge-slot.gold,.badge-card.gold{border-color:rgba(245,194,76,.55)}
+.badge-collection-modal{position:fixed;inset:0;z-index:1000004;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.80);backdrop-filter:blur(9px)}
+.badge-collection-modal.hidden{display:none}
+.badge-collection-panel{width:min(860px,100%);max-height:min(760px,90vh);overflow:auto;padding:24px;border:1px solid rgba(145,71,255,.48);border-radius:22px;background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.badge-collection-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.badge-collection-head h2{margin:0}
+.badge-collection-help{margin:8px 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
+.badge-game-group{margin:18px 0 24px}
+.badge-game-group h3{margin:0 0 5px}
+.badge-game-progress{font-size:12px;color:var(--muted);margin-bottom:10px}
+.badge-tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.badge-card{padding:14px;border:1px solid var(--line);border-radius:14px;background:#0f1325;text-align:center;transition:transform .18s ease}
+.badge-card.locked{opacity:.48;filter:saturate(.45)}
+.badge-card.unlocked{cursor:pointer}
+.badge-card.unlocked:hover{transform:translateY(-2px)}
+.badge-card .badge-medal{font-size:36px}
+.badge-card-title{font-weight:900;margin-top:6px}
+.badge-card-sub{font-size:11px;color:var(--muted);margin-top:4px}
+.badge-card-equipped{margin-top:7px;font-size:11px;color:#c9abff;font-weight:800}
+.badge-empty{padding:18px;border:1px dashed #3a4262;border-radius:14px;color:var(--muted);text-align:center}
+@media(max-width:800px){.badge-showcase-grid{grid-template-columns:repeat(3,1fr)}.badge-tier-grid{grid-template-columns:1fr}}
+
+
+/* Badges génériques + affichage dans le classement */
+.badge-art{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 5px 10px rgba(0,0,0,.30))}
+.badge-art-placeholder{width:54px;height:54px;display:grid;place-items:center;font-size:34px}
+.badge-card-actions{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:10px}
+.badge-action{border:1px solid var(--line);background:#171c33;color:#fff;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer}
+.badge-action:hover{filter:brightness(1.12)}
+.badge-action.active{border-color:rgba(145,71,255,.62);background:rgba(145,71,255,.16)}
+.badge-collection-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.leaderboard-badges{display:inline-flex;align-items:center;gap:4px;vertical-align:middle;margin:0 4px}
+.leaderboard-badge-img{width:24px;height:24px;object-fit:contain;vertical-align:middle;filter:drop-shadow(0 2px 4px rgba(0,0,0,.35))}
+.leaderboard-badge-placeholder{width:24px;height:24px;display:inline-grid;place-items:center;font-size:18px}
+@media(max-width:800px){.badge-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.badge-collection-grid{grid-template-columns:1fr}}
+
+
+.showcase-topbar{
+  padding:14px 16px 16px;
+}
+.showcase-topbar-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:12px;
+}
+.showcase-topbar-title{
+  font-size:15px;
+  font-weight:900;
+}
+.showcase-topbar-subtitle{
+  font-size:11px;
+  margin-top:2px;
+}
+.showcase-open-button{
+  min-width:145px;
+}
+.badge-showcase-top{
+  grid-template-columns:repeat(6,minmax(0,1fr));
+}
+.badge-showcase-top .badge-slot{
+  min-height:82px;
+  padding:9px 6px;
+  cursor:pointer;
+}
+.badge-showcase-top .badge-art,
+.badge-showcase-top .badge-art-placeholder{
+  width:42px;
+  height:42px;
+}
+.badge-showcase-top .badge-art-placeholder{
+  font-size:28px;
+}
+.badge-showcase-top .badge-game{
+  font-size:11px;
+}
+@media(max-width:800px){
+  .badge-showcase-top{grid-template-columns:repeat(3,1fr)}
+  .showcase-topbar-head{align-items:flex-start}
+}
+@media(max-width:520px){
+  .showcase-topbar-head{flex-direction:column}
+  .showcase-open-button{width:100%}
+}
+.badge-modal-showcase{
+  margin:18px 0 24px;
+}
+.badge-modal-section-title{
+  font-size:14px;
+  font-weight:900;
+  margin-bottom:10px;
+}
+.badge-collection-title{
+  margin-top:8px;
+}
+.badge-card,
+.badge-slot.filled{
+  position:relative;
+}
+.badge-card[data-challenge]::after,
+.badge-slot.filled[data-challenge]::after{
+  content:"Mission : " attr(data-challenge);
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 10px);
+  transform:translateX(-50%) translateY(4px);
+  width:max-content;
+  max-width:260px;
+  padding:8px 10px;
+  border:1px solid rgba(145,71,255,.48);
+  border-radius:10px;
+  background:#0b0f20;
+  color:#fff;
+  font-size:11px;
+  line-height:1.35;
+  font-weight:700;
+  text-align:center;
+  white-space:normal;
+  box-shadow:0 10px 28px rgba(0,0,0,.38);
+  opacity:0;
+  pointer-events:none;
+  z-index:50;
+  transition:opacity .15s ease, transform .15s ease;
+}
+.badge-card[data-challenge]:hover::after,
+.badge-slot.filled[data-challenge]:hover::after{
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+
+.badge-challenge-card{
+  position:relative;
+  padding:16px;
+  border:1px solid rgba(74,222,128,.32);
+  border-radius:16px;
+  background:linear-gradient(135deg,rgba(34,197,94,.10),rgba(17,21,40,.96) 55%);
+  overflow:visible;
+}
+.badge-challenge-card.locked{border-color:rgba(255,255,255,.10);background:#0f1325}
+.badge-challenge-top{display:flex;align-items:center;gap:12px}
+.badge-challenge-icon{width:58px;height:58px;border-radius:14px;display:grid;place-items:center;font-size:34px;background:rgba(255,255,255,.04);flex:0 0 58px}
+.badge-challenge-info{min-width:0;flex:1}
+.badge-challenge-name{font-weight:900;font-size:15px}
+.badge-challenge-game{font-size:12px;color:var(--muted);margin-top:3px}
+.badge-challenge-progress{height:8px;background:#262c45;border-radius:99px;overflow:hidden;margin-top:12px}
+.badge-challenge-progress > span{display:block;height:100%;background:linear-gradient(90deg,#22c55e,#86efac);border-radius:99px}
+.badge-challenge-bottom{display:flex;justify-content:space-between;gap:10px;margin-top:7px;font-size:11px;color:var(--muted)}
+.badge-challenge-state{font-weight:900;color:#86efac}
+.badge-challenge-card.locked .badge-challenge-state{color:var(--muted)}
+.badge-challenge-card[data-challenge]::after{
+  content:"Mission : " attr(data-challenge);
+  position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%) translateY(4px);
+  width:max-content;max-width:280px;padding:8px 10px;border:1px solid rgba(145,71,255,.48);border-radius:10px;
+  background:#0b0f20;color:#fff;font-size:11px;line-height:1.35;font-weight:700;text-align:center;white-space:normal;
+  box-shadow:0 10px 28px rgba(0,0,0,.38);opacity:0;pointer-events:none;z-index:60;transition:opacity .15s ease,transform .15s ease
+}
+.badge-challenge-card[data-challenge]:hover::after{opacity:1;transform:translateX(-50%) translateY(0)}
+
+
+.badge-challenge-art-wrap{position:relative;display:grid;place-items:center;min-width:64px}
+.badge-challenge-card.locked .badge-challenge-art-wrap .badge-art{filter:grayscale(.55) brightness(.72) drop-shadow(0 5px 10px rgba(0,0,0,.30));opacity:.72}
+.badge-challenge-lock{position:absolute;right:-2px;bottom:-3px;width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#111528;border:1px solid rgba(255,255,255,.14);font-size:13px;box-shadow:0 4px 10px rgba(0,0,0,.35)}
+
+
+/* Collection de badges en grille */
+.badge-challenge-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+.badge-challenge-card{
+  min-width:0;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  border:1px solid rgba(74,222,128,.32);
+  border-radius:16px;
+  background:linear-gradient(160deg,rgba(34,197,94,.10),rgba(17,21,40,.96) 58%);
+  overflow:visible;
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.badge-challenge-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 14px 30px rgba(0,0,0,.26);
+}
+.badge-challenge-card.locked{
+  border-color:rgba(255,255,255,.10);
+  background:linear-gradient(160deg,rgba(255,255,255,.025),rgba(15,19,37,.98));
+}
+.badge-challenge-top{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:9px;
+  width:100%;
+}
+.badge-challenge-icon{
+  width:92px;
+  height:92px;
+  flex:0 0 92px;
+  border-radius:18px;
+  background:rgba(255,255,255,.035);
+}
+.badge-challenge-icon .badge-art{
+  width:76px;
+  height:76px;
+}
+.badge-challenge-info{width:100%;min-width:0}
+.badge-challenge-name{font-size:14px;line-height:1.25}
+.badge-challenge-game{font-size:11px;margin-top:4px}
+.badge-challenge-state{
+  margin-top:1px;
+  padding:4px 8px;
+  border-radius:999px;
+  background:rgba(34,197,94,.10);
+  font-size:10px;
+}
+.badge-challenge-card.locked .badge-challenge-state{
+  background:rgba(255,255,255,.05);
+}
+.badge-challenge-progress{
+  width:100%;
+  margin-top:14px;
+}
+.badge-challenge-bottom{
+  width:100%;
+  display:block;
+  margin-top:7px;
+  text-align:center;
+}
+.badge-challenge-bottom .challenge-progress-value{
+  display:block;
+  font-weight:800;
+  color:#d8def3;
+}
+.badge-challenge-bottom .challenge-text{
+  display:block;
+  margin-top:5px;
+  line-height:1.35;
+}
+.badge-challenge-card.locked .badge-challenge-art-wrap .badge-art{
+  filter:blur(1.5px) grayscale(.25) brightness(.55) drop-shadow(0 5px 10px rgba(0,0,0,.30));
+  opacity:.72;
+}
+.badge-challenge-lock{
+  width:22px;
+  height:22px;
+  right:1px;
+  bottom:2px;
+  font-size:11px;
+}
+.badge-card-actions{
+  margin-top:12px;
+  width:100%;
+}
+.badge-card-actions .badge-action{
+  flex:1 1 110px;
+}
+@media(max-width:760px){
+  .badge-challenge-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:500px){
+  .badge-challenge-grid{grid-template-columns:1fr}
+}
+
+
+.badge-info-wrap{position:relative;display:inline-flex;align-items:center;margin-left:6px;vertical-align:middle;outline:none}
+.badge-info-icon{width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.06);color:#fff;font-size:11px;font-weight:900;cursor:help;line-height:1}
+.badge-info-tooltip{position:absolute;left:50%;bottom:calc(100% + 9px);transform:translateX(-50%) translateY(4px);width:280px;max-width:70vw;padding:9px 11px;border-radius:10px;background:#0b0f20;border:1px solid rgba(145,71,255,.45);box-shadow:0 10px 30px rgba(0,0,0,.38);color:#fff;font-size:11px;line-height:1.4;font-weight:600;text-align:left;opacity:0;pointer-events:none;z-index:80;transition:opacity .15s ease,transform .15s ease}
+.badge-info-wrap:hover .badge-info-tooltip,.badge-info-wrap:focus .badge-info-tooltip,.badge-info-wrap:focus-within .badge-info-tooltip{opacity:1;transform:translateX(-50%) translateY(0)}
+@media(max-width:600px){.badge-info-tooltip{left:auto;right:0;transform:translateY(4px)}.badge-info-wrap:hover .badge-info-tooltip,.badge-info-wrap:focus .badge-info-tooltip,.badge-info-wrap:focus-within .badge-info-tooltip{transform:translateY(0)}}
+
+
+/* =========================================
+   PASSE DE FINITION — VITRINE / COLLECTION
+========================================= */
+.showcase-topbar{
+  padding:16px;
+  border-color:rgba(145,71,255,.24);
+  background:linear-gradient(180deg,rgba(145,71,255,.035),rgba(17,21,40,.98));
+}
+.showcase-topbar-head{
+  margin-bottom:14px;
+}
+.showcase-topbar-title{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:16px;
+  letter-spacing:.1px;
+}
+.showcase-topbar-subtitle{
+  margin-top:4px;
+  line-height:1.35;
+}
+.showcase-open-button{
+  min-width:158px;
+  min-height:42px;
+  border-radius:12px;
+  font-weight:900;
+}
+.badge-showcase-top{
+  gap:10px;
+}
+.badge-showcase-top .badge-slot{
+  min-height:84px;
+  border-radius:14px;
+  background:rgba(11,15,32,.56);
+  border-color:rgba(115,134,190,.34);
+  transition:transform .18s ease,border-color .18s ease,background .18s ease,box-shadow .18s ease;
+}
+.badge-showcase-top .badge-slot:hover{
+  transform:translateY(-2px);
+  border-color:rgba(145,71,255,.48);
+  background:rgba(21,26,49,.88);
+  box-shadow:0 10px 22px rgba(0,0,0,.18);
+}
+.badge-showcase-top .badge-slot:not(.filled) .badge-medal{
+  width:30px;
+  height:30px;
+  display:grid;
+  place-items:center;
+  border-radius:50%;
+  background:rgba(255,255,255,.035);
+  font-size:25px;
+}
+.badge-showcase-top .badge-game{
+  margin-top:2px;
+  font-weight:900;
+}
+
+.badge-collection-panel{
+  width:min(920px,100%);
+  padding:26px;
+  border-color:rgba(145,71,255,.44);
+  background:linear-gradient(180deg,#12172c,#0f1325);
+}
+.badge-collection-head{
+  padding-bottom:4px;
+}
+.badge-collection-head h2{
+  font-size:23px;
+  letter-spacing:.1px;
+}
+.badge-collection-help{
+  margin:7px 0 20px;
+  max-width:720px;
+  line-height:1.55;
+}
+.badge-modal-section-title{
+  font-size:15px;
+  margin-bottom:12px;
+}
+.badge-challenge-grid{
+  gap:16px;
+}
+.badge-challenge-card{
+  min-height:270px;
+  padding:17px;
+  border-radius:18px;
+  justify-content:flex-start;
+}
+.badge-challenge-card:hover{
+  transform:translateY(-3px);
+  box-shadow:0 16px 34px rgba(0,0,0,.25);
+}
+.badge-challenge-icon{
+  width:96px;
+  height:96px;
+  flex:0 0 96px;
+  border-radius:20px;
+}
+.badge-challenge-icon .badge-art{
+  width:80px;
+  height:80px;
+}
+.badge-challenge-name{
+  min-height:36px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:14px;
+}
+.badge-challenge-game{
+  min-height:16px;
+}
+.badge-challenge-state{
+  margin-top:6px;
+}
+.badge-challenge-progress{
+  margin-top:auto;
+  height:7px;
+}
+.badge-challenge-bottom{
+  min-height:48px;
+}
+.badge-challenge-card.locked .badge-challenge-art-wrap .badge-art{
+  filter:blur(1.35px) grayscale(.20) brightness(.58) drop-shadow(0 5px 10px rgba(0,0,0,.30));
+  opacity:.76;
+  transition:filter .18s ease,opacity .18s ease,transform .18s ease;
+}
+.badge-challenge-card.locked:hover .badge-challenge-art-wrap .badge-art{
+  filter:blur(.9px) grayscale(.12) brightness(.64) drop-shadow(0 6px 12px rgba(0,0,0,.34));
+  opacity:.84;
+  transform:scale(1.03);
+}
+.badge-challenge-lock{
+  width:21px;
+  height:21px;
+  font-size:10px;
+  right:2px;
+  bottom:3px;
+}
+.account-close{
+  transition:transform .16s ease,background .16s ease,border-color .16s ease;
+}
+.account-close:hover{
+  transform:rotate(4deg) scale(1.04);
+}
+@media(max-width:760px){
+  .badge-collection-panel{padding:20px}
+  .badge-challenge-card{min-height:250px}
+}
+@media(max-width:520px){
+  .showcase-topbar{padding:14px}
+  .badge-collection-panel{padding:17px;border-radius:18px}
+  .badge-collection-head h2{font-size:20px}
+}
+
+
+/* Vitrine premium */
+.showcase-topbar{position:relative;overflow:visible;transition:border-color .22s ease,box-shadow .22s ease,background .22s ease}
+.showcase-topbar.theme-classic{background:linear-gradient(180deg,#15192c,#121628)}
+.showcase-topbar.theme-violet{border-color:rgba(160,92,255,.52);background:linear-gradient(145deg,rgba(91,45,160,.20),#121628 58%);box-shadow:inset 0 0 38px rgba(145,71,255,.05)}
+.showcase-topbar.theme-gold{border-color:rgba(245,194,76,.50);background:linear-gradient(145deg,rgba(155,108,18,.18),#121628 58%);box-shadow:inset 0 0 38px rgba(245,194,76,.05)}
+.showcase-topbar.theme-neon{border-color:rgba(60,226,255,.54);background:linear-gradient(145deg,rgba(30,120,150,.16),rgba(91,45,160,.14),#121628 66%);box-shadow:0 0 24px rgba(60,226,255,.06),inset 0 0 32px rgba(145,71,255,.06)}
+.badge-showcase-top .badge-slot{position:relative;min-height:96px;overflow:visible;border-radius:15px;background:rgba(12,16,32,.56);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease}
+.badge-showcase-top .badge-slot:not(.filled){gap:8px;color:#9fb6ff}
+.badge-showcase-top .badge-slot:not(.filled) .badge-medal{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:rgba(100,123,190,.10);font-size:28px;line-height:1}
+.badge-showcase-top .badge-slot:not(.filled) .badge-game{font-size:12px;color:#c6d3ff}
+.badge-showcase-top .badge-slot:not(.filled) .badge-hours{display:none}
+.badge-showcase-top .badge-slot:hover{transform:translateY(-3px);border-color:rgba(145,71,255,.55);box-shadow:0 12px 28px rgba(0,0,0,.22)}
+.badge-showcase-top .badge-slot.filled{min-height:96px;padding:8px;background:rgba(10,14,28,.58);border-color:rgba(255,255,255,.10)}
+.badge-showcase-top .badge-slot.filled .badge-art{width:64px;height:64px;transition:transform .18s ease,filter .18s ease}
+.badge-showcase-top .badge-slot.filled:hover .badge-art{transform:scale(1.10);filter:drop-shadow(0 7px 14px rgba(0,0,0,.32))}
+.badge-showcase-top .badge-slot.filled .badge-game{display:none}
+.badge-showcase-top .badge-slot.filled::after{display:none!important}
+.badge-showcase-top .badge-slot-tooltip{position:absolute;left:50%;bottom:calc(100% + 10px);width:max-content;max-width:260px;transform:translateX(-50%) translateY(4px);padding:9px 11px;border:1px solid rgba(145,71,255,.48);border-radius:11px;background:#090d1d;color:#fff;box-shadow:0 12px 30px rgba(0,0,0,.42);opacity:0;pointer-events:none;z-index:70;transition:opacity .15s ease,transform .15s ease;text-align:left}
+.badge-showcase-top .badge-slot.filled:hover .badge-slot-tooltip,.badge-showcase-top .badge-slot.filled:focus-visible .badge-slot-tooltip{opacity:1;transform:translateX(-50%) translateY(0)}
+.badge-slot-tooltip strong{display:block;font-size:12px;margin-bottom:3px}.badge-slot-tooltip span{display:block;color:#b8c0d8;font-size:10.5px;line-height:1.35}
+.showcase-settings-panel{margin:0 0 18px;padding:14px;border:1px solid var(--line);border-radius:15px;background:rgba(10,14,28,.46)}
+.showcase-setting-row{display:flex;align-items:center;justify-content:space-between;gap:16px}.showcase-setting-title{font-size:12px;font-weight:900;color:#fff}.showcase-setting-help{margin-top:3px;font-size:10.5px;color:var(--muted)}
+.showcase-switch{position:relative;display:inline-flex;flex:0 0 auto}.showcase-switch input{position:absolute;opacity:0;pointer-events:none}.showcase-switch span{width:42px;height:24px;border-radius:999px;background:#2a314e;border:1px solid #3a456b;position:relative;cursor:pointer;transition:.18s ease}.showcase-switch span::after{content:"";position:absolute;width:18px;height:18px;left:2px;top:2px;border-radius:50%;background:#b9c1da;transition:.18s ease}.showcase-switch input:checked + span{background:rgba(145,71,255,.35);border-color:rgba(145,71,255,.72)}.showcase-switch input:checked + span::after{transform:translateX(18px);background:#fff}
+.showcase-theme-block{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.07)}.showcase-theme-options{display:flex;gap:7px;flex-wrap:wrap;margin-top:9px}.showcase-theme-chip{border:1px solid var(--line);border-radius:10px;padding:7px 10px;background:#151a31;color:#c6cde2;font-size:11px;font-weight:800;cursor:pointer;transition:.16s ease}.showcase-theme-chip:hover{transform:translateY(-1px);border-color:#59658d}.showcase-theme-chip.active{color:#fff;border-color:rgba(145,71,255,.72);background:rgba(145,71,255,.18)}
+.theme-gold .badge-showcase-top .badge-slot:hover{border-color:rgba(245,194,76,.58);box-shadow:0 12px 28px rgba(245,194,76,.06)}.theme-neon .badge-showcase-top .badge-slot:hover{border-color:rgba(60,226,255,.60);box-shadow:0 12px 28px rgba(60,226,255,.08)}
+@media(max-width:700px){.showcase-setting-row{align-items:flex-start}.badge-showcase-top .badge-slot.filled .badge-art{width:56px;height:56px}}
+
+
+
+/* =========================================
+   CORRECTIFS MOBILE — 16/09/2026
+   Empêche tout débordement horizontal et
+   adapte vitrine + drops à l'écran téléphone.
+========================================= */
+html, body{
+  width:100%;
+  max-width:100%;
+  overflow-x:hidden;
+}
+.wrap,
+#app,
+.card,
+.egg-panel,
+.showcase-topbar,
+.egg-rates,
+.badge-showcase-grid,
+.badge-showcase-top{
+  min-width:0;
+  max-width:100%;
+}
+
+@media(max-width:700px){
+  .wrap{
+    width:100%;
+    padding:12px;
+  }
+
+  .top{
+    align-items:flex-start;
+    gap:10px;
+  }
+
+  .logo{
+    min-width:0;
+    font-size:23px;
+    line-height:1.12;
+    overflow-wrap:anywhere;
+  }
+
+  .account-access{
+    flex:0 0 auto;
+  }
+
+  .card{
+    width:100%;
+    padding:14px;
+    margin:12px 0;
+    border-radius:17px;
+  }
+
+  /* Vitrine : 2 colonnes sur téléphone au lieu de 3/6. */
+  .badge-showcase-grid,
+  .badge-showcase-top{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px;
+  }
+
+  .badge-showcase-top .badge-slot{
+    width:100%;
+    min-width:0;
+    min-height:92px;
+    padding:8px 6px;
+  }
+
+  .badge-showcase-top .badge-slot:not(.filled) .badge-game{
+    white-space:normal;
+    overflow:visible;
+    text-overflow:clip;
+    overflow-wrap:anywhere;
+    line-height:1.2;
+  }
+
+  .showcase-topbar-head{
+    flex-direction:column;
+    align-items:stretch;
+    gap:10px;
+  }
+
+  .showcase-open-button{
+    width:100%;
+    min-width:0;
+  }
+
+  /* Drops : on annule le remplissage vertical en colonnes,
+     qui poussait la deuxième colonne hors écran sur mobile. */
+  .egg-drop-list{
+    display:grid;
+    grid-template-columns:1fr !important;
+    grid-template-rows:none !important;
+    grid-auto-flow:row !important;
+    gap:8px;
+    width:100%;
+    min-width:0;
+  }
+
+  .egg-drop-row{
+    width:100%;
+    min-width:0;
+    gap:8px;
+  }
+
+  .egg-drop-main{
+    min-width:0;
+    flex:1 1 auto;
+  }
+
+  .egg-drop-name{
+    min-width:0;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  .egg-drop-row > b{
+    flex:0 0 auto;
+    white-space:nowrap;
+  }
+
+  .egg-rarity-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:8px;
+  }
+
+  .egg-rarity{
+    min-width:0;
+    padding:12px 8px;
+  }
+
+  .egg-panel{
+    overflow:hidden;
+  }
+
+  .badge-collection-modal{
+    padding:10px;
+  }
+
+  .badge-collection-panel{
+    width:100%;
+    max-width:100%;
+    padding:16px;
+  }
+}
+
+@media(max-width:380px){
+  .wrap{padding:9px;}
+  .card{padding:12px;}
+  .logo{font-size:21px;}
+  .badge-showcase-grid,
+  .badge-showcase-top{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+  .badge-showcase-top .badge-slot{
+    min-height:86px;
+  }
+}
+
+
+
+/* =========================================
+   CORRECTIF MOBILE V2 — vitrine + info badge
+========================================= */
+@media(max-width:900px){
+  .badge-showcase-grid,
+  .badge-showcase-top{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    grid-auto-flow:row !important;
+    grid-auto-columns:minmax(0,1fr) !important;
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    gap:8px !important;
+    overflow:visible !important;
+  }
+
+  .badge-showcase-top .badge-slot{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+
+  .showcase-topbar{
+    width:100% !important;
+    max-width:100% !important;
+    min-width:0 !important;
+    overflow:visible !important;
+  }
+
+  .showcase-topbar-head,
+  .showcase-topbar-title-wrap{
+    min-width:0 !important;
+    max-width:100% !important;
+  }
+
+  /* Sur téléphone, l'explication devient une petite bulle
+     fixe dans l'écran : elle ne peut plus partir hors cadre. */
+  .badge-info-tooltip{
+    position:fixed !important;
+    left:12px !important;
+    right:12px !important;
+    top:112px !important;
+    bottom:auto !important;
+    width:auto !important;
+    max-width:none !important;
+    box-sizing:border-box !important;
+    transform:translateY(4px) !important;
+    z-index:1000010 !important;
+    font-size:12px !important;
+    line-height:1.45 !important;
+  }
+
+  .badge-info-wrap:hover .badge-info-tooltip,
+  .badge-info-wrap:focus .badge-info-tooltip,
+  .badge-info-wrap:focus-within .badge-info-tooltip{
+    transform:translateY(0) !important;
+  }
+}
+
+@media(max-width:420px){
+  .badge-showcase-grid,
+  .badge-showcase-top{
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  }
+
+  .badge-showcase-top .badge-slot{
+    min-height:88px !important;
+    padding:8px 5px !important;
+  }
+
+  .badge-showcase-top .badge-slot:not(.filled) .badge-game{
+    font-size:11px !important;
+    line-height:1.2 !important;
+    text-align:center !important;
+  }
+}
+
+</style>
+</head>
+<body class="auth-locked">
+  <div id="authOverlay" class="auth-overlay">
+
+  <div class="auth-home">
+    <div class="home-shell">
+      <div class="home-brand">
+  <svg class="home-twitch-logo" viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/>
+    <path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/>
+  </svg>
+
+  <span>LoVeRDoSeTV</span>
+
+  <small>WATCH GAME</small>
+</div>
+      <h1 class="home-title">Regarde. Gagne. <span>Évolue.</span></h1>
+      <p class="home-subtitle">Lie ton compte Twitch, fais éclore ton œuf et fais progresser ton compagnon pendant les lives.</p>
+
+      <div class="home-carousel" aria-label="Présentation des monstres">
+        <button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Monstre précédent">‹</button>
+
+        <div id="carouselCard" class="carousel-card">
+          <img id="carouselMonster" class="carousel-monster" src="/Flamby.png" alt="Flamby">
+          <div id="carouselName" class="carousel-name">Flamby</div>
+          <div id="carouselType" class="carousel-type">Cendre</div>
+          <div id="carouselDrop" class="carousel-drop">Rare • 8 %</div>
+          <p id="carouselDescription" class="carousel-description">Un petit compagnon ardent qui transforme chaque combat en étincelles.</p>
+        </div>
+
+        <button id="carouselNext" class="carousel-arrow" type="button" aria-label="Monstre suivant">›</button>
+      </div>
+
+      <div id="carouselDots" class="carousel-dots" aria-label="Choisir un monstre"></div>
+
+      <div class="auth-home-buttons">
+        <button id="showRegister" class="auth-main-button" type="button">Inscription</button>
+        <button id="showLogin" class="auth-main-button secondary" type="button">Connexion</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- ECRAN DE CHARGEMENT -->
+
+    <div id="loadingScreen" class="auth-screen hidden">
+
+      <div class="auth-box loading-box">
+
+        <div class="loading-spinner"></div>
+
+        <h2 id="loadingTitle">Connexion en cours...</h2>
+
+        <p id="loadingMessage" class="loading-message">
+          Vérification de ton compte
+        </p>
+
+      </div>
+
+    </div>
+
+    <!-- PAGE CONNEXION TWITCH -->
+
+<div id="twitchScreen" class="auth-screen hidden">
+
+  <div class="auth-box">
+
+    <h2>Connecte ton compte Twitch</h2>
+
+    <p id="twitchMessage" style="text-align:center;color:#c7cbe0;margin-bottom:20px;">
+      Ton compte est connecté.
+      Il reste à lier ton compte Twitch pour continuer.
+    </p>
+
+    <a
+      href="/auth/twitch"
+      class="auth-submit"
+      style="display:block;text-align:center;text-decoration:none;"
+    >
+      Se connecter avec Twitch
+    </a>
+
+  </div>
+
+</div>
+
+    <!-- FENETRE DE CONFIRMATION -->
+
+<div id="successScreen" class="auth-screen hidden">
+
+  <div class="auth-box success-box">
+
+    <div class="success-icon">✓</div>
+
+    <h2 id="successTitle">C'est réussi !</h2>
+
+    <p id="successMessage" class="success-message">
+      Ton action a bien été prise en compte.
+    </p>
+
+    <button
+      id="successAction"
+      class="auth-submit"
+      type="button"
+    >
+      Continuer
+    </button>
+
+  </div>
+
+</div>
+    
+  <!-- PAGE INSCRIPTION -->
+
+  <div id="registerScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Créer mon compte</h2>
+
+      <form id="registerForm">
+
+        <div class="auth-field">
+          <label for="registerUsername">Pseudo</label>
+          <input
+            id="registerUsername"
+            type="text"
+            minlength="3"
+            maxlength="24"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerEmail">Adresse e-mail</label>
+          <input
+            id="registerEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerPassword">Mot de passe</label>
+          <input
+            id="registerPassword"
+            type="password"
+            minlength="8"
+            maxlength="72"
+            autocomplete="new-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Créer mon compte
+        </button>
+
+      </form>
+
+      <div id="registerError" class="auth-error"></div>
+
+      <button
+        id="backFromRegister"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAGE CONNEXION -->
+
+  <div id="loginScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Connexion</h2>
+
+      <form id="loginForm">
+
+        <div class="auth-field">
+          <label for="loginEmail">Adresse e-mail</label>
+          <input
+            id="loginEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Mot de passe</label>
+          <input
+            id="loginPassword"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Se connecter
+        </button>
+
+      </form>
+
+      <div id="loginError" class="auth-error"></div>
+
+      <button
+        id="backFromLogin"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+ <aside class="global-leaderboard">
+  <h2>🏆 Classement</h2>
+
+  <div id="leaderboard">
+    Chargement...
+  </div>
+</aside><div class="wrap">
+<div class="top">
+  <div class="logo">🐾 LoVeRDoSeTV Watch Game</div>
+  <div class="account-access">
+    <div id="topUser"></div>
+    <button id="infoButton" class="account-icon-button" type="button" aria-label="Voir les informations du jeu" title="Comment jouer">ⓘ</button>
+    <button id="accountButton" class="account-icon-button" type="button" aria-label="Accéder à mon compte" title="Mon compte">👤</button>
+  </div>
+</div>
+<div id="auth" class="card hidden"></div>
+<div id="app" class="hidden">
+<div class="card showcase-topbar">
+  <div class="showcase-topbar-head">
+    <div>
+      <div class="showcase-topbar-title">🏆 Vitrine de badges</div>
+      <div class="muted showcase-topbar-subtitle">Expose tes badges préférés <span class="badge-info-wrap" tabindex="0" aria-label="Informations sur les badges"><span class="badge-info-icon">i</span><span class="badge-info-tooltip">Les badges se débloquent en accomplissant des missions pendant les lives. Tu peux en exposer 6 dans ta vitrine et en choisir 2 à afficher dans le classement.</span></span></div>
+    </div>
+    <button id="openBadgeShowcase" class="btn secondary showcase-open-button" type="button">Voir la collection</button>
+  </div>
+  <div id="badgeShowcase" class="badge-showcase-grid badge-showcase-top"></div>
+</div>
+
+<div id="pick" class="card egg-panel">
+  <h2>Œuf en incubation</h2>
+  <p class="muted">Ton premier compagnon éclora après <b>6 heures de présence cumulée</b> pendant les lives.</p>
+  <div class="egg-visual" aria-label="Œuf en incubation"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
+  <div class="egg-progress-wrap">
+    <div class="egg-progress"><div id="eggProgressBar" class="egg-progress-bar"></div></div>
+    <div id="eggTime" class="egg-time">0 h 00 / 6 h 00</div>
+    <p id="eggStatus" class="muted">Ton œuf commence son incubation.</p>
+  </div>
+  <button id="hatchEgg" class="btn egg-hatch-button" type="button" disabled>Faire éclore l'œuf</button>
+
+  <div class="egg-rates">
+    <h3>Chances de l'œuf</h3>
+    <div class="egg-rarity-grid">
+      <div class="egg-rarity common">Commun<strong>70 %</strong></div>
+      <div class="egg-rarity rare">Rare<strong>22 %</strong></div>
+      <div class="egg-rarity epic">Épique<strong>7 %</strong></div>
+      <div class="egg-rarity mythic">Mythique<strong>1 %</strong></div>
+    </div>
+    <div class="egg-drop-list">
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Mossy.png" alt="Mossy"><span class="egg-drop-name">Mossy · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Nymea.png" alt="Nyméa"><span class="egg-drop-name">Nyméa · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Voltis.png" alt="Voltis"><span class="egg-drop-name">Voltis · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Brumee.png" alt="Brumee"><span class="egg-drop-name">Brumee · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Flamby.png" alt="Flamby"><span class="egg-drop-name">Flamby · Rare</span></div><b>8 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Crysal.png" alt="Crysal"><span class="egg-drop-name">Crysal · Rare</span></div><b>7 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Ferox.png" alt="Ferox"><span class="egg-drop-name">Ferox · Rare</span></div><b>7 %</b></div>
+      <div class="egg-drop-row epic"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Nocty.png" alt="Nocty"><span class="egg-drop-name">Nocty · Épique</span></div><b>3,5 %</b></div>
+      <div class="egg-drop-row epic"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Solka.png" alt="Solka"><span class="egg-drop-name">Solka · Épique</span></div><b>3,5 %</b></div>
+      <div class="egg-drop-row mythic"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Mimo.png" alt="Mimo"><span class="egg-drop-name">Mimo · Mythique</span></div><b>1 %</b></div>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="card"><div class="level"><div><h2 id="creatureTitle">Ta créature</h2><div id="evolution" class="muted"></div></div><span id="subBadge" class="pill hidden">⭐ SUB +20 % XP</span></div><div class="creature-art" id="mainCreature"></div><div class="progress"><div id="xpbar" class="bar"></div></div><p id="levelText" class="muted"></p></div>
+  <div class="grid"><div class="card"><div class="muted">XP totale</div><div id="xp" class="stat">0</div></div><div class="card"><div class="muted">Points</div><div id="points" class="stat">0</div></div><div class="card"><div class="muted">Temps regardé</div><div id="watch" class="stat">0 <small>min</small></div></div></div>
+</div>
+
+</div></div>
+
+<!-- BIENVENUE DANS LE JEU -->
+<div id="gameIntroModal" class="game-intro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
+  <div class="game-intro-panel">
+    <div class="game-intro-icon">🥚</div>
+    <h2 id="gameIntroTitle">Bienvenue dans le Watch Game !</h2>
+    <p>Ton aventure commence avec un œuf mystérieux. Voici comment fonctionne ton départ.</p>
+    <div class="game-intro-steps">
+      <div class="game-intro-step">🥚 <b>1.</b> Ton œuf a besoin de <b>6 heures de présence cumulée</b> pendant les lives pour être prêt à éclore.</div>
+      <div class="game-intro-step">✨ <b>2.</b> Une fois prêt, clique sur <b>Faire éclore l'œuf</b> : ton compagnon sera tiré selon sa rareté.</div>
+      <div class="game-intro-step">⭐ <b>3.</b> Après l'éclosion, <b>1 h regardée = 100 XP + 10 points</b>. Si tu es abonné à la chaîne : <b>120 XP/h</b>. Ton compagnon montera de niveau et pourra évoluer.</div>
+    </div>
+    <div class="game-intro-rates">Commun 70 % · Rare 22 % · Épique 7 % · Mythique 1 %</div>
+    <button id="gameIntroClose" class="btn" type="button">J'ai compris</button>
+  </div>
+</div>
+
+<!-- COLLECTION DE BADGES -->
+<div id="badgeCollectionModal" class="badge-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="badgeCollectionTitle">
+  <div class="badge-collection-panel">
+    <div class="badge-collection-head">
+      <h2 id="badgeCollectionTitle">🏆 Collection de badges</h2>
+      <button id="badgeCollectionClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="badge-collection-help">Découvre tes badges, personnalise ta vitrine et choisis ceux que tu veux exposer.</p>
+
+    <div class="showcase-settings-panel">
+      <div class="showcase-setting-row">
+        <div>
+          <div class="showcase-setting-title">👁️ Vitrine publique</div>
+          <div class="showcase-setting-help">Autorise l’affichage de ta vitrine sur ton futur profil public.</div>
+        </div>
+        <label class="showcase-switch" aria-label="Rendre la vitrine publique">
+          <input id="showcasePublicToggle" type="checkbox" checked>
+          <span></span>
+        </label>
+      </div>
+      <div class="showcase-theme-block">
+        <div class="showcase-setting-title">🎨 Style de la vitrine</div>
+        <div class="showcase-theme-options" role="group" aria-label="Style de la vitrine">
+          <button class="showcase-theme-chip" type="button" data-showcase-theme="classic">Sobre</button>
+          <button class="showcase-theme-chip" type="button" data-showcase-theme="violet">Violet</button>
+          <button class="showcase-theme-chip" type="button" data-showcase-theme="gold">Doré</button>
+          <button class="showcase-theme-chip" type="button" data-showcase-theme="neon">Néon</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="badge-modal-section-title badge-collection-title">Ma collection</div>
+    <div id="badgeCollectionContent"></div>
+  </div>
+</div>
+
+<!-- GESTION DU COMPTE -->
+<div id="accountModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+  <div class="account-panel">
+    <div class="account-panel-head">
+      <h2 id="accountModalTitle">👤 Mon compte</h2>
+      <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="account-info-row">
+      <span class="account-info-label">Pseudo du joueur</span>
+      <div id="accountUsername" class="account-info-value">—</div>
+      <div class="account-username-edit">
+        <input id="accountUsernameInput" type="text" minlength="3" maxlength="24" autocomplete="off" placeholder="Nouveau pseudo">
+        <button id="accountUsernameSave" class="btn account-username-save" type="button">Modifier</button>
+      </div>
+      <div id="accountUsernameMessage" class="account-username-message"></div>
+    </div>
+    <div class="account-info-row">
+      <span class="account-info-label">Adresse e-mail</span>
+      <div id="accountEmail" class="account-info-value">—</div>
+    </div>
+    <div class="account-info-row">
+      <span class="account-info-label">Compte Twitch</span>
+      <div id="accountTwitch" class="account-info-value">—</div>
+    </div>
+
+    <div id="trackerAdminSection" class="tracker-admin hidden">
+      <span class="account-info-label">Tracker Twitch · diffuseur</span>
+      <div id="trackerStatus" class="tracker-status">Non configuré</div>
+      <p id="trackerDetail" class="tracker-help">Le tracker compte la présence des comptes liés dans le chat Twitch pendant les lives.</p>
+      <div class="tracker-actions">
+        <a id="trackerConnect" class="btn" href="/auth/twitch/tracker">Configurer le tracker</a>
+        <button id="trackerTest" class="btn secondary" type="button">Tester maintenant</button>
+      </div>
+    </div>
+
+    <div class="account-actions">
+      <button id="accountLogout" class="btn secondary" type="button">Déconnexion</button>
+    </div>
+
+    <div class="account-danger-zone">
+      <h3 class="account-danger-title">Gestion du jeu et du compte</h3>
+      <p class="account-danger-text">La réinitialisation garde ton compte et ton lien Twitch. La suppression du compte efface définitivement ton compte Watch Game et toute sa progression.</p>
+      <div class="account-actions">
+        <button id="resetGameButton" class="btn warning" type="button">↻ Réinitialiser le jeu</button>
+        <button id="deleteAccountButton" class="btn danger" type="button">🗑 Supprimer mon compte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRMATION ACTION COMPTE -->
+<div id="confirmAccountModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmAccountTitle">
+  <div class="confirm-panel">
+    <div id="confirmAccountIcon" class="confirm-icon">⚠️</div>
+    <h2 id="confirmAccountTitle">Confirmation</h2>
+    <p id="confirmAccountMessage"></p>
+    <div id="confirmAccountError" class="confirm-error"></div>
+    <div class="confirm-actions">
+      <button id="confirmAccountCancel" class="btn secondary" type="button">Annuler</button>
+      <button id="confirmAccountAction" class="btn danger" type="button">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let me = null;
+let shouldShowGameIntro = false;
+
+const $ = id => document.getElementById(id);
+
+const authOverlay = $('authOverlay');
+const authHome = document.querySelector('.auth-home');
+const registerScreen = $('registerScreen');
+const loginScreen = $('loginScreen');
+const twitchScreen = $('twitchScreen');
+const registerForm = $('registerForm');
+const loginForm = $('loginForm');
+const registerError = $('registerError');
+const loginError = $('loginError');
+
+const loadingScreen = $('loadingScreen');
+  
+const successScreen = $('successScreen');
+const successTitle = $('successTitle');
+const successMessage = $('successMessage');
+const successAction = $('successAction');
+
+let successCallback = null;
+
+const homeMonsters = [
+  { id:'water', name:'Nyméa', type:'Abyssal', rarity:'Commun', chance:'17,5 %', image:'/Nymea.png', glow:'rgba(61,174,255,.30)', description:'Une créature aquatique vive qui maîtrise bulles, vagues et éclats d’eau.' },
+  { id:'plant', name:'Mossy', type:'Verdance', rarity:'Commun', chance:'17,5 %', image:'/Mossy.png', glow:'rgba(84,210,126,.28)', description:'Un compagnon de la forêt qui puise sa force dans la nature.' },
+  { id:'lightning', name:'Voltis', type:'Foudre', rarity:'Commun', chance:'17,5 %', image:'/Voltis.png', glow:'rgba(255,220,70,.30)', description:'Une petite créature vive chargée d’une énergie électrique.' },
+  { id:'mist', name:'Brumee', type:'Brume', rarity:'Commun', chance:'17,5 %', image:'/Brumee.png', glow:'rgba(190,200,230,.25)', description:'Une créature légère et mystérieuse enveloppée de brume magique.' },
+  { id:'fire', name:'Flamby', type:'Cendre', rarity:'Rare', chance:'8 %', image:'/Flamby.png', glow:'rgba(255,123,58,.30)', description:'Un petit compagnon ardent qui transforme chaque combat en étincelles.' },
+  { id:'crystal', name:'Crysal', type:'Cristal', rarity:'Rare', chance:'7 %', image:'/Crysal.png', glow:'rgba(120,230,255,.28)', description:'Une créature lumineuse dont le corps semble taillé dans le cristal.' },
+  { id:'forge', name:'Ferox', type:'Forge', rarity:'Rare', chance:'7 %', image:'/Ferox.png', glow:'rgba(255,140,70,.28)', description:'Une créature robuste marquée par le métal et la chaleur de la forge.' },
+  { id:'dark', name:'Nocty', type:'Néant', rarity:'Épique', chance:'3,5 %', image:'/Nocty.png', glow:'rgba(160,89,255,.32)', description:'Une petite créature lunaire entourée d’une énergie mystérieuse.' },
+  { id:'solar', name:'Solka', type:'Solaire', rarity:'Épique', chance:'3,5 %', image:'/Solka.png', glow:'rgba(255,210,80,.30)', description:'Une créature rayonnante imprégnée d’une énergie solaire.' },
+  { id:'dream', name:'Mimo', type:'Mirage', rarity:'Mythique', chance:'1 %', image:'/Mimo.png', glow:'rgba(255,126,218,.28)', description:'Un compagnon onirique qui combat avec une magie douce et lumineuse.' }
+];
+let homeMonsterIndex = 0;
+
+function renderHomeMonster() {
+  const monster = homeMonsters[homeMonsterIndex];
+  const card = $('carouselCard');
+  if (!card) return;
+  card.style.setProperty('--monster-glow', monster.glow);
+  $('carouselMonster').src = monster.image;
+  $('carouselMonster').alt = monster.name;
+  $('carouselName').textContent = monster.name;
+  $('carouselType').textContent = monster.type;
+  $('carouselDrop').textContent = `${monster.rarity} • ${monster.chance}`;
+  $('carouselDescription').textContent = monster.description;
+  document.querySelectorAll('.carousel-dot').forEach((dot, index) => {
+    dot.classList.toggle('active', index === homeMonsterIndex);
+  });
+}
+
+function moveHomeCarousel(direction) {
+  homeMonsterIndex = (homeMonsterIndex + direction + homeMonsters.length) % homeMonsters.length;
+  renderHomeMonster();
+}
+
+const dotsContainer = $('carouselDots');
+if (dotsContainer) {
+  dotsContainer.innerHTML = homeMonsters.map((monster, index) =>
+    `<button class="carousel-dot${index === 0 ? ' active' : ''}" type="button" aria-label="Afficher ${monster.name}" data-index="${index}"></button>`
+  ).join('');
+  dotsContainer.addEventListener('click', event => {
+    const dot = event.target.closest('.carousel-dot');
+    if (!dot) return;
+    homeMonsterIndex = Number(dot.dataset.index);
+    renderHomeMonster();
+  });
+}
+$('carouselPrev')?.addEventListener('click', () => moveHomeCarousel(-1));
+$('carouselNext')?.addEventListener('click', () => moveHomeCarousel(1));
+  
+  const carouselCard = $('carouselCard');
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+if (carouselCard) {
+
+  carouselCard.addEventListener('touchstart', event => {
+    touchStartX = event.changedTouches[0].screenX;
+  }, { passive: true });
+
+  carouselCard.addEventListener('touchend', event => {
+    touchEndX = event.changedTouches[0].screenX;
+
+    const swipeDistance = touchEndX - touchStartX;
+
+    // Évite qu'un petit mouvement du doigt change de monstre
+    if (Math.abs(swipeDistance) < 50) return;
+
+    // Swipe vers la gauche = monstre suivant
+    if (swipeDistance < 0) {
+      moveHomeCarousel(1);
+    }
+
+    // Swipe vers la droite = monstre précédent
+    if (swipeDistance > 0) {
+      moveHomeCarousel(-1);
+    }
+  }, { passive: true });
+
+}
+renderHomeMonster();
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
+}
+
+function creatureById(id) {
+  return me?.creatures?.find(c => c.id === id);
+}
+
+function art(type, evo = 0, small = false) {
+  const monsterImages = {
+    fire: '/Flamby.png',
+    water: '/Nymea.png',
+    plant: '/Mossy.png',
+    dark: '/Nocty.png',
+    dream: '/Mimo.png',
+    voltis: '/Voltis.png',
+    crysal: '/Crysal.png',
+    brumee: '/Brumee.png',
+    solka: '/Solka.png',
+    ferox: '/Ferox.png'
+  };
+
+  const monsterNames = {
+    fire: 'Flamby',
+    water: 'Nyméa',
+    plant: 'Mossy',
+    dark: 'Nocty',
+    dream: 'Mimo',
+    voltis: 'Voltis',
+    crysal: 'Crysal',
+    brumee: 'Brumee',
+    solka: 'Solka',
+    ferox: 'Ferox'
+  };
+
+  const image = monsterImages[type];
+  if (!image) return '';
+
+  return `
+    <img
+      src="${image}"
+      alt="${monsterNames[type]}"
+      class="${small ? 'monster-image-small' : 'monster-image'}"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
+    >
+    <div class="monster-placeholder">Image de ${monsterNames[type]}<br>à ajouter</div>
+  `;
+}
+  
+function showLoading(
+  title = 'Connexion en cours...',
+  message = 'Vérification de ton compte'
+) {
+
+  $('loadingTitle').textContent = title;
+  $('loadingMessage').textContent = message;
+
+  authOverlay.classList.remove('hidden');
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+
+  loadingScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+
+
+function hideLoading() {
+  loadingScreen.classList.add('hidden');
+}
+  
+function showSuccess(title, message, buttonText, callback) {
+
+  successTitle.textContent = title;
+  successMessage.textContent = message;
+  successAction.textContent = buttonText;
+
+  successCallback = callback;
+
+  authOverlay.classList.remove('hidden');
+
+  authHome.style.display = 'none';
+
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+
+  successScreen.classList.remove('hidden');
+
+  document.body.classList.add('auth-locked');
+}
+  successAction.addEventListener('click', async () => {
+
+  successScreen.classList.add('hidden');
+
+  const callback = successCallback;
+  successCallback = null;
+
+  if (callback) {
+    await callback();
+  }
+
+});
+  
+function showAuthHome() {
+  authOverlay.classList.remove('hidden');
+  authHome.style.display = 'flex';
+  
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  successScreen.classList.add('hidden');
+  loadingScreen.classList.add('hidden');
+  
+  document.body.classList.add('auth-locked');
+}
+
+function showTwitchLink(message = 'Ton compte est connecté. Il reste à lier ton compte Twitch pour continuer.') {
+  $('twitchMessage').textContent = message;
+  authOverlay.classList.remove('hidden');
+  authHome.style.display = 'none';
+  registerScreen.classList.add('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.remove('hidden');
+  document.body.classList.add('auth-locked');
+}
+
+function showGame() {
+  authOverlay.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+  document.body.classList.remove('auth-locked');
+}
+
+async function refreshAccountState() {
+  try {
+    const response = await fetch('/api/account/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Impossible de charger le compte.');
+    }
+
+    if (!data.authenticated) {
+      showAuthHome();
+      return;
+    }
+
+    // Un compte peut avoir twitch_id en base mais pas encore de session jeu
+    // (ex. nouvelle connexion sur un autre navigateur). Le serveur restaure
+    // désormais automatiquement cette session via gameReady.
+    if (!data.account.twitchConnected || !data.account.gameReady) {
+      showTwitchLink();
+      return;
+    }
+
+    shouldShowGameIntro = Boolean(data.account.showGameIntro);
+
+    showGame();
+    await loadGame();
+
+  } catch (error) {
+    console.error('Erreur état compte :', error);
+    showAuthHome();
+  }
+}
+
+async function loadGame() {
+  try {
+    const response = await fetch('/api/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok || !data.authenticated) {
+      $('app').classList.add('hidden');
+      return;
+    }
+
+    me = data;
+    $('app').classList.remove('hidden');
+    $('topUser').innerHTML = me.user.is_sub
+      ? '<span class="pill sub">⭐ Sub</span>'
+      : '';
+
+    renderGame();
+    await loadBadges();
+  } catch (error) {
+    console.error('Erreur chargement jeu :', error);
+  }
+}
+
+function formatEggTime(seconds) {
+  const total = Math.max(0, Math.floor(Number(seconds) || 0));
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  return `${hours} h ${String(minutes).padStart(2, '0')}`;
+}
+
+function updateEgg(egg) {
+  if (!egg) return;
+
+  $('eggProgressBar').style.width = `${Math.max(0, Math.min(100, egg.progress || 0))}%`;
+  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+
+  if (egg.ready) {
+    $('eggStatus').textContent = 'Ton œuf est prêt ! Tu peux maintenant le faire éclore.';
+    $('eggStatus').classList.add('egg-ready');
+    $('hatchEgg').disabled = false;
+  } else {
+    $('eggStatus').textContent = `Encore ${formatEggTime(egg.remainingSeconds)} avant l’éclosion.`;
+    $('eggStatus').classList.remove('egg-ready');
+    $('hatchEgg').disabled = true;
+  }
+}
+
+function maybeShowGameIntro() {
+  // L'introduction s'affiche uniquement pour un nouveau compte,
+  // après sa toute première liaison Twitch. Elle ne se réaffiche pas
+  // lors des connexions suivantes ni après une réinitialisation du jeu.
+  if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
+
+  $('gameIntroModal')?.classList.remove('hidden');
+}
+
+async function closeGameIntro() {
+  $('gameIntroModal')?.classList.add('hidden');
+
+  if (!shouldShowGameIntro) return;
+  shouldShowGameIntro = false;
+
+  try {
+    await fetch('/api/account/intro-seen', { method: 'POST' });
+  } catch (error) {
+    console.error('Erreur sauvegarde introduction :', error);
+  }
+}
+
+$('infoButton')?.addEventListener('click', () => {
+  // Aide ouverte manuellement pour tous les joueurs.
+  // Cela ne modifie pas le statut de nouveau joueur.
+  $('gameIntroModal')?.classList.remove('hidden');
+});
+
+$('gameIntroClose')?.addEventListener('click', closeGameIntro);
+$('gameIntroModal')?.addEventListener('click', event => {
+  if (event.target.id === 'gameIntroModal') closeGameIntro();
+});
+
+
+let badgeData = { gameWatch: [], challenges: [], badges: [], showcaseSettings: { isPublic: true, theme: 'classic' } };
+
+function badgeVisual(badge, className = 'badge-art') {
+  if (badge?.badgeImage) {
+    return `<img class="${className}" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
+  }
+
+  const placeholderClass = className === 'leaderboard-badge-img'
+    ? 'leaderboard-badge-placeholder'
+    : 'badge-art-placeholder';
+
+  return `<span class="${placeholderClass}" aria-hidden="true">🏆</span>`;
+}
+
+async function loadBadges() {
+  try {
+    const response = await fetch('/api/badges', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok) throw new Error(data.error || 'Impossible de charger les badges.');
+
+    badgeData = data;
+  } catch (error) {
+    console.error('Erreur badges :', error);
+    badgeData = { gameWatch: [], challenges: [], badges: [], showcaseSettings: { isPublic: true, theme: 'classic' } };
+  }
+
+  renderBadgeShowcase();
+  renderBadgeCollection();
+  syncShowcaseSettingsUI();
+}
+
+
+function applyShowcaseTheme(theme) {
+  const allowed = ['classic', 'violet', 'gold', 'neon'];
+  const selected = allowed.includes(theme) ? theme : 'classic';
+  const card = document.querySelector('.showcase-topbar');
+  if (card) {
+    card.classList.remove('theme-classic', 'theme-violet', 'theme-gold', 'theme-neon');
+    card.classList.add(`theme-${selected}`);
+  }
+  document.querySelectorAll('[data-showcase-theme]').forEach(button => {
+    button.classList.toggle('active', button.dataset.showcaseTheme === selected);
+  });
+}
+function syncShowcaseSettingsUI() {
+  const settings = badgeData.showcaseSettings || { isPublic: true, theme: 'classic' };
+  const toggle = $('showcasePublicToggle');
+  if (toggle) toggle.checked = settings.isPublic !== false;
+  applyShowcaseTheme(settings.theme || 'classic');
+}
+async function saveShowcaseSettings(next = {}) {
+  const current = badgeData.showcaseSettings || { isPublic: true, theme: 'classic' };
+  const payload = {
+    isPublic: next.isPublic ?? current.isPublic ?? true,
+    theme: next.theme || current.theme || 'classic'
+  };
+  const response = await fetch('/api/badges/showcase-settings', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || 'Impossible d’enregistrer la vitrine.');
+  badgeData.showcaseSettings = { isPublic: data.isPublic, theme: data.theme };
+  syncShowcaseSettingsUI();
+}
+
+function renderBadgeShowcase() {
+  const container = $('badgeShowcase');
+  if (!container) return;
+  const equipped = new Map((badgeData.badges || []).filter(badge => badge.equippedSlot).map(badge => [Number(badge.equippedSlot), badge]));
+  container.innerHTML = Array.from({ length: 6 }, (_, index) => {
+    const slot = index + 1;
+    const badge = equipped.get(slot);
+    if (!badge) {
+      return `<button class="badge-slot" type="button" data-open-badge-collection="true" title="Ajouter un badge">
+        <div class="badge-medal">＋</div><div class="badge-game">Ajouter un badge</div></button>`;
+    }
+    const name = escapeHtml(badge.badgeName || badge.gameName || 'Badge');
+    const mission = escapeHtml(badge.badgeChallenge || 'Mission à venir');
+    return `<button class="badge-slot filled" type="button" data-badge-slot="${slot}" aria-label="${name} — ${mission}">
+      ${badgeVisual(badge)}
+      <span class="badge-slot-tooltip" role="tooltip"><strong>${name}</strong><span>Mission : ${mission}</span></span>
+    </button>`;
+  }).join('');
+}
+
+function renderBadgeCollection() {
+  const container = $('badgeCollectionContent');
+  if (!container) return;
+
+  const challenges = badgeData.challenges || [];
+  const badges = badgeData.badges || [];
+  const challengeKeys = new Set(challenges.map(challenge => challenge.badgeKey));
+  const extraBadges = badges.filter(badge => !challengeKeys.has(badge.badgeKey));
+
+  const challengeHtml = challenges.map(challenge => {
+    const unlocked = Boolean(challenge.unlocked);
+    const isSubscriptionMission = challenge.missionType === 'subscription';
+    const isGlobalEvolution = challenge.missionType === 'global-evolution';
+    const isSpecialModeMission = challenge.missionType === 'special-mode';
+    const watchedHours = Math.max(0, Number(challenge.watchSeconds || 0) / 3600);
+    const targetHours = Number(challenge.targetHours || 50);
+    const percent = isSubscriptionMission
+      ? (unlocked ? 100 : 0)
+      : Math.min(100, targetHours > 0 ? watchedHours / targetHours * 100 : 0);
+    const progressText = isSubscriptionMission
+      ? (unlocked ? 'Abonnement détecté · Badge débloqué' : 'S’abonner pour débloquer ce badge')
+      : (isGlobalEvolution && challenge.maxed
+          ? `${watchedHours.toFixed(1).replace('.', ',')} h · Évolution maximale`
+          : `${watchedHours.toFixed(1).replace('.', ',')} h / ${targetHours} h`);
+    const missionSource = isGlobalEvolution
+      ? `Visionnage global · ${challenge.evolutionName || 'Fidèle de la chaîne'}`
+      : isSpecialModeMission
+        ? `Mode spécial · ${challenge.gameName}`
+        : `Catégorie Twitch · ${challenge.gameName}`;
+
+    const actions = unlocked ? `
+      <div class="badge-card-actions">
+        <button class="badge-action ${challenge.equippedSlot ? 'active' : ''}"
+          type="button" data-showcase-badge="${escapeHtml(challenge.badgeKey)}">
+          ${challenge.equippedSlot ? `Vitrine ${challenge.equippedSlot}` : 'Ajouter vitrine'}
+        </button>
+        <button class="badge-action ${challenge.leaderboardSlot ? 'active' : ''}"
+          type="button" data-leaderboard-badge="${escapeHtml(challenge.badgeKey)}">
+          ${challenge.leaderboardSlot ? `Classement ${challenge.leaderboardSlot}` : 'Afficher classement'}
+        </button>
+      </div>` : '';
+
+    return `
+      <div class="badge-challenge-card ${unlocked ? '' : 'locked'}"
+        data-challenge="${escapeHtml(challenge.badgeChallenge || 'Mission à venir')}">
+        <div class="badge-challenge-top">
+          <div class="badge-challenge-icon badge-challenge-art-wrap">${badgeVisual(challenge)}${unlocked ? '' : '<span class="badge-challenge-lock">🔒</span>'}</div>
+          <div class="badge-challenge-info">
+            <div class="badge-challenge-name">${escapeHtml(challenge.badgeName)}</div>
+            <div class="badge-challenge-game">${escapeHtml(missionSource)}</div>
+          </div>
+          <div class="badge-challenge-state">${isGlobalEvolution && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
+        </div>
+        <div class="badge-challenge-progress"><span style="width:${percent}%"></span></div>
+        <div class="badge-challenge-bottom">
+          <span class="challenge-progress-value">${progressText}</span>
+          <span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span>
+        </div>
+        ${actions}
+      </div>`;
+  }).join('');
+
+  const challengeGridHtml = challengeHtml
+    ? `<div class="badge-challenge-grid">${challengeHtml}</div>`
+    : '';
+
+  const extraHtml = extraBadges.length ? `
+    <div class="badge-modal-section-title" style="margin-top:18px;">Autres badges</div>
+    <div class="badge-collection-grid">
+      ${extraBadges.map(badge => `
+        <div class="badge-card" data-challenge="${escapeHtml(badge.badgeChallenge || 'Mission à venir')}">
+          ${badgeVisual(badge)}
+          <div class="badge-card-title">${escapeHtml(badge.badgeName || badge.gameName || 'Badge')}</div>
+          ${badge.gameName ? `<div class="badge-card-sub">${escapeHtml(badge.gameName)}</div>` : ''}
+        </div>`).join('')}
+    </div>` : '';
+
+  container.innerHTML = challengeGridHtml || `
+    <div class="badge-empty">Aucune mission disponible pour le moment.</div>`;
+
+  if (extraHtml) container.insertAdjacentHTML('beforeend', extraHtml);
+}
+
+async function equipBadge(badgeKey) {
+  const badge = (badgeData.badges || []).find(item => item.badgeKey === badgeKey);
+  if (!badge) return;
+
+  if (badge.equippedSlot) {
+    await unequipBadge(Number(badge.equippedSlot));
+    return;
+  }
+
+  const occupied = new Set(
+    (badgeData.badges || [])
+      .filter(item => item.equippedSlot)
+      .map(item => Number(item.equippedSlot))
+  );
+
+  const freeSlot = [1,2,3,4,5,6].find(slot => !occupied.has(slot));
+
+  if (!freeSlot) {
+    alert('Ta vitrine est pleine. Retire d’abord un badge exposé.');
+    return;
+  }
+
+  const response = await fetch('/api/badges/equip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ badgeKey, slot: freeSlot })
+  });
+
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || 'Impossible d’ajouter le badge à la vitrine.');
+
+  await loadBadges();
+}
+
+async function unequipBadge(slot) {
+  const response = await fetch('/api/badges/unequip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slot })
+  });
+
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || 'Impossible de retirer le badge de la vitrine.');
+
+  await loadBadges();
+}
+
+async function equipLeaderboardBadge(badgeKey) {
+  const badge = (badgeData.badges || []).find(item => item.badgeKey === badgeKey);
+  if (!badge) return;
+
+  if (badge.leaderboardSlot) {
+    await unequipLeaderboardBadge(Number(badge.leaderboardSlot));
+    return;
+  }
+
+  const occupied = new Set(
+    (badgeData.badges || [])
+      .filter(item => item.leaderboardSlot)
+      .map(item => Number(item.leaderboardSlot))
+  );
+
+  const freeSlot = [1,2].find(slot => !occupied.has(slot));
+
+  if (!freeSlot) {
+    alert('Tu affiches déjà 2 badges dans le classement. Retire-en un avant d’en choisir un autre.');
+    return;
+  }
+
+  const response = await fetch('/api/badges/leaderboard/equip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ badgeKey, slot: freeSlot })
+  });
+
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || 'Impossible d’afficher ce badge dans le classement.');
+
+  await loadBadges();
+  await loadLeaderboard();
+}
+
+async function unequipLeaderboardBadge(slot) {
+  const response = await fetch('/api/badges/leaderboard/unequip', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ slot })
+  });
+
+  const data = await response.json();
+  if (!response.ok) return alert(data.error || 'Impossible de retirer ce badge du classement.');
+
+  await loadBadges();
+  await loadLeaderboard();
+}
+
+function openBadgeShowcaseModal() {
+  renderBadgeShowcase();
+  renderBadgeCollection();
+  $('badgeCollectionModal')?.classList.remove('hidden');
+}
+
+$('openBadgeCollection')?.addEventListener('click', openBadgeShowcaseModal);
+$('openBadgeShowcase')?.addEventListener('click', openBadgeShowcaseModal);
+
+$('badgeCollectionClose')?.addEventListener('click', () => {
+  $('badgeCollectionModal')?.classList.add('hidden');
+});
+
+
+$('showcasePublicToggle')?.addEventListener('change', event => {
+  saveShowcaseSettings({ isPublic: Boolean(event.target.checked) });
+});
+document.querySelectorAll('[data-showcase-theme]').forEach(button => {
+  button.addEventListener('click', () => saveShowcaseSettings({ theme: button.dataset.showcaseTheme }));
+});
+
+let badgeBackdropMouseDown = false;
+
+$('badgeCollectionModal')?.addEventListener('mousedown', event => {
+  badgeBackdropMouseDown = event.target.id === 'badgeCollectionModal';
+});
+
+$('badgeCollectionModal')?.addEventListener('mouseup', event => {
+  if (badgeBackdropMouseDown && event.target.id === 'badgeCollectionModal') {
+    $('badgeCollectionModal')?.classList.add('hidden');
+  }
+  badgeBackdropMouseDown = false;
+});
+
+$('badgeCollectionContent')?.addEventListener('click', event => {
+  const showcaseButton = event.target.closest('[data-showcase-badge]');
+  if (showcaseButton) {
+    equipBadge(showcaseButton.dataset.showcaseBadge);
+    return;
+  }
+
+  const leaderboardButton = event.target.closest('[data-leaderboard-badge]');
+  if (leaderboardButton) {
+    equipLeaderboardBadge(leaderboardButton.dataset.leaderboardBadge);
+  }
+});
+
+$('badgeShowcase')?.addEventListener('click', () => {
+  openBadgeShowcaseModal();
+});
+
+
+function renderGame() {
+  if (!me?.user) return;
+
+  if (me.user.creature_id) {
+    $('pick').classList.add('hidden');
+    $('game').classList.remove('hidden');
+    updateStats(me.user);
+    return;
+  }
+
+  $('pick').classList.remove('hidden');
+  $('game').classList.add('hidden');
+  updateEgg(me.user.egg);
+  maybeShowGameIntro();
+}
+
+async function hatchEgg() {
+  const button = $('hatchEgg');
+  if (button.disabled) return;
+
+  button.disabled = true;
+  button.textContent = 'Éclosion...';
+
+  try {
+    const response = await fetch('/api/egg/hatch', { method: 'POST' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      if (data.egg) updateEgg(data.egg);
+      alert(data.error || 'Impossible de faire éclore l’œuf.');
+      return;
+    }
+
+    const creature = data.creature;
+
+    showSuccess(
+      `${creature.name} est né !`,
+      `Tu as obtenu ${creature.name} · ${creature.type} · ${creature.rarity} (${String(creature.dropRate).replace('.', ',')} %).`,
+      'Découvrir mon compagnon',
+      async () => {
+        showGame();
+        await loadGame();
+      }
+    );
+  } catch (error) {
+    console.error('Erreur éclosion :', error);
+    alert('Impossible de contacter le serveur.');
+  } finally {
+    button.textContent = "Faire éclore l'œuf";
+    if (me?.user?.egg?.ready) button.disabled = false;
+  }
+}
+
+$('hatchEgg')?.addEventListener('click', hatchEgg);
+
+function updateStats(u) {
+  const p = u.progression;
+  const c = creatureById(u.creature_id);
+  if (!c) return;
+
+  $('creatureTitle').textContent = `${c.name} — niveau ${p.level}`;
+  $('evolution').textContent = p.evolutionName;
+  $('mainCreature').innerHTML = art(c.id, p.evolution);
+  $('xp').textContent = Math.floor(u.xp);
+  $('points').textContent = Math.floor(u.points);
+  $('watch').innerHTML = `${Math.floor(u.watch_seconds / 60)} <small>min</small>`;
+
+  const pct = p.maxLevel
+    ? 100
+    : Math.max(0, Math.min(100,
+        ((u.xp - p.currentThreshold) /
+        (p.nextThreshold - p.currentThreshold)) * 100
+      ));
+
+  $('xpbar').style.width = pct + '%';
+  $('levelText').textContent = p.maxLevel
+    ? 'Niveau maximum atteint · XP continue à être enregistrée'
+    : `${Math.floor(u.xp - p.currentThreshold)} / ${Math.ceil(p.nextThreshold - p.currentThreshold)} XP pour le niveau suivant`;
+
+  $('subBadge').classList.toggle('hidden', !u.is_sub);
+}
+
+async function loadLeaderboard() {
+  const container = $('leaderboard');
+
+  try {
+    const response = await fetch('/api/leaderboard', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!data.leaderboard || data.leaderboard.length === 0) {
+      container.innerHTML = '<p class="muted">Aucun joueur pour le moment.</p>';
+      return;
+    }
+
+    container.innerHTML = data.leaderboard.map(playerData => {
+      let rank = '#' + playerData.rank;
+      if (playerData.rank === 1) rank = '🥇';
+      if (playerData.rank === 2) rank = '🥈';
+      if (playerData.rank === 3) rank = '🥉';
+
+      const selectedBadges = Array.isArray(playerData.leaderboard_badges)
+        ? playerData.leaderboard_badges.slice(0, 2)
+        : [];
+
+      const badgesHtml = selectedBadges.length
+        ? `<span class="leaderboard-badges">${selectedBadges.map(badge => {
+            if (badge.badgeImage) {
+              return `<img class="leaderboard-badge-img" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}" title="${escapeHtml(badge.badgeName || 'Badge')}">`;
+            }
+
+            return `<span class="leaderboard-badge-placeholder" title="${escapeHtml(badge.badgeName || 'Badge')}">🏅</span>`;
+          }).join('')}</span>`
+        : '';
+
+      return `
+        <div style="padding:12px 0;border-bottom:1px solid var(--line);">
+          <div style="font-weight:800;display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+            <span>${rank} ${escapeHtml(playerData.display_name)}</span>
+            ${badgesHtml}
+            <span class="muted">— Niveau ${playerData.progression.level}</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (error) {
+    console.error('Erreur classement :', error);
+    container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>';
+  }
+}
+
+function clearAuthErrors() {
+  registerError.style.display = 'none';
+  loginError.style.display = 'none';
+}
+
+$('showRegister').addEventListener('click', () => {
+  clearAuthErrors();
+  authHome.style.display = 'none';
+  registerScreen.classList.remove('hidden');
+  loginScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+});
+
+$('showLogin').addEventListener('click', () => {
+  clearAuthErrors();
+  authHome.style.display = 'none';
+  loginScreen.classList.remove('hidden');
+  registerScreen.classList.add('hidden');
+  twitchScreen.classList.add('hidden');
+});
+
+$('backFromRegister').addEventListener('click', showAuthHome);
+$('backFromLogin').addEventListener('click', showAuthHome);
+
+registerForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  registerError.style.display = 'none';
+
+  showLoading(
+    'Création du compte...',
+    'Préparation de ton aventure'
+  );
+
+  const loadingStart = Date.now();
+
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: $('registerUsername').value,
+        email: $('registerEmail').value,
+        password: $('registerPassword').value
+      })
+    });
+
+    const data = await response.json();
+
+    const elapsed = Date.now() - loadingStart;
+    if (elapsed < 300) {
+      await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
+    }
+
+    hideLoading();
+
+    if (!response.ok) {
+      registerScreen.classList.remove('hidden');
+      registerError.textContent = data.error || 'Impossible de créer le compte.';
+      registerError.style.display = 'block';
+      return;
+    }
+
+    registerForm.reset();
+
+    showSuccess(
+      'Inscription réussie !',
+      'Ton compte a bien été créé. Il ne te reste plus qu’à connecter ton compte Twitch pour commencer l’aventure.',
+      'Connecter Twitch',
+      () => {
+        showTwitchLink();
+      }
+    );
+  } catch (error) {
+    hideLoading();
+    registerScreen.classList.remove('hidden');
+    console.error(error);
+    registerError.textContent = 'Impossible de contacter le serveur.';
+    registerError.style.display = 'block';
+  }
+});
+
+loginForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  loginError.style.display = 'none';
+
+  showLoading(
+    'Connexion en cours...',
+    'Vérification de ton compte'
+  );
+
+const loadingStart = Date.now();
+
+  try {
+    const response = await fetch('/api/account/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: $('loginEmail').value,
+        password: $('loginPassword').value
+      })
+    });
+
+    const data = await response.json();
+    const elapsed = Date.now() - loadingStart;
+
+if (elapsed < 300) {
+  await new Promise(resolve => setTimeout(resolve, 300 - elapsed));
+}
+
+hideLoading();
+
+    if (!response.ok) {
+      loginScreen.classList.remove('hidden');
+      
+      loginError.textContent = data.error || 'Connexion impossible.';
+      loginError.style.display = 'block';
+      return;
+    }
+
+    loginForm.reset();
+
+if (!data.account?.twitchConnected || !data.account?.gameReady) {
+
+  showSuccess(
+    'Connexion réussie !',
+    'Tu es bien connecté. Il ne te reste plus qu’à connecter ton compte Twitch.',
+    'Connecter Twitch',
+    () => {
+      showTwitchLink();
+    }
+  );
+
+  return;
+}
+
+showSuccess(
+  'Connexion réussie !',
+  'Bon retour dans le Watch Game. Ton monstre t’attend !',
+  'Entrer dans le jeu',
+  async () => {
+    showGame();
+    await loadGame();
+  }
+);
+  } catch (error) {
+
+  hideLoading();
+
+  loginScreen.classList.remove('hidden');
+
+  console.error(error);
+
+  loginError.textContent = 'Impossible de contacter le serveur.';
+  loginError.style.display = 'block';
+}
+});
+
+
+
+async function loadTrackerStatus() {
+  const section = $('trackerAdminSection');
+  const status = $('trackerStatus');
+  const detail = $('trackerDetail');
+  const connect = $('trackerConnect');
+  const test = $('trackerTest');
+  if (!section || !status || !detail || !connect || !test) return;
+
+  try {
+    const response = await fetch('/api/tracker/status', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Statut indisponible');
+    }
+
+    if (!data.authorized) {
+      status.textContent = '⚠️ Non configuré';
+      detail.textContent = 'Autorise une seule fois le compte Twitch diffuseur pour permettre au serveur de lire la liste des personnes présentes dans le chat.';
+      connect.textContent = 'Configurer le tracker';
+      test.disabled = true;
+      return;
+    }
+
+    const zombieMode = String(data.specialMode || '').toLowerCase() === 'zombie';
+
+    status.textContent = data.error
+      ? '⚠️ Tracker à vérifier'
+      : data.live
+        ? zombieMode
+          ? '🧟 Mode Zombie · tracker actif'
+          : '🟢 Live détecté · tracker actif'
+        : '⚪ Chaîne hors ligne';
+
+    const matched = Number(data.matchedCount || 0);
+    const chatters = Number(data.chatterCount || 0);
+    detail.textContent = data.error
+      ? `Dernière erreur : ${data.error}`
+      : data.live
+        ? `${chatters} personne(s) dans le chat · ${matched} compte(s) Watch Game reconnu(s).${zombieMode ? ' · Mode spécial : 🧟 Zombie' : ''}`
+        : 'Le temps sera compté automatiquement lorsque la chaîne sera en live.';
+
+    connect.textContent = 'Reconnecter le tracker';
+    test.disabled = false;
+  } catch (error) {
+    status.textContent = '⚠️ Statut indisponible';
+    detail.textContent = error.message || 'Impossible de charger le tracker.';
+    test.disabled = true;
+  }
+}
+
+$('trackerTest')?.addEventListener('click', async () => {
+  const button = $('trackerTest');
+  if (!button) return;
+
+  button.disabled = true;
+  button.textContent = 'Test...';
+
+  try {
+    const response = await fetch('/api/tracker/run-now', { method: 'POST' });
+    const data = await response.json();
+    if (!response.ok || data.ok === false) {
+      throw new Error(data.error || 'Test impossible');
+    }
+    await loadTrackerStatus();
+  } catch (error) {
+    $('trackerStatus').textContent = '⚠️ Test échoué';
+    $('trackerDetail').textContent = error.message || 'Impossible de tester le tracker.';
+  } finally {
+    button.textContent = 'Tester maintenant';
+    button.disabled = false;
+  }
+});
+
+
+async function openAccountModal() {
+  const modal = $('accountModal');
+  const usernameValue = $('accountUsername');
+  const usernameInput = $('accountUsernameInput');
+  const usernameButton = $('accountUsernameSave');
+  const usernameMessage = $('accountUsernameMessage');
+
+  if (!modal || !usernameValue || !usernameInput || !usernameButton || !usernameMessage) return;
+
+  modal.classList.remove('hidden');
+  usernameValue.textContent = 'Chargement...';
+  usernameInput.value = '';
+  usernameInput.disabled = true;
+  usernameButton.disabled = true;
+  usernameMessage.className = 'account-username-message';
+  usernameMessage.textContent = '';
+  $('accountEmail').textContent = 'Chargement...';
+  $('accountTwitch').textContent = 'Chargement...';
+
+  try {
+    const response = await fetch('/api/account/me', { cache: 'no-store' });
+    const data = await response.json();
+
+    if (!response.ok || !data.authenticated) {
+      throw new Error(data.error || 'Compte introuvable');
+    }
+
+    const username = data.account.username || '—';
+    usernameValue.textContent = username;
+    usernameInput.value = data.account.username || '';
+    usernameInput.disabled = false;
+    usernameButton.disabled = false;
+    $('accountEmail').textContent = data.account.email || '—';
+    $('accountTwitch').textContent = data.account.twitchConnected
+      ? (me?.user?.login ? `Connecté · ${me.user.login}` : 'Connecté')
+      : 'Non connecté';
+
+
+    const trackerSection = $('trackerAdminSection');
+    if (trackerSection) {
+      trackerSection.classList.toggle('hidden', !data.account.isBroadcaster);
+      if (data.account.isBroadcaster) {
+        await loadTrackerStatus();
+      }
+    }
+  } catch (error) {
+    console.error('Erreur chargement compte :', error);
+    usernameValue.textContent = '—';
+    usernameInput.value = '';
+    usernameInput.disabled = true;
+    usernameButton.disabled = true;
+    usernameMessage.textContent = 'Impossible de charger le compte.';
+    usernameMessage.classList.add('error');
+    $('accountEmail').textContent = '—';
+    $('accountTwitch').textContent = '—';
+  }
+}
+
+async function saveAccountUsername() {
+  const input = $('accountUsernameInput');
+  const button = $('accountUsernameSave');
+  const message = $('accountUsernameMessage');
+  if (!input || !button || !message) return;
+
+  const username = input.value.trim();
+  message.className = 'account-username-message';
+  message.textContent = '';
+
+  if (username.length < 3 || username.length > 24) {
+    message.textContent = 'Le pseudo doit contenir entre 3 et 24 caractères.';
+    message.classList.add('error');
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = '...';
+
+  try {
+    const response = await fetch('/api/account/username', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Impossible de modifier le pseudo.');
+    }
+
+    $('accountUsername').textContent = data.username;
+    input.value = data.username;
+    message.textContent = '✓ Pseudo modifié avec succès.';
+    message.classList.add('success');
+
+    if (me?.user) {
+      me.user.display_name = data.username;
+    }
+
+    await loadLeaderboard();
+  } catch (error) {
+    message.textContent = error.message || 'Impossible de modifier le pseudo.';
+    message.classList.add('error');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Modifier';
+  }
+}
+
+$('accountUsernameSave')?.addEventListener('click', saveAccountUsername);
+$('accountUsernameInput')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    saveAccountUsername();
+  }
+});
+
+function closeAccountModal() {
+  $('accountModal')?.classList.add('hidden');
+}
+
+$('accountButton')?.addEventListener('click', openAccountModal);
+$('accountClose')?.addEventListener('click', closeAccountModal);
+
+let accountBackdropMouseDown = false;
+$('accountModal')?.addEventListener('mousedown', event => {
+  accountBackdropMouseDown = event.target.id === 'accountModal';
+});
+$('accountModal')?.addEventListener('mouseup', event => {
+  if (accountBackdropMouseDown && event.target.id === 'accountModal') {
+    closeAccountModal();
+  }
+  accountBackdropMouseDown = false;
+});
+$('accountModal')?.addEventListener('mouseleave', () => {
+  accountBackdropMouseDown = false;
+});
+$('accountLogout')?.addEventListener('click', async () => {
+  await fetch('/api/account/logout', { method: 'POST' });
+  location.reload();
+});
+
+let pendingAccountAction = null;
+
+function openAccountConfirmation({ title, message, buttonText, mode }) {
+  pendingAccountAction = mode;
+  $('confirmAccountTitle').textContent = title;
+  $('confirmAccountMessage').textContent = message;
+  $('confirmAccountAction').textContent = buttonText;
+  $('confirmAccountAction').className = mode === 'reset' ? 'btn warning' : 'btn danger';
+  $('confirmAccountIcon').textContent = mode === 'reset' ? '↻' : '⚠️';
+  $('confirmAccountError').style.display = 'none';
+  $('confirmAccountError').textContent = '';
+  $('confirmAccountModal').classList.remove('hidden');
+}
+
+function closeAccountConfirmation() {
+  pendingAccountAction = null;
+  $('confirmAccountModal')?.classList.add('hidden');
+}
+
+$('resetGameButton')?.addEventListener('click', () => {
+  openAccountConfirmation({
+    title: 'Réinitialiser le jeu ?',
+    message: 'Ton compte et ton lien Twitch seront conservés. Ton monstre, ton œuf, ton XP, tes points et ton temps de jeu seront remis à zéro. Cette action est définitive.',
+    buttonText: 'Oui, réinitialiser',
+    mode: 'reset'
+  });
+});
+
+$('deleteAccountButton')?.addEventListener('click', () => {
+  openAccountConfirmation({
+    title: 'Supprimer définitivement le compte ?',
+    message: 'Ton compte Watch Game, ton lien Twitch, ton monstre, ton XP, tes points et ton temps de jeu seront supprimés définitivement. Cette action est irréversible.',
+    buttonText: 'Supprimer définitivement',
+    mode: 'delete'
+  });
+});
+
+$('confirmAccountCancel')?.addEventListener('click', closeAccountConfirmation);
+$('confirmAccountModal')?.addEventListener('click', event => {
+  if (event.target.id === 'confirmAccountModal') closeAccountConfirmation();
+});
+
+$('confirmAccountAction')?.addEventListener('click', async () => {
+  if (!pendingAccountAction) return;
+
+  const action = pendingAccountAction;
+  const button = $('confirmAccountAction');
+  const errorBox = $('confirmAccountError');
+
+  button.disabled = true;
+  const oldText = button.textContent;
+  button.textContent = 'Traitement...';
+  errorBox.style.display = 'none';
+
+  try {
+    const response = await fetch(
+      action === 'reset' ? '/api/account/reset-game' : '/api/account',
+      { method: action === 'reset' ? 'POST' : 'DELETE' }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Action impossible.');
+    }
+
+    closeAccountConfirmation();
+    closeAccountModal();
+
+    if (action === 'delete') {
+      location.href = '/';
+      return;
+    }
+
+    location.reload();
+  } catch (error) {
+    console.error('Erreur action compte :', error);
+    errorBox.textContent = error.message || 'Action impossible.';
+    errorBox.style.display = 'block';
+  } finally {
+    button.disabled = false;
+    button.textContent = oldText;
+  }
+});
+
+$('logout')?.addEventListener('click', async () => {
+  await fetch('/api/account/logout', { method: 'POST' });
+  location.reload();
+});
+
+loadLeaderboard();
+refreshAccountState();
+
+// Actualise l'œuf, le temps, l'XP et les points pendant que la page du jeu est ouverte.
+setInterval(() => {
+  if (me?.user) loadGame();
+}, 60000);
+</script></body></html>
