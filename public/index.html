@@ -1745,7 +1745,7 @@ html, body{
 .player-card-identity{min-width:0;flex:1}
 .player-card-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0}
 .player-card-name{font-size:22px;font-weight:950;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.player-card-level{margin-top:5px;color:#b9c0d8;font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.player-card-title{display:none;margin-top:4px;color:#d9c8ff;font-size:11px;font-weight:950;line-height:1.2;letter-spacing:.02em}.player-card-title.visible{display:block}.player-card-level{margin-top:4px;color:#b9c0d8;font-size:12px;font-weight:800;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .player-card-rank{position:absolute;top:14px;right:18px;z-index:3;display:inline-flex;align-items:center;justify-content:center;min-width:42px;min-height:28px;padding:5px 10px;border-radius:10px;border:1px solid rgba(145,71,255,.48);background:linear-gradient(135deg,rgba(145,71,255,.22),rgba(30,20,58,.92));color:#eee5ff;font-size:12px;font-weight:950;white-space:nowrap;box-shadow:0 5px 16px rgba(0,0,0,.22)}
 .player-sub-zone{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .player-sub-status{appearance:none;border:1px solid rgba(167,116,255,.48);min-height:28px;padding:5px 8px;border-radius:9px;background:linear-gradient(135deg,rgba(145,71,255,.18),rgba(23,27,49,.95));color:#fff;display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:9px;font-weight:950;cursor:pointer;box-shadow:inset 0 0 14px rgba(145,71,255,.05);touch-action:manipulation}
@@ -1765,7 +1765,7 @@ html, body{
 .player-card-rankbadge img{width:38px;height:38px;object-fit:contain;filter:drop-shadow(0 4px 8px rgba(0,0,0,.35))}
 .player-card-rankbadge.empty{border-style:dashed;color:#6f789b;font-size:18px}
 .player-card-rank-label{color:#7f88a7;font-size:10px;font-weight:800;text-align:right;line-height:1.3;margin-left:3px}
-.player-card-actions{display:flex;gap:8px;margin-top:14px;max-width:none}.player-card-actions .player-card-action{touch-action:manipulation;-webkit-tap-highlight-color:transparent;flex:1}
+.player-card-actions{display:flex;gap:8px;margin-top:22px;max-width:none}.player-card-actions .player-card-action{touch-action:manipulation;-webkit-tap-highlight-color:transparent;flex:1}
 .player-card-action{touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   min-height:36px;padding:8px 10px;border:1px solid rgba(255,255,255,.10);border-radius:10px;background:#171c33;
   color:#fff;font-size:11px;font-weight:900;cursor:pointer;transition:.16s ease
@@ -1803,7 +1803,7 @@ html, body{
   z-index:1;
   display:grid;
   grid-template-columns:24px 36px minmax(0,1fr) auto;
-  grid-template-rows:auto auto;
+  grid-template-rows:auto auto auto;
   column-gap:7px;
   row-gap:4px;
   align-items:center;
@@ -1811,7 +1811,7 @@ html, body{
 }
 .leaderboard-player-rank{
   grid-column:1;
-  grid-row:1 / 3;
+  grid-row:1 / 4;
   width:24px;
   min-width:24px;
   height:32px;
@@ -1827,7 +1827,7 @@ html, body{
 .leaderboard-player-card.top-one .leaderboard-player-rank{font-size:20px}
 .leaderboard-player-card .leaderboard-twitch-avatar{
   grid-column:2;
-  grid-row:1 / 3;
+  grid-row:1 / 4;
   width:36px;
   height:36px;
   flex:0 0 36px;
@@ -1845,10 +1845,22 @@ html, body{
   overflow:hidden;
   text-overflow:ellipsis;
 }
+.leaderboard-player-title{
+  grid-column:3 / 5;
+  grid-row:2;
+  min-width:0;
+  color:#d9c8ff;
+  font-size:9px;
+  line-height:1.1;
+  font-weight:900;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
 .leaderboard-player-state,
 .leaderboard-player-level{
   grid-column:3 / 5;
-  grid-row:2;
+  grid-row:3;
   min-width:0;
 }
 .leaderboard-player-level{margin-top:0;font-size:10px;color:#9ea6c3;font-weight:800}
@@ -2187,6 +2199,7 @@ html, body{
           <div id="playerCardName" class="player-card-name">Joueur</div>
           <div id="playerCardSubZone" class="player-sub-zone"></div>
         </div>
+        <div id="playerCardTitle" class="player-card-title"></div>
         <div id="playerCardLevel" class="player-card-level"><span id="playerCardLevelValue">Niveau 1</span></div>
       </div>
     </div>
@@ -2904,12 +2917,16 @@ function renderPlayerSubscriptionStatus() {
 
 function renderPlayerVisitCard() {
   const nameEl = $('playerCardName');
+  const titleEl = $('playerCardTitle');
   const levelValueEl = $('playerCardLevelValue');
   const rankEl = $('playerCardRank');
   const avatarEl = $('playerCardAvatar');
-  if (!nameEl || !levelValueEl || !rankEl || !avatarEl || !me?.user) return;
+  if (!nameEl || !titleEl || !levelValueEl || !rankEl || !avatarEl || !me?.user) return;
 
   nameEl.textContent = me.user.game_username || me.user.display_name || 'Joueur';
+  const cosmeticTitle = String(me.user.cosmetic_title || '').trim();
+  titleEl.textContent = cosmeticTitle;
+  titleEl.classList.toggle('visible', Boolean(cosmeticTitle));
   levelValueEl.textContent = `Niveau ${me.user.progression?.level || 1}`;
   const leaderboardRank = Number(me.user.leaderboard_rank);
   rankEl.textContent = Number.isFinite(leaderboardRank) && leaderboardRank > 0
@@ -3571,6 +3588,7 @@ async function loadLeaderboard(searchTerm = null) {
             ${twitchAvatarHtml}
             <div class="leaderboard-player-info">
               <div class="leaderboard-player-name">${escapeHtml(playerData.display_name)}</div>
+              ${playerData.cosmetic_title ? `<div class="leaderboard-player-title">${escapeHtml(playerData.cosmetic_title)}</div>` : ''}
               ${progressionHtml}
             </div>
             ${badgesHtml}
