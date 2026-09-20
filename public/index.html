@@ -2264,7 +2264,7 @@ html, body{
       <div id="topIncubatorEggArt" class="incubator-slot-egg">
         <div class="incubator-egg-mini" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
       </div>
-      <div id="topIncubatorEmpty1" class="incubator-slot-plus hidden">＋</div>
+      
       <div id="topIncubatorTitle" class="incubator-slot-title">Œuf en incubation</div>
       <div class="incubator-slot-progress"><div id="topIncubatorProgressBar" class="incubator-progress-bar"></div></div>
       <div id="topIncubatorTime" class="incubator-time">0 h 00 / 6 h 00</div>
@@ -2906,7 +2906,6 @@ function updateEgg(egg) {
   if ($('topIncubatorPendingXp')) $('topIncubatorPendingXp').textContent = pendingXp + ' XP';
   $('topIncubatorEgg')?.classList.remove('hidden');
   $('topIncubatorEggArt')?.classList.remove('hidden');
-  $('topIncubatorEmpty1')?.classList.add('hidden');
   $('topIncubatorPendingWrap')?.classList.remove('hidden');
 
   if (egg.ready) {
@@ -3578,7 +3577,6 @@ function updateStats(u) {
   $('mainCreature').innerHTML = art(c.id, p.evolution);
   $('topIncubatorEgg')?.classList.remove('hidden');
   $('topIncubatorEggArt')?.classList.add('hidden');
-  $('topIncubatorEmpty1')?.classList.remove('hidden');
   $('topIncubatorPendingWrap')?.classList.add('hidden');
   if ($('topIncubatorSubtitle')) $('topIncubatorSubtitle').textContent = 'Tes emplacements d’incubation.';
   if ($('topIncubatorTitle')) $('topIncubatorTitle').textContent = 'Emplacement libre';
