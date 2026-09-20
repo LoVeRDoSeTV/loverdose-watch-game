@@ -1701,6 +1701,32 @@ html, body{
 }
 .player-visit-card{grid-area:player}
 .dashboard-head-grid .showcase-topbar{grid-area:showcase;margin:0;min-width:0}
+.dashboard-head-grid .incubator-topbar{grid-area:showcase;margin:0;min-width:0}
+.incubator-topbar{position:relative;overflow:hidden;padding:16px 18px;border:1px solid rgba(145,71,255,.30);border-radius:18px;background:radial-gradient(circle at 68% 38%,rgba(145,71,255,.14),transparent 34%),linear-gradient(165deg,rgba(21,25,43,.98),rgba(12,16,32,.98));box-shadow:0 14px 40px rgba(0,0,0,.20)}
+.incubator-topbar::after{content:'';position:absolute;right:-60px;top:-90px;width:250px;height:250px;border-radius:50%;background:radial-gradient(circle,rgba(145,71,255,.13),transparent 68%);pointer-events:none}
+.incubator-topbar-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;position:relative;z-index:1}
+.incubator-topbar-title{font-size:16px;font-weight:950;color:#fff}
+.incubator-topbar-subtitle{margin-top:3px;font-size:11px}
+.incubator-content{display:grid;grid-template-columns:120px minmax(0,1fr);gap:18px;align-items:center;margin-top:8px;position:relative;z-index:1}
+.incubator-egg-mini{width:112px;height:130px;margin:0 auto;position:relative;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 14px 24px rgba(78,31,145,.34));animation:eggFloat 3.3s ease-in-out infinite}
+.incubator-egg-mini .egg-shell{width:76px;height:98px}
+.incubator-egg-mini .egg-shell::after{width:28px;height:36px}
+.incubator-egg-mini .egg-aura::before{inset:14px}
+.incubator-egg-mini .egg-sparkles::before{width:120px;font-size:11px;letter-spacing:8px}
+.incubator-info{min-width:0}
+.incubator-status-title{font-size:14px;font-weight:950;color:#fff;margin-bottom:7px}
+.incubator-progress{height:11px;background:#292f4b;border-radius:999px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.incubator-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff);box-shadow:0 0 14px rgba(185,130,255,.36);transition:width .35s ease}
+.incubator-time{margin-top:7px;font-size:13px;font-weight:900;color:#fff}
+.incubator-status{margin-top:4px;color:#9ea6c5;font-size:11px;line-height:1.4}
+.incubator-pending{display:inline-flex;align-items:center;gap:5px;margin-top:8px;padding:6px 9px;border-radius:9px;border:1px solid rgba(145,71,255,.26);background:rgba(145,71,255,.08);font-size:10px;font-weight:850;color:#d9c7ff}
+.incubator-companion{display:grid;grid-template-columns:120px minmax(0,1fr);gap:18px;align-items:center;margin-top:8px;position:relative;z-index:1}
+.incubator-companion-art{width:110px;height:110px;display:flex;align-items:center;justify-content:center;margin:auto}
+.incubator-companion-art .monster-image,.incubator-companion-art .monster-image-small{width:100px!important;height:100px!important;max-width:100px!important;object-fit:contain;margin:0!important;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35))}
+.incubator-companion-name{font-size:19px;font-weight:950;color:#fff}
+.incubator-companion-meta{margin-top:5px;font-size:12px;font-weight:850;color:#c4cbe1}
+.incubator-companion-note{margin-top:9px;font-size:11px;color:#9ea6c5}
+@media(max-width:700px){.incubator-content,.incubator-companion{grid-template-columns:90px 1fr;gap:10px}.incubator-egg-mini{width:86px;height:100px}.incubator-egg-mini .egg-shell{width:58px;height:76px}.incubator-companion-art{width:82px;height:82px}.incubator-companion-art .monster-image,.incubator-companion-art .monster-image-small{width:76px!important;height:76px!important;max-width:76px!important}.incubator-companion-name{font-size:16px}}
 .wallet-card{grid-area:wallet;margin:0;padding:18px;border:1px solid rgba(145,71,255,.28);border-radius:18px;background:linear-gradient(165deg,rgba(21,25,43,.98),rgba(12,16,32,.98));box-shadow:0 14px 40px rgba(0,0,0,.20);display:flex;flex-direction:column;justify-content:space-between;min-height:100%}
 .wallet-kicker{font-size:10px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#aeb5d1;margin-bottom:10px}
 .wallet-balance-row{display:flex;align-items:center;gap:12px;margin-bottom:12px}
@@ -2214,16 +2240,33 @@ html, body{
       <button id="playerCardAccount" class="player-card-action" type="button" aria-haspopup="dialog" onclick="openAccountModal()">👤 Mon compte</button>
     </div>
   </section>
-<div class="card showcase-topbar">
-  <div class="showcase-topbar-head">
+<section class="card incubator-topbar" aria-label="Incubateur">
+  <div class="incubator-topbar-head">
     <div>
-      <div class="showcase-topbar-title">🏆 Badges favoris</div>
-      <div class="muted showcase-topbar-subtitle">Expose tes badges préférés <span class="badge-info-wrap" tabindex="0" aria-label="Informations sur les badges"><span class="badge-info-icon">i</span><span class="badge-info-tooltip">Les badges se débloquent en accomplissant des missions pendant les lives. Tu peux en exposer 6 dans ta vitrine et en choisir 2 à afficher dans le classement.</span></span></div>
+      <div class="incubator-topbar-title">🥚 Incubateur</div>
+      <div id="topIncubatorSubtitle" class="muted incubator-topbar-subtitle">Ton futur compagnon grandit pendant les lives.</div>
     </div>
-    <button id="openBadgeShowcase" class="btn secondary showcase-open-button" type="button">Voir la collection</button>
   </div>
-  <div id="badgeShowcase" class="badge-showcase-grid badge-showcase-top"></div>
-</div>
+  <div id="topIncubatorEgg" class="incubator-content">
+    <div class="incubator-egg-mini" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
+    <div class="incubator-info">
+      <div id="topIncubatorTitle" class="incubator-status-title">Œuf en incubation</div>
+      <div class="incubator-progress"><div id="topIncubatorProgressBar" class="incubator-progress-bar"></div></div>
+      <div id="topIncubatorTime" class="incubator-time">0 h 00 / 6 h 00</div>
+      <div id="topIncubatorStatus" class="incubator-status">Ton œuf commence son incubation.</div>
+      <div class="incubator-pending">⚡ XP en attente : <strong id="topIncubatorPendingXp">0 XP</strong></div>
+    </div>
+  </div>
+  <div id="topIncubatorCompanion" class="incubator-companion hidden">
+    <div id="topIncubatorCompanionArt" class="incubator-companion-art"></div>
+    <div>
+      <div class="wallet-label">Compagnon actif</div>
+      <div id="topIncubatorCompanionName" class="incubator-companion-name">Compagnon</div>
+      <div id="topIncubatorCompanionMeta" class="incubator-companion-meta"></div>
+      <div class="incubator-companion-note">Continue de regarder les lives pour gagner de l’XP et faire évoluer ton compagnon.</div>
+    </div>
+  </div>
+</section>
   <aside class="card wallet-card" aria-label="Portefeuille LoVeR'Cash">
     <div>
       <div class="wallet-kicker">Portefeuille</div>
@@ -2816,15 +2859,25 @@ function updateEgg(egg) {
   const pendingXp = Math.max(0, Math.floor(Number(me?.user?.pending_xp) || 0));
   if ($('eggPendingXpValue')) $('eggPendingXpValue').textContent = pendingXp + ' XP';
 
-  $('eggProgressBar').style.width = `${Math.max(0, Math.min(100, egg.progress || 0))}%`;
+  const eggProgress = Math.max(0, Math.min(100, egg.progress || 0));
+  $('eggProgressBar').style.width = `${eggProgress}%`;
   $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  if ($('topIncubatorProgressBar')) $('topIncubatorProgressBar').style.width = `${eggProgress}%`;
+  if ($('topIncubatorTime')) $('topIncubatorTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  if ($('topIncubatorPendingXp')) $('topIncubatorPendingXp').textContent = pendingXp + ' XP';
+  $('topIncubatorEgg')?.classList.remove('hidden');
+  $('topIncubatorCompanion')?.classList.add('hidden');
 
   if (egg.ready) {
     $('eggStatus').textContent = 'Ton œuf est prêt ! Tu peux maintenant le faire éclore.';
+    if ($('topIncubatorTitle')) $('topIncubatorTitle').textContent = 'Œuf prêt à éclore';
+    if ($('topIncubatorStatus')) $('topIncubatorStatus').textContent = 'Ton œuf est prêt ! Fais-le éclore pour découvrir ton compagnon.';
     $('eggStatus').classList.add('egg-ready');
     $('hatchEgg').disabled = false;
   } else {
     $('eggStatus').textContent = `Encore ${formatEggTime(egg.remainingSeconds)} avant l’éclosion.`;
+    if ($('topIncubatorTitle')) $('topIncubatorTitle').textContent = 'Œuf en incubation';
+    if ($('topIncubatorStatus')) $('topIncubatorStatus').textContent = `Encore ${formatEggTime(egg.remainingSeconds)} avant l’éclosion.`;
     $('eggStatus').classList.remove('egg-ready');
     $('hatchEgg').disabled = true;
   }
@@ -3416,10 +3469,6 @@ $('badgeCollectionContent')?.addEventListener('click', event => {
   }
 });
 
-$('badgeShowcase')?.addEventListener('click', () => {
-  openBadgeShowcaseModal();
-});
-
 
 function renderGame() {
   if (!me?.user) return;
@@ -3484,6 +3533,12 @@ function updateStats(u) {
   $('creatureTitle').textContent = `${c.name} — niveau ${p.level}`;
   $('evolution').textContent = p.evolutionName;
   $('mainCreature').innerHTML = art(c.id, p.evolution);
+  $('topIncubatorEgg')?.classList.add('hidden');
+  $('topIncubatorCompanion')?.classList.remove('hidden');
+  if ($('topIncubatorSubtitle')) $('topIncubatorSubtitle').textContent = 'Ton compagnon actif évolue grâce au temps passé en live.';
+  if ($('topIncubatorCompanionArt')) $('topIncubatorCompanionArt').innerHTML = art(c.id, p.evolution);
+  if ($('topIncubatorCompanionName')) $('topIncubatorCompanionName').textContent = c.name;
+  if ($('topIncubatorCompanionMeta')) $('topIncubatorCompanionMeta').textContent = `Niveau ${p.level} · ${p.evolutionName}`;
   $('xp').textContent = Math.floor(u.xp);
   const loverCash = Math.floor(u.points);
   $('loverCash').textContent = loverCash;
