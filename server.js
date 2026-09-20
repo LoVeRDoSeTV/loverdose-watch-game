@@ -3061,6 +3061,18 @@ app.post(
 
 
 /* =========================================
+   TITRES COSMÉTIQUES
+   Pour l'instant seul le diffuseur possède un titre spécial.
+   La boutique pourra ensuite remplacer cette logique par le titre équipé.
+========================================= */
+function cosmeticTitleForTwitchId(twitchId) {
+  const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '');
+  return broadcasterId && String(twitchId || '') === broadcasterId
+    ? 'Maître du jeu'
+    : null;
+}
+
+/* =========================================
    PROFIL JOUEUR
 ========================================= */
 
@@ -3145,6 +3157,9 @@ app.get(
 
           game_username:
             req.session.account.username || u.display_name,
+
+          cosmetic_title:
+            cosmeticTitleForTwitchId(u.twitch_id),
 
           watch_seconds:
             Number(
@@ -4433,6 +4448,7 @@ app.get(
           twitch_id: player.twitch_id,
           login: player.login,
           display_name: player.game_username || player.display_name || player.login || 'Joueur',
+          cosmetic_title: cosmeticTitleForTwitchId(player.twitch_id),
           is_sub: Boolean(player.is_sub),
           profile_image_url: player.profile_image_url || null,
           creature_id: player.creature_id,
