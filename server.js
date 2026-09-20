@@ -398,6 +398,48 @@ function rollStandardEgg() {
   return creatures[creatures.length - 1];
 }
 
+/* =========================================
+   BOUTIQUE WATCH GAME
+========================================= */
+const SHOP_ITEMS = [
+  { key:'title_noctambule', category:'title', name:'Noctambule', price:150, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
+  { key:'title_collectionneur', category:'title', name:'Collectionneur', price:200, color:'#4fd1c5', description:'Pour ceux qui aiment compléter leur collection.' },
+  { key:'title_gardien_live', category:'title', name:'Gardien du live', price:250, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
+  { key:'title_legende', category:'title', name:'Légende du Watch Game', price:400, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
+  { key:'bg_nebula', category:'background', name:'Nébuleuse violette', price:300, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
+  { key:'bg_starry', category:'background', name:'Nuit étoilée', price:400, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
+  { key:'bg_ember', category:'background', name:'Braises', price:450, preview:'ember', description:'Fond chaud inspiré des braises et du feu.' },
+  { key:'frame_violet', category:'frame', name:'Cadre violet', price:250, preview:'violet', description:'Encadrement violet lumineux.' },
+  { key:'frame_cyan', category:'frame', name:'Cadre cyan', price:350, preview:'cyan', description:'Encadrement cyan électrique.' },
+  { key:'frame_gold', category:'frame', name:'Cadre doré', price:450, preview:'gold', description:'Encadrement doré premium.' },
+  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:300, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
+  { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:300, icon:'💰', description:"Double le LoVeR'Cash gagné pendant 1 heure.", consumable:true },
+  { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:220, icon:'⏱️', description:'Retire 30 minutes au temps restant de ton œuf actif.', consumable:true },
+  { key:'mystery_egg', category:'object', name:'Œuf mystère', price:600, icon:'🥚', description:'Un futur œuf supplémentaire pour l’incubateur multi-œufs.', consumable:true, comingSoon:true }
+];
+
+const MASTER_TITLE = { key:'title_master_game', category:'title', name:'Maître du jeu', price:0, color:'#f3c85b', description:'Titre exclusif réservé au diffuseur.', exclusive:true };
+
+function shopItemByKey(key) {
+  return SHOP_ITEMS.find(item => item.key === key) || null;
+}
+
+function titleCosmeticFor(twitchId, equippedTitleKey) {
+  const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+  if (equippedTitleKey) {
+    if (equippedTitleKey === MASTER_TITLE.key && broadcasterId && String(twitchId || '') === broadcasterId) return MASTER_TITLE;
+    const item = shopItemByKey(equippedTitleKey);
+    if (item?.category === 'title') return item;
+  }
+  if (broadcasterId && String(twitchId || '') === broadcasterId) return MASTER_TITLE;
+  return null;
+}
+
+function validCosmeticKey(key, category) {
+  if (!key) return null;
+  const item = shopItemByKey(key);
+  return item?.category === category ? item.key : null;
+}
 
 /* =========================================
    CRÉATION DES TABLES
@@ -523,6 +565,28 @@ async function initDatabase() {
     ADD COLUMN IF NOT EXISTS discord_verified_at TIMESTAMPTZ
   `);
 
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_title_key TEXT`);
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_background_key TEXT`);
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_frame_key TEXT`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS shop_inventory (
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      item_key TEXT NOT NULL,
+      quantity INTEGER NOT NULL DEFAULT 1 CHECK (quantity >= 0),
+      purchased_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (account_id, item_key)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_active_boosts (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      boost_key TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      PRIMARY KEY (user_id, boost_key)
+    )
+  `);
 
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS accounts_discord_user_id_unique
@@ -1252,15 +1316,21 @@ async function runTrackerTick() {
         `
         UPDATE users
         SET
-          xp = xp + CASE
+          xp = xp + (CASE
             WHEN creature_id IS NULL THEN 0
             WHEN is_sub THEN $2
             ELSE $1
-          END,
-          points = points + CASE
+          END) * (CASE WHEN EXISTS (
+            SELECT 1 FROM user_active_boosts b
+            WHERE b.user_id = users.id AND b.boost_key = 'boost_xp_x2' AND b.expires_at > CURRENT_TIMESTAMP
+          ) THEN 2 ELSE 1 END),
+          points = points + (CASE
             WHEN is_sub THEN $4
             ELSE $3
-          END,
+          END) * (CASE WHEN EXISTS (
+            SELECT 1 FROM user_active_boosts b
+            WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
+          ) THEN 2 ELSE 1 END),
           watch_seconds = watch_seconds + $5,
           updated_at = CURRENT_TIMESTAMP
         WHERE twitch_id = ANY($6::text[])
@@ -2220,6 +2290,11 @@ app.post('/api/account/reset-game', async (req, res) => {
     );
 
     await client.query(
+      `DELETE FROM user_active_boosts WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
       `
       UPDATE users
       SET
@@ -3065,11 +3140,8 @@ app.post(
    Pour l'instant seul le diffuseur possède un titre spécial.
    La boutique pourra ensuite remplacer cette logique par le titre équipé.
 ========================================= */
-function cosmeticTitleForTwitchId(twitchId) {
-  const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '');
-  return broadcasterId && String(twitchId || '') === broadcasterId
-    ? 'Maître du jeu'
-    : null;
+function cosmeticTitleForTwitchId(twitchId, equippedTitleKey = null) {
+  return titleCosmeticFor(twitchId, equippedTitleKey)?.name || null;
 }
 
 /* =========================================
@@ -3120,9 +3192,13 @@ app.get(
             u.pending_xp,
             u.points,
             u.watch_seconds,
-            r.leaderboard_rank
+            r.leaderboard_rank,
+            a.equipped_title_key,
+            a.equipped_background_key,
+            a.equipped_frame_key
           FROM users u
           LEFT JOIN ranked_users r ON r.twitch_id = u.twitch_id
+          LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
           WHERE u.twitch_id = $1
           `,
           [
@@ -3159,7 +3235,16 @@ app.get(
             req.session.account.username || u.display_name,
 
           cosmetic_title:
-            cosmeticTitleForTwitchId(u.twitch_id),
+            cosmeticTitleForTwitchId(u.twitch_id, u.equipped_title_key),
+
+          cosmetic_title_color:
+            titleCosmeticFor(u.twitch_id, u.equipped_title_key)?.color || null,
+
+          cosmetic_background:
+            validCosmeticKey(u.equipped_background_key, 'background'),
+
+          cosmetic_frame:
+            validCosmeticKey(u.equipped_frame_key, 'frame'),
 
           watch_seconds:
             Number(
@@ -4359,6 +4444,180 @@ app.delete('/api/admin/players/:accountId', async (req, res) => {
 
 
 /* =========================================
+   BOUTIQUE
+========================================= */
+app.get('/api/shop', async (req, res) => {
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+
+    const accountResult = await pool.query(
+      `SELECT id, twitch_id, equipped_title_key, equipped_background_key, equipped_frame_key FROM accounts WHERE id = $1`,
+      [req.session.account.id]
+    );
+    const account = accountResult.rows[0];
+    if (!account) return res.status(404).json({ error:'Compte introuvable.' });
+
+    const userResult = await pool.query(`SELECT id, points FROM users WHERE twitch_id = $1`, [req.session.user.twitchId]);
+    const user = userResult.rows[0];
+    if (!user) return res.status(404).json({ error:'Profil de jeu introuvable.' });
+
+    const inventoryResult = await pool.query(`SELECT item_key, quantity FROM shop_inventory WHERE account_id = $1`, [account.id]);
+    const inventory = new Map(inventoryResult.rows.map(row => [row.item_key, Number(row.quantity || 0)]));
+
+    const boostsResult = await pool.query(
+      `SELECT boost_key, expires_at FROM user_active_boosts WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP`,
+      [user.id]
+    );
+    const activeBoosts = Object.fromEntries(boostsResult.rows.map(row => [row.boost_key, row.expires_at]));
+
+    const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+    const isBroadcaster = broadcasterId && String(account.twitch_id || '') === broadcasterId;
+    const catalog = SHOP_ITEMS.map(item => ({
+      ...item,
+      owned: item.category === 'object' ? inventory.get(item.key) > 0 : inventory.has(item.key),
+      quantity: item.category === 'object' ? (inventory.get(item.key) || 0) : undefined,
+      equipped:
+        (item.category === 'title' && account.equipped_title_key === item.key) ||
+        (item.category === 'background' && account.equipped_background_key === item.key) ||
+        (item.category === 'frame' && account.equipped_frame_key === item.key)
+    }));
+
+    if (isBroadcaster) {
+      catalog.unshift({ ...MASTER_TITLE, owned:true, equipped: !account.equipped_title_key || account.equipped_title_key === MASTER_TITLE.key });
+    }
+
+    res.json({
+      ok:true,
+      balance:Number(user.points || 0),
+      catalog,
+      activeBoosts,
+      equipped:{
+        title: account.equipped_title_key || (isBroadcaster ? MASTER_TITLE.key : null),
+        background: account.equipped_background_key || null,
+        frame: account.equipped_frame_key || null
+      }
+    });
+  } catch (error) {
+    console.error('Erreur boutique :', error);
+    res.status(500).json({ error:'Impossible de charger la boutique.' });
+  }
+});
+
+app.post('/api/shop/buy', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    const key = String(req.body?.itemKey || '').trim();
+    const item = shopItemByKey(key);
+    if (!item || item.comingSoon) return res.status(400).json({ error:'Cet article n’est pas disponible.' });
+
+    await client.query('BEGIN');
+    const userResult = await client.query(`SELECT id, points FROM users WHERE twitch_id = $1 FOR UPDATE`, [req.session.user.twitchId]);
+    const user = userResult.rows[0];
+    if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Profil introuvable.' }); }
+
+    if (item.category !== 'object') {
+      const owned = await client.query(`SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2`, [req.session.account.id, key]);
+      if (owned.rowCount) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Article déjà possédé.' }); }
+    }
+
+    const balance = Number(user.points || 0);
+    if (balance < item.price) { await client.query('ROLLBACK'); return res.status(400).json({ error:"Pas assez de LoVeR'Cash." }); }
+
+    await client.query(`UPDATE users SET points = points - $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [user.id, item.price]);
+    await client.query(
+      `INSERT INTO shop_inventory (account_id, item_key, quantity) VALUES ($1,$2,1)
+       ON CONFLICT (account_id,item_key) DO UPDATE SET quantity = shop_inventory.quantity + 1, purchased_at = CURRENT_TIMESTAMP`,
+      [req.session.account.id, key]
+    );
+    await client.query('COMMIT');
+    pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+    res.json({ ok:true, itemKey:key, balance:balance - item.price });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erreur achat boutique :', error);
+    res.status(500).json({ error:'Achat impossible.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/shop/equip', async (req, res) => {
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    const key = String(req.body?.itemKey || '').trim();
+    const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+    const accountResult = await pool.query(`SELECT twitch_id FROM accounts WHERE id = $1`, [req.session.account.id]);
+    const isBroadcaster = broadcasterId && String(accountResult.rows[0]?.twitch_id || '') === broadcasterId;
+
+    if (key === MASTER_TITLE.key) {
+      if (!isBroadcaster) return res.status(403).json({ error:'Titre exclusif.' });
+      await pool.query(`UPDATE accounts SET equipped_title_key = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, key]);
+      pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+      return res.json({ ok:true });
+    }
+
+    const item = shopItemByKey(key);
+    if (!item || !['title','background','frame'].includes(item.category)) return res.status(400).json({ error:'Article non équipable.' });
+    const owned = await pool.query(`SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0`, [req.session.account.id, key]);
+    if (!owned.rowCount) return res.status(403).json({ error:'Tu ne possèdes pas cet article.' });
+
+    const column = item.category === 'title' ? 'equipped_title_key' : item.category === 'background' ? 'equipped_background_key' : 'equipped_frame_key';
+    await pool.query(`UPDATE accounts SET ${column} = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, key]);
+    pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+    res.json({ ok:true });
+  } catch (error) {
+    console.error('Erreur équipement boutique :', error);
+    res.status(500).json({ error:'Impossible d’équiper cet article.' });
+  }
+});
+
+app.post('/api/shop/use', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    const key = String(req.body?.itemKey || '').trim();
+    const item = shopItemByKey(key);
+    if (!item || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
+
+    await client.query('BEGIN');
+    const inv = await client.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2 FOR UPDATE`, [req.session.account.id, key]);
+    if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
+    const userResult = await client.query(`SELECT id, creature_id, watch_seconds FROM users WHERE twitch_id=$1 FOR UPDATE`, [req.session.user.twitchId]);
+    const user = userResult.rows[0];
+    if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Profil introuvable.' }); }
+
+    let message = '';
+    if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
+      if (key === 'boost_xp_x2' && !user.creature_id) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
+      }
+      await client.query(
+        `INSERT INTO user_active_boosts (user_id, boost_key, expires_at)
+         VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '1 hour')
+         ON CONFLICT (user_id,boost_key) DO UPDATE SET expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour'`,
+        [user.id, key]
+      );
+      message = key === 'boost_xp_x2' ? 'Booster XP x2 activé pendant 1 heure.' : "Booster LoVeR'Cash x2 activé pendant 1 heure.";
+    } else if (key === 'incubator_skip_30') {
+      if (user.creature_id) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Aucun œuf actif à accélérer.' }); }
+      const watched = Math.max(0, Number(user.watch_seconds || 0));
+      if (watched >= EGG_HATCH_SECONDS) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Ton œuf est déjà prêt à éclore.' }); }
+      await client.query(`UPDATE users SET watch_seconds = LEAST(watch_seconds + 1800, $2), updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [user.id, EGG_HATCH_SECONDS]);
+      message = '30 minutes retirées du temps d’incubation.';
+    }
+
+    await client.query(`UPDATE shop_inventory SET quantity = quantity - 1 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key]);
+    await client.query('COMMIT');
+    pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+    res.json({ ok:true, message });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erreur utilisation objet :', error);
+    res.status(500).json({ error:'Impossible d’utiliser cet objet.' });
+  } finally { client.release(); }
+});
+
+/* =========================================
    CLASSEMENT
 ========================================= */
 
@@ -4385,7 +4644,10 @@ app.get(
           u.xp,
           u.pending_xp,
           u.points,
-          u.watch_seconds
+          u.watch_seconds,
+          a.equipped_title_key,
+          a.equipped_background_key,
+          a.equipped_frame_key
         FROM users u
         LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
         WHERE u.twitch_id IS NOT NULL
@@ -4448,7 +4710,10 @@ app.get(
           twitch_id: player.twitch_id,
           login: player.login,
           display_name: player.game_username || player.display_name || player.login || 'Joueur',
-          cosmetic_title: cosmeticTitleForTwitchId(player.twitch_id),
+          cosmetic_title: cosmeticTitleForTwitchId(player.twitch_id, player.equipped_title_key),
+          cosmetic_title_color: titleCosmeticFor(player.twitch_id, player.equipped_title_key)?.color || null,
+          cosmetic_background: validCosmeticKey(player.equipped_background_key, 'background'),
+          cosmetic_frame: validCosmeticKey(player.equipped_frame_key, 'frame'),
           is_sub: Boolean(player.is_sub),
           profile_image_url: player.profile_image_url || null,
           creature_id: player.creature_id,
