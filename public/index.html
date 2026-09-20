@@ -1802,7 +1802,7 @@ html, body{
 @media(max-width:600px){
   .dashboard-head-grid{gap:10px;margin-top:10px}.player-visit-card{padding:15px;border-radius:0}
   .player-card-main{padding-right:0}.player-card-avatar{width:58px;height:58px;flex-basis:58px}.player-card-avatar .monster-image-small,.player-card-avatar .monster-image{width:54px!important;height:54px!important;max-width:54px!important}
-  .player-card-name{font-size:18px}.player-card-name-row{align-items:flex-start}.player-sub-zone{margin-top:1px}.player-card-rankbadges{position:static;margin-top:12px}.player-card-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none}.player-card-action{padding-left:6px;padding-right:6px}
+  .player-card-name{font-size:18px}.player-card-name-row{align-items:flex-start}.player-sub-zone{margin-top:1px}.player-card-rankbadges{position:static;margin-top:12px}.player-card-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:none}.player-card-action{padding-left:6px;padding-right:6px}
 }
 
 
@@ -1945,6 +1945,13 @@ html, body{
 /* =========================================
    BOUTIQUE
 ========================================= */
+.inventory-modal{position:fixed;inset:0;z-index:1000014;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.84);backdrop-filter:blur(10px)}
+.inventory-modal.hidden{display:none}
+.inventory-panel{width:min(940px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid rgba(145,71,255,.32);background:linear-gradient(180deg,#12172c,#0d1122);border-radius:20px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.inventory-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.inventory-head h2{margin:0;font-size:24px}.inventory-subtitle{margin-top:5px;color:#9ea7c6;font-size:12px}.inventory-close{width:40px;height:40px;flex:0 0 40px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:21px;cursor:pointer}.inventory-close:hover{border-color:rgba(145,71,255,.55);background:rgba(145,71,255,.18)}
+.inventory-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}.inventory-tab{border:1px solid rgba(255,255,255,.10);background:#171c32;color:#d8deef;border-radius:10px;padding:9px 12px;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.inventory-tab.active{border-color:rgba(145,71,255,.65);background:rgba(145,71,255,.20);color:#fff}.inventory-count{margin:0 0 12px;color:#9ea7c6;font-size:12px;font-weight:800}
+.inventory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.inventory-item{min-width:0;padding:14px;border:1px solid rgba(255,255,255,.09);background:#101427;border-radius:14px;display:flex;flex-direction:column;gap:10px}.inventory-item.equipped{border-color:rgba(34,197,94,.42);box-shadow:inset 0 0 24px rgba(34,197,94,.035)}.inventory-item-name{font-size:14px;font-weight:950;color:#fff}.inventory-item-desc{font-size:11px;line-height:1.45;color:#9ea7c6;min-height:32px}.inventory-item-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}.inventory-status{color:#91e3ac;font-weight:900}.inventory-qty{color:#cbd3ea;font-weight:900}.inventory-actions{display:flex;gap:7px;margin-top:auto;flex-wrap:wrap}.inventory-empty{grid-column:1/-1;padding:32px 18px;text-align:center;border:1px dashed rgba(255,255,255,.12);border-radius:14px;color:#9ea7c6;background:rgba(255,255,255,.025)}
+@media(max-width:760px){.inventory-panel{padding:16px}.inventory-grid{grid-template-columns:1fr}.inventory-item-desc{min-height:0}.inventory-head h2{font-size:21px}.player-card-actions{grid-template-columns:1fr}}
 .shop-modal{position:fixed;inset:0;z-index:1000015;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.84);backdrop-filter:blur(10px)}
 .shop-modal.hidden{display:none}
 .shop-panel{width:min(940px,100%);max-height:min(850px,92vh);overflow:auto;padding:22px;border:1px solid rgba(145,71,255,.44);border-radius:18px;background:linear-gradient(180deg,#15192d,#0f1325);box-shadow:0 28px 90px rgba(0,0,0,.60)}
@@ -2263,6 +2270,7 @@ html, body{
     </div>
     <div class="player-card-actions">
       <button id="playerCardCollection" class="player-card-action" type="button">🏆 Mes badges</button>
+      <button id="playerCardInventory" class="player-card-action" type="button" aria-haspopup="dialog">🎒 Inventaire</button>
       <button id="playerCardAccount" class="player-card-action" type="button" aria-haspopup="dialog" onclick="openAccountModal()">👤 Mon compte</button>
     </div>
   </section>
@@ -2552,6 +2560,24 @@ html, body{
   </div>
 </div>
 
+
+<div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+  <div class="inventory-panel">
+    <div class="inventory-head">
+      <div><h2 id="inventoryTitle">🎒 Inventaire</h2><div class="inventory-subtitle">Retrouve et gère tous tes achats de la boutique.</div></div>
+      <button id="inventoryClose" class="inventory-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="inventory-tabs" role="tablist" aria-label="Catégories de l’inventaire">
+      <button class="inventory-tab active" type="button" data-inventory-category="title">🏷️ Titres</button>
+      <button class="inventory-tab" type="button" data-inventory-category="background">🖼️ Fonds</button>
+      <button class="inventory-tab" type="button" data-inventory-category="frame">✨ Encadrements</button>
+      <button class="inventory-tab" type="button" data-inventory-category="avatar_frame">🪞 Cadres de profil</button>
+      <button class="inventory-tab" type="button" data-inventory-category="object">🎁 Objets</button>
+    </div>
+    <div id="inventoryCount" class="inventory-count"></div>
+    <div id="inventoryGrid" class="inventory-grid"></div>
+  </div>
+</div>
 
 <div id="shopModal" class="shop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
   <div class="shop-panel">
@@ -3879,6 +3905,7 @@ let shopBackgroundFilter = 'all';
 let shopFrameFilter = 'all';
 let shopAvatarFrameFilter = 'all';
 let shopPreviewCurrentKey = null;
+let inventoryCategory = 'title';
 
 function setShopMessage(message = '', type = '') {
   const box = $('shopMessage');
@@ -4038,6 +4065,73 @@ function renderShop() {
   document.querySelectorAll('[data-shop-category]').forEach(button => button.classList.toggle('active', button.dataset.shopCategory === shopCategory));
 }
 
+function inventoryOwnedItems() {
+  return (shopData?.catalog || []).filter(item => {
+    if (item.category !== inventoryCategory) return false;
+    if (item.category === 'object') return Number(item.quantity || 0) > 0;
+    return Boolean(item.owned || item.exclusive || item.equipped);
+  });
+}
+
+function renderInventory() {
+  const grid = $('inventoryGrid');
+  if (!grid) return;
+
+  const items = inventoryOwnedItems();
+  $('inventoryCount').textContent = `${items.length} article${items.length > 1 ? 's' : ''} dans cette catégorie`;
+
+  document.querySelectorAll('[data-inventory-category]').forEach(button => {
+    button.classList.toggle('active', button.dataset.inventoryCategory === inventoryCategory);
+  });
+
+  if (!items.length) {
+    grid.innerHTML = `<div class="inventory-empty">Tu ne possèdes encore aucun article dans cette catégorie.</div>`;
+    return;
+  }
+
+  grid.innerHTML = items.map(item => {
+    let action = '';
+    if (item.category === 'object') {
+      action = item.comingSoon
+        ? `<button class="shop-action" type="button" disabled>Bientôt</button>`
+        : `<button class="shop-action" type="button" data-inventory-use="${escapeHtml(item.key)}">Utiliser</button>`;
+    } else if (item.equipped) {
+      action = `<button class="shop-action" type="button" disabled>Équipé</button>`;
+    } else {
+      action = `<button class="shop-action" type="button" data-inventory-equip="${escapeHtml(item.key)}">Équiper</button>`;
+    }
+
+    const possession = item.category === 'object'
+      ? `<span class="inventory-qty">Quantité : ${Number(item.quantity || 0)}</span>`
+      : `<span class="inventory-status">${item.equipped ? 'Équipé' : 'Possédé'}</span>`;
+
+    return `<article class="inventory-item${item.equipped ? ' equipped' : ''}">
+      ${shopPreview(item)}
+      <div class="inventory-item-name">${escapeHtml(item.name)}</div>
+      <div class="inventory-item-desc">${escapeHtml(item.description || '')}</div>
+      <div class="inventory-item-meta">${possession}</div>
+      <div class="inventory-actions">
+        <button class="shop-action secondary" type="button" data-inventory-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>
+        ${action}
+      </div>
+    </article>`;
+  }).join('');
+}
+
+async function openInventory() {
+  $('inventoryModal')?.classList.remove('hidden');
+  try {
+    await loadShop();
+    renderInventory();
+  } catch (error) {
+    $('inventoryGrid').innerHTML = `<div class="inventory-empty">Impossible de charger l’inventaire.</div>`;
+  }
+}
+
+function closeInventory() {
+  $('inventoryModal')?.classList.add('hidden');
+}
+
 async function loadShop() {
   const response = await fetch('/api/shop', { cache:'no-store' });
   const data = await response.json();
@@ -4062,11 +4156,35 @@ async function shopAction(url, itemKey) {
     await loadShop();
     await loadGame();
     await loadLeaderboard();
+    if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
   } catch (error) {
     setShopMessage(error.message || 'Action impossible.', 'error');
   }
 }
+
+$('playerCardInventory')?.addEventListener('click', openInventory);
+$('inventoryClose')?.addEventListener('click', closeInventory);
+
+document.querySelectorAll('[data-inventory-category]').forEach(button => {
+  button.addEventListener('click', () => {
+    inventoryCategory = button.dataset.inventoryCategory || 'title';
+    renderInventory();
+  });
+});
+
+$('inventoryGrid')?.addEventListener('click', event => {
+  const preview = event.target.closest('[data-inventory-preview]');
+  const equip = event.target.closest('[data-inventory-equip]');
+  const use = event.target.closest('[data-inventory-use]');
+  if (preview) openShopItemPreview(preview.dataset.inventoryPreview);
+  else if (equip) shopAction('/api/shop/equip', equip.dataset.inventoryEquip);
+  else if (use) shopAction('/api/shop/use', use.dataset.inventoryUse);
+});
+
+let inventoryBackdropMouseDown = false;
+$('inventoryModal')?.addEventListener('mousedown', event => { inventoryBackdropMouseDown = event.target.id === 'inventoryModal'; });
+$('inventoryModal')?.addEventListener('mouseup', event => { if (inventoryBackdropMouseDown && event.target.id === 'inventoryModal') closeInventory(); inventoryBackdropMouseDown = false; });
 
 $('shopGrid')?.addEventListener('click', event => {
   const preview = event.target.closest('[data-shop-preview]');
