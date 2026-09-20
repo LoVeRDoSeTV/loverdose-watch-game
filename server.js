@@ -426,6 +426,12 @@ const SHOP_ITEMS = [
   { key:'frame_rose', category:'frame', subcategory:'classic', name:'Cadre rose néon', price:400, preview:'rose', description:'Encadrement rose vif avec éclat néon.' },
   { key:'frame_obsidian', category:'frame', subcategory:'classic', name:'Cadre obsidienne', price:450, preview:'obsidian', description:'Encadrement sombre premium aux reflets froids.' },
   { key:'frame_royal', category:'frame', subcategory:'classic', name:'Cadre royal', price:500, preview:'royal', description:'Encadrement bleu royal aux accents dorés.' },
+  { key:'avatarframe_violet', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil violet', price:180, preview:'violet', description:'Contour violet lumineux autour de ta photo de profil.' },
+  { key:'avatarframe_cyan', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil cyan', price:220, preview:'cyan', description:'Contour cyan électrique pour ton avatar.' },
+  { key:'avatarframe_silver', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil argenté', price:240, preview:'silver', description:'Contour argenté propre et élégant.' },
+  { key:'avatarframe_emerald', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil émeraude', price:260, preview:'emerald', description:'Contour vert raffiné avec lueur douce.' },
+  { key:'avatarframe_rose', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil rose néon', price:280, preview:'rose', description:'Contour rose vif pour un style flashy.' },
+  { key:'avatarframe_gold', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil doré', price:320, preview:'gold', description:'Contour doré premium pour mettre ton profil en valeur.' },
   { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:300, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:300, icon:'💰', description:"Double le LoVeR'Cash gagné pendant 1 heure.", consumable:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:220, icon:'⏱️', description:'Retire 30 minutes au temps restant de ton œuf actif.', consumable:true },
@@ -582,6 +588,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_title_key TEXT`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_background_key TEXT`);
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_frame_key TEXT`);
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS equipped_avatar_frame_key TEXT`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS shop_inventory (
@@ -3209,7 +3216,8 @@ app.get(
             r.leaderboard_rank,
             a.equipped_title_key,
             a.equipped_background_key,
-            a.equipped_frame_key
+            a.equipped_frame_key,
+            a.equipped_avatar_frame_key
           FROM users u
           LEFT JOIN ranked_users r ON r.twitch_id = u.twitch_id
           LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
@@ -3259,6 +3267,9 @@ app.get(
 
           cosmetic_frame:
             validCosmeticKey(u.equipped_frame_key, 'frame'),
+
+          cosmetic_avatar_frame:
+            validCosmeticKey(u.equipped_avatar_frame_key, 'avatar_frame'),
 
           watch_seconds:
             Number(
@@ -4465,7 +4476,7 @@ app.get('/api/shop', async (req, res) => {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
 
     const accountResult = await pool.query(
-      `SELECT id, twitch_id, equipped_title_key, equipped_background_key, equipped_frame_key FROM accounts WHERE id = $1`,
+      `SELECT id, twitch_id, equipped_title_key, equipped_background_key, equipped_frame_key, equipped_avatar_frame_key FROM accounts WHERE id = $1`,
       [req.session.account.id]
     );
     const account = accountResult.rows[0];
@@ -4493,7 +4504,8 @@ app.get('/api/shop', async (req, res) => {
       equipped:
         (item.category === 'title' && account.equipped_title_key === item.key) ||
         (item.category === 'background' && account.equipped_background_key === item.key) ||
-        (item.category === 'frame' && account.equipped_frame_key === item.key)
+        (item.category === 'frame' && account.equipped_frame_key === item.key) ||
+        (item.category === 'avatar_frame' && account.equipped_avatar_frame_key === item.key)
     }));
 
     if (isBroadcaster) {
@@ -4508,7 +4520,8 @@ app.get('/api/shop', async (req, res) => {
       equipped:{
         title: account.equipped_title_key || (isBroadcaster ? MASTER_TITLE.key : null),
         background: account.equipped_background_key || null,
-        frame: account.equipped_frame_key || null
+        frame: account.equipped_frame_key || null,
+        avatar_frame: account.equipped_avatar_frame_key || null
       }
     });
   } catch (error) {
@@ -4570,11 +4583,17 @@ app.post('/api/shop/equip', async (req, res) => {
     }
 
     const item = shopItemByKey(key);
-    if (!item || !['title','background','frame'].includes(item.category)) return res.status(400).json({ error:'Article non équipable.' });
+    if (!item || !['title','background','frame','avatar_frame'].includes(item.category)) return res.status(400).json({ error:'Article non équipable.' });
     const owned = await pool.query(`SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0`, [req.session.account.id, key]);
     if (!owned.rowCount) return res.status(403).json({ error:'Tu ne possèdes pas cet article.' });
 
-    const column = item.category === 'title' ? 'equipped_title_key' : item.category === 'background' ? 'equipped_background_key' : 'equipped_frame_key';
+    const column = item.category === 'title'
+      ? 'equipped_title_key'
+      : item.category === 'background'
+        ? 'equipped_background_key'
+        : item.category === 'frame'
+          ? 'equipped_frame_key'
+          : 'equipped_avatar_frame_key';
     await pool.query(`UPDATE accounts SET ${column} = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, key]);
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
     res.json({ ok:true });
@@ -4661,7 +4680,8 @@ app.get(
           u.watch_seconds,
           a.equipped_title_key,
           a.equipped_background_key,
-          a.equipped_frame_key
+          a.equipped_frame_key,
+          a.equipped_avatar_frame_key
         FROM users u
         LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
         WHERE u.twitch_id IS NOT NULL
@@ -4728,6 +4748,7 @@ app.get(
           cosmetic_title_color: titleCosmeticFor(player.twitch_id, player.equipped_title_key)?.color || null,
           cosmetic_background: validCosmeticKey(player.equipped_background_key, 'background'),
           cosmetic_frame: validCosmeticKey(player.equipped_frame_key, 'frame'),
+          cosmetic_avatar_frame: validCosmeticKey(player.equipped_avatar_frame_key, 'avatar_frame'),
           is_sub: Boolean(player.is_sub),
           profile_image_url: player.profile_image_url || null,
           creature_id: player.creature_id,
