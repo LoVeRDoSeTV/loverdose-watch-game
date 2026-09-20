@@ -2823,6 +2823,41 @@ async function refreshAccountState() {
   }
 }
 
+function syncTopDashboardHeights() {
+  const leftStack = document.querySelector('.dashboard-left-stack');
+  const incubator = document.querySelector('.incubator-topbar');
+  if (!leftStack || !incubator) return;
+
+  if (window.matchMedia('(max-width: 1180px)').matches) {
+    incubator.style.height = '';
+    incubator.style.minHeight = '';
+    return;
+  }
+
+  const leftHeight = Math.ceil(leftStack.getBoundingClientRect().height);
+  if (!leftHeight) return;
+
+  incubator.style.height = `${leftHeight}px`;
+  incubator.style.minHeight = `${leftHeight}px`;
+}
+
+function scheduleTopDashboardSync() {
+  window.requestAnimationFrame(syncTopDashboardHeights);
+}
+
+let topDashboardResizeObserver = null;
+function setupTopDashboardSync() {
+  if (topDashboardResizeObserver || !window.ResizeObserver) return;
+
+  const leftStack = document.querySelector('.dashboard-left-stack');
+  if (!leftStack) return;
+
+  topDashboardResizeObserver = new ResizeObserver(() => {
+    scheduleTopDashboardSync();
+  });
+  topDashboardResizeObserver.observe(leftStack);
+}
+
 async function loadGame() {
   try {
     const response = await fetch('/api/me', { cache: 'no-store' });
@@ -2840,6 +2875,8 @@ async function loadGame() {
 
     renderGame();
     await loadBadges();
+    setupTopDashboardSync();
+    scheduleTopDashboardSync();
   } catch (error) {
     console.error('Erreur chargement jeu :', error);
   }
@@ -3040,6 +3077,7 @@ async function loadBadges() {
   renderBadgeCollection();
   syncShowcaseSettingsUI();
   renderPlayerVisitCard();
+  scheduleTopDashboardSync();
 }
 
 
@@ -3485,6 +3523,7 @@ function renderGame() {
   $('game').classList.add('hidden');
   updateEgg(me.user.egg);
   maybeShowGameIntro();
+  scheduleTopDashboardSync();
 }
 
 async function hatchEgg() {
@@ -3562,6 +3601,7 @@ function updateStats(u) {
     : `${Math.floor(u.xp - p.currentThreshold)} / ${Math.ceil(p.nextThreshold - p.currentThreshold)} XP pour le niveau suivant`;
 
   $('subBadge').classList.toggle('hidden', !u.is_sub);
+  scheduleTopDashboardSync();
 }
 
 let leaderboardSearchTimer = null;
@@ -4471,6 +4511,8 @@ function startLiveUpdates() {
     // EventSource tente automatiquement de se reconnecter.
   };
 }
+
+window.addEventListener('resize', scheduleTopDashboardSync);
 
 startLiveUpdates();
 
