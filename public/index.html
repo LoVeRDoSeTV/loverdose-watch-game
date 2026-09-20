@@ -2837,8 +2837,11 @@ function syncTopDashboardHeights() {
   const leftHeight = Math.ceil(leftStack.getBoundingClientRect().height);
   if (!leftHeight) return;
 
-  incubator.style.height = `${leftHeight}px`;
-  incubator.style.minHeight = `${leftHeight}px`;
+  const topOffset = parseFloat(getComputedStyle(leftStack).paddingTop || '0') || 0;
+  const targetHeight = Math.max(0, Math.round(leftHeight - topOffset));
+
+  incubator.style.height = `${targetHeight}px`;
+  incubator.style.minHeight = `${targetHeight}px`;
 }
 
 function scheduleTopDashboardSync() {
