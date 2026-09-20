@@ -1939,6 +1939,21 @@ html, body{
 /* La vitrine reste volontairement neutre : la personnalisation visuelle sera réservée à la carte joueur. */
 .showcase-topbar,.showcase-topbar.theme-classic,.showcase-topbar.theme-violet,.showcase-topbar.theme-gold,.showcase-topbar.theme-neon{border-color:rgba(88,113,150,.48)!important;background:linear-gradient(180deg,#15192c,#121628)!important;box-shadow:none!important}
 @media(max-width:600px){.sub-benefits-panel{padding:20px 16px}}
+
+
+/* =========================================
+   BOUTIQUE
+========================================= */
+.shop-modal{position:fixed;inset:0;z-index:1000015;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.84);backdrop-filter:blur(10px)}
+.shop-modal.hidden{display:none}
+.shop-panel{width:min(940px,100%);max-height:min(850px,92vh);overflow:auto;padding:22px;border:1px solid rgba(145,71,255,.44);border-radius:18px;background:linear-gradient(180deg,#15192d,#0f1325);box-shadow:0 28px 90px rgba(0,0,0,.60)}
+.shop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.shop-head h2{margin:0;font-size:24px}.shop-subtitle{margin-top:5px;font-size:12px;color:#aeb5d1}.shop-close{width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px;cursor:pointer}
+.shop-balance{display:flex;align-items:center;gap:10px;padding:10px 12px;margin:0 0 16px;border:1px solid rgba(145,71,255,.25);background:rgba(145,71,255,.07);font-size:13px;font-weight:850}.shop-balance img{width:30px;height:30px;object-fit:contain}.shop-balance strong{font-size:18px;color:#fff}
+.shop-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}.shop-tab{border:1px solid rgba(255,255,255,.10);background:#171c33;color:#cbd3ea;padding:9px 12px;border-radius:10px;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.shop-tab.active{border-color:rgba(145,71,255,.58);background:rgba(145,71,255,.15);color:#fff}
+.shop-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}.shop-item{min-width:0;padding:14px;border:1px solid rgba(255,255,255,.09);background:#101427;border-radius:14px;display:flex;flex-direction:column;gap:10px}.shop-item.equipped{border-color:rgba(34,197,94,.42);box-shadow:inset 0 0 24px rgba(34,197,94,.035)}.shop-item.coming-soon{opacity:.64}.shop-item-preview{height:72px;border:1px solid rgba(255,255,255,.08);border-radius:11px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#0b1020}.shop-preview-title{font-size:16px;font-weight:950;text-shadow:0 0 15px currentColor}.shop-preview-bg.bg-violet{background:radial-gradient(circle at 25% 20%,rgba(157,89,255,.48),transparent 40%),linear-gradient(145deg,#22163d,#111629)}.shop-preview-bg.bg-starry{background:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 2px),radial-gradient(circle at 65% 20%,#c6b8ff 0 1px,transparent 2px),radial-gradient(circle at 75% 70%,#fff 0 1px,transparent 2px),linear-gradient(145deg,#080d20,#171a36)}.shop-preview-bg.bg-ember{background:radial-gradient(circle at 30% 80%,rgba(255,112,47,.55),transparent 35%),linear-gradient(145deg,#2d1210,#171323)}.shop-preview-frame{margin:8px;width:calc(100% - 16px);height:54px;background:#15192c}.shop-preview-frame.frame-violet{border:2px solid #a76fff;box-shadow:0 0 14px rgba(167,111,255,.4)}.shop-preview-frame.frame-cyan{border:2px solid #4de4ff;box-shadow:0 0 14px rgba(77,228,255,.38)}.shop-preview-frame.frame-gold{border:2px solid #f3c85b;box-shadow:0 0 14px rgba(243,200,91,.38)}.shop-preview-object{font-size:38px}
+.shop-item-name{font-size:14px;font-weight:950;color:#fff}.shop-item-desc{font-size:11px;line-height:1.45;color:#9ea7c6;min-height:32px}.shop-item-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}.shop-price{font-weight:950;color:#dcc7ff}.shop-owned{color:#91e3ac;font-weight:900}.shop-qty{color:#cbd3ea;font-weight:900}.shop-actions{display:flex;gap:7px;margin-top:auto}.shop-action{flex:1;border:1px solid rgba(145,71,255,.42);background:rgba(145,71,255,.15);color:#fff;border-radius:9px;padding:8px 10px;font:inherit;font-size:11px;font-weight:900;cursor:pointer}.shop-action.secondary{border-color:rgba(255,255,255,.12);background:#1b2139}.shop-action:disabled{opacity:.5;cursor:not-allowed}.shop-message{display:none;margin:0 0 14px;padding:10px 12px;border-radius:10px;font-size:12px;font-weight:800}.shop-message.ok{display:block;background:rgba(34,197,94,.10);border:1px solid rgba(34,197,94,.28);color:#b9f6cd}.shop-message.error{display:block;background:rgba(239,68,68,.10);border:1px solid rgba(239,68,68,.28);color:#ffc0c0}
+@media(max-width:760px){.shop-panel{padding:16px}.shop-grid{grid-template-columns:1fr}.shop-item-desc{min-height:0}.shop-head h2{font-size:21px}}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -2525,6 +2540,25 @@ html, body{
   </div>
 </div>
 
+
+<div id="shopModal" class="shop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+  <div class="shop-panel">
+    <div class="shop-head">
+      <div><h2 id="shopTitle">🛒 Boutique</h2><div class="shop-subtitle">Personnalise ton profil et utilise ton LoVeR'Cash.</div></div>
+      <button id="shopClose" class="shop-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="shop-balance"><img src="lovercash-logo.png" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
+    <div id="shopMessage" class="shop-message"></div>
+    <div class="shop-tabs" role="tablist" aria-label="Catégories de la boutique">
+      <button class="shop-tab active" type="button" data-shop-category="title">🏷️ Titres</button>
+      <button class="shop-tab" type="button" data-shop-category="background">🖼️ Fonds</button>
+      <button class="shop-tab" type="button" data-shop-category="frame">✨ Encadrements</button>
+      <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
+    </div>
+    <div id="shopGrid" class="shop-grid"></div>
+  </div>
+</div>
+
 <script>
 let me = null;
 let shouldShowGameIntro = false;
@@ -3008,6 +3042,32 @@ function renderPlayerSubscriptionStatus() {
   }
 }
 
+function profileBackgroundValue(key) {
+  const map = {
+    bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
+    bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
+    bg_ember: 'radial-gradient(circle at 22% 90%,rgba(255,102,40,.42),transparent 34%),linear-gradient(150deg,rgba(55,18,16,.96),rgba(18,15,29,.98))'
+  };
+  return map[key] || 'none';
+}
+
+function profileFrameStyle(key) {
+  const map = {
+    frame_violet: { border:'#a76fff', shadow:'0 0 20px rgba(167,111,255,.26)' },
+    frame_cyan: { border:'#4de4ff', shadow:'0 0 20px rgba(77,228,255,.23)' },
+    frame_gold: { border:'#f3c85b', shadow:'0 0 20px rgba(243,200,91,.23)' }
+  };
+  return map[key] || null;
+}
+
+function applyProfileCosmetics(element, backgroundKey, frameKey) {
+  if (!element) return;
+  element.style.setProperty('--profile-card-image', profileBackgroundValue(backgroundKey));
+  const frame = profileFrameStyle(frameKey);
+  element.style.borderColor = frame?.border || '';
+  element.style.boxShadow = frame?.shadow || '';
+}
+
 function renderPlayerVisitCard() {
   const nameEl = $('playerCardName');
   const titleEl = $('playerCardTitle');
@@ -3018,8 +3078,10 @@ function renderPlayerVisitCard() {
 
   nameEl.textContent = me.user.game_username || me.user.display_name || 'Joueur';
   const cosmeticTitle = String(me.user.cosmetic_title || '').trim();
-  titleEl.textContent = cosmeticTitle ? `\"${cosmeticTitle}\"` : '';
+  titleEl.textContent = cosmeticTitle ? `"${cosmeticTitle}"` : '';
   titleEl.classList.toggle('visible', Boolean(cosmeticTitle));
+  titleEl.style.color = me.user.cosmetic_title_color || '';
+  applyProfileCosmetics(document.querySelector('.player-visit-card'), me.user.cosmetic_background, me.user.cosmetic_frame);
   levelValueEl.textContent = `Niveau ${me.user.progression?.level || 1}`;
   const leaderboardRank = Number(me.user.leaderboard_rank);
   rankEl.textContent = Number.isFinite(leaderboardRank) && leaderboardRank > 0
@@ -3681,14 +3743,18 @@ async function loadLeaderboard(searchTerm = null) {
         ? `<img class="leaderboard-twitch-avatar" src="${escapeHtml(playerData.profile_image_url)}" alt="">`
         : '';
 
+      const leaderboardBg = profileBackgroundValue(playerData.cosmetic_background);
+      const leaderboardFrame = profileFrameStyle(playerData.cosmetic_frame);
+      const leaderboardCardStyle = `--profile-card-image:${leaderboardBg};${leaderboardFrame ? `border-color:${leaderboardFrame.border};box-shadow:${leaderboardFrame.shadow};` : ''}`;
+
       return `
-        <div class="leaderboard-player-card${topClass}">
+        <div class="leaderboard-player-card${topClass}" style="${escapeHtml(leaderboardCardStyle)}">
           <div class="leaderboard-player-card-inner">
             <div class="leaderboard-player-rank">${rank}</div>
             ${twitchAvatarHtml}
             <div class="leaderboard-player-info">
               <div class="leaderboard-player-name">${escapeHtml(playerData.display_name)}</div>
-              ${playerData.cosmetic_title ? `<div class="leaderboard-player-title">&quot;${escapeHtml(playerData.cosmetic_title)}&quot;</div>` : ''}
+              ${playerData.cosmetic_title ? `<div class="leaderboard-player-title" style="color:${escapeHtml(playerData.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(playerData.cosmetic_title)}&quot;</div>` : ''}
               ${progressionHtml}
             </div>
             ${badgesHtml}
@@ -3710,6 +3776,107 @@ if (leaderboardSearchInput) {
     leaderboardSearchTimer = setTimeout(() => loadLeaderboard(), 220);
   });
 }
+
+let shopData = null;
+let shopCategory = 'title';
+
+function setShopMessage(message = '', type = '') {
+  const box = $('shopMessage');
+  if (!box) return;
+  box.textContent = message;
+  box.className = `shop-message${type ? ` ${type}` : ''}`;
+}
+
+function shopPreview(item) {
+  if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
+  if (item.category === 'background') return `<div class="shop-item-preview shop-preview-bg bg-${escapeHtml(item.preview || 'violet')}"></div>`;
+  if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
+  return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
+}
+
+function renderShop() {
+  if (!shopData) return;
+  $('shopBalance').textContent = Math.floor(Number(shopData.balance || 0));
+  const items = (shopData.catalog || []).filter(item => item.category === shopCategory);
+  $('shopGrid').innerHTML = items.map(item => {
+    const price = item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`;
+    let actions = '';
+    if (item.comingSoon) {
+      actions = `<button class="shop-action" type="button" disabled>Bientôt</button>`;
+    } else if (item.category === 'object') {
+      actions = `<button class="shop-action" type="button" data-shop-buy="${escapeHtml(item.key)}">Acheter</button>${Number(item.quantity || 0) > 0 ? `<button class="shop-action secondary" type="button" data-shop-use="${escapeHtml(item.key)}">Utiliser</button>` : ''}`;
+    } else if (item.equipped) {
+      actions = `<button class="shop-action" type="button" disabled>Équipé</button>`;
+    } else if (item.owned) {
+      actions = `<button class="shop-action" type="button" data-shop-equip="${escapeHtml(item.key)}">Équiper</button>`;
+    } else if (item.exclusive) {
+      actions = `<button class="shop-action" type="button" data-shop-equip="${escapeHtml(item.key)}">Équiper</button>`;
+    } else {
+      actions = `<button class="shop-action" type="button" data-shop-buy="${escapeHtml(item.key)}">Acheter</button>`;
+    }
+    const activeUntil = shopData.activeBoosts?.[item.key];
+    const activeText = activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
+    const ownedText = item.category === 'object'
+      ? (Number(item.quantity || 0) > 0 ? `<span class="shop-qty">Possédé : ${Number(item.quantity)}</span>` : '')
+      : (item.owned || item.exclusive ? '<span class="shop-owned">Possédé</span>' : '');
+    return `<article class="shop-item${item.equipped ? ' equipped' : ''}${item.comingSoon ? ' coming-soon' : ''}">
+      ${shopPreview(item)}
+      <div class="shop-item-name">${escapeHtml(item.name)}</div>
+      <div class="shop-item-desc">${escapeHtml(item.description || '')}</div>
+      <div class="shop-item-meta"><span class="shop-price">${escapeHtml(price)}</span>${ownedText}</div>
+      ${activeText}
+      <div class="shop-actions">${actions}</div>
+    </article>`;
+  }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>';
+
+  document.querySelectorAll('[data-shop-category]').forEach(button => button.classList.toggle('active', button.dataset.shopCategory === shopCategory));
+}
+
+async function loadShop() {
+  const response = await fetch('/api/shop', { cache:'no-store' });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
+  shopData = data;
+  renderShop();
+}
+
+async function openShop() {
+  $('shopModal')?.classList.remove('hidden');
+  setShopMessage();
+  try { await loadShop(); } catch (error) { setShopMessage(error.message, 'error'); }
+}
+
+async function shopAction(url, itemKey) {
+  setShopMessage();
+  try {
+    const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Action impossible.');
+    setShopMessage(data.message || 'Action effectuée.', 'ok');
+    await loadShop();
+    await loadGame();
+    await loadLeaderboard();
+  } catch (error) {
+    setShopMessage(error.message || 'Action impossible.', 'error');
+  }
+}
+
+$('shopGrid')?.addEventListener('click', event => {
+  const buy = event.target.closest('[data-shop-buy]');
+  const equip = event.target.closest('[data-shop-equip]');
+  const use = event.target.closest('[data-shop-use]');
+  if (buy) shopAction('/api/shop/buy', buy.dataset.shopBuy);
+  else if (equip) shopAction('/api/shop/equip', equip.dataset.shopEquip);
+  else if (use) shopAction('/api/shop/use', use.dataset.shopUse);
+});
+
+document.querySelectorAll('[data-shop-category]').forEach(button => {
+  button.addEventListener('click', () => { shopCategory = button.dataset.shopCategory || 'title'; renderShop(); });
+});
+$('shopClose')?.addEventListener('click', () => $('shopModal')?.classList.add('hidden'));
+let shopBackdropMouseDown = false;
+$('shopModal')?.addEventListener('mousedown', event => { shopBackdropMouseDown = event.target.id === 'shopModal'; });
+$('shopModal')?.addEventListener('mouseup', event => { if (shopBackdropMouseDown && event.target.id === 'shopModal') $('shopModal')?.classList.add('hidden'); shopBackdropMouseDown = false; });
 
 function clearAuthErrors() {
   registerError.style.display = 'none';
@@ -4508,6 +4675,7 @@ function startLiveUpdates() {
   liveUpdates = new EventSource('/api/live-updates');
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
+  liveUpdates.addEventListener('shop-update', refreshLiveGameState);
   liveUpdates.onerror = () => {
     // EventSource tente automatiquement de se reconnecter.
   };
@@ -4528,7 +4696,5 @@ $('playerCardCollection')?.addEventListener('click', () => {
   $('badgeCollectionModal')?.classList.remove('hidden');
   renderBadgeCollection();
 });
-$('playerCardShop')?.addEventListener('click', () => {
-  window.alert("🛒 La boutique arrive bientôt ! Tu pourras y acheter des fonds et personnalisations pour ta carte joueur avec ton LoVeR'Cash.");
-});
+$('playerCardShop')?.addEventListener('click', openShop);
 </script></body></html>
