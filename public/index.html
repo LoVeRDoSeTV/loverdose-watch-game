@@ -1809,6 +1809,8 @@ html, body{
 /* Carte joueur compacte dans le classement - identité lisible + badges à droite */
 .leaderboard-player-card{
   --profile-card-image:none;
+  cursor:pointer;
+  transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
   position:relative;
   overflow:hidden;
   margin:0 0 10px;
@@ -1821,6 +1823,8 @@ html, body{
   background-size:cover,auto;
   background-position:center,center;
 }
+.leaderboard-player-card:hover{transform:translateY(-1px);border-color:rgba(145,71,255,.55)}
+.leaderboard-player-card:focus-visible{outline:2px solid rgba(145,71,255,.72);outline-offset:2px}
 .leaderboard-player-card::before{
   content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,10,22,.82),rgba(7,10,22,.48));pointer-events:none
 }
@@ -1945,6 +1949,7 @@ html, body{
 /* =========================================
    BOUTIQUE
 ========================================= */
+.player-profile-modal{position:fixed;inset:0;z-index:1000016;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.86);backdrop-filter:blur(10px)}.player-profile-modal.hidden{display:none}.player-profile-panel{width:min(860px,100%);max-height:min(90vh,900px);overflow:auto;border:1px solid rgba(145,71,255,.38);background:linear-gradient(180deg,#12172c,#0d1122);border-radius:22px;padding:22px;box-shadow:0 26px 90px rgba(0,0,0,.58)}.player-profile-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:16px}.player-profile-head h2{margin:0;font-size:24px}.player-profile-close{width:40px;height:40px;flex:0 0 40px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:21px;cursor:pointer}.player-profile-hero{--profile-card-image:none;position:relative;overflow:hidden;border:1px solid rgba(145,71,255,.30);border-radius:18px;padding:18px;background:var(--profile-card-image),linear-gradient(155deg,#161b31,#0d1223);background-size:cover,auto}.player-profile-hero::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(6,9,20,.80),rgba(6,9,20,.42));pointer-events:none}.player-profile-hero-inner{position:relative;z-index:1;display:flex;align-items:center;gap:15px}.player-profile-avatar{width:78px;height:78px;flex:0 0 78px;border-radius:16px;border:1px solid rgba(145,71,255,.38);background:#11162b;overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:34px}.player-profile-avatar img{width:100%;height:100%;object-fit:cover}.player-profile-identity{min-width:0}.player-profile-name{font-size:24px;font-weight:950;color:#fff}.player-profile-title{margin-top:5px;font-size:15px;font-weight:950}.player-profile-rank{margin-top:7px;color:#cdd4ec;font-size:12px;font-weight:900}.player-profile-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:14px}.player-profile-stat{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:13px;background:#101427}.player-profile-stat-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#8f98b8;font-weight:900}.player-profile-stat-value{margin-top:5px;font-size:15px;color:#fff;font-weight:950}.player-profile-sections{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.player-profile-section{padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#101427}.player-profile-section h3{margin:0 0 10px;font-size:14px}.player-profile-line{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px}.player-profile-line:last-child{border-bottom:0}.player-profile-line span:first-child{color:#9ea7c6}.player-profile-line strong{color:#fff;text-align:right}.player-profile-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.player-profile-badge{width:38px;height:38px;border-radius:10px;border:1px solid rgba(255,255,255,.10);background:#0b1020;display:flex;align-items:center;justify-content:center;overflow:hidden}.player-profile-badge img{width:100%;height:100%;object-fit:cover}@media(max-width:700px){.player-profile-stats{grid-template-columns:1fr 1fr}.player-profile-sections{grid-template-columns:1fr}.player-profile-name{font-size:20px}.player-profile-avatar{width:64px;height:64px;flex-basis:64px}}
 .inventory-modal{position:fixed;inset:0;z-index:1000014;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.84);backdrop-filter:blur(10px)}
 .inventory-modal.hidden{display:none}
 .inventory-panel{width:min(940px,100%);max-height:min(88vh,900px);overflow:auto;border:1px solid rgba(145,71,255,.32);background:linear-gradient(180deg,#12172c,#0d1122);border-radius:20px;padding:22px;box-shadow:0 24px 80px rgba(0,0,0,.55)}
@@ -2260,7 +2265,7 @@ html, body{
           <div id="playerCardSubZone" class="player-sub-zone"></div>
         </div>
         <div id="playerCardTitle" class="player-card-title"></div>
-        <div id="playerCardLevel" class="player-card-level"><span id="playerCardLevelValue">Niveau 1</span></div>
+        <div id="playerCardLevel" class="player-card-level"><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Créature niv. 1</span></div>
       </div>
     </div>
     <div id="playerCardBadgesTrigger" class="player-card-rankbadges" role="button" tabindex="0" aria-label="Ouvrir mes badges" title="Ouvrir mes badges">
@@ -2560,6 +2565,16 @@ html, body{
   </div>
 </div>
 
+
+<div id="playerProfileModal" class="player-profile-modal hidden" role="dialog" aria-modal="true" aria-labelledby="playerProfileModalTitle">
+  <div class="player-profile-panel">
+    <div class="player-profile-head">
+      <div><h2 id="playerProfileModalTitle">👤 Profil joueur</h2><div class="muted" style="font-size:12px;margin-top:5px">Progression et informations publiques du Watch Game.</div></div>
+      <button id="playerProfileClose" class="player-profile-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="playerProfileContent"></div>
+  </div>
+</div>
 
 <div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
   <div class="inventory-panel">
@@ -3248,7 +3263,9 @@ function renderPlayerVisitCard() {
   titleEl.style.color = me.user.cosmetic_title_color || '';
   applyProfileCosmetics(document.querySelector('.player-visit-card'), me.user.cosmetic_background, me.user.cosmetic_frame);
   applyAvatarFrameCosmetics(avatarEl, me.user.cosmetic_avatar_frame);
-  levelValueEl.textContent = `Niveau ${me.user.progression?.level || 1}`;
+  levelValueEl.textContent = `Compte niv. ${me.user.global_progression?.level || 1}`;
+  const creatureLevelEl = $('playerCardCreatureLevelValue');
+  if (creatureLevelEl) creatureLevelEl.textContent = me.user.creature_id ? `Créature niv. ${me.user.progression?.level || 1}` : 'Œuf en incubation';
   const leaderboardRank = Number(me.user.leaderboard_rank);
   rankEl.textContent = Number.isFinite(leaderboardRank) && leaderboardRank > 0
     ? `#${leaderboardRank}`
@@ -3834,6 +3851,7 @@ function updateStats(u) {
 }
 
 let leaderboardSearchTimer = null;
+let leaderboardPlayers = [];
 
 function formatLeaderboardDuration(totalSeconds) {
   const seconds = Math.max(0, Number(totalSeconds) || 0);
@@ -3863,6 +3881,8 @@ async function loadLeaderboard(searchTerm = null) {
         : '<p class="muted">Aucun joueur pour le moment.</p>';
       return;
     }
+
+    leaderboardPlayers = data.leaderboard;
 
     container.innerHTML = data.leaderboard.map((playerData, visibleIndex) => {
       let rank = '#' + playerData.rank;
@@ -3900,7 +3920,7 @@ async function loadLeaderboard(searchTerm = null) {
             </div>
           </div>`;
       } else {
-        progressionHtml = `<div class="leaderboard-player-level">Niveau ${playerData.progression.level} · ${Math.floor(Number(playerData.xp) || 0)} XP</div>`;
+        progressionHtml = `<div class="leaderboard-player-level">Compte ${playerData.global_progression?.level || 1} · Créature ${playerData.progression?.level || 1}</div>`;
       }
 
       const topClass = Number(playerData.rank) === 1 && !query ? ' top-one' : '';
@@ -3915,7 +3935,7 @@ async function loadLeaderboard(searchTerm = null) {
       const leaderboardCardStyle = `--profile-card-image:${leaderboardBg};${leaderboardFrame ? `border-color:${leaderboardFrame.border};box-shadow:${leaderboardFrame.shadow};` : ''}`;
 
       return `
-        <div class="leaderboard-player-card${topClass}" style="${escapeHtml(leaderboardCardStyle)}">
+        <div class="leaderboard-player-card${topClass}" role="button" tabindex="0" data-player-index="${visibleIndex}" aria-label="Voir le profil de ${escapeHtml(playerData.display_name)}" style="${escapeHtml(leaderboardCardStyle)}">
           <div class="leaderboard-player-card-inner">
             <div class="leaderboard-player-rank">${rank}</div>
             ${twitchAvatarHtml}
@@ -3944,6 +3964,91 @@ if (leaderboardSearchInput) {
   });
 }
 
+
+
+function formatProfileDate(value) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' });
+}
+
+function formatProfileHours(seconds) {
+  const total = Math.max(0, Number(seconds) || 0);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  return `${hours} h ${String(minutes).padStart(2,'0')}`;
+}
+
+function openPlayerProfile(playerData) {
+  if (!playerData) return;
+  const content = $('playerProfileContent');
+  if (!content) return;
+
+  const creature = playerData.creature_id ? creatureById(playerData.creature_id) : null;
+  const avatarFrame = profileAvatarFrameStyle(playerData.cosmetic_avatar_frame);
+  const cardFrame = profileFrameStyle(playerData.cosmetic_frame);
+  const cardBg = profileBackgroundValue(playerData.cosmetic_background);
+  const avatarHtml = playerData.profile_image_url
+    ? `<img src="${escapeHtml(playerData.profile_image_url)}" alt="Avatar de ${escapeHtml(playerData.display_name || 'Joueur')}">`
+    : `<span>${playerData.creature_id ? '✨' : '🥚'}</span>`;
+  const titleHtml = playerData.cosmetic_title
+    ? `<div class="player-profile-title" style="color:${escapeHtml(playerData.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(playerData.cosmetic_title)}&quot;</div>`
+    : '';
+  const badgeHtml = Array.isArray(playerData.leaderboard_badges) && playerData.leaderboard_badges.length
+    ? playerData.leaderboard_badges.map(badge => `<span class="player-profile-badge" title="${escapeHtml(badge.badgeName || 'Badge')}">${badge.badgeImage ? `<img src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">` : '🏅'}</span>`).join('')
+    : '<span class="muted" style="font-size:12px">Aucun badge de classement équipé.</span>';
+
+  const creatureName = creature?.name || (playerData.creature_id ? 'Créature' : 'Œuf en incubation');
+  const creatureLevel = playerData.creature_id ? (playerData.progression?.level || 1) : '—';
+  const globalLevel = playerData.global_progression?.level || 1;
+  const globalXp = Math.floor(Number(playerData.global_xp || 0));
+  const creatureXp = Math.floor(Number(playerData.xp || 0));
+
+  content.innerHTML = `<div id="playerProfileHero" class="player-profile-hero" style="--profile-card-image:${escapeHtml(cardBg)};${cardFrame ? `border-color:${escapeHtml(cardFrame.border)};box-shadow:${escapeHtml(cardFrame.shadow)};` : ''}"><div class="player-profile-hero-inner"><div id="playerProfileAvatar" class="player-profile-avatar">${avatarHtml}</div><div class="player-profile-identity"><div class="player-profile-name">${escapeHtml(playerData.display_name || 'Joueur')}</div>${titleHtml}<div class="player-profile-rank">Rang #${Number(playerData.rank) || '—'} · ${playerData.is_sub ? '⭐ Abonné Twitch' : 'Viewer'}</div></div></div></div>
+  <div class="player-profile-stats">
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau global</div><div class="player-profile-stat-value">${globalLevel}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau créature</div><div class="player-profile-stat-value">${creatureLevel}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Temps regardé</div><div class="player-profile-stat-value">${escapeHtml(formatProfileHours(playerData.watch_seconds))}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">LoVeR'Cash</div><div class="player-profile-stat-value">${Math.floor(Number(playerData.points || 0))}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Badges obtenus</div><div class="player-profile-stat-value">${Number(playerData.badge_count || 0)}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Compagnons</div><div class="player-profile-stat-value">${Number(playerData.creature_count || 0)}</div></div>
+  </div>
+  <div class="player-profile-sections">
+    <section class="player-profile-section"><h3>📈 Progression</h3><div class="player-profile-line"><span>XP globale</span><strong>${globalXp} XP</strong></div><div class="player-profile-line"><span>XP créature</span><strong>${creatureXp} XP</strong></div><div class="player-profile-line"><span>Créature actuelle</span><strong>${escapeHtml(creatureName)}</strong></div><div class="player-profile-line"><span>Arrivée sur le jeu</span><strong>${escapeHtml(formatProfileDate(playerData.created_at))}</strong></div></section>
+    <section class="player-profile-section"><h3>💰 LoVeR'Cash</h3><div class="player-profile-line"><span>Solde actuel</span><strong>${Math.floor(Number(playerData.points || 0))}</strong></div><div class="player-profile-line"><span>Gagné au total</span><strong>${Math.floor(Number(playerData.lifetime_lovercash_earned || 0))}</strong></div><div class="player-profile-line"><span>Dépensé au total</span><strong>${Math.floor(Number(playerData.lifetime_lovercash_spent || 0))}</strong></div></section>
+    <section class="player-profile-section"><h3>🎨 Personnalisation</h3><div class="player-profile-line"><span>Titre</span><strong>${escapeHtml(playerData.cosmetic_title || 'Aucun')}</strong></div><div class="player-profile-line"><span>Fond</span><strong>${playerData.cosmetic_background ? 'Équipé' : 'Aucun'}</strong></div><div class="player-profile-line"><span>Encadrement</span><strong>${playerData.cosmetic_frame ? 'Équipé' : 'Aucun'}</strong></div><div class="player-profile-line"><span>Cadre de profil</span><strong>${playerData.cosmetic_avatar_frame ? 'Équipé' : 'Aucun'}</strong></div></section>
+    <section class="player-profile-section"><h3>🏆 Badges de classement</h3><div class="player-profile-badges">${badgeHtml}</div></section>
+  </div>`;
+
+  applyAvatarFrameCosmetics($('playerProfileAvatar'), playerData.cosmetic_avatar_frame);
+  $('playerProfileModal')?.classList.remove('hidden');
+}
+
+function closePlayerProfile() {
+  $('playerProfileModal')?.classList.add('hidden');
+}
+
+$('leaderboard')?.addEventListener('click', event => {
+  const card = event.target.closest('[data-player-index]');
+  if (!card) return;
+  const player = leaderboardPlayers[Number(card.dataset.playerIndex)];
+  if (player) openPlayerProfile(player);
+});
+
+$('leaderboard')?.addEventListener('keydown', event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  const card = event.target.closest('[data-player-index]');
+  if (!card) return;
+  event.preventDefault();
+  const player = leaderboardPlayers[Number(card.dataset.playerIndex)];
+  if (player) openPlayerProfile(player);
+});
+
+$('playerProfileClose')?.addEventListener('click', closePlayerProfile);
+let playerProfileBackdropMouseDown = false;
+$('playerProfileModal')?.addEventListener('mousedown', event => { playerProfileBackdropMouseDown = event.target.id === 'playerProfileModal'; });
+$('playerProfileModal')?.addEventListener('mouseup', event => { if (playerProfileBackdropMouseDown && event.target.id === 'playerProfileModal') closePlayerProfile(); playerProfileBackdropMouseDown = false; });
 
 const TITLE_COLOR_ORDER = { gold:0, silver:1, violet:2, blue:3, green:4, pink:5, red:6, other:9 };
 
