@@ -28,6 +28,9 @@ const SUB_MULTIPLIER = 1.20;
 
 const LOVERCASH_PER_MINUTE = 10 / 60;
 
+const GLOBAL_XP_PER_HOUR = 50;
+const GLOBAL_XP_SUB_PER_HOUR = 60;
+
 
 // Tracker Twitch : présence dans le chat pendant que la chaîne est en live.
 // Ce n'est pas une mesure certifiée de lecture vidéo individuelle.
@@ -258,6 +261,35 @@ function progressionFromXp(xp) {
 
   };
 
+}
+
+
+function globalProgressionFromXp(xp) {
+  const value = Math.max(0, Number(xp) || 0);
+  const maxLevel = 100;
+  let level = 1;
+  let currentThreshold = 0;
+  let nextThreshold = 250;
+
+  const thresholdForLevel = targetLevel => {
+    if (targetLevel <= 1) return 0;
+    const steps = targetLevel - 1;
+    return Math.round((steps * (500 + (steps - 1) * 50)) / 2);
+  };
+
+  while (level < maxLevel && value >= thresholdForLevel(level + 1)) level += 1;
+
+  currentThreshold = thresholdForLevel(level);
+  nextThreshold = level >= maxLevel ? currentThreshold : thresholdForLevel(level + 1);
+
+  return {
+    level,
+    currentThreshold,
+    nextThreshold,
+    maxLevel: level >= maxLevel,
+    xpIntoLevel: Math.max(0, value - currentThreshold),
+    xpForNextLevel: Math.max(0, nextThreshold - currentThreshold)
+  };
 }
 
 
@@ -540,6 +572,28 @@ async function initDatabase() {
   await pool.query(`
     ALTER TABLE users
     ADD COLUMN IF NOT EXISTS profile_image_url TEXT
+  `);
+
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS global_xp DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_earned DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_spent DOUBLE PRECISION NOT NULL DEFAULT 0`);
+
+  // Migration douce pour les joueurs déjà présents : le niveau global reprend
+  // leur ancien temps de visionnage au taux de base de 50 XP globale / heure.
+  await pool.query(`
+    UPDATE users
+    SET global_xp = (watch_seconds::double precision / 3600.0) * $1
+    WHERE global_xp = 0 AND watch_seconds > 0
+  `, [GLOBAL_XP_PER_HOUR]);
+
+
+  // On initialise le total historique au minimum avec le solde actuel.
+  // Les achats passés ne sont pas reconstructibles précisément, mais à partir
+  // de cette version tous les gains et toutes les dépenses sont comptabilisés.
+  await pool.query(`
+    UPDATE users
+    SET lifetime_lovercash_earned = points
+    WHERE lifetime_lovercash_earned = 0 AND points > 0
   `);
 
   // Migration rétroactive : avant l'ajout de pending_xp, certaines récompenses
@@ -1364,6 +1418,8 @@ async function runTrackerTick() {
       const subXp = deltaSeconds / 3600 * 120;
       const normalLoverCash = deltaSeconds / 3600 * 10;
       const subLoverCash = deltaSeconds / 3600 * 12;
+      const normalGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_PER_HOUR;
+      const subGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_SUB_PER_HOUR;
 
       const result = await pool.query(
         `
@@ -1384,12 +1440,20 @@ async function runTrackerTick() {
             SELECT 1 FROM user_active_boosts b
             WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
           ) THEN 2 ELSE 1 END),
+          lifetime_lovercash_earned = lifetime_lovercash_earned + (CASE
+            WHEN is_sub THEN $4
+            ELSE $3
+          END) * (CASE WHEN EXISTS (
+            SELECT 1 FROM user_active_boosts b
+            WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
+          ) THEN 2 ELSE 1 END),
+          global_xp = global_xp + (CASE WHEN is_sub THEN $8 ELSE $7 END),
           watch_seconds = watch_seconds + $5,
           updated_at = CURRENT_TIMESTAMP
         WHERE twitch_id = ANY($6::text[])
         RETURNING id
         `,
-        [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds]
+        [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp]
       );
 
       matched = result.rowCount || 0;
@@ -2354,7 +2418,10 @@ app.post('/api/account/reset-game', async (req, res) => {
         creature_id = NULL,
         xp = 0,
         pending_xp = 0,
+        global_xp = 0,
         points = 0,
+        lifetime_lovercash_earned = 0,
+        lifetime_lovercash_spent = 0,
         watch_seconds = 0,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
@@ -3243,8 +3310,12 @@ app.get(
             u.creature_id,
             u.xp,
             u.pending_xp,
+            u.global_xp,
             u.points,
+            u.lifetime_lovercash_earned,
+            u.lifetime_lovercash_spent,
             u.watch_seconds,
+            u.created_at,
             r.leaderboard_rank,
             a.equipped_title_key,
             a.equipped_background_key,
@@ -3317,12 +3388,26 @@ app.get(
           pending_xp:
             Number(u.pending_xp || 0),
 
+          global_xp:
+            Number(u.global_xp || 0),
+
           points:
             Number(u.points),
+
+          lifetime_lovercash_earned:
+            Number(u.lifetime_lovercash_earned || 0),
+
+          lifetime_lovercash_spent:
+            Number(u.lifetime_lovercash_spent || 0),
 
           progression:
             progressionFromXp(
               u.xp
+            ),
+
+          global_progression:
+            globalProgressionFromXp(
+              u.global_xp
             ),
 
           egg:
@@ -4583,7 +4668,7 @@ app.post('/api/shop/buy', async (req, res) => {
     const balance = Number(user.points || 0);
     if (balance < item.price) { await client.query('ROLLBACK'); return res.status(400).json({ error:"Pas assez de LoVeR'Cash." }); }
 
-    await client.query(`UPDATE users SET points = points - $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [user.id, item.price]);
+    await client.query(`UPDATE users SET points = points - $2, lifetime_lovercash_spent = lifetime_lovercash_spent + $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [user.id, item.price]);
     await client.query(
       `INSERT INTO shop_inventory (account_id, item_key, quantity) VALUES ($1,$2,1)
        ON CONFLICT (account_id,item_key) DO UPDATE SET quantity = shop_inventory.quantity + 1, purchased_at = CURRENT_TIMESTAMP`,
@@ -4746,8 +4831,12 @@ app.get(
           u.creature_id,
           u.xp,
           u.pending_xp,
+          u.global_xp,
           u.points,
+          u.lifetime_lovercash_earned,
+          u.lifetime_lovercash_spent,
           u.watch_seconds,
+          u.created_at,
           a.equipped_title_key,
           a.equipped_background_key,
           a.equipped_frame_key,
@@ -4774,6 +4863,7 @@ app.get(
 
       const playerIds = playersResult.rows.map(row => Number(row.id)).filter(Number.isFinite);
       let badgesByUser = new Map();
+      let badgeCountsByUser = new Map();
 
       if (playerIds.length) {
         const badgesResult = await pool.query(
@@ -4802,6 +4892,12 @@ app.get(
             badgeImage: badge.badge_image || null
           });
         }
+
+        const badgeCountResult = await pool.query(
+          `SELECT user_id, COUNT(*)::int AS badge_count FROM user_badges WHERE user_id = ANY($1::int[]) GROUP BY user_id`,
+          [playerIds]
+        );
+        badgeCountsByUser = new Map(badgeCountResult.rows.map(row => [Number(row.user_id), Number(row.badge_count || 0)]));
       }
 
       const leaderboard = playersResult.rows.map((player, index) => {
@@ -4825,10 +4921,17 @@ app.get(
           state: hatched ? 'creature' : 'egg',
           xp: Number(player.xp || 0),
           pending_xp: Number(player.pending_xp || 0),
+          global_xp: Number(player.global_xp || 0),
           points: Number(player.points || 0),
+          lifetime_lovercash_earned: Number(player.lifetime_lovercash_earned || 0),
+          lifetime_lovercash_spent: Number(player.lifetime_lovercash_spent || 0),
           watch_seconds: watched,
+          created_at: player.created_at || null,
+          badge_count: badgeCountsByUser.get(Number(player.id)) || 0,
+          creature_count: player.creature_id ? 1 : 0,
           leaderboard_badges: badgesByUser.get(Number(player.id)) || [],
           progression: progressionFromXp(Number(player.xp || 0)),
+          global_progression: globalProgressionFromXp(Number(player.global_xp || 0)),
           egg: hatched ? null : {
             watchedSeconds: eggWatched,
             remainingSeconds: Math.max(0, EGG_HATCH_SECONDS - watched),
