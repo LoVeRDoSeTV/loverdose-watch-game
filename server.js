@@ -402,10 +402,21 @@ function rollStandardEgg() {
    BOUTIQUE WATCH GAME
 ========================================= */
 const SHOP_ITEMS = [
-  { key:'title_noctambule', category:'title', name:'Noctambule', price:150, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
-  { key:'title_collectionneur', category:'title', name:'Collectionneur', price:200, color:'#4fd1c5', description:'Pour ceux qui aiment compléter leur collection.' },
-  { key:'title_gardien_live', category:'title', name:'Gardien du live', price:250, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
-  { key:'title_legende', category:'title', name:'Légende du Watch Game', price:400, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
+  { key:'title_noctambule', category:'title', subcategory:'violet', name:'Noctambule', price:150, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
+  { key:'title_collectionneur', category:'title', subcategory:'blue', name:'Collectionneur', price:200, color:'#4fd1c5', description:'Pour ceux qui aiment compléter leur collection.' },
+  { key:'title_gardien_live', category:'title', subcategory:'blue', name:'Gardien du live', price:250, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
+  { key:'title_legende', category:'title', subcategory:'gold', name:'Légende du Watch Game', price:400, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
+  { key:'title_agent_fantome', category:'title', subcategory:'silver', name:'Agent fantôme', price:280, color:'#e7edf8', description:'Un titre sobre et élégant inspiré des agents les plus discrets.' },
+  { key:'title_commandant_chat', category:'title', subcategory:'blue', name:'Commandant du chat', price:320, color:'#7ab8ff', description:'Pour celles et ceux qui mènent la discussion pendant les lives.' },
+  { key:'title_oracle_nocturne', category:'title', subcategory:'violet', name:'Oracle nocturne', price:360, color:'#c28cff', description:'Un titre mystique pour les viewers du soir.' },
+  { key:'title_gardien_couvoir', category:'title', subcategory:'green', name:'Gardien du couvoir', price:380, color:'#69e3a7', description:'Parfait pour les passionnés d’œufs et de compagnons.' },
+  { key:'title_icone_stream', category:'title', subcategory:'pink', name:'Icône du stream', price:460, color:'#ff8ad9', description:'Un titre flashy pour briller sur la carte joueur.' },
+  { key:'title_veilleur_azur', category:'title', subcategory:'blue', name:'Veilleur azur', price:520, color:'#79c8ff', description:'Un titre céleste pour les fidèles du Watch Game.' },
+  { key:'title_chasseur_oeufs', category:'title', subcategory:'green', name:'Chasseur d’œufs', price:560, color:'#8ce26b', description:'Pour les joueurs qui ne laissent jamais un incubateur vide.' },
+  { key:'title_braise_royale', category:'title', subcategory:'red', name:'Braise royale', price:620, color:'#ff8a63', description:'Un titre rouge incandescent pour un profil qui se démarque.' },
+  { key:'title_etoile_rose', category:'title', subcategory:'pink', name:'Étoile rose', price:680, color:'#ff95ef', description:'Un titre lumineux et pétillant pour les profils les plus stylés.' },
+  { key:'title_roi_arene', category:'title', subcategory:'gold', name:'Roi de l’arène', price:1200, color:'#f4cd67', description:"Un titre doré premium réservé aux plus gros collectionneurs de LoVeR'Cash." },
+  { key:'title_souverain_live', category:'title', subcategory:'gold', name:'Souverain du live', price:1600, color:'#ffd86b', description:'Un grand titre doré pour les profils les plus prestigieux.' },
   { key:'bg_nebula', category:'background', subcategory:'classic', name:'Nébuleuse violette', price:300, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
   { key:'bg_starry', category:'background', subcategory:'classic', name:'Nuit étoilée', price:400, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
   { key:'bg_ember', category:'background', subcategory:'classic', name:'Braises', price:450, preview:'ember', description:'Fond chaud inspiré des braises et du feu.' },
@@ -432,13 +443,22 @@ const SHOP_ITEMS = [
   { key:'avatarframe_emerald', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil émeraude', price:260, preview:'emerald', description:'Contour vert raffiné avec lueur douce.' },
   { key:'avatarframe_rose', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil rose néon', price:280, preview:'rose', description:'Contour rose vif pour un style flashy.' },
   { key:'avatarframe_gold', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil doré', price:320, preview:'gold', description:'Contour doré premium pour mettre ton profil en valeur.' },
+  { key:'avatarframe_crimson', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil cramoisi', price:300, preview:'crimson', description:'Contour rouge intense pour un style plus agressif.' },
+  { key:'avatarframe_royal', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil royal', price:340, preview:'royal', description:'Contour bleu royal élégant et lumineux.' },
+  { key:'avatarframe_obsidian', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil obsidienne', price:340, preview:'obsidian', description:'Contour sombre et chic pour un profil sobre.' },
+  { key:'avatarframe_sapphire', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil saphir', price:360, preview:'sapphire', description:'Contour bleu saphir profond et éclatant.' },
+  { key:'avatarframe_amber', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil ambre', price:360, preview:'amber', description:'Contour ambré chaleureux avec une belle lueur.' },
+  { key:'avatarframe_amethyst', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil améthyste', price:380, preview:'amethyst', description:'Contour violet gemme pour un rendu premium.' },
+  { key:'avatarframe_ruby', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil rubis', price:390, preview:'ruby', description:'Contour rubis brillant pour un profil plus rare.' },
+  { key:'avatarframe_ice', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil glace', price:400, preview:'ice', description:'Contour froid et lumineux inspiré des cristaux.' },
   { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:300, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:300, icon:'💰', description:"Double le LoVeR'Cash gagné pendant 1 heure.", consumable:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:220, icon:'⏱️', description:'Retire 30 minutes au temps restant de ton œuf actif.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:600, icon:'🥚', description:'Un futur œuf supplémentaire pour l’incubateur multi-œufs.', consumable:true, comingSoon:true }
 ];
 
-const MASTER_TITLE = { key:'title_master_game', category:'title', name:'Maître du jeu', price:0, color:'#f3c85b', description:'Titre exclusif réservé au diffuseur.', exclusive:true };
+const MASTER_TITLE = { key:'title_master_game', category:'title', subcategory:'gold', name:'Maître du jeu', price:0, color:'#f3c85b', description:'Titre exclusif réservé au diffuseur.', exclusive:true };
+const TITLE_NONE_KEY = '__none__';
 
 function shopItemByKey(key) {
   return SHOP_ITEMS.find(item => item.key === key) || null;
@@ -446,6 +466,7 @@ function shopItemByKey(key) {
 
 function titleCosmeticFor(twitchId, equippedTitleKey) {
   const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+  if (equippedTitleKey === TITLE_NONE_KEY) return null;
   if (equippedTitleKey) {
     if (equippedTitleKey === MASTER_TITLE.key && broadcasterId && String(twitchId || '') === broadcasterId) return MASTER_TITLE;
     const item = shopItemByKey(equippedTitleKey);
@@ -4509,7 +4530,7 @@ app.get('/api/shop', async (req, res) => {
     }));
 
     if (isBroadcaster) {
-      catalog.unshift({ ...MASTER_TITLE, owned:true, equipped: !account.equipped_title_key || account.equipped_title_key === MASTER_TITLE.key });
+      catalog.unshift({ ...MASTER_TITLE, owned:true, equipped: account.equipped_title_key !== TITLE_NONE_KEY && (!account.equipped_title_key || account.equipped_title_key === MASTER_TITLE.key) });
     }
 
     res.json({
@@ -4518,7 +4539,7 @@ app.get('/api/shop', async (req, res) => {
       catalog,
       activeBoosts,
       equipped:{
-        title: account.equipped_title_key || (isBroadcaster ? MASTER_TITLE.key : null),
+        title: account.equipped_title_key === TITLE_NONE_KEY ? null : (account.equipped_title_key || (isBroadcaster ? MASTER_TITLE.key : null)),
         background: account.equipped_background_key || null,
         frame: account.equipped_frame_key || null,
         avatar_frame: account.equipped_avatar_frame_key || null
@@ -4600,6 +4621,44 @@ app.post('/api/shop/equip', async (req, res) => {
   } catch (error) {
     console.error('Erreur équipement boutique :', error);
     res.status(500).json({ error:'Impossible d’équiper cet article.' });
+  }
+});
+
+app.post('/api/shop/unequip', async (req, res) => {
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    const key = String(req.body?.itemKey || '').trim();
+
+    if (key === MASTER_TITLE.key) {
+      const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+      const accountResult = await pool.query(`SELECT twitch_id FROM accounts WHERE id = $1`, [req.session.account.id]);
+      const isBroadcaster = broadcasterId && String(accountResult.rows[0]?.twitch_id || '') === broadcasterId;
+      if (!isBroadcaster) return res.status(403).json({ error:'Titre exclusif.' });
+      await pool.query(`UPDATE accounts SET equipped_title_key = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, TITLE_NONE_KEY]);
+      pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+      return res.json({ ok:true, message:'Titre déséquipé.' });
+    }
+
+    const item = shopItemByKey(key);
+    if (!item || !['title','background','frame','avatar_frame'].includes(item.category)) {
+      return res.status(400).json({ error:'Article non déséquipable.' });
+    }
+
+    const column = item.category === 'title'
+      ? 'equipped_title_key'
+      : item.category === 'background'
+        ? 'equipped_background_key'
+        : item.category === 'frame'
+          ? 'equipped_frame_key'
+          : 'equipped_avatar_frame_key';
+
+    const value = item.category === 'title' ? TITLE_NONE_KEY : null;
+    await pool.query(`UPDATE accounts SET ${column} = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, value]);
+    pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+    res.json({ ok:true, message:'Cosmétique déséquipé.' });
+  } catch (error) {
+    console.error('Erreur déséquipement boutique :', error);
+    res.status(500).json({ error:'Impossible de déséquiper cet article.' });
   }
 });
 
