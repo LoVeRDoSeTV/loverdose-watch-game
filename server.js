@@ -31,6 +31,84 @@ const LOVERCASH_PER_MINUTE = 10 / 60;
 const GLOBAL_XP_PER_HOUR = 50;
 const GLOBAL_XP_SUB_PER_HOUR = 60;
 
+// Défis journaliers : petites récompenses pour encourager la régularité
+// sans accélérer excessivement la progression globale.
+const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
+
+const DAILY_CHALLENGE_LIBRARY = {
+  watch_60: {
+    key:'watch_60',
+    type:'watch',
+    icon:'⏱️',
+    title:'Présence active',
+    description:'Regarder 1 heure de live aujourd’hui.',
+    goal:3600,
+    rewardCash:5,
+    rewardGlobalXp:15
+  },
+  watch_120: {
+    key:'watch_120',
+    type:'watch',
+    icon:'🔥',
+    title:'Fidèle du jour',
+    description:'Regarder 2 heures de live aujourd’hui.',
+    goal:7200,
+    rewardCash:8,
+    rewardGlobalXp:25
+  },
+  instagram_like: {
+    key:'instagram_like',
+    type:'social',
+    network:'instagram',
+    icon:'📸',
+    title:'Coup de cœur Instagram',
+    description:'Va sur Instagram, like un post récent de LoVeRDoSeTV puis confirme ici.',
+    goal:1,
+    rewardCash:10,
+    rewardGlobalXp:0,
+    actionLabel:'Ouvrir Instagram',
+    actionUrl:'https://www.instagram.com/loverdosetv/'
+  },
+  tiktok_like: {
+    key:'tiktok_like',
+    type:'social',
+    network:'tiktok',
+    icon:'🎵',
+    title:'Soutien TikTok',
+    description:'Va sur TikTok, like une vidéo récente de LoVeRDoSeTV puis confirme ici.',
+    goal:1,
+    rewardCash:10,
+    rewardGlobalXp:0,
+    actionLabel:'Ouvrir TikTok',
+    actionUrl:'https://www.tiktok.com/@loverdosetv'
+  }
+};
+
+function dailyChallengeDateKey(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: DAILY_CHALLENGE_TIMEZONE,
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function dailyChallengesForDate(dateKey = dailyChallengeDateKey()) {
+  const numericDay = Number(String(dateKey).replaceAll('-', '')) || 0;
+  const socialKey = numericDay % 2 === 0 ? 'instagram_like' : 'tiktok_like';
+  return [
+    DAILY_CHALLENGE_LIBRARY.watch_60,
+    DAILY_CHALLENGE_LIBRARY.watch_120,
+    DAILY_CHALLENGE_LIBRARY[socialKey]
+  ].map(item => ({ ...item }));
+}
+
+function dailyChallengeByKey(key, dateKey = dailyChallengeDateKey()) {
+  return dailyChallengesForDate(dateKey).find(item => item.key === key) || null;
+}
+
 
 // Tracker Twitch : présence dans le chat pendant que la chaîne est en live.
 // Ce n'est pas une mesure certifiée de lecture vidéo individuelle.
@@ -839,6 +917,28 @@ async function initDatabase() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_daily_activity (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      activity_date DATE NOT NULL,
+      watch_seconds BIGINT NOT NULL DEFAULT 0,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, activity_date)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_daily_challenge_state (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      challenge_date DATE NOT NULL,
+      challenge_key TEXT NOT NULL,
+      completed_at TIMESTAMPTZ,
+      claimed_at TIMESTAMPTZ,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, challenge_date, challenge_key)
+    );
+  `);
+
+  await pool.query(`
     ALTER TABLE user_badges
     DROP CONSTRAINT IF EXISTS user_badges_leaderboard_slot_check;
   `);
@@ -1463,6 +1563,19 @@ async function runTrackerTick() {
         .filter(Number.isInteger);
 
       if (matchedUserIds.length > 0) {
+        const activityDate = dailyChallengeDateKey();
+        await pool.query(
+          `
+          INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, updated_at)
+          SELECT user_id, $2::date, $3::bigint, CURRENT_TIMESTAMP
+          FROM unnest($1::int[]) AS user_id
+          ON CONFLICT (user_id, activity_date) DO UPDATE SET
+            watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
+            updated_at = CURRENT_TIMESTAMP
+          `,
+          [matchedUserIds, activityDate, deltaSeconds]
+        );
+
         await pool.query(
           `
           INSERT INTO user_game_watch (
@@ -2398,6 +2511,16 @@ app.post('/api/account/reset-game', async (req, res) => {
 
     await client.query(
       `DELETE FROM user_xp_rewards WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
+      `DELETE FROM user_daily_challenge_state WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
+      `DELETE FROM user_daily_activity WHERE user_id = $1`,
       [user.id]
     );
 
@@ -3561,6 +3684,199 @@ app.post('/api/watch/heartbeat', (req, res) => {
 /* =========================================
    BADGES / VITRINE
 ========================================= */
+
+// =========================================
+// DÉFIS JOURNALIERS
+// =========================================
+
+app.get('/api/daily-challenges', async (req, res) => {
+  try {
+    if (!req.session.account || !req.session.user) {
+      return res.status(401).json({ error:'Connexion requise.' });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id FROM users WHERE twitch_id = $1 LIMIT 1`,
+      [req.session.user.twitchId]
+    );
+    const userId = Number(userResult.rows[0]?.id);
+    if (!Number.isInteger(userId)) return res.status(404).json({ error:'Joueur introuvable.' });
+
+    const dateKey = dailyChallengeDateKey();
+    const definitions = dailyChallengesForDate(dateKey);
+
+    const [activityResult, stateResult] = await Promise.all([
+      pool.query(
+        `SELECT watch_seconds FROM user_daily_activity WHERE user_id = $1 AND activity_date = $2::date`,
+        [userId, dateKey]
+      ),
+      pool.query(
+        `SELECT challenge_key, completed_at, claimed_at FROM user_daily_challenge_state WHERE user_id = $1 AND challenge_date = $2::date`,
+        [userId, dateKey]
+      )
+    ]);
+
+    const watchSeconds = Math.max(0, Number(activityResult.rows[0]?.watch_seconds) || 0);
+    const states = new Map(stateResult.rows.map(row => [row.challenge_key, row]));
+
+    const challenges = definitions.map(def => {
+      const state = states.get(def.key);
+      const progress = def.type === 'watch'
+        ? Math.min(def.goal, watchSeconds)
+        : (state?.completed_at ? 1 : 0);
+      const completed = progress >= def.goal;
+
+      return {
+        key:def.key,
+        type:def.type,
+        network:def.network || null,
+        icon:def.icon,
+        title:def.title,
+        description:def.description,
+        goal:def.goal,
+        progress,
+        completed,
+        claimed:Boolean(state?.claimed_at),
+        rewardCash:def.rewardCash,
+        rewardGlobalXp:def.rewardGlobalXp,
+        actionLabel:def.actionLabel || null,
+        actionUrl:def.actionUrl || null
+      };
+    });
+
+    return res.json({
+      ok:true,
+      date:dateKey,
+      timezone:DAILY_CHALLENGE_TIMEZONE,
+      watchSeconds,
+      completedCount:challenges.filter(item => item.completed).length,
+      claimedCount:challenges.filter(item => item.claimed).length,
+      challenges
+    });
+  } catch (error) {
+    console.error('Erreur défis journaliers :', error);
+    return res.status(500).json({ error:'Impossible de charger les défis journaliers.' });
+  }
+});
+
+app.post('/api/daily-challenges/social-complete', async (req, res) => {
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+
+    const key = String(req.body?.challengeKey || '').trim();
+    const dateKey = dailyChallengeDateKey();
+    const challenge = dailyChallengeByKey(key, dateKey);
+    if (!challenge || challenge.type !== 'social') {
+      return res.status(400).json({ error:'Défi social indisponible aujourd’hui.' });
+    }
+
+    const userResult = await pool.query(`SELECT id FROM users WHERE twitch_id = $1 LIMIT 1`, [req.session.user.twitchId]);
+    const userId = Number(userResult.rows[0]?.id);
+    if (!Number.isInteger(userId)) return res.status(404).json({ error:'Joueur introuvable.' });
+
+    await pool.query(
+      `
+      INSERT INTO user_daily_challenge_state (user_id, challenge_date, challenge_key, completed_at, updated_at)
+      VALUES ($1,$2::date,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, challenge_date, challenge_key) DO UPDATE SET
+        completed_at = COALESCE(user_daily_challenge_state.completed_at, CURRENT_TIMESTAMP),
+        updated_at = CURRENT_TIMESTAMP
+      `,
+      [userId, dateKey, key]
+    );
+
+    pushLiveUpdate('challenge-update', { userId, challengeKey:key, at:Date.now() });
+    return res.json({ ok:true, challengeKey:key });
+  } catch (error) {
+    console.error('Erreur validation défi social :', error);
+    return res.status(500).json({ error:'Impossible de valider ce défi.' });
+  }
+});
+
+app.post('/api/daily-challenges/claim', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+
+    const key = String(req.body?.challengeKey || '').trim();
+    const dateKey = dailyChallengeDateKey();
+    const challenge = dailyChallengeByKey(key, dateKey);
+    if (!challenge) return res.status(400).json({ error:'Ce défi n’est pas actif aujourd’hui.' });
+
+    await client.query('BEGIN');
+    const userResult = await client.query(
+      `SELECT id, points, global_xp FROM users WHERE twitch_id = $1 FOR UPDATE`,
+      [req.session.user.twitchId]
+    );
+    const user = userResult.rows[0];
+    if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Joueur introuvable.' }); }
+
+    await client.query(
+      `
+      INSERT INTO user_daily_challenge_state (user_id, challenge_date, challenge_key, updated_at)
+      VALUES ($1,$2::date,$3,CURRENT_TIMESTAMP)
+      ON CONFLICT (user_id, challenge_date, challenge_key) DO NOTHING
+      `,
+      [user.id, dateKey, key]
+    );
+
+    const stateResult = await client.query(
+      `SELECT completed_at, claimed_at FROM user_daily_challenge_state WHERE user_id=$1 AND challenge_date=$2::date AND challenge_key=$3 FOR UPDATE`,
+      [user.id, dateKey, key]
+    );
+    const state = stateResult.rows[0];
+    if (state?.claimed_at) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Récompense déjà réclamée.' }); }
+
+    let completed = false;
+    if (challenge.type === 'watch') {
+      const activityResult = await client.query(
+        `SELECT watch_seconds FROM user_daily_activity WHERE user_id=$1 AND activity_date=$2::date`,
+        [user.id, dateKey]
+      );
+      completed = Math.max(0, Number(activityResult.rows[0]?.watch_seconds) || 0) >= challenge.goal;
+    } else {
+      completed = Boolean(state?.completed_at);
+    }
+
+    if (!completed) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error:'Le défi n’est pas encore terminé.' });
+    }
+
+    await client.query(
+      `UPDATE user_daily_challenge_state SET completed_at=COALESCE(completed_at,CURRENT_TIMESTAMP), claimed_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND challenge_date=$2::date AND challenge_key=$3`,
+      [user.id, dateKey, key]
+    );
+
+    await client.query(
+      `
+      UPDATE users
+      SET points = points + $2,
+          lifetime_lovercash_earned = lifetime_lovercash_earned + $2,
+          global_xp = global_xp + $3,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      `,
+      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0)]
+    );
+
+    await client.query('COMMIT');
+    pushLiveUpdate('challenge-update', { userId:Number(user.id), challengeKey:key, claimed:true, at:Date.now() });
+
+    return res.json({
+      ok:true,
+      message:'Récompense récupérée !',
+      rewardCash:Number(challenge.rewardCash || 0),
+      rewardGlobalXp:Number(challenge.rewardGlobalXp || 0)
+    });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erreur récupération défi journalier :', error);
+    return res.status(500).json({ error:'Impossible de récupérer la récompense.' });
+  } finally {
+    client.release();
+  }
+});
 
 app.get('/api/badges', async (req, res) => {
   try {
@@ -4863,6 +5179,7 @@ app.get(
 
       const playerIds = playersResult.rows.map(row => Number(row.id)).filter(Number.isFinite);
       let badgesByUser = new Map();
+      let allBadgesByUser = new Map();
       let badgeCountsByUser = new Map();
 
       if (playerIds.length) {
@@ -4873,31 +5190,43 @@ app.get(
             leaderboard_slot,
             badge_key,
             COALESCE(badge_name, game_name, 'Badge') AS badge_name,
-            badge_image
+            badge_image,
+            badge_challenge,
+            unlocked_at
           FROM user_badges
           WHERE user_id = ANY($1::int[])
-            AND leaderboard_slot IS NOT NULL
-          ORDER BY user_id ASC, leaderboard_slot ASC
+          ORDER BY user_id ASC, unlocked_at DESC, id DESC
           `,
           [playerIds]
         );
 
         for (const badge of badgesResult.rows) {
           const userId = Number(badge.user_id);
-          if (!badgesByUser.has(userId)) badgesByUser.set(userId, []);
-          badgesByUser.get(userId).push({
+          const publicBadge = {
             slot: badge.leaderboard_slot === null ? null : Number(badge.leaderboard_slot),
             badgeKey: badge.badge_key,
             badgeName: badge.badge_name || 'Badge',
-            badgeImage: badge.badge_image || null
-          });
+            badgeImage: badge.badge_image || null,
+            badgeChallenge: badge.badge_challenge || null,
+            unlockedAt: badge.unlocked_at || null
+          };
+
+          if (!allBadgesByUser.has(userId)) allBadgesByUser.set(userId, []);
+          allBadgesByUser.get(userId).push(publicBadge);
+
+          if (badge.leaderboard_slot !== null && badge.leaderboard_slot !== undefined) {
+            if (!badgesByUser.has(userId)) badgesByUser.set(userId, []);
+            badgesByUser.get(userId).push(publicBadge);
+          }
         }
 
-        const badgeCountResult = await pool.query(
-          `SELECT user_id, COUNT(*)::int AS badge_count FROM user_badges WHERE user_id = ANY($1::int[]) GROUP BY user_id`,
-          [playerIds]
+        for (const list of badgesByUser.values()) {
+          list.sort((a, b) => Number(a.slot || 99) - Number(b.slot || 99));
+        }
+
+        badgeCountsByUser = new Map(
+          [...allBadgesByUser.entries()].map(([userId, badges]) => [Number(userId), badges.length])
         );
-        badgeCountsByUser = new Map(badgeCountResult.rows.map(row => [Number(row.user_id), Number(row.badge_count || 0)]));
       }
 
       const leaderboard = playersResult.rows.map((player, index) => {
@@ -4930,6 +5259,7 @@ app.get(
           badge_count: badgeCountsByUser.get(Number(player.id)) || 0,
           creature_count: player.creature_id ? 1 : 0,
           leaderboard_badges: badgesByUser.get(Number(player.id)) || [],
+          unlocked_badges: allBadgesByUser.get(Number(player.id)) || [],
           progression: progressionFromXp(Number(player.xp || 0)),
           global_progression: globalProgressionFromXp(Number(player.global_xp || 0)),
           egg: hatched ? null : {
