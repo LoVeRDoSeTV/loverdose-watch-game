@@ -1991,6 +1991,17 @@ html, body{
 .fragment-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.06);font-size:10px;font-weight:900}@media(max-width:800px){.progression-hub{grid-template-columns:1fr}.grade-grid,.milestone-grid{grid-template-columns:1fr}.pve-fights{grid-template-columns:1fr}.game-panel{padding:15px;border-radius:15px}}
 
 /* ===== MOBILE GAME UI ONLY (desktop unchanged) ===== */
+/* Harmonisation PC + mobile : progression dans la carte joueur et œuf fusionné à l’incubateur */
+.player-card-progress-mobile{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
+.progression-hub{grid-template-columns:1fr}
+.progression-hub .progression-card{display:none}
+#topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+#topIncubatorEgg:hover{transform:translateY(-2px);border-color:rgba(145,71,255,.58);background:linear-gradient(160deg,rgba(145,71,255,.14),rgba(9,13,28,.72))}
+#topIncubatorEgg::after{content:'Cliquer pour voir les chances';margin-top:7px;color:#bfa4e9;font-size:9px;font-weight:850}
+#pick{display:none}
+#pick.egg-details-open{display:block!important;position:fixed;inset:0;z-index:1000045;margin:0;padding:72px max(24px,calc((100vw - 820px)/2)) 46px;border:0;border-radius:0;background:rgba(7,10,22,.97);overflow-y:auto;overscroll-behavior:contain;box-shadow:none}
+#pick.egg-details-open .egg-visual{margin-left:auto;margin-right:auto}
+.mobile-egg-close{display:flex!important;position:fixed;top:20px;right:24px;z-index:1000046;width:42px;height:42px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #343b5f;background:#1a1f35;color:#fff;font-size:22px;font-weight:900;cursor:pointer}
 .mobile-game-nav,.mobile-only-game{display:none}
 @media(max-width:900px){
   body{padding-bottom:88px}
@@ -2003,11 +2014,9 @@ html, body{
   .progression-hub{display:none!important}
   .player-card-progress-mobile{border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
   #topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
-  #topIncubatorEgg::after{content:'Toucher pour voir les chances';margin-top:7px;color:#bfa4e9;font-size:9px;font-weight:850}
-  #pick:not(.hidden){display:none}
-  #pick.mobile-egg-open{display:block!important;position:fixed;inset:0;z-index:1000045;margin:0;padding:58px 16px calc(100px + env(safe-area-inset-bottom));border:0;border-radius:0;background:linear-gradient(180deg,#12172c,#0d1122);overflow-y:auto;overscroll-behavior:contain;box-shadow:none}
-  #pick.mobile-egg-open .egg-visual{margin-left:auto;margin-right:auto}
-  #pick.mobile-egg-open .egg-rates{margin-top:20px}
+  #topIncubatorEgg::after{content:'Toucher pour voir les chances'}
+  #pick.egg-details-open{padding:58px 16px calc(100px + env(safe-area-inset-bottom));background:linear-gradient(180deg,#12172c,#0d1122)}
+  #pick.egg-details-open .egg-rates{margin-top:20px}
   .mobile-egg-close{display:flex!important;position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:1000046;width:42px;height:42px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #343b5f;background:#1a1f35;color:#fff;font-size:22px;font-weight:900}
 }
 
@@ -2332,7 +2341,7 @@ html, body{
           <div id="playerCardSubZone" class="player-sub-zone"></div>
         </div>
         <div id="playerCardTitle" class="player-card-title"></div>
-        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Lovys niv. 1</span><button id="playerCardProgressionMobile" class="player-card-progress-mobile mobile-only-game" type="button">📈 Progression</button></div>
+        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Lovys niv. 1</span><button id="playerCardProgressionMobile" class="player-card-progress-mobile" type="button">📈 Progression</button></div>
       </div>
     </div>
     <div id="playerCardBadgesTrigger" class="player-card-rankbadges" role="button" tabindex="0" aria-label="Ouvrir mes badges" title="Ouvrir mes badges">
@@ -2425,7 +2434,7 @@ html, body{
 <section class="progression-hub" aria-label="Progression et aventure"><div class="progression-card"><div class="hub-title">📈 Progression</div><div class="hub-sub">Niveau global, grades, Prestige et futures récompenses de ton Lovys.</div><div class="hub-actions"><button id="openProgression" class="hub-btn" type="button">Voir ma progression</button></div></div><div class="adventure-card"><div class="hub-title">⚔️ Aventure PvE</div><div class="hub-sub">Utilise ton Lovys pour avancer dans les zones et gagner des Fragments d’œuf.</div><div class="hub-actions"><button id="openPve" class="hub-btn" type="button">Combattre</button><span id="hubFragments" class="fragment-pill">🥚 0 Fragment d’œuf</span></div></div></section>
 
 <div id="pick" class="card egg-panel">
-  <button id="mobileEggClose" class="mobile-egg-close mobile-only-game" type="button" aria-label="Fermer">×</button>
+  <button id="mobileEggClose" class="mobile-egg-close" type="button" aria-label="Fermer">×</button>
   <h2>Œuf en incubation</h2>
   <p class="muted">Ton premier compagnon éclora après <b>6 heures de présence cumulée</b> pendant les lives.</p>
   <div class="egg-visual" aria-label="Œuf en incubation"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
@@ -4254,7 +4263,7 @@ $('openProgression')?.addEventListener('click',()=>{$('progressionModal')?.class
 function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
 function setMobileNavActive(id){ document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id)); }
 function getSelfLeaderboardPlayer(){ return (leaderboardPlayers||[]).find(player=>String(player.twitch_id||'')===String(me?.user?.twitch_id||'')); }
-function isMobileEggDetailsOpen(){ return Boolean($('pick')?.classList.contains('mobile-egg-open')); }
+function isMobileEggDetailsOpen(){ return Boolean($('pick')?.classList.contains('egg-details-open')); }
 function isMobilePanelOpen(panel){
   if(panel==='combat') return !$('pveModal')?.classList.contains('hidden');
   if(panel==='inventory') return !$('inventoryModal')?.classList.contains('hidden');
@@ -4273,12 +4282,12 @@ function syncMobileNavState(){
 }
 function openMobileEggDetails(){
   if(!isMobileGameUi() || me?.user?.creature_id) return;
-  $('pick')?.classList.add('mobile-egg-open');
+  $('pick')?.classList.add('egg-details-open');
   document.body.style.overflow='hidden';
   syncMobileNavState();
 }
 function closeMobileEggDetails(){
-  $('pick')?.classList.remove('mobile-egg-open');
+  $('pick')?.classList.remove('egg-details-open');
   if(isMobileGameUi()) document.body.style.overflow='';
   syncMobileNavState();
 }
@@ -4288,7 +4297,7 @@ function closeAllMobilePanels(except=''){
   if(except!=='inventory') $('inventoryModal')?.classList.add('hidden');
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
   if(except!=='progression') $('progressionModal')?.classList.add('hidden');
-  if(except!=='creatures') $('pick')?.classList.remove('mobile-egg-open');
+  if(except!=='creatures') $('pick')?.classList.remove('egg-details-open');
   $('dailyChallengeDetailModal')?.classList.add('hidden');
   document.body.style.overflow='';
 }
@@ -4321,15 +4330,16 @@ function toggleMobilePanel(panel){
   }
   syncMobileNavState();
 }
-$('topIncubatorEgg')?.addEventListener('click',()=>{ if(isMobileGameUi()) toggleMobilePanel('creatures'); });
-$('mobileEggClose')?.addEventListener('click',closeMobileEggDetails);
-$('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(!isMobileGameUi()) return; toggleMobilePanel('progression'); });
+$('topIncubatorEgg')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('creatures'); return; } const pick=$('pick'); if(!pick) return; pick.classList.toggle('egg-details-open'); document.body.style.overflow=pick.classList.contains('egg-details-open')?'hidden':''; });
+$('mobileEggClose')?.addEventListener('click',()=>{ $('pick')?.classList.remove('egg-details-open'); document.body.style.overflow=''; syncMobileNavState?.(); });
+$('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('progression'); return; } $('progressionModal')?.classList.remove('hidden'); loadProgression(); });
 $('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; closeAllMobilePanels(''); syncMobileNavState(); document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
 $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('combat'); });
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
 $('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('inventory'); });
 $('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('profile'); });
 window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } });
 
 const leaderboardSearchInput = $('leaderboardSearch');
 if (leaderboardSearchInput) {
