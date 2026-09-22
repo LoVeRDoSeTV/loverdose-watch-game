@@ -36,11 +36,11 @@ const GLOBAL_XP_SUB_PER_HOUR = 60;
 const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
 
 const DAILY_CHALLENGE_LIBRARY = {
-  watch_30: { key:'watch_30', type:'watch', icon:'⏱️', title:'Mise en route', description:'Regarder 30 minutes de live aujourd’hui.', goal:1800, rewardCash:3, rewardGlobalXp:8 },
-  watch_60: { key:'watch_60', type:'watch', icon:'🔥', title:'Présence active', description:'Regarder 1 heure de live aujourd’hui.', goal:3600, rewardCash:5, rewardGlobalXp:15 },
-  watch_120: { key:'watch_120', type:'watch', icon:'⭐', title:'Fidèle du jour', description:'Regarder 2 heures de live aujourd’hui.', goal:7200, rewardCash:8, rewardGlobalXp:25 },
-  cash_10: { key:'cash_10', type:'cash', icon:'💰', title:'Récolte du jour', description:"Gagner 10 LoVeR'Cash grâce au live aujourd’hui.", goal:10, rewardCash:4, rewardGlobalXp:10 },
-  global_xp_25: { key:'global_xp_25', type:'global_xp', icon:'📈', title:'Progression régulière', description:'Gagner 25 XP globale grâce au live aujourd’hui.', goal:25, rewardCash:4, rewardGlobalXp:10 }
+  watch_30: { key:'watch_30', type:'watch', icon:'⏱️', title:'Mise en route', description:'Regarder 30 minutes de live aujourd’hui.', goal:1800, rewardCash:3, rewardGlobalXp:8, rewardLovysXp:0 },
+  watch_60: { key:'watch_60', type:'watch', icon:'🔥', title:'Présence active', description:'Regarder 1 heure de live aujourd’hui.', goal:3600, rewardCash:5, rewardGlobalXp:15, rewardLovysXp:10 },
+  watch_120: { key:'watch_120', type:'watch', icon:'⭐', title:'Fidèle du jour', description:'Regarder 2 heures de live aujourd’hui.', goal:7200, rewardCash:8, rewardGlobalXp:25, rewardLovysXp:20 },
+  cash_10: { key:'cash_10', type:'cash', icon:'💰', title:'Récolte du jour', description:"Gagner 10 LoVeR'Cash grâce au live aujourd’hui.", goal:10, rewardCash:4, rewardGlobalXp:10, rewardLovysXp:0 },
+  global_xp_25: { key:'global_xp_25', type:'global_xp', icon:'📈', title:'Progression régulière', description:'Gagner 25 XP globale grâce au live aujourd’hui.', goal:25, rewardCash:4, rewardGlobalXp:10, rewardLovysXp:15 }
 };
 
 function dailyChallengeDateKey(date = new Date()) {
@@ -323,6 +323,19 @@ const GLOBAL_LEVEL_GRADES = [
   {min:51,max:55,name:'Mythique',icon:'♛',color:'#fff0a8',rewardKey:'reward_title_mythique'}
 ];
 function globalGradeForLevel(level){ return GLOBAL_LEVEL_GRADES.find(g=>level>=g.min&&level<=g.max)||GLOBAL_LEVEL_GRADES[0]; }
+const GLOBAL_LOVYS_XP_REWARDS = [
+  {level:5,xp:50},
+  {level:10,xp:75},
+  {level:15,xp:100},
+  {level:20,xp:125},
+  {level:25,xp:150},
+  {level:30,xp:175},
+  {level:35,xp:200},
+  {level:40,xp:225},
+  {level:45,xp:250},
+  {level:50,xp:300},
+  {level:55,xp:400}
+];
 const CREATURE_MILESTONES=[{level:5,power:5,label:'Éveil'},{level:10,power:5,label:'Instinct'},{level:15,power:5,label:'Affinité'},{level:20,power:5,label:'Maîtrise'},{level:25,power:10,label:'Ascendant'},{level:30,power:10,label:'Harmonie'},{level:40,power:15,label:'Domination'},{level:50,power:20,label:'Apogée'}];
 function creatureMilestonePower(level){return CREATURE_MILESTONES.filter(m=>level>=m.level).reduce((a,m)=>a+m.power,0);}
 
@@ -433,13 +446,47 @@ const creatures = [
 ];
 
 async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
-  if (!userId || !accountId) return;
+  if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0 };
   const progression = globalProgressionFromXp(globalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) rewardKeys.push('reward_bg_level55');
   for (const key of rewardKeys) {
     await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
   }
+
+  const userStateResult = await clientOrPool.query(`SELECT creature_id, prestige FROM users WHERE id=$1 LIMIT 1`, [userId]);
+  const userState = userStateResult.rows[0];
+  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0 };
+
+  let lovysXpGranted = 0;
+  let pendingXpGranted = 0;
+  for (const reward of GLOBAL_LOVYS_XP_REWARDS) {
+    if (progression.level < reward.level) continue;
+    const inserted = await clientOrPool.query(
+      `INSERT INTO user_global_lovys_xp_rewards (user_id,prestige,level,xp_amount)
+       VALUES ($1,$2,$3,$4)
+       ON CONFLICT (user_id,prestige,level) DO NOTHING
+       RETURNING xp_amount`,
+      [userId, Number(userState.prestige || 0), reward.level, reward.xp]
+    );
+    if (!inserted.rowCount) continue;
+    const amount = Number(inserted.rows[0]?.xp_amount || reward.xp || 0);
+    // Les bonus d'XP Lovys des niveaux globaux sont placés dans une réserve.
+    // Le joueur choisit ensuite quand les transférer à son Lovys actif.
+    pendingXpGranted += amount;
+  }
+
+  if (pendingXpGranted > 0) {
+    await clientOrPool.query(
+      `UPDATE users
+       SET pending_xp=pending_xp+$2,
+           updated_at=CURRENT_TIMESTAMP
+       WHERE id=$1`,
+      [userId, pendingXpGranted]
+    );
+  }
+
+  return { lovysXpGranted:0, pendingXpGranted };
 }
 
 const PVE_ZONES = [
@@ -967,6 +1014,17 @@ async function initDatabase() {
       claimed_at TIMESTAMPTZ,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (user_id, challenge_date, challenge_key)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_global_lovys_xp_rewards (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      prestige INTEGER NOT NULL DEFAULT 0,
+      level INTEGER NOT NULL,
+      xp_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, prestige, level)
     );
   `);
 
@@ -2586,6 +2644,11 @@ app.post('/api/account/reset-game', async (req, res) => {
     );
 
     await client.query(
+      `DELETE FROM user_global_lovys_xp_rewards WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
       `DELETE FROM user_game_watch WHERE user_id = $1`,
       [user.id]
     );
@@ -3540,7 +3603,9 @@ app.get(
       }
 
 
-      await syncGlobalLevelRewards(pool, u.id, req.session.account.id, u.global_xp);
+      const syncedGlobalRewards = await syncGlobalLevelRewards(pool, u.id, req.session.account.id, u.global_xp);
+      u.xp = Number(u.xp || 0) + Number(syncedGlobalRewards.lovysXpGranted || 0);
+      u.pending_xp = Number(u.pending_xp || 0) + Number(syncedGlobalRewards.pendingXpGranted || 0);
 
       res.json({
 
@@ -3709,8 +3774,6 @@ app.post(
         UPDATE users
         SET
           creature_id = $1,
-          xp = xp + pending_xp,
-          pending_xp = 0,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
         `,
@@ -3728,7 +3791,7 @@ app.post(
           rarity: creature.rarity,
           dropRate: creature.dropRate
         },
-        appliedPendingXp: Number(u.pending_xp || 0)
+        pendingXpAvailable: Number(u.pending_xp || 0)
       });
 
     }
@@ -3822,7 +3885,8 @@ app.get('/api/daily-challenges', async (req, res) => {
         completed,
         claimed:Boolean(state?.claimed_at),
         rewardCash:def.rewardCash,
-        rewardGlobalXp:def.rewardGlobalXp
+        rewardGlobalXp:def.rewardGlobalXp,
+        rewardLovysXp:def.rewardLovysXp || 0
       };
     });
 
@@ -3853,7 +3917,7 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
 
     await client.query('BEGIN');
     const userResult = await client.query(
-      `SELECT id, points, global_xp FROM users WHERE twitch_id = $1 FOR UPDATE`,
+      `SELECT id, points, global_xp, creature_id, xp, pending_xp FROM users WHERE twitch_id = $1 FOR UPDATE`,
       [req.session.user.twitchId]
     );
     const user = userResult.rows[0];
@@ -3900,17 +3964,19 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
       [user.id, dateKey, key]
     );
 
+    const rewardLovysXp = Number(challenge.rewardLovysXp || 0);
     const rewardUpdateResult = await client.query(
       `
       UPDATE users
       SET points = points + $2,
           lifetime_lovercash_earned = lifetime_lovercash_earned + $2,
           global_xp = LEAST(global_xp + $3, $4),
+          pending_xp = pending_xp + $5,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
-      RETURNING points, global_xp
+      RETURNING points, global_xp, xp, pending_xp
       `,
-      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0), globalThresholdForLevel(56)]
+      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0), globalThresholdForLevel(56), rewardLovysXp]
     );
     const updatedRewards = rewardUpdateResult.rows[0] || {};
 
@@ -3922,8 +3988,12 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
       message:'Récompense récupérée !',
       rewardCash:Number(challenge.rewardCash || 0),
       rewardGlobalXp:Number(challenge.rewardGlobalXp || 0),
+      rewardLovysXp,
+      lovysXpPending:rewardLovysXp > 0,
       balance:Number(updatedRewards.points || 0),
-      globalXp:Number(updatedRewards.global_xp || 0)
+      globalXp:Number(updatedRewards.global_xp || 0),
+      creatureXp:Number(updatedRewards.xp || 0),
+      pendingXp:Number(updatedRewards.pending_xp || 0)
     });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
@@ -3937,13 +4007,44 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
 app.get('/api/progression', async (req,res)=>{
   try{
     if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
-    const r=await pool.query(`SELECT id,creature_id,xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
+    const r=await pool.query(`SELECT id,creature_id,xp,pending_xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
     const u=r.rows[0]; if(!u) return res.status(404).json({error:'Joueur introuvable.'});
-    await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
-    const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(u.xp);
+    const syncedRewards=await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
+    u.xp=Number(u.xp||0)+Number(syncedRewards.lovysXpGranted||0);
+    const refreshedXp=await pool.query(`SELECT xp,pending_xp FROM users WHERE id=$1`,[u.id]);
+    const xpState=refreshedXp.rows[0]||{xp:u.xp,pending_xp:0};
+    const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(xpState.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
+});
+
+app.post('/api/progression/transfer-lovys-xp', async (req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    await client.query('BEGIN');
+    const result=await client.query(
+      `SELECT id,creature_id,xp,pending_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,
+      [req.session.user.twitchId]
+    );
+    const user=result.rows[0];
+    if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    if(!user.creature_id){await client.query('ROLLBACK');return res.status(400).json({error:'Fais d’abord éclore un Lovys avant de transférer cette XP.'});}
+    const amount=Math.max(0,Math.floor(Number(user.pending_xp||0)));
+    if(amount<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Aucune XP Lovys en réserve à transférer.'});}
+    const updated=await client.query(
+      `UPDATE users SET xp=xp+$2,pending_xp=0,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING xp,pending_xp`,
+      [user.id,amount]
+    );
+    await client.query('COMMIT');
+    pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
+    return res.json({ok:true,message:`${amount} XP transférée à ton Lovys !`,transferredXp:amount,creatureXp:Number(updated.rows[0]?.xp||0),pendingXp:Number(updated.rows[0]?.pending_xp||0)});
+  }catch(error){
+    try{await client.query('ROLLBACK')}catch{}
+    console.error('Erreur transfert XP Lovys :',error);
+    return res.status(500).json({error:'Impossible de transférer l’XP au Lovys.'});
+  }finally{client.release();}
 });
 
 app.post('/api/prestige', async (req,res)=>{
