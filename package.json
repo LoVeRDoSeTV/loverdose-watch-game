@@ -1,7 +1,7 @@
 {
   "name": "loverdose-watch-game",
   "version": "1.0.0",
-  "description": "LoVeRDoSeTV Watch Game — jeu communautaire Twitch avec œufs, créatures, XP et progression",
+  "description": "LoVeRDoSeTV Watch Game — jeu communautaire Twitch avec œufs, Lovys, XP et progression",
   "main": "server.js",
   "type": "module",
   "scripts": {

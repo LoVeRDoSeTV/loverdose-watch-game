@@ -356,7 +356,7 @@ const creatures = [
     rarity: 'Commun',
     dropRate: 17.5,
     dropWeight: 1750,
-    description: 'Petite créature mystique venue des profondeurs abyssales.'
+    description: 'Petit Lovys mystique venu des profondeurs abyssales.'
   },
   {
     id: 'voltis',
@@ -365,7 +365,7 @@ const creatures = [
     rarity: 'Commun',
     dropRate: 17.5,
     dropWeight: 1750,
-    description: 'Petite créature vive parcourue d’une énergie électrique.'
+    description: 'Petit Lovys vif parcouru d’une énergie électrique.'
   },
   {
     id: 'brumee',
@@ -374,7 +374,7 @@ const creatures = [
     rarity: 'Commun',
     dropRate: 17.5,
     dropWeight: 1750,
-    description: 'Créature légère et mystérieuse qui se déplace dans la brume.'
+    description: 'Lovys léger et mystérieux qui se déplace dans la brume.'
   },
   {
     id: 'fire',
@@ -392,7 +392,7 @@ const creatures = [
     rarity: 'Rare',
     dropRate: 7,
     dropWeight: 700,
-    description: 'Créature minérale dont le corps reflète une lumière cristalline.'
+    description: 'Lovys minéral dont le corps reflète une lumière cristalline.'
   },
   {
     id: 'ferox',
@@ -401,7 +401,7 @@ const creatures = [
     rarity: 'Rare',
     dropRate: 7,
     dropWeight: 700,
-    description: 'Créature robuste façonnée par la chaleur et le métal.'
+    description: 'Lovys robuste façonné par la chaleur et le métal.'
   },
   {
     id: 'dark',
@@ -419,7 +419,7 @@ const creatures = [
     rarity: 'Épique',
     dropRate: 3.5,
     dropWeight: 350,
-    description: 'Créature rayonnante nourrie par une énergie solaire intense.'
+    description: 'Lovys rayonnant nourri par une énergie solaire intense.'
   },
   {
     id: 'dream',
@@ -428,7 +428,7 @@ const creatures = [
     rarity: 'Mythique',
     dropRate: 1,
     dropWeight: 100,
-    description: 'Créature céleste extrêmement rare née d’un Mirage.'
+    description: 'Lovys céleste extrêmement rare né d’un Mirage.'
   }
 ];
 
@@ -470,7 +470,7 @@ const PVE_FIGHTS=PVE_ZONES.flatMap(z=>z.fights.map((f,i)=>({...f,zoneKey:z.key,z
 function pveFightByKey(key){return PVE_FIGHTS.find(f=>f.key===key)||null;}
 function pvePreviousFight(key){const i=PVE_FIGHTS.findIndex(f=>f.key===key);return i>0?PVE_FIGHTS[i-1]:null;}
 function typeMultiplier(attacker,defender){const beats={Verdance:'Abyssal',Abyssal:'Cendre',Cendre:'Verdance',Foudre:'Abyssal',Néant:'Mirage',Mirage:'Néant',Solaire:'Néant',Forge:'Cristal',Cristal:'Foudre'};if(beats[attacker]===defender)return 1.15;if(beats[defender]===attacker)return .9;return 1;}
-function creatureBattleStats(user){const prog=progressionFromXp(Number(user.xp||0));const creature=creatures.find(c=>c.id===user.creature_id);const rarityBonus={Commun:0,Rare:8,'Épique':16,Mythique:26}[creature?.rarity]||0;return {level:prog.level,hp:120+prog.level*22,power:45+prog.level*11+rarityBonus+creatureMilestonePower(prog.level),type:creature?.type||'Neutre',name:creature?.name||'Créature'};}
+function creatureBattleStats(user){const prog=progressionFromXp(Number(user.xp||0));const creature=creatures.find(c=>c.id===user.creature_id);const rarityBonus={Commun:0,Rare:8,'Épique':16,Mythique:26}[creature?.rarity]||0;return {level:prog.level,hp:120+prog.level*22,power:45+prog.level*11+rarityBonus+creatureMilestonePower(prog.level),type:creature?.type||'Neutre',name:creature?.name||'Lovys'};}
 
 function eggState(user) {
   const watched = Math.max(0, Number(user?.watch_seconds) || 0);
@@ -3788,9 +3788,7 @@ app.get('/api/daily-challenges', async (req, res) => {
         completed,
         claimed:Boolean(state?.claimed_at),
         rewardCash:def.rewardCash,
-        rewardGlobalXp:def.rewardGlobalXp,
-        actionLabel:def.actionLabel || null,
-        actionUrl:def.actionUrl || null
+        rewardGlobalXp:def.rewardGlobalXp
       };
     });
 
@@ -3806,40 +3804,6 @@ app.get('/api/daily-challenges', async (req, res) => {
   } catch (error) {
     console.error('Erreur défis journaliers :', error);
     return res.status(500).json({ error:'Impossible de charger les défis journaliers.' });
-  }
-});
-
-app.post('/api/daily-challenges/social-complete', async (req, res) => {
-  try {
-    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
-
-    const key = String(req.body?.challengeKey || '').trim();
-    const dateKey = dailyChallengeDateKey();
-    const challenge = dailyChallengeByKey(key, dateKey);
-    if (!challenge || challenge.type !== 'social') {
-      return res.status(400).json({ error:'Défi social indisponible aujourd’hui.' });
-    }
-
-    const userResult = await pool.query(`SELECT id FROM users WHERE twitch_id = $1 LIMIT 1`, [req.session.user.twitchId]);
-    const userId = Number(userResult.rows[0]?.id);
-    if (!Number.isInteger(userId)) return res.status(404).json({ error:'Joueur introuvable.' });
-
-    await pool.query(
-      `
-      INSERT INTO user_daily_challenge_state (user_id, challenge_date, challenge_key, completed_at, updated_at)
-      VALUES ($1,$2::date,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, challenge_date, challenge_key) DO UPDATE SET
-        completed_at = COALESCE(user_daily_challenge_state.completed_at, CURRENT_TIMESTAMP),
-        updated_at = CURRENT_TIMESTAMP
-      `,
-      [userId, dateKey, key]
-    );
-
-    pushLiveUpdate('challenge-update', { userId, challengeKey:key, at:Date.now() });
-    return res.json({ ok:true, challengeKey:key });
-  } catch (error) {
-    console.error('Erreur validation défi social :', error);
-    return res.status(500).json({ error:'Impossible de valider ce défi.' });
   }
 });
 
@@ -3957,7 +3921,7 @@ app.get('/api/pve', async (req,res)=>{
 });
 
 app.post('/api/pve/fight', async (req,res)=>{
- const c=await pool.connect();try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const fight=pveFightByKey(String(req.body?.fightKey||''));if(!fight)return res.status(400).json({error:'Combat introuvable.'});await c.query('BEGIN');const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);const u=r.rows[0];if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut une créature éclose pour combattre.'});}const prev=pvePreviousFight(fight.key);if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);let ph=st.hp,eh=fight.hp,rounds=0;while(ph>0&&eh>0&&rounds<20){rounds++;eh-=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));if(eh<=0)break;ph-=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));}const victory=eh<=0;const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult})]);await c.query('COMMIT');res.json({ok:true,victory,firstWin,reward:rw,rounds});}catch(e){try{await c.query('ROLLBACK')}catch{};console.error(e);res.status(500).json({error:'Combat impossible.'});}finally{c.release();}
+ const c=await pool.connect();try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const fight=pveFightByKey(String(req.body?.fightKey||''));if(!fight)return res.status(400).json({error:'Combat introuvable.'});await c.query('BEGIN');const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);const u=r.rows[0];if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut un Lovys éclos pour combattre.'});}const prev=pvePreviousFight(fight.key);if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);let ph=st.hp,eh=fight.hp,rounds=0;while(ph>0&&eh>0&&rounds<20){rounds++;eh-=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));if(eh<=0)break;ph-=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));}const victory=eh<=0;const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult})]);await c.query('COMMIT');res.json({ok:true,victory,firstWin,reward:rw,rounds});}catch(e){try{await c.query('ROLLBACK')}catch{};console.error(e);res.status(500).json({error:'Combat impossible.'});}finally{c.release();}
 });
 
 app.get('/api/badges', async (req, res) => {

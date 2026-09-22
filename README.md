@@ -1,6 +1,6 @@
 # LoVeRDoSeTV Watch Game
 
-Jeu communautaire lié à Twitch. Un joueur crée un compte Watch Game, lie son compte Twitch, reçoit un œuf en incubation puis débloque une créature après avoir accumulé du temps de présence sur les lives.
+Jeu communautaire lié à Twitch. Un joueur crée un compte Watch Game, lie son compte Twitch, reçoit un œuf en incubation puis débloque un Lovys après avoir accumulé du temps de présence sur les lives.
 
 ## Parcours joueur
 
@@ -8,8 +8,8 @@ Jeu communautaire lié à Twitch. Un joueur crée un compte Watch Game, lie son 
 2. Liaison du compte Twitch.
 3. Réception d'un œuf en incubation.
 4. 6 heures de présence cumulée sont nécessaires avant l'éclosion.
-5. À l'éclosion, le serveur tire une créature selon les probabilités définies ci-dessous.
-6. Après l'éclosion, la créature gagne de l'XP et progresse avec le temps de présence.
+5. À l'éclosion, le serveur tire un Lovys selon les probabilités définies ci-dessous.
+6. Après l'éclosion, le Lovys gagne de l'XP et progresse avec le temps de présence.
 
 La fenêtre d'explication s'affiche automatiquement uniquement pour les nouveaux joueurs. Elle reste accessible ensuite avec le bouton d'information `ⓘ`.
 
@@ -32,9 +32,9 @@ L'œuf de départ demande **6 heures** de présence cumulée avant de pouvoir é
 - Épique : **7 %**
 - Mythique : **1 %**
 
-### Créatures et probabilités
+### Lovys et probabilités
 
-| Créature | Affinité | Rareté | Chance |
+| Lovys | Affinité | Rareté | Chance |
 | --- | --- | --- | ---: |
 | Mossy | Verdance | Commun | 17,5 % |
 | Nyméa | Abyssal | Commun | 17,5 % |
@@ -100,7 +100,7 @@ Ne jamais publier les vraies valeurs de `DATABASE_URL`, `TWITCH_CLIENT_SECRET` o
 
 Le projet utilise PostgreSQL pour les comptes, les sessions et la progression. En production, `BASE_URL` doit correspondre à l'URL HTTPS publique et cette même URL doit être configurée dans l'application Twitch pour le callback OAuth.
 
-Le dossier `public/` contient l'interface et les PNG des 10 créatures. `server.js` contient l'authentification, la base de données, la logique d'œuf, les probabilités, la progression et les fonctions de gestion du compte.
+Le dossier `public/` contient l'interface et les PNG des 10 Lovys. `server.js` contient l'authentification, la base de données, la logique d'œuf, les probabilités, la progression et les fonctions de gestion du compte.
 
 
 ## Tracker Twitch côté serveur
