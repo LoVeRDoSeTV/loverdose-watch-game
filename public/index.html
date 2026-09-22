@@ -1984,6 +1984,28 @@ html, body{
 
 
 .progression-hub{margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px}.progression-card,.adventure-card{padding:18px;border:1px solid rgba(145,71,255,.28);background:linear-gradient(165deg,rgba(21,25,43,.98),rgba(12,16,32,.98))}.hub-title{font-size:18px;font-weight:950}.hub-sub{color:#9ea7c6;font-size:11px;margin-top:4px;line-height:1.45}.hub-actions{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}.hub-btn{border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.15);color:#fff;border-radius:10px;padding:9px 12px;font:inherit;font-size:11px;font-weight:900;cursor:pointer}.hub-btn:disabled{opacity:.5;cursor:default}.level-emblem{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;border:1px solid currentColor;background:rgba(255,255,255,.04);font-size:12px;font-weight:950}.game-modal{position:fixed;inset:0;z-index:1000030;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.86);backdrop-filter:blur(10px)}.game-modal.hidden{display:none}.game-panel{width:min(980px,100%);max-height:90vh;overflow:auto;background:linear-gradient(180deg,#12172c,#0d1122);border:1px solid rgba(145,71,255,.34);padding:20px;border-radius:20px;box-shadow:0 24px 80px rgba(0,0,0,.55)}.game-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.game-close{width:38px;height:38px;border-radius:50%;border:1px solid #343b5f;background:#1a1f35;color:#fff;font-size:20px}.xp-track{height:10px;border-radius:999px;background:#292f4b;overflow:hidden;margin:10px 0}.xp-track>span{display:block;height:100%;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff)}.grade-grid,.milestone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:12px}.grade-item,.milestone-item{padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:#101427}.grade-item.unlocked,.milestone-item.unlocked{border-color:rgba(34,197,94,.30)}.pve-zone{margin-top:16px;padding:14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0f1427}.pve-zone h3{margin:0 0 10px}.pve-fights{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.pve-fight{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#151a31}.pve-fight.locked{opacity:.55}.pve-fight.won{border-color:rgba(34,197,94,.38)}.pve-fight-name{font-weight:950;font-size:12px}.pve-fight-meta{font-size:10px;color:#9ea7c6;margin-top:4px;line-height:1.45}.combat-report{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:12px;background:#0d1224;font-size:11px;line-height:1.55}.report-list{margin-top:12px;display:grid;gap:8px}.report-row{padding:9px 10px;border-radius:10px;background:#101427;border:1px solid rgba(255,255,255,.07);font-size:10.5px;color:#c9d0e6}.prestige-box{margin-top:14px;padding:12px;border:1px solid rgba(243,200,91,.25);background:rgba(243,200,91,.05);border-radius:12px}.fragment-pill{display:inline-flex;align-items:center;gap:5px;padding:5px 8px;border-radius:999px;background:rgba(255,255,255,.06);font-size:10px;font-weight:900}@media(max-width:800px){.progression-hub{grid-template-columns:1fr}.grade-grid,.milestone-grid{grid-template-columns:1fr}.pve-fights{grid-template-columns:1fr}.game-panel{padding:15px;border-radius:15px}}
+
+/* ===== MOBILE GAME UI ONLY (desktop unchanged) ===== */
+.mobile-game-nav,.mobile-only-game{display:none}
+@media(max-width:900px){
+  body{padding-bottom:88px}
+  .mobile-only-game{display:inline-flex}
+  .mobile-game-nav{position:fixed;left:0;right:0;bottom:0;z-index:1000040;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:7px 7px calc(7px + env(safe-area-inset-bottom));background:rgba(10,13,27,.97);border-top:1px solid rgba(145,71,255,.34);box-shadow:0 -10px 28px rgba(0,0,0,.38);backdrop-filter:blur(12px)}
+  .mobile-game-nav-btn{min-width:0;border:0;background:transparent;color:#8791b0;padding:6px 2px 5px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;cursor:pointer}
+  .mobile-game-nav-btn span{font-size:20px;line-height:1}.mobile-game-nav-btn b{font-size:9px;line-height:1.1}.mobile-game-nav-btn.active{color:#fff;background:rgba(145,71,255,.12)}
+  .mobile-game-nav-main{transform:translateY(-12px);background:linear-gradient(145deg,#6f36c7,#9147ff)!important;color:#fff!important;border:1px solid rgba(219,195,255,.45)!important;box-shadow:0 8px 20px rgba(98,47,169,.36)}
+  .mobile-game-nav-main span{font-size:24px}
+  .progression-hub{display:none!important}
+  .player-card-progress-mobile{border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
+  #topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
+  #topIncubatorEgg::after{content:'Toucher pour voir les chances';margin-top:7px;color:#bfa4e9;font-size:9px;font-weight:850}
+  #pick:not(.hidden){display:none}
+  #pick.mobile-egg-open{display:block!important;position:fixed;inset:0;z-index:1000045;margin:0;padding:58px 16px calc(100px + env(safe-area-inset-bottom));border:0;border-radius:0;background:linear-gradient(180deg,#12172c,#0d1122);overflow-y:auto;overscroll-behavior:contain;box-shadow:none}
+  #pick.mobile-egg-open .egg-visual{margin-left:auto;margin-right:auto}
+  #pick.mobile-egg-open .egg-rates{margin-top:20px}
+  .mobile-egg-close{display:flex!important;position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:1000046;width:42px;height:42px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #343b5f;background:#1a1f35;color:#fff;font-size:22px;font-weight:900}
+}
+
 </style>
 </head>
 <body class="auth-locked">
@@ -2258,6 +2280,13 @@ html, body{
 </div>
 <div id="auth" class="card hidden"></div>
 <div id="app" class="hidden">
+<nav id="mobileGameNav" class="mobile-game-nav" aria-label="Navigation du jeu">
+  <button id="mobileNavHome" class="mobile-game-nav-btn active" type="button"><span>🏠</span><b>Accueil</b></button>
+  <button id="mobileNavCombat" class="mobile-game-nav-btn" type="button"><span>⚔️</span><b>Combat</b></button>
+  <button id="mobileNavCreatures" class="mobile-game-nav-btn mobile-game-nav-main" type="button"><span>🐉</span><b>Créatures</b></button>
+  <button id="mobileNavInventory" class="mobile-game-nav-btn" type="button"><span>🎒</span><b>Inventaire</b></button>
+  <button id="mobileNavProfile" class="mobile-game-nav-btn" type="button"><span>👤</span><b>Profil</b></button>
+</nav>
 <div class="dashboard-head-grid">
   <div class="dashboard-left-stack">
   <section class="player-visit-card" aria-label="Carte de visite du joueur">
@@ -2271,7 +2300,7 @@ html, body{
           <div id="playerCardSubZone" class="player-sub-zone"></div>
         </div>
         <div id="playerCardTitle" class="player-card-title"></div>
-        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Créature niv. 1</span></div>
+        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Créature niv. 1</span><button id="playerCardProgressionMobile" class="player-card-progress-mobile mobile-only-game" type="button">📈 Progression</button></div>
       </div>
     </div>
     <div id="playerCardBadgesTrigger" class="player-card-rankbadges" role="button" tabindex="0" aria-label="Ouvrir mes badges" title="Ouvrir mes badges">
@@ -2348,6 +2377,7 @@ html, body{
 <section class="progression-hub" aria-label="Progression et aventure"><div class="progression-card"><div class="hub-title">📈 Progression</div><div class="hub-sub">Niveau global, grades, Prestige et futures récompenses de ta créature.</div><div class="hub-actions"><button id="openProgression" class="hub-btn" type="button">Voir ma progression</button></div></div><div class="adventure-card"><div class="hub-title">⚔️ Aventure PvE</div><div class="hub-sub">Utilise ta créature pour avancer dans les zones et gagner des Fragments d’œuf.</div><div class="hub-actions"><button id="openPve" class="hub-btn" type="button">Combattre</button><span id="hubFragments" class="fragment-pill">🥚 0 Fragment d’œuf</span></div></div></section>
 
 <div id="pick" class="card egg-panel">
+  <button id="mobileEggClose" class="mobile-egg-close mobile-only-game" type="button" aria-label="Fermer">×</button>
   <h2>Œuf en incubation</h2>
   <p class="muted">Ton premier compagnon éclora après <b>6 heures de présence cumulée</b> pendant les lives.</p>
   <div class="egg-visual" aria-label="Œuf en incubation"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
@@ -4116,6 +4146,28 @@ function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(c
 async function loadProgression(){const box=$('progressionContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const r=await fetch('/api/progression',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Erreur');const g=d.globalProgression||{},cp=d.creatureProgression||{},percent=progressionPct(g.xpIntoLevel,g.xpForNextLevel);const grades=(d.grades||[]).map(x=>`<div class="grade-item ${g.level>=x.min?'unlocked':''}"><strong style="color:${escapeHtml(x.color)}">${escapeHtml(x.icon)} ${escapeHtml(x.name)}</strong><div class="hub-sub">Niv. ${x.min}–${x.max} · titre ${g.level>=x.min?'débloqué':'à débloquer'}</div></div>`).join('');const milestones=(d.creatureMilestones||[]).map(x=>`<div class="milestone-item ${(cp.level||1)>=x.level?'unlocked':''}"><strong>Niv. ${x.level}</strong><div class="hub-sub">${escapeHtml(x.label)} · +${Number(x.power||0)} puissance ${(cp.level||1)>=x.level?'✓':''}</div></div>`).join('');const reports=(d.recentReports||[]).map(x=>`<div class="report-row">${x.result==='victory'?'✅ Victoire':'❌ Défaite'} · ${escapeHtml(x.fight_key)} · +${Math.floor(Number(x.reward_creature_xp||0))} XP créature · +${Math.floor(Number(x.reward_global_xp||0))} XP globale · +${Number(x.reward_fragments||0)} 🥚</div>`).join('')||'<div class="hub-sub">Aucun combat pour le moment.</div>';box.innerHTML=`<div class="prestige-box"><strong>${escapeHtml(d.grade?.icon||'◆')} ${escapeHtml(d.grade?.name||'Recrue')} · Niveau ${g.level||1} · Prestige ${d.prestige||0}</strong><div class="xp-track"><span style="width:${percent}%"></span></div><div class="hub-sub">${Math.floor(Number(g.xpIntoLevel||0))} / ${Math.floor(Number(g.xpForNextLevel||0))} XP${g.level>=55?' · remplis la barre du niveau 55 pour passer Prestige':''}</div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">Passer Prestige</button></div>':''}</div><h3>🏅 Grades et titres</h3><div class="grade-grid">${grades}</div><h3>🐉 Futures récompenses de la créature</h3><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><h3>📜 Rapports de combat</h3><div class="report-list">${reports}</div>`;$('doPrestige')?.addEventListener('click',async()=>{const rr=await fetch('/api/prestige',{method:'POST'}),dd=await rr.json();alert(dd.message||dd.error||'Prestige');if(rr.ok){await loadGame();await loadProgression();}});}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
 async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const r=await fetch('/api/pve',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Erreur');if($('hubFragments'))$('hubFragments').textContent=`🥚 ${d.eggFragments||0} Fragment${Number(d.eggFragments||0)>1?'s':''} d’œuf`;if(!d.hasCreature){box.innerHTML='<div class="combat-report">🥚 Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>';return;}const c=`<div class="combat-report"><strong>${escapeHtml(d.creature.name)}</strong> · Niv. ${d.creature.level} · ${escapeHtml(d.creature.type)} · ❤️ ${d.creature.hp} · ⚔️ ${d.creature.power}</div>`;box.innerHTML=c+(d.zones||[]).map(z=>`<div class="pve-zone"><h3>${z.icon} ${escapeHtml(z.name)}</h3><div class="pve-fights">${z.fights.map(f=>`<div class="pve-fight ${f.won?'won':''} ${!f.unlocked?'locked':''}"><div class="pve-fight-name">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-fight-meta">Niv. conseillé ${f.level} · ${escapeHtml(f.type)}<br>❤️ ${f.hp} · ⚔️ ${f.power}<br>1re victoire : +${f.rewards.creatureXp} XP créature · +${f.rewards.globalXp} XP globale · +${f.rewards.fragments} 🥚</div><div class="hub-actions"><button class="hub-btn" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'Rejouer':'Combattre'}</button></div></div>`).join('')}</div></div>`).join('');}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
 $('openProgression')?.addEventListener('click',()=>{$('progressionModal')?.classList.remove('hidden');loadProgression();});$('progressionClose')?.addEventListener('click',()=> $('progressionModal')?.classList.add('hidden'));$('openPve')?.addEventListener('click',()=>{$('pveModal')?.classList.remove('hidden');loadPve();});$('pveClose')?.addEventListener('click',()=> $('pveModal')?.classList.add('hidden'));$('pveContent')?.addEventListener('click',async e=>{const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey:b.dataset.fight})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}$('combatResult').innerHTML=`<div class="combat-report"><strong>${d.victory?'✅ Victoire !':'❌ Défaite'}</strong><br>${d.firstWin?`Première victoire : +${d.reward.creatureXp||0} XP créature · +${d.reward.globalXp||0} XP globale · +${d.reward.fragments||0} Fragment(s) d’œuf`:'Combat rejoué : aucune nouvelle récompense de première victoire.'}<br>${d.rounds||0} tour(s).</div>`;await loadGame();await loadPve();});['progressionModal','pveModal'].forEach(id=>$(id)?.addEventListener('click',e=>{if(e.target.id===id)$(id).classList.add('hidden')}));
+
+
+function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
+function setMobileNavActive(id){ document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id)); }
+function openMobileEggDetails(){
+  if(!isMobileGameUi() || me?.user?.creature_id) return;
+  $('pick')?.classList.add('mobile-egg-open');
+  document.body.style.overflow='hidden';
+}
+function closeMobileEggDetails(){
+  $('pick')?.classList.remove('mobile-egg-open');
+  if(isMobileGameUi()) document.body.style.overflow='';
+}
+$('topIncubatorEgg')?.addEventListener('click',()=>{ if(isMobileGameUi()) openMobileEggDetails(); });
+$('mobileEggClose')?.addEventListener('click',closeMobileEggDetails);
+$('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(!isMobileGameUi()) return; $('progressionModal')?.classList.remove('hidden'); loadProgression(); });
+$('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; setMobileNavActive('mobileNavHome'); document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
+$('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; setMobileNavActive('mobileNavCombat'); $('pveModal')?.classList.remove('hidden'); loadPve(); });
+$('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; setMobileNavActive('mobileNavCreatures'); if(me?.user?.creature_id){ $('game')?.scrollIntoView({behavior:'smooth',block:'start'}); } else { openMobileEggDetails(); } });
+$('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; setMobileNavActive('mobileNavInventory'); openInventory(); });
+$('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; setMobileNavActive('mobileNavProfile'); const selfPlayer=(leaderboardPlayers||[]).find(player=>String(player.twitch_id||'')===String(me?.user?.twitch_id||'')); if(selfPlayer) openPlayerProfile(selfPlayer); else document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
+window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileEggDetails(); setMobileNavActive('mobileNavHome'); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');
 if (leaderboardSearchInput) {
