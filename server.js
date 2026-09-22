@@ -36,73 +36,23 @@ const GLOBAL_XP_SUB_PER_HOUR = 60;
 const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
 
 const DAILY_CHALLENGE_LIBRARY = {
-  watch_60: {
-    key:'watch_60',
-    type:'watch',
-    icon:'⏱️',
-    title:'Présence active',
-    description:'Regarder 1 heure de live aujourd’hui.',
-    goal:3600,
-    rewardCash:5,
-    rewardGlobalXp:15
-  },
-  watch_120: {
-    key:'watch_120',
-    type:'watch',
-    icon:'🔥',
-    title:'Fidèle du jour',
-    description:'Regarder 2 heures de live aujourd’hui.',
-    goal:7200,
-    rewardCash:8,
-    rewardGlobalXp:25
-  },
-  instagram_like: {
-    key:'instagram_like',
-    type:'social',
-    network:'instagram',
-    icon:'📸',
-    title:'Coup de cœur Instagram',
-    description:'Va sur Instagram, like un post récent de LoVeRDoSeTV puis confirme ici.',
-    goal:1,
-    rewardCash:10,
-    rewardGlobalXp:0,
-    actionLabel:'Ouvrir Instagram',
-    actionUrl:'https://www.instagram.com/loverdosetv/'
-  },
-  tiktok_like: {
-    key:'tiktok_like',
-    type:'social',
-    network:'tiktok',
-    icon:'🎵',
-    title:'Soutien TikTok',
-    description:'Va sur TikTok, like une vidéo récente de LoVeRDoSeTV puis confirme ici.',
-    goal:1,
-    rewardCash:10,
-    rewardGlobalXp:0,
-    actionLabel:'Ouvrir TikTok',
-    actionUrl:'https://www.tiktok.com/@loverdosetv'
-  }
+  watch_30: { key:'watch_30', type:'watch', icon:'⏱️', title:'Mise en route', description:'Regarder 30 minutes de live aujourd’hui.', goal:1800, rewardCash:3, rewardGlobalXp:8 },
+  watch_60: { key:'watch_60', type:'watch', icon:'🔥', title:'Présence active', description:'Regarder 1 heure de live aujourd’hui.', goal:3600, rewardCash:5, rewardGlobalXp:15 },
+  watch_120: { key:'watch_120', type:'watch', icon:'⭐', title:'Fidèle du jour', description:'Regarder 2 heures de live aujourd’hui.', goal:7200, rewardCash:8, rewardGlobalXp:25 },
+  cash_10: { key:'cash_10', type:'cash', icon:'💰', title:'Récolte du jour', description:"Gagner 10 LoVeR'Cash grâce au live aujourd’hui.", goal:10, rewardCash:4, rewardGlobalXp:10 },
+  global_xp_25: { key:'global_xp_25', type:'global_xp', icon:'📈', title:'Progression régulière', description:'Gagner 25 XP globale grâce au live aujourd’hui.', goal:25, rewardCash:4, rewardGlobalXp:10 }
 };
 
 function dailyChallengeDateKey(date = new Date()) {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone: DAILY_CHALLENGE_TIMEZONE,
-    year:'numeric',
-    month:'2-digit',
-    day:'2-digit'
-  }).formatToParts(date);
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: DAILY_CHALLENGE_TIMEZONE, year:'numeric', month:'2-digit', day:'2-digit' }).formatToParts(date);
   const values = Object.fromEntries(parts.filter(part => part.type !== 'literal').map(part => [part.type, part.value]));
   return `${values.year}-${values.month}-${values.day}`;
 }
 
 function dailyChallengesForDate(dateKey = dailyChallengeDateKey()) {
   const numericDay = Number(String(dateKey).replaceAll('-', '')) || 0;
-  const socialKey = numericDay % 2 === 0 ? 'instagram_like' : 'tiktok_like';
-  return [
-    DAILY_CHALLENGE_LIBRARY.watch_60,
-    DAILY_CHALLENGE_LIBRARY.watch_120,
-    DAILY_CHALLENGE_LIBRARY[socialKey]
-  ].map(item => ({ ...item }));
+  const sets = [ ['watch_30','watch_60','cash_10'], ['watch_30','global_xp_25','watch_120'], ['watch_60','cash_10','global_xp_25'] ];
+  return sets[numericDay % sets.length].map(key => ({ ...DAILY_CHALLENGE_LIBRARY[key] }));
 }
 
 function dailyChallengeByKey(key, dateKey = dailyChallengeDateKey()) {
@@ -342,34 +292,39 @@ function progressionFromXp(xp) {
 }
 
 
-function globalProgressionFromXp(xp) {
-  const value = Math.max(0, Number(xp) || 0);
-  const maxLevel = 100;
-  let level = 1;
-  let currentThreshold = 0;
-  let nextThreshold = 250;
-
-  const thresholdForLevel = targetLevel => {
-    if (targetLevel <= 1) return 0;
-    const steps = targetLevel - 1;
-    return Math.round((steps * (500 + (steps - 1) * 50)) / 2);
-  };
-
-  while (level < maxLevel && value >= thresholdForLevel(level + 1)) level += 1;
-
-  currentThreshold = thresholdForLevel(level);
-  nextThreshold = level >= maxLevel ? currentThreshold : thresholdForLevel(level + 1);
-
-  return {
-    level,
-    currentThreshold,
-    nextThreshold,
-    maxLevel: level >= maxLevel,
-    xpIntoLevel: Math.max(0, value - currentThreshold),
-    xpForNextLevel: Math.max(0, nextThreshold - currentThreshold)
-  };
+function globalThresholdForLevel(targetLevel) {
+  if (targetLevel <= 1) return 0;
+  const steps = targetLevel - 1;
+  return Math.round((steps * (500 + (steps - 1) * 50)) / 2);
 }
 
+function globalProgressionFromXp(xp) {
+  const value = Math.max(0, Number(xp) || 0);
+  const maxLevel = 55;
+  let level = 1;
+  while (level < maxLevel && value >= globalThresholdForLevel(level + 1)) level += 1;
+  const currentThreshold = globalThresholdForLevel(level);
+  const nextThreshold = level >= maxLevel ? globalThresholdForLevel(56) : globalThresholdForLevel(level + 1);
+  return { level, currentThreshold, nextThreshold, maxLevel: level >= maxLevel, prestigeReady: level >= maxLevel && value >= nextThreshold,
+    xpIntoLevel: Math.max(0, Math.min(value, nextThreshold) - currentThreshold), xpForNextLevel: Math.max(1, nextThreshold-currentThreshold), xpRemaining: Math.max(0,nextThreshold-value) };
+}
+
+const GLOBAL_LEVEL_GRADES = [
+  {min:1,max:5,name:'Recrue',icon:'◆',color:'#9aa3b8',rewardKey:'reward_title_recrue'},
+  {min:6,max:10,name:'Éclaireur',icon:'◇',color:'#67c7ff',rewardKey:'reward_title_eclaireur'},
+  {min:11,max:15,name:'Veilleur',icon:'✦',color:'#7dd8d0',rewardKey:'reward_title_veilleur'},
+  {min:16,max:20,name:'Gardien',icon:'⬟',color:'#6fe09b',rewardKey:'reward_title_gardien'},
+  {min:21,max:25,name:'Vétéran',icon:'✪',color:'#c2a7ff',rewardKey:'reward_title_veteran'},
+  {min:26,max:30,name:'Élite',icon:'✧',color:'#a878ff',rewardKey:'reward_title_elite'},
+  {min:31,max:35,name:'Commandant',icon:'⬢',color:'#ff9c69',rewardKey:'reward_title_commandant'},
+  {min:36,max:40,name:'Maître de terrain',icon:'✹',color:'#ff7b7b',rewardKey:'reward_title_maitre_terrain'},
+  {min:41,max:45,name:'Champion',icon:'★',color:'#f3c85b',rewardKey:'reward_title_champion'},
+  {min:46,max:50,name:'Légende',icon:'✶',color:'#ffd86b',rewardKey:'reward_title_legende_grade'},
+  {min:51,max:55,name:'Mythique',icon:'♛',color:'#fff0a8',rewardKey:'reward_title_mythique'}
+];
+function globalGradeForLevel(level){ return GLOBAL_LEVEL_GRADES.find(g=>level>=g.min&&level<=g.max)||GLOBAL_LEVEL_GRADES[0]; }
+const CREATURE_MILESTONES=[{level:5,power:5,label:'Éveil'},{level:10,power:5,label:'Instinct'},{level:15,power:5,label:'Affinité'},{level:20,power:5,label:'Maîtrise'},{level:25,power:10,label:'Ascendant'},{level:30,power:10,label:'Harmonie'},{level:40,power:15,label:'Domination'},{level:50,power:20,label:'Apogée'}];
+function creatureMilestonePower(level){return CREATURE_MILESTONES.filter(m=>level>=m.level).reduce((a,m)=>a+m.power,0);}
 
 /* =========================================
    CRÉATURES
@@ -477,6 +432,46 @@ const creatures = [
   }
 ];
 
+async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
+  if (!userId || !accountId) return;
+  const progression = globalProgressionFromXp(globalXp);
+  const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
+  if (progression.level >= 55) rewardKeys.push('reward_bg_level55');
+  for (const key of rewardKeys) {
+    await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
+  }
+}
+
+const PVE_ZONES = [
+  { key:'forest', name:'Forêt des Premiers Éclats', icon:'🌿', fights:[
+    {key:'forest_1',name:'Germe sauvage',level:1,type:'Verdance',hp:110,power:42,rewards:{creatureXp:4,globalXp:2,fragments:1}},
+    {key:'forest_2',name:'Rôdeur mousseux',level:2,type:'Verdance',hp:135,power:50,rewards:{creatureXp:5,globalXp:2,fragments:1}},
+    {key:'forest_3',name:'Sentinelle des racines',level:3,type:'Verdance',hp:160,power:58,rewards:{creatureXp:6,globalXp:3,fragments:1}},
+    {key:'forest_4',name:'Esprit du sous-bois',level:4,type:'Mirage',hp:190,power:66,rewards:{creatureXp:7,globalXp:3,fragments:1}},
+    {key:'forest_boss',name:'Gardien Sylvestre',level:5,type:'Verdance',hp:240,power:76,boss:true,rewards:{creatureXp:15,globalXp:6,fragments:4}}
+  ]},
+  { key:'ember', name:'Cavernes de Braise', icon:'🔥', fights:[
+    {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:7,globalXp:3,fragments:1}},
+    {key:'ember_2',name:'Roche ardente',level:6,type:'Forge',hp:265,power:84,rewards:{creatureXp:8,globalXp:3,fragments:1}},
+    {key:'ember_3',name:'Salamandre de braise',level:7,type:'Cendre',hp:300,power:92,rewards:{creatureXp:9,globalXp:4,fragments:1}},
+    {key:'ember_4',name:'Golem de forge',level:9,type:'Forge',hp:350,power:104,rewards:{creatureXp:11,globalXp:4,fragments:2}},
+    {key:'ember_boss',name:'Cœur de Magma',level:10,type:'Cendre',hp:430,power:118,boss:true,rewards:{creatureXp:20,globalXp:8,fragments:5}}
+  ]},
+  { key:'night', name:'Ruines Nocturnes', icon:'🌙', fights:[
+    {key:'night_1',name:'Ombre errante',level:10,type:'Néant',hp:420,power:116,rewards:{creatureXp:10,globalXp:4,fragments:1}},
+    {key:'night_2',name:'Veilleur brisé',level:11,type:'Cristal',hp:455,power:124,rewards:{creatureXp:11,globalXp:4,fragments:1}},
+    {key:'night_3',name:'Spectre du miroir',level:12,type:'Mirage',hp:495,power:132,rewards:{creatureXp:12,globalXp:5,fragments:2}},
+    {key:'night_4',name:'Chevalier du Néant',level:13,type:'Néant',hp:540,power:142,rewards:{creatureXp:13,globalXp:5,fragments:2}},
+    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,rewards:{creatureXp:18,globalXp:7,fragments:4}},
+    {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,rewards:{creatureXp:28,globalXp:10,fragments:7}}
+  ]}
+];
+const PVE_FIGHTS=PVE_ZONES.flatMap(z=>z.fights.map((f,i)=>({...f,zoneKey:z.key,zoneName:z.name,zoneIcon:z.icon,index:i})));
+function pveFightByKey(key){return PVE_FIGHTS.find(f=>f.key===key)||null;}
+function pvePreviousFight(key){const i=PVE_FIGHTS.findIndex(f=>f.key===key);return i>0?PVE_FIGHTS[i-1]:null;}
+function typeMultiplier(attacker,defender){const beats={Verdance:'Abyssal',Abyssal:'Cendre',Cendre:'Verdance',Foudre:'Abyssal',Néant:'Mirage',Mirage:'Néant',Solaire:'Néant',Forge:'Cristal',Cristal:'Foudre'};if(beats[attacker]===defender)return 1.15;if(beats[defender]===attacker)return .9;return 1;}
+function creatureBattleStats(user){const prog=progressionFromXp(Number(user.xp||0));const creature=creatures.find(c=>c.id===user.creature_id);const rarityBonus={Commun:0,Rare:8,'Épique':16,Mythique:26}[creature?.rarity]||0;return {level:prog.level,hp:120+prog.level*22,power:45+prog.level*11+rarityBonus+creatureMilestonePower(prog.level),type:creature?.type||'Neutre',name:creature?.name||'Créature'};}
+
 function eggState(user) {
   const watched = Math.max(0, Number(user?.watch_seconds) || 0);
   const hatched = Boolean(user?.creature_id);
@@ -527,6 +522,18 @@ const SHOP_ITEMS = [
   { key:'title_etoile_rose', category:'title', subcategory:'pink', name:'Étoile rose', price:680, color:'#ff95ef', description:'Un titre lumineux et pétillant pour les profils les plus stylés.' },
   { key:'title_roi_arene', category:'title', subcategory:'gold', name:'Reine de l’arène', price:1200, color:'#f4cd67', description:"Un titre doré premium réservé aux plus grosses collectionneuses de LoVeR'Cash." },
   { key:'title_souverain_live', category:'title', subcategory:'gold', name:'Souverain du live', price:1600, color:'#ffd86b', description:'Un grand titre doré pour les profils les plus prestigieux.' },
+  { key:'reward_title_recrue', category:'title', subcategory:'silver', name:'Recrue du Watch Game', price:0, color:'#9aa3b8', description:'Débloqué au niveau global 1.', rewardOnly:true },
+  { key:'reward_title_eclaireur', category:'title', subcategory:'blue', name:'Éclaireur du Live', price:0, color:'#67c7ff', description:'Débloqué au niveau global 6.', rewardOnly:true },
+  { key:'reward_title_veilleur', category:'title', subcategory:'blue', name:'Veilleur du Live', price:0, color:'#7dd8d0', description:'Débloqué au niveau global 11.', rewardOnly:true },
+  { key:'reward_title_gardien', category:'title', subcategory:'green', name:'Gardien du Direct', price:0, color:'#6fe09b', description:'Débloqué au niveau global 16.', rewardOnly:true },
+  { key:'reward_title_veteran', category:'title', subcategory:'violet', name:'Vétéran du Stream', price:0, color:'#c2a7ff', description:'Débloqué au niveau global 21.', rewardOnly:true },
+  { key:'reward_title_elite', category:'title', subcategory:'violet', name:'Élite du Watch Game', price:0, color:'#a878ff', description:'Débloqué au niveau global 26.', rewardOnly:true },
+  { key:'reward_title_commandant', category:'title', subcategory:'red', name:'Commandant du Live', price:0, color:'#ff9c69', description:'Débloqué au niveau global 31.', rewardOnly:true },
+  { key:'reward_title_maitre_terrain', category:'title', subcategory:'red', name:'Maître de terrain', price:0, color:'#ff7b7b', description:'Débloqué au niveau global 36.', rewardOnly:true },
+  { key:'reward_title_champion', category:'title', subcategory:'gold', name:'Champion du Direct', price:0, color:'#f3c85b', description:'Débloqué au niveau global 41.', rewardOnly:true },
+  { key:'reward_title_legende_grade', category:'title', subcategory:'gold', name:'Légende du Live', price:0, color:'#ffd86b', description:'Débloqué au niveau global 46.', rewardOnly:true },
+  { key:'reward_title_mythique', category:'title', subcategory:'gold', name:'Mythique du Watch Game', price:0, color:'#fff0a8', description:'Débloqué au niveau global 51.', rewardOnly:true },
+  { key:'reward_bg_level55', category:'background', subcategory:'special', name:'Ascension', price:0, preview:'level55', description:'Fond exclusif débloqué au niveau global 55.', rewardOnly:true },
   { key:'bg_nebula', category:'background', subcategory:'classic', name:'Nébuleuse violette', price:300, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
   { key:'bg_starry', category:'background', subcategory:'classic', name:'Nuit étoilée', price:400, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
   { key:'bg_ember', category:'background', subcategory:'classic', name:'Braises', price:450, preview:'ember', description:'Fond chaud inspiré des braises et du feu.' },
@@ -655,6 +662,8 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS global_xp DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_earned DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_spent DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS prestige INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
 
   // Migration douce pour les joueurs déjà présents : le niveau global reprend
   // leur ancien temps de visionnage au taux de base de 50 XP globale / heure.
@@ -926,6 +935,9 @@ async function initDatabase() {
     );
   `);
 
+  await pool.query(`ALTER TABLE user_daily_activity ADD COLUMN IF NOT EXISTS global_xp_earned DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE user_daily_activity ADD COLUMN IF NOT EXISTS lovercash_earned DOUBLE PRECISION NOT NULL DEFAULT 0`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_daily_challenge_state (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -937,6 +949,19 @@ async function initDatabase() {
       PRIMARY KEY (user_id, challenge_date, challenge_key)
     );
   `);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_pve_progress (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fight_key TEXT NOT NULL, wins INTEGER NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
+    first_won_at TIMESTAMPTZ, last_fought_at TIMESTAMPTZ, PRIMARY KEY (user_id,fight_key)
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_combat_reports (
+    id BIGSERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    fight_key TEXT NOT NULL, result TEXT NOT NULL, creature_level INTEGER NOT NULL, enemy_level INTEGER NOT NULL,
+    creature_power INTEGER NOT NULL, enemy_power INTEGER NOT NULL, reward_creature_xp DOUBLE PRECISION NOT NULL DEFAULT 0,
+    reward_global_xp DOUBLE PRECISION NOT NULL DEFAULT 0, reward_fragments INTEGER NOT NULL DEFAULT 0,
+    report_json JSONB, created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
 
   await pool.query(`
     ALTER TABLE user_badges
@@ -1547,13 +1572,13 @@ async function runTrackerTick() {
             SELECT 1 FROM user_active_boosts b
             WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
           ) THEN 2 ELSE 1 END),
-          global_xp = global_xp + (CASE WHEN is_sub THEN $8 ELSE $7 END),
+          global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8 ELSE $7 END), $9),
           watch_seconds = watch_seconds + $5,
           updated_at = CURRENT_TIMESTAMP
         WHERE twitch_id = ANY($6::text[])
         RETURNING id
         `,
-        [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp]
+        [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp, globalThresholdForLevel(56)]
       );
 
       matched = result.rowCount || 0;
@@ -1566,14 +1591,16 @@ async function runTrackerTick() {
         const activityDate = dailyChallengeDateKey();
         await pool.query(
           `
-          INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, updated_at)
-          SELECT user_id, $2::date, $3::bigint, CURRENT_TIMESTAMP
-          FROM unnest($1::int[]) AS user_id
+          INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, global_xp_earned, lovercash_earned, updated_at)
+          SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5 ELSE $4 END, CASE WHEN u.is_sub THEN $7 ELSE $6 END, CURRENT_TIMESTAMP
+          FROM users u WHERE u.id = ANY($1::int[])
           ON CONFLICT (user_id, activity_date) DO UPDATE SET
             watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
+            global_xp_earned = user_daily_activity.global_xp_earned + EXCLUDED.global_xp_earned,
+            lovercash_earned = user_daily_activity.lovercash_earned + EXCLUDED.lovercash_earned,
             updated_at = CURRENT_TIMESTAMP
           `,
-          [matchedUserIds, activityDate, deltaSeconds]
+          [matchedUserIds, activityDate, deltaSeconds, normalGlobalXp, subGlobalXp, normalLoverCash, subLoverCash]
         );
 
         await pool.query(
@@ -2534,6 +2561,10 @@ app.post('/api/account/reset-game', async (req, res) => {
       [user.id]
     );
 
+    await client.query(`DELETE FROM user_pve_progress WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM user_combat_reports WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM shop_inventory WHERE account_id = $1 AND item_key LIKE 'reward_%'`, [account.id]);
+
     await client.query(
       `
       UPDATE users
@@ -2542,6 +2573,8 @@ app.post('/api/account/reset-game', async (req, res) => {
         xp = 0,
         pending_xp = 0,
         global_xp = 0,
+        prestige = 0,
+        egg_fragments = 0,
         points = 0,
         lifetime_lovercash_earned = 0,
         lifetime_lovercash_spent = 0,
@@ -3425,6 +3458,7 @@ app.get(
             WHERE twitch_id IS NOT NULL
           )
           SELECT
+            u.id,
             u.twitch_id,
             u.login,
             u.display_name,
@@ -3434,6 +3468,8 @@ app.get(
             u.xp,
             u.pending_xp,
             u.global_xp,
+            u.prestige,
+            u.egg_fragments,
             u.points,
             u.lifetime_lovercash_earned,
             u.lifetime_lovercash_spent,
@@ -3469,6 +3505,8 @@ app.get(
 
       }
 
+
+      await syncGlobalLevelRewards(pool, u.id, req.session.account.id, u.global_xp);
 
       res.json({
 
@@ -3514,6 +3552,12 @@ app.get(
           global_xp:
             Number(u.global_xp || 0),
 
+          prestige:
+            Number(u.prestige || 0),
+
+          egg_fragments:
+            Number(u.egg_fragments || 0),
+
           points:
             Number(u.points),
 
@@ -3532,6 +3576,12 @@ app.get(
             globalProgressionFromXp(
               u.global_xp
             ),
+
+          global_grade:
+            globalGradeForLevel(globalProgressionFromXp(u.global_xp).level),
+
+          creature_milestones:
+            CREATURE_MILESTONES,
 
           egg:
             eggState(u)
@@ -3707,7 +3757,7 @@ app.get('/api/daily-challenges', async (req, res) => {
 
     const [activityResult, stateResult] = await Promise.all([
       pool.query(
-        `SELECT watch_seconds FROM user_daily_activity WHERE user_id = $1 AND activity_date = $2::date`,
+        `SELECT watch_seconds, global_xp_earned, lovercash_earned FROM user_daily_activity WHERE user_id = $1 AND activity_date = $2::date`,
         [userId, dateKey]
       ),
       pool.query(
@@ -3717,13 +3767,13 @@ app.get('/api/daily-challenges', async (req, res) => {
     ]);
 
     const watchSeconds = Math.max(0, Number(activityResult.rows[0]?.watch_seconds) || 0);
+    const dailyGlobalXp = Math.max(0, Number(activityResult.rows[0]?.global_xp_earned) || 0);
+    const dailyLoverCash = Math.max(0, Number(activityResult.rows[0]?.lovercash_earned) || 0);
     const states = new Map(stateResult.rows.map(row => [row.challenge_key, row]));
 
     const challenges = definitions.map(def => {
       const state = states.get(def.key);
-      const progress = def.type === 'watch'
-        ? Math.min(def.goal, watchSeconds)
-        : (state?.completed_at ? 1 : 0);
+      const progress = def.type === 'watch' ? Math.min(def.goal, watchSeconds) : def.type === 'cash' ? Math.min(def.goal, dailyLoverCash) : def.type === 'global_xp' ? Math.min(def.goal, dailyGlobalXp) : 0;
       const completed = progress >= def.goal;
 
       return {
@@ -3834,8 +3884,12 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
         [user.id, dateKey]
       );
       completed = Math.max(0, Number(activityResult.rows[0]?.watch_seconds) || 0) >= challenge.goal;
-    } else {
-      completed = Boolean(state?.completed_at);
+    } else if (challenge.type === 'cash') {
+      const ar = await client.query(`SELECT lovercash_earned FROM user_daily_activity WHERE user_id=$1 AND activity_date=$2::date`, [user.id, dateKey]);
+      completed = Math.max(0, Number(ar.rows[0]?.lovercash_earned) || 0) >= challenge.goal;
+    } else if (challenge.type === 'global_xp') {
+      const ar = await client.query(`SELECT global_xp_earned FROM user_daily_activity WHERE user_id=$1 AND activity_date=$2::date`, [user.id, dateKey]);
+      completed = Math.max(0, Number(ar.rows[0]?.global_xp_earned) || 0) >= challenge.goal;
     }
 
     if (!completed) {
@@ -3848,17 +3902,19 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
       [user.id, dateKey, key]
     );
 
-    await client.query(
+    const rewardUpdateResult = await client.query(
       `
       UPDATE users
       SET points = points + $2,
           lifetime_lovercash_earned = lifetime_lovercash_earned + $2,
-          global_xp = global_xp + $3,
+          global_xp = LEAST(global_xp + $3, $4),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
+      RETURNING points, global_xp
       `,
-      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0)]
+      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0), globalThresholdForLevel(56)]
     );
+    const updatedRewards = rewardUpdateResult.rows[0] || {};
 
     await client.query('COMMIT');
     pushLiveUpdate('challenge-update', { userId:Number(user.id), challengeKey:key, claimed:true, at:Date.now() });
@@ -3867,7 +3923,9 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
       ok:true,
       message:'Récompense récupérée !',
       rewardCash:Number(challenge.rewardCash || 0),
-      rewardGlobalXp:Number(challenge.rewardGlobalXp || 0)
+      rewardGlobalXp:Number(challenge.rewardGlobalXp || 0),
+      balance:Number(updatedRewards.points || 0),
+      globalXp:Number(updatedRewards.global_xp || 0)
     });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
@@ -3876,6 +3934,30 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+app.get('/api/progression', async (req,res)=>{
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const r=await pool.query(`SELECT id,creature_id,xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
+    const u=r.rows[0]; if(!u) return res.status(404).json({error:'Joueur introuvable.'});
+    await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
+    const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(u.xp);
+    const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
+    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+  }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
+});
+
+app.post('/api/prestige', async (req,res)=>{
+ const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); const up=await c.query(`UPDATE users SET global_xp=0,prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
+});
+
+app.get('/api/pve', async (req,res)=>{
+ try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); const r=await pool.query(`SELECT id,creature_id,xp,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);const u=r.rows[0];if(!u)return res.status(404).json({error:'Joueur introuvable.'});const pr=await pool.query(`SELECT fight_key,wins,attempts FROM user_pve_progress WHERE user_id=$1`,[u.id]);const map=new Map(pr.rows.map(x=>[x.fight_key,x]));const zones=PVE_ZONES.map(z=>({...z,fights:z.fights.map(f=>{const prev=pvePreviousFight(f.key);return {...f,won:Number(map.get(f.key)?.wins||0)>0,unlocked:!prev||Number(map.get(prev.key)?.wins||0)>0};})}));res.json({ok:true,hasCreature:Boolean(u.creature_id),creature:u.creature_id?creatureBattleStats(u):null,eggFragments:Number(u.egg_fragments||0),zones});}catch(e){res.status(500).json({error:'Impossible de charger l’aventure.'});}
+});
+
+app.post('/api/pve/fight', async (req,res)=>{
+ const c=await pool.connect();try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const fight=pveFightByKey(String(req.body?.fightKey||''));if(!fight)return res.status(400).json({error:'Combat introuvable.'});await c.query('BEGIN');const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);const u=r.rows[0];if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut une créature éclose pour combattre.'});}const prev=pvePreviousFight(fight.key);if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);let ph=st.hp,eh=fight.hp,rounds=0;while(ph>0&&eh>0&&rounds<20){rounds++;eh-=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));if(eh<=0)break;ph-=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));}const victory=eh<=0;const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult})]);await c.query('COMMIT');res.json({ok:true,victory,firstWin,reward:rw,rounds});}catch(e){try{await c.query('ROLLBACK')}catch{};console.error(e);res.status(500).json({error:'Combat impossible.'});}finally{c.release();}
 });
 
 app.get('/api/badges', async (req, res) => {
@@ -4969,7 +5051,7 @@ app.post('/api/shop/buy', async (req, res) => {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
     const key = String(req.body?.itemKey || '').trim();
     const item = shopItemByKey(key);
-    if (!item || item.comingSoon) return res.status(400).json({ error:'Cet article n’est pas disponible.' });
+    if (!item || item.comingSoon || item.rewardOnly) return res.status(400).json({ error:'Cet article ne peut pas être acheté.' });
 
     await client.query('BEGIN');
     const userResult = await client.query(`SELECT id, points FROM users WHERE twitch_id = $1 FOR UPDATE`, [req.session.user.twitchId]);
@@ -5148,6 +5230,8 @@ app.get(
           u.xp,
           u.pending_xp,
           u.global_xp,
+          u.prestige,
+          u.egg_fragments,
           u.points,
           u.lifetime_lovercash_earned,
           u.lifetime_lovercash_spent,
@@ -5251,6 +5335,8 @@ app.get(
           xp: Number(player.xp || 0),
           pending_xp: Number(player.pending_xp || 0),
           global_xp: Number(player.global_xp || 0),
+          prestige: Number(player.prestige || 0),
+          egg_fragments: Number(player.egg_fragments || 0),
           points: Number(player.points || 0),
           lifetime_lovercash_earned: Number(player.lifetime_lovercash_earned || 0),
           lifetime_lovercash_spent: Number(player.lifetime_lovercash_spent || 0),
