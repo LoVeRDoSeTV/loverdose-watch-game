@@ -322,6 +322,25 @@ const GLOBAL_LEVEL_GRADES = [
   {min:46,max:50,name:'Légende',icon:'✶',color:'#ffd86b',rewardKey:'reward_title_legende_grade'},
   {min:51,max:55,name:'Mythique',icon:'♛',color:'#fff0a8',rewardKey:'reward_title_mythique'}
 ];
+
+
+// Récompenses de progression globale : à certains niveaux, le joueur reçoit
+// un petit bonus d'XP pour son Lovys. Si l'œuf n'a pas encore éclos, l'XP est
+// conservée dans pending_xp puis transférée au Lovys à l'éclosion.
+// Les récompenses sont disponibles à nouveau à chaque nouveau Prestige.
+const GLOBAL_LEVEL_LOVYS_XP_REWARDS = [
+  { level:5,  xp:50  },
+  { level:10, xp:75  },
+  { level:15, xp:100 },
+  { level:20, xp:125 },
+  { level:25, xp:150 },
+  { level:30, xp:175 },
+  { level:35, xp:200 },
+  { level:40, xp:225 },
+  { level:45, xp:250 },
+  { level:50, xp:300 },
+  { level:55, xp:400 }
+];
 function globalGradeForLevel(level){ return GLOBAL_LEVEL_GRADES.find(g=>level>=g.min&&level<=g.max)||GLOBAL_LEVEL_GRADES[0]; }
 const CREATURE_MILESTONES=[{level:5,power:5,label:'Éveil'},{level:10,power:5,label:'Instinct'},{level:15,power:5,label:'Affinité'},{level:20,power:5,label:'Maîtrise'},{level:25,power:10,label:'Ascendant'},{level:30,power:10,label:'Harmonie'},{level:40,power:15,label:'Domination'},{level:50,power:20,label:'Apogée'}];
 function creatureMilestonePower(level){return CREATURE_MILESTONES.filter(m=>level>=m.level).reduce((a,m)=>a+m.power,0);}
@@ -440,6 +459,47 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
   for (const key of rewardKeys) {
     await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
   }
+}
+
+
+async function syncGlobalLovysXpRewards(clientOrPool, userId, globalXp, prestige = 0) {
+  if (!userId) return { awardedXp:0 };
+  const progression = globalProgressionFromXp(globalXp);
+  const eligible = GLOBAL_LEVEL_LOVYS_XP_REWARDS.filter(r => progression.level >= r.level);
+  let awardedXp = 0;
+  let latest = null;
+
+  for (const reward of eligible) {
+    const rewardKey = `global_level_lovys_xp_p${Math.max(0, Number(prestige) || 0)}_l${reward.level}`;
+    const result = await clientOrPool.query(
+      `
+      WITH rewarded AS (
+        INSERT INTO user_xp_rewards (user_id, reward_key, xp_amount)
+        VALUES ($1, $2, $3)
+        ON CONFLICT (user_id, reward_key) DO NOTHING
+        RETURNING user_id, xp_amount
+      )
+      UPDATE users u
+      SET xp = u.xp + CASE WHEN u.creature_id IS NOT NULL THEN rewarded.xp_amount ELSE 0 END,
+          pending_xp = u.pending_xp + CASE WHEN u.creature_id IS NULL THEN rewarded.xp_amount ELSE 0 END,
+          updated_at = CURRENT_TIMESTAMP
+      FROM rewarded
+      WHERE u.id = rewarded.user_id
+      RETURNING u.xp, u.pending_xp, rewarded.xp_amount
+      `,
+      [Number(userId), rewardKey, Number(reward.xp)]
+    );
+    if (result.rowCount) {
+      awardedXp += Number(result.rows[0]?.xp_amount || 0);
+      latest = result.rows[0];
+    }
+  }
+
+  return {
+    awardedXp,
+    xp: latest ? Number(latest.xp || 0) : null,
+    pendingXp: latest ? Number(latest.pending_xp || 0) : null
+  };
 }
 
 const PVE_ZONES = [
@@ -3507,6 +3567,9 @@ app.get(
 
 
       await syncGlobalLevelRewards(pool, u.id, req.session.account.id, u.global_xp);
+      const lovysLevelRewardSync = await syncGlobalLovysXpRewards(pool, u.id, u.global_xp, u.prestige);
+      if (lovysLevelRewardSync.xp !== null) u.xp = lovysLevelRewardSync.xp;
+      if (lovysLevelRewardSync.pendingXp !== null) u.pending_xp = lovysLevelRewardSync.pendingXp;
 
       res.json({
 
@@ -3906,14 +3969,17 @@ app.get('/api/progression', async (req,res)=>{
     const r=await pool.query(`SELECT id,creature_id,xp,pending_xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
     const u=r.rows[0]; if(!u) return res.status(404).json({error:'Joueur introuvable.'});
     await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
+    const lovysLevelRewardSync=await syncGlobalLovysXpRewards(pool,u.id,u.global_xp,u.prestige);
+    if(lovysLevelRewardSync.xp!==null)u.xp=lovysLevelRewardSync.xp;
+    if(lovysLevelRewardSync.pendingXp!==null)u.pending_xp=lovysLevelRewardSync.pendingXp;
     const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(u.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),creatureXp:Number(u.xp||0),pendingCreatureXp:Number(u.pending_xp||0),hasCreature:Boolean(u.creature_id),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    res.json({ok:true,globalXp:Number(u.global_xp||0),creatureXp:Number(u.xp||0),pendingCreatureXp:Number(u.pending_xp||0),hasCreature:Boolean(u.creature_id),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLovysXpRewards:GLOBAL_LEVEL_LOVYS_XP_REWARDS,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
 });
 
 app.post('/api/prestige', async (req,res)=>{
- const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); const up=await c.query(`UPDATE users SET global_xp=0,prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
+ const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); await syncGlobalLovysXpRewards(c,u.id,u.global_xp,u.prestige); const up=await c.query(`UPDATE users SET global_xp=0,prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
 });
 
 app.get('/api/pve', async (req,res)=>{
