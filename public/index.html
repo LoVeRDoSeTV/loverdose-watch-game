@@ -1723,7 +1723,7 @@ html, body{
 .incubator-progress-bar{height:100%;width:0;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff);transition:width .35s ease}
 .incubator-time{margin-top:6px;font-size:10px;font-weight:900;color:#fff}
 .incubator-status{margin-top:3px;color:#8f99bb;font-size:9px;line-height:1.3;white-space:normal}
-.incubator-pending{margin-top:7px;padding:4px 7px;border-radius:8px;border:1px solid rgba(145,71,255,.22);background:rgba(145,71,255,.07);font-size:9px;font-weight:850;color:#d9c7ff}
+.incubator-pending{margin-top:7px;padding:4px 7px;border-radius:8px;border:1px solid rgba(145,71,255,.22);background:rgba(145,71,255,.07);font-size:9px;font-weight:850;color:#d9c7ff}.incubator-slot.empty{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}.incubator-slot.empty:hover{transform:translateY(-2px);border-color:rgba(145,71,255,.46);background:rgba(145,71,255,.06)}.incubator-slot.extra-egg{cursor:pointer;border-color:rgba(145,71,255,.32);background:linear-gradient(160deg,rgba(145,71,255,.09),rgba(9,13,28,.66))}.incubator-slot.extra-egg.ready{border-color:rgba(91,214,164,.42);box-shadow:inset 0 0 24px rgba(91,214,164,.035)}.incubator-slot.extra-egg.ready .incubator-progress-bar{background:linear-gradient(90deg,#2f9f79,#63d6aa,#b4f2da)}.incubator-add-modal{position:fixed;inset:0;z-index:1000066;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(3,5,15,.86);backdrop-filter:blur(10px)}.incubator-add-modal.hidden{display:none}.incubator-add-panel{width:min(560px,100%);max-height:min(88vh,760px);overflow:auto;padding:22px;border:1px solid rgba(145,71,255,.38);border-radius:20px;background:linear-gradient(180deg,#12172c,#0d1122);box-shadow:0 26px 90px rgba(0,0,0,.58)}.incubator-add-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}.incubator-add-head h2{margin:0;font-size:24px}.incubator-add-close{width:40px;height:40px;flex:0 0 40px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:21px;cursor:pointer}.incubator-add-card{margin-top:16px;padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:16px;background:#101427}.incubator-add-egg{display:flex;align-items:center;gap:14px}.incubator-add-egg-visual{width:74px;height:86px;flex:0 0 74px;display:flex;align-items:center;justify-content:center}.incubator-add-egg-visual .incubator-egg-mini{transform:scale(1.05)}.incubator-add-info{min-width:0}.incubator-add-title{font-size:18px;font-weight:950}.incubator-add-copy{margin-top:5px;color:#aeb7d1;font-size:12px;line-height:1.5}.incubator-add-count{margin-top:10px;display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid rgba(145,71,255,.24);background:rgba(145,71,255,.08);font-size:11px;font-weight:900;color:#e4d7ff}.incubator-add-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}.incubator-add-actions .hub-btn{font-size:13px;min-height:42px;padding:10px 14px}.incubator-add-message{min-height:18px;margin-top:12px;color:#9ea7c6;font-size:12px;font-weight:800}.incubator-add-message.error{color:#ff8b9f}.incubator-add-message.ok{color:#91e3ac}@media(max-width:900px){.incubator-add-modal{align-items:flex-start;padding:10px 10px calc(92px + env(safe-area-inset-bottom));overflow-y:auto}.incubator-add-panel{max-height:calc(100dvh - 112px - env(safe-area-inset-bottom));padding:16px 16px 28px}.incubator-add-head h2{font-size:21px}.incubator-add-actions .hub-btn{width:100%}}
 @media(max-width:820px){.incubator-slots{grid-template-columns:1fr}.incubator-slot{min-height:120px}.incubator-slot.active{align-items:center}}
 .wallet-card{align-self:start;width:100%;margin:0;padding:16px 18px;border:1px solid rgba(145,71,255,.28);border-radius:0;background:linear-gradient(165deg,rgba(21,25,43,.98),rgba(12,16,32,.98));box-shadow:0 14px 40px rgba(0,0,0,.20);display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;gap:14px}.wallet-card .wallet-kicker{grid-column:1/-1;margin-bottom:0}.wallet-card .wallet-balance-row{margin-bottom:0;min-width:0}.wallet-card .wallet-shop-button{margin-top:0;align-self:center;justify-self:end;width:220px;min-height:40px}
 .wallet-kicker{font-size:16px;font-weight:950;letter-spacing:0;text-transform:none;color:#fff;margin-bottom:10px}
@@ -2448,7 +2448,7 @@ html, body{
     </div>
   </div>
   <div class="incubator-slots">
-    <div id="topIncubatorEgg" class="incubator-slot active">
+    <div id="topIncubatorEgg" class="incubator-slot active" data-incubator-slot="1">
       <div id="topIncubatorEggArt" class="incubator-slot-egg">
         <div class="incubator-egg-mini" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
       </div>
@@ -2459,15 +2459,15 @@ html, body{
       <div id="topIncubatorStatus" class="incubator-status">Ton œuf commence son incubation.</div>
       <div id="topIncubatorPendingWrap" class="incubator-pending">⚡ XP en attente : <strong id="topIncubatorPendingXp">0 XP</strong></div>
     </div>
-    <div class="incubator-slot">
+    <div id="topIncubatorSlot2" class="incubator-slot empty" data-incubator-slot="2">
       <div class="incubator-slot-plus">＋</div>
       <div class="incubator-slot-title">Emplacement libre</div>
-      <div class="incubator-slot-note">Prêt pour un futur œuf</div>
+      <div class="incubator-slot-note">Cliquer pour ajouter un œuf</div>
     </div>
-    <div class="incubator-slot">
+    <div id="topIncubatorSlot3" class="incubator-slot empty" data-incubator-slot="3">
       <div class="incubator-slot-plus">＋</div>
       <div class="incubator-slot-title">Emplacement libre</div>
-      <div class="incubator-slot-note">Prêt pour un futur œuf</div>
+      <div class="incubator-slot-note">Cliquer pour ajouter un œuf</div>
     </div>
   </div>
 </section>
@@ -2756,6 +2756,15 @@ html, body{
   </div>
 </div>
 
+<div id="incubatorAddModal" class="incubator-add-modal hidden" role="dialog" aria-modal="true" aria-labelledby="incubatorAddTitle">
+  <div class="incubator-add-panel">
+    <div class="incubator-add-head">
+      <div><h2 id="incubatorAddTitle">🥚 Ajouter un œuf</h2><div id="incubatorAddSubtitle" class="hub-sub">Choisis un œuf à placer dans cet emplacement.</div></div>
+      <button id="incubatorAddClose" class="incubator-add-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="incubatorAddContent"></div>
+  </div>
+</div>
 <div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
 <div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
 
@@ -3569,6 +3578,7 @@ async function loadGame() {
     renderPlayerSubscriptionStatus();
 
     renderGame();
+    await loadIncubatorSlots();
     await syncDesktopLovysHub();
     await loadBadges();
     await loadDailyChallenges();
@@ -3577,6 +3587,106 @@ async function loadGame() {
   } catch (error) {
     console.error('Erreur chargement jeu :', error);
   }
+}
+
+let incubatorData = null;
+let selectedIncubatorSlot = null;
+let incubatorBackdropMouseDown = false;
+
+function incubatorEggMarkup() {
+  return `<div class="incubator-slot-egg"><div class="incubator-egg-mini" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div></div>`;
+}
+
+function renderIncubatorSlot(slotData) {
+  const slot = Number(slotData?.slot || 0);
+  const el = slot === 1 ? $('topIncubatorEgg') : $(`topIncubatorSlot${slot}`);
+  if (!el) return;
+  el.dataset.incubatorSlot = String(slot);
+  el.classList.remove('active','empty','extra-egg','ready');
+
+  if (!slotData || slotData.empty) {
+    el.classList.add('empty');
+    el.innerHTML = `<div class="incubator-slot-plus">＋</div><div class="incubator-slot-title">Emplacement libre</div><div class="incubator-slot-note">${isMobileGameUi() ? 'Toucher' : 'Cliquer'} pour ajouter un œuf</div>`;
+    return;
+  }
+
+  const progress = Math.max(0, Math.min(100, Number(slotData.progress || 0)));
+  const watched = formatEggTime(slotData.watchedSeconds || 0);
+  const isStarter = slotData.source === 'starter';
+  el.classList.add(isStarter ? 'active' : 'extra-egg');
+  if (slotData.ready) el.classList.add('ready');
+  const title = slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation';
+  const status = slotData.ready ? 'Incubation terminée.' : `Encore ${formatEggTime(Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0)))} avant l’éclosion.`;
+  const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
+  el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div></div><div class="incubator-time">${watched} / 6 h 00</div><div class="incubator-status">${status}</div>${pending}`;
+}
+
+function renderIncubatorSlots() {
+  if (!incubatorData?.slots) return;
+  incubatorData.slots.forEach(renderIncubatorSlot);
+}
+
+async function loadIncubatorSlots() {
+  try {
+    const response = await fetch('/api/incubator', { cache:'no-store' });
+    const data = await response.json();
+    if (!response.ok) return;
+    incubatorData = data;
+    renderIncubatorSlots();
+  } catch (error) {
+    console.warn('Impossible de charger les emplacements d’incubation :', error);
+  }
+}
+
+function closeIncubatorAddModal() {
+  $('incubatorAddModal')?.classList.add('hidden');
+  selectedIncubatorSlot = null;
+}
+
+function openIncubatorAddModal(slot) {
+  selectedIncubatorSlot = Number(slot);
+  const content = $('incubatorAddContent');
+  if (!content) return;
+  const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
+  $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · choisis un œuf disponible.`;
+  if (available > 0) {
+    content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">🥚 ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button></div><div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+    $('incubatorPlaceEgg')?.addEventListener('click', placeEggInSelectedSlot);
+  } else {
+    content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Aucun œuf disponible</div><div class="incubator-add-copy">Tu n’as pas encore d’Œuf mystère dans ton inventaire. La première source disponible est la Boutique.</div><div class="incubator-add-count">🥚 0 disponible</div></div></div><div class="incubator-add-actions"><button id="incubatorOpenShop" class="hub-btn" type="button">🛒 Ouvrir la Boutique</button></div></div>`;
+    $('incubatorOpenShop')?.addEventListener('click', async ()=>{ closeIncubatorAddModal(); await openShop(); });
+  }
+  $('incubatorAddModal')?.classList.remove('hidden');
+}
+
+async function placeEggInSelectedSlot() {
+  if (![1,2,3].includes(Number(selectedIncubatorSlot))) return;
+  const button = $('incubatorPlaceEgg');
+  const message = $('incubatorAddMessage');
+  if (button) button.disabled = true;
+  if (message) { message.className='incubator-add-message'; message.textContent='Placement en cours…'; }
+  try {
+    const response = await fetch('/api/incubator/place', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ slot:selectedIncubatorSlot }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Impossible de placer cet œuf.');
+    if (message) { message.className='incubator-add-message ok'; message.textContent='Œuf placé dans l’incubateur !'; }
+    await loadIncubatorSlots();
+    setTimeout(closeIncubatorAddModal, 450);
+  } catch (error) {
+    if (message) { message.className='incubator-add-message error'; message.textContent=error.message; }
+    if (button) button.disabled = false;
+  }
+}
+
+function openExtraEggInfo(slotData) {
+  const content = $('incubatorAddContent');
+  if (!content) return;
+  selectedIncubatorSlot = Number(slotData.slot);
+  $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · œuf en cours d’incubation.`;
+  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
+  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé ses 6 heures d’incubation. La gestion de l’éclosion des œufs supplémentaires arrive dans la prochaine étape du système.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / 6 h 00</div></div></div><div class="incubator-add-actions"><button id="incubatorInfoClose" class="hub-btn" type="button">Fermer</button></div></div>`;
+  $('incubatorInfoClose')?.addEventListener('click', closeIncubatorAddModal);
+  $('incubatorAddModal')?.classList.remove('hidden');
 }
 
 function formatEggTime(seconds) {
@@ -4642,7 +4752,24 @@ function toggleMobilePanel(panel){
   }
   syncMobileNavState();
 }
-$('topIncubatorEgg')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('creatures'); return; } const pick=$('pick'); if(!pick) return; pick.classList.toggle('egg-details-open'); document.body.style.overflow=pick.classList.contains('egg-details-open')?'hidden':''; });
+document.querySelector('.incubator-slots')?.addEventListener('click', event=>{
+  const slotEl = event.target.closest('[data-incubator-slot]');
+  if (!slotEl) return;
+  const slot = Number(slotEl.dataset.incubatorSlot || 0);
+  const slotData = incubatorData?.slots?.find(item => Number(item.slot) === slot);
+  if (!slotData || slotData.empty) { openIncubatorAddModal(slot); return; }
+  if (slotData.source === 'starter') {
+    if(isMobileGameUi()) { toggleMobilePanel('creatures'); return; }
+    const pick=$('pick'); if(!pick) return;
+    pick.classList.toggle('egg-details-open');
+    document.body.style.overflow=pick.classList.contains('egg-details-open')?'hidden':'';
+    return;
+  }
+  openExtraEggInfo(slotData);
+});
+$('incubatorAddClose')?.addEventListener('click', closeIncubatorAddModal);
+$('incubatorAddModal')?.addEventListener('mousedown', event=>{ incubatorBackdropMouseDown = event.target.id === 'incubatorAddModal'; });
+$('incubatorAddModal')?.addEventListener('mouseup', event=>{ if (incubatorBackdropMouseDown && event.target.id === 'incubatorAddModal') closeIncubatorAddModal(); incubatorBackdropMouseDown=false; });
 $('mobileEggClose')?.addEventListener('click',()=>{ $('pick')?.classList.remove('egg-details-open'); document.body.style.overflow=''; syncMobileNavState?.(); });
 $('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('progression'); return; } $('progressionModal')?.classList.remove('hidden'); loadProgression(); });
 $('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; closeAllMobilePanels(''); syncMobileNavState(); document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
@@ -4651,7 +4778,7 @@ $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())ret
 $('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('inventory'); });
 $('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('profile'); });
 window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape' && $('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');
 if (leaderboardSearchInput) {
