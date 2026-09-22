@@ -3903,12 +3903,12 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
 app.get('/api/progression', async (req,res)=>{
   try{
     if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
-    const r=await pool.query(`SELECT id,creature_id,xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
+    const r=await pool.query(`SELECT id,creature_id,xp,pending_xp,global_xp,prestige,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);
     const u=r.rows[0]; if(!u) return res.status(404).json({error:'Joueur introuvable.'});
     await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
     const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(u.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    res.json({ok:true,globalXp:Number(u.global_xp||0),creatureXp:Number(u.xp||0),pendingCreatureXp:Number(u.pending_xp||0),hasCreature:Boolean(u.creature_id),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
 });
 
