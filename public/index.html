@@ -2012,7 +2012,6 @@ html, body{
   #progressionModal .progression-preview-tag{font-size:13px;padding:8px 13px}
   #progressionModal .progression-preview-icon{width:62px;height:62px;flex-basis:62px;font-size:28px}
   #progressionModal .progression-preview-action{min-width:210px;font-size:13px;padding:10px 14px}
-@media(max-width:800px){#progressionModal .progression-preview-card{padding:14px 14px 16px}#progressionModal .progression-preview-kicker{font-size:11px}#progressionModal .progression-preview-main{flex-direction:column;align-items:stretch;gap:14px}#progressionModal .progression-preview-left{display:grid;grid-template-columns:52px minmax(0,1fr);align-items:center;gap:12px}#progressionModal .progression-preview-icon{width:48px;height:48px;flex-basis:48px;font-size:22px;border-radius:12px}#progressionModal .progression-preview-text{display:flex;flex-direction:column;gap:6px;min-width:0}#progressionModal .progression-preview-title{font-size:18px;line-height:1.1}#progressionModal .progression-preview-sub{margin-top:0;font-size:14px;line-height:1.45;word-break:break-word}#progressionModal .progression-preview-right{align-items:stretch;gap:12px;width:100%}#progressionModal .progression-preview-tag{align-self:flex-end;font-size:12px;padding:7px 12px}#progressionModal .progression-preview-actions{width:100%}#progressionModal .progression-preview-action{width:100%;min-width:0;justify-content:center;font-size:14px;padding:12px 14px}}
   #progressionModal .progression-report-level{font-size:38px}
   #progressionModal .progression-report-grade{font-size:15px}
   #progressionModal .progression-report-prestige strong{font-size:22px}
@@ -2044,6 +2043,22 @@ html, body{
   #progressionModal #progressionContent>.hub-sub{font-size:14px;line-height:1.55}
   #progressionModal .report-row{font-size:13px;padding:12px 14px}
   #progressionModal .hub-btn{font-size:14px;padding:11px 15px}
+}
+
+/* Correctif mobile uniquement : prévisualisation du palier */
+@media(max-width:800px){
+  #progressionModal .progression-preview-card{padding:14px 14px 16px}
+  #progressionModal .progression-preview-kicker{font-size:11px}
+  #progressionModal .progression-preview-main{display:flex;flex-direction:column;align-items:stretch;gap:14px}
+  #progressionModal .progression-preview-left{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:12px;width:100%}
+  #progressionModal .progression-preview-icon{width:48px;height:48px;min-width:48px;flex:0 0 48px;font-size:22px;border-radius:12px;margin-top:2px}
+  #progressionModal .progression-preview-text{display:block;min-width:0;width:100%}
+  #progressionModal .progression-preview-title{font-size:19px;line-height:1.15;white-space:normal;word-break:normal}
+  #progressionModal .progression-preview-sub{margin-top:6px;font-size:13px;line-height:1.45;white-space:normal;word-break:normal;overflow-wrap:anywhere}
+  #progressionModal .progression-preview-right{display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%}
+  #progressionModal .progression-preview-tag{align-self:flex-start;font-size:12px;padding:7px 12px}
+  #progressionModal .progression-preview-actions{display:block;width:100%}
+  #progressionModal .progression-preview-action{display:flex;width:100%;min-width:0;justify-content:center;align-items:center;font-size:14px;padding:12px 14px}
 }
 
 
