@@ -2011,6 +2011,33 @@ html, body{
   .mobile-egg-close{display:flex!important;position:fixed;top:calc(14px + env(safe-area-inset-top));right:14px;z-index:1000046;width:42px;height:42px;align-items:center;justify-content:center;border-radius:50%;border:1px solid #343b5f;background:#1a1f35;color:#fff;font-size:22px;font-weight:900}
 }
 
+
+/* Correctif global mobile : toutes les fenêtres restent entièrement accessibles au-dessus de la navigation basse */
+@media(max-width:900px){
+  :root{--mobile-game-nav-safe:calc(92px + env(safe-area-inset-bottom));}
+  .inventory-modal,.shop-modal,.player-profile-modal,.game-modal,.badge-collection-modal,.account-modal,.sub-benefits-modal,.admin-players-modal,.events-modal{
+    align-items:flex-start;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    padding:10px 10px var(--mobile-game-nav-safe);
+  }
+  .inventory-panel,.shop-panel,.player-profile-panel,.game-panel,.badge-collection-panel,.account-panel,.sub-benefits-panel,.admin-players-panel,.events-panel{
+    width:100%;
+    max-height:calc(100dvh - var(--mobile-game-nav-safe) - 20px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scroll-padding-bottom:28px;
+    padding-bottom:30px;
+  }
+  .inventory-grid,.shop-grid,.player-profile-sections,.badge-collection-content,.pve-fights,.report-list{padding-bottom:10px;}
+  .inventory-item:last-child,.shop-item:last-child,.player-profile-section:last-child,.pve-zone:last-child,.report-row:last-child{margin-bottom:8px;}
+  .daily-challenge-detail-modal{padding:14px 14px var(--mobile-game-nav-safe);align-items:flex-start;overflow-y:auto;}
+  .daily-challenge-detail-panel{max-height:calc(100dvh - var(--mobile-game-nav-safe) - 28px);padding-bottom:28px;}
+  .shop-preview-modal{align-items:flex-start;padding:10px 10px var(--mobile-game-nav-safe);overflow-y:auto;}
+  .shop-preview-modal .shop-preview-panel{max-height:calc(100dvh - var(--mobile-game-nav-safe) - 20px);padding-bottom:30px;}
+}
 </style>
 </head>
 <body class="auth-locked">
