@@ -2120,13 +2120,134 @@ html, body{
   .shop-preview-modal .shop-preview-panel{max-height:calc(100dvh - var(--mobile-game-nav-safe) - 20px);padding-bottom:30px;}
 }
 
-/* ===== ÉCLOSION PREMIUM ===== */
-.hatch-cinematic{position:fixed;inset:0;z-index:1000200;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,rgba(98,45,166,.28),rgba(5,7,18,.97) 48%,#050711 78%);backdrop-filter:blur(12px)}
-.hatch-cinematic.hidden{display:none}.hatch-stage{position:relative;width:min(760px,100vw);height:min(780px,100dvh);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;overflow:hidden}.hatch-stars{position:absolute;inset:0;pointer-events:none;background-image:radial-gradient(circle,rgba(255,255,255,.7) 0 1px,transparent 1.5px),radial-gradient(circle,rgba(195,153,255,.6) 0 1px,transparent 1.5px);background-size:92px 92px,137px 137px;background-position:17px 29px,44px 13px;opacity:.26;animation:hatchStars 7s linear infinite}.hatch-ring{position:absolute;left:50%;top:45%;width:360px;height:360px;border:1px solid rgba(190,145,255,.18);border-radius:50%;transform:translate(-50%,-50%) scale(.7);box-shadow:0 0 70px rgba(145,71,255,.16),inset 0 0 70px rgba(145,71,255,.09);animation:hatchRing 2s ease-in-out infinite}.hatch-copy{position:absolute;top:11%;z-index:4}.hatch-kicker{font-size:13px;font-weight:950;text-transform:uppercase;letter-spacing:.22em;color:#b99ae8}.hatch-message{margin-top:8px;font-size:clamp(23px,4vw,34px);font-weight:1000;color:#fff;text-shadow:0 0 24px rgba(185,130,255,.28)}.hatch-egg-wrap{position:relative;z-index:5;width:280px;height:330px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 30px 45px rgba(87,37,151,.48));transform-origin:50% 78%}.hatch-egg-wrap .egg-visual{width:260px;height:310px;margin:0;animation:none}.hatch-egg-wrap .egg-shell{width:175px;height:228px}.hatch-egg-wrap .egg-shell::after{opacity:.3}.hatch-cracks{position:absolute;left:50%;top:50%;width:126px;height:160px;transform:translate(-50%,-50%);opacity:0;filter:drop-shadow(0 0 9px #efe4ff)}.hatch-cracks::before,.hatch-cracks::after{content:'';position:absolute;inset:0;background:linear-gradient(117deg,transparent 45%,rgba(255,255,255,.95) 46% 48%,transparent 49%) 28px 14px/42px 88px no-repeat,linear-gradient(62deg,transparent 45%,rgba(255,255,255,.88) 46% 48%,transparent 49%) 61px 62px/45px 85px no-repeat}.hatch-cracks::after{transform:scaleX(-1) rotate(12deg);opacity:.75}.hatch-particles{position:absolute;left:50%;top:47%;z-index:3;width:10px;height:10px;border-radius:50%;box-shadow:-130px -35px 0 1px #d8bfff,120px -55px 0 2px #fff,90px 70px 0 1px #b982ff,-105px 80px 0 2px #fff,0 -145px 0 2px #cfa9ff,155px 20px 0 1px #fff,-160px 20px 0 1px #cfa9ff;opacity:0}.hatch-flash{position:absolute;inset:-10%;z-index:20;background:radial-gradient(circle,#fff 0,#efe5ff 18%,rgba(187,126,255,.95) 36%,rgba(145,71,255,.32) 56%,transparent 70%);opacity:0;pointer-events:none}.hatch-reveal{position:absolute;inset:0;z-index:30;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at 50% 39%,rgba(145,71,255,.25),transparent 34%);opacity:0;pointer-events:none;transform:scale(.92)}.hatch-creature-art{height:300px;display:flex;align-items:center;justify-content:center;filter:drop-shadow(0 24px 32px rgba(145,71,255,.34))}.hatch-creature-art img{width:min(280px,72vw);height:280px;object-fit:contain}.hatch-rarity{margin-top:2px;padding:7px 13px;border-radius:999px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);font-size:12px;font-weight:950;letter-spacing:.08em;text-transform:uppercase;color:#e6ddf7}.hatch-name{margin-top:14px;font-size:clamp(34px,7vw,58px);font-weight:1000;line-height:1;color:#fff;text-shadow:0 0 28px rgba(185,130,255,.44)}.hatch-type{margin-top:9px;color:#c8d0e7;font-size:16px;font-weight:850}.hatch-action{margin-top:24px;min-width:min(320px,82vw);padding:14px 22px;border:0;border-radius:14px;background:linear-gradient(145deg,#7434d4,#9a49ff);color:#fff;font:inherit;font-size:15px;font-weight:950;cursor:pointer;box-shadow:0 14px 34px rgba(111,54,199,.35)}
-.hatch-stage.phase-shake .hatch-egg-wrap{animation:hatchShake 1.65s ease-in-out}.hatch-stage.phase-crack .hatch-egg-wrap{animation:hatchHardShake .75s ease-in-out 2}.hatch-stage.phase-crack .hatch-cracks{animation:hatchCracks 1.35s ease forwards}.hatch-stage.phase-crack .hatch-particles{animation:hatchParticles 1.1s ease-out forwards}.hatch-stage.phase-flash .hatch-flash{animation:hatchFlash .95s ease-out forwards}.hatch-stage.phase-flash .hatch-egg-wrap{animation:hatchEggBurst .75s ease-in forwards}.hatch-stage.phase-reveal .hatch-egg-wrap,.hatch-stage.phase-reveal .hatch-copy{opacity:0}.hatch-stage.phase-reveal .hatch-reveal{animation:hatchReveal .75s cubic-bezier(.17,.89,.32,1.35) forwards;pointer-events:auto}
-@keyframes hatchStars{to{background-position:109px 121px,181px 150px}}@keyframes hatchRing{50%{transform:translate(-50%,-50%) scale(1.06);opacity:.9}}@keyframes hatchShake{0%,100%{transform:rotate(0)}12%{transform:rotate(-5deg)}22%{transform:rotate(5deg)}34%{transform:rotate(-8deg)}46%{transform:rotate(8deg)}60%{transform:rotate(-4deg)}72%{transform:rotate(4deg)}}@keyframes hatchHardShake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-9px) rotate(-10deg)}40%{transform:translateX(9px) rotate(10deg)}60%{transform:translateX(-7px) rotate(-7deg)}80%{transform:translateX(7px) rotate(7deg)}}@keyframes hatchCracks{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}40%{opacity:.6}100%{opacity:1;transform:translate(-50%,-50%) scale(1.08)}}@keyframes hatchParticles{0%{opacity:0;transform:translate(-50%,-50%) scale(.4)}45%{opacity:1}100%{opacity:0;transform:translate(-50%,-50%) scale(1.45)}}@keyframes hatchFlash{0%{opacity:0;transform:scale(.45)}35%{opacity:1;transform:scale(1)}70%{opacity:.95}100%{opacity:0;transform:scale(1.7)}}@keyframes hatchEggBurst{0%{opacity:1;transform:scale(1)}45%{transform:scale(1.15)}100%{opacity:0;transform:scale(.35)}}@keyframes hatchReveal{0%{opacity:0;transform:scale(.68) translateY(28px)}65%{opacity:1;transform:scale(1.04) translateY(0)}100%{opacity:1;transform:scale(1) translateY(0)}}
-@media(max-width:900px){.hatch-stage{height:100dvh;padding:20px 16px calc(88px + env(safe-area-inset-bottom))}.hatch-copy{top:12%}.hatch-egg-wrap{width:220px;height:275px}.hatch-egg-wrap .egg-visual{width:220px;height:270px}.hatch-egg-wrap .egg-shell{width:145px;height:190px}.hatch-creature-art{height:260px}.hatch-creature-art img{height:245px}.hatch-action{margin-top:20px;min-height:50px}}
-@media(prefers-reduced-motion:reduce){.hatch-stars,.hatch-ring,.hatch-egg-wrap,.hatch-cracks,.hatch-particles,.hatch-flash,.hatch-reveal{animation-duration:.01ms!important;animation-delay:0ms!important}}
+/* ===== ÉCLOSION LOVYS PREMIUM ===== */
+.hatch-cinematic{
+  position:fixed;inset:0;z-index:1000200;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:
+  radial-gradient(circle at 50% 43%,rgba(145,71,255,.16),transparent 28%),
+  radial-gradient(circle at 50% 50%,rgba(255,255,255,.025),transparent 56%),
+  rgba(5,7,18,.97);
+  overflow:hidden;opacity:0;pointer-events:none;transition:opacity .22s ease;
+}
+.hatch-cinematic.active{opacity:1;pointer-events:auto}
+.hatch-cinematic.hidden{display:none}
+.hatch-cinematic::before{
+  content:"";position:absolute;inset:-25%;background:
+  radial-gradient(circle at 50% 50%,rgba(145,71,255,.15),transparent 27%),
+  conic-gradient(from 0deg,transparent 0 12%,rgba(145,71,255,.04) 13% 17%,transparent 18% 32%,rgba(255,255,255,.025) 33% 36%,transparent 37% 100%);
+  animation:hatchAuraSpin 16s linear infinite;pointer-events:none
+}
+.hatch-cinematic[data-rarity="rare"]{--hatch-accent:#58d7ff;--hatch-glow:rgba(88,215,255,.42)}
+.hatch-cinematic[data-rarity="epic"]{--hatch-accent:#b66cff;--hatch-glow:rgba(182,108,255,.52)}
+.hatch-cinematic[data-rarity="mythic"]{--hatch-accent:#ffd76a;--hatch-glow:rgba(255,215,106,.58)}
+.hatch-cinematic[data-rarity="common"]{--hatch-accent:#9b66ff;--hatch-glow:rgba(155,102,255,.42)}
+.hatch-scene{position:relative;width:min(620px,100%);min-height:610px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;z-index:2}
+.hatch-topline{position:absolute;top:15px;left:0;right:0;color:#bbbfe0;font-size:12px;font-weight:900;letter-spacing:.18em;text-transform:uppercase;opacity:0;transform:translateY(-8px);transition:.35s ease}
+.hatch-cinematic.active .hatch-topline{opacity:1;transform:none}
+.hatch-stage{position:relative;width:min(360px,78vw);height:360px;display:grid;place-items:center}
+.hatch-ring,.hatch-ring::before,.hatch-ring::after{position:absolute;content:"";border-radius:50%;border:1px solid color-mix(in srgb,var(--hatch-accent,#9b66ff) 55%,transparent);opacity:.35}
+.hatch-ring{width:250px;height:250px;animation:hatchRingPulse 2.1s ease-in-out infinite}
+.hatch-ring::before{inset:-30px;animation:hatchRingPulse 2.7s ease-in-out infinite reverse}
+.hatch-ring::after{inset:-62px;opacity:.16;animation:hatchRingPulse 3.2s ease-in-out infinite}
+.hatch-egg-wrap{position:relative;width:180px;height:220px;display:grid;place-items:center;transform-origin:50% 78%;filter:drop-shadow(0 0 34px var(--hatch-glow,rgba(155,102,255,.42)))}
+.hatch-egg-wrap .incubator-slot-egg{transform:scale(2.25);margin:0}
+.hatch-egg-wrap .incubator-egg-mini{animation:none!important}
+.hatch-cinematic.phase-shake .hatch-egg-wrap{animation:hatchShake 1.15s cubic-bezier(.36,.07,.19,.97) both}
+.hatch-cinematic.phase-crack .hatch-egg-wrap{animation:hatchShakeHard .7s cubic-bezier(.36,.07,.19,.97) both}
+.hatch-cracks{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .16s ease}
+.hatch-cracks span{position:absolute;left:50%;top:42%;height:3px;border-radius:3px;background:linear-gradient(90deg,#fff,var(--hatch-accent,#b66cff));box-shadow:0 0 12px #fff,0 0 24px var(--hatch-glow);transform-origin:left center}
+.hatch-cracks span:nth-child(1){width:54px;transform:rotate(24deg)}
+.hatch-cracks span:nth-child(2){width:48px;transform:rotate(151deg)}
+.hatch-cracks span:nth-child(3){width:40px;transform:rotate(84deg)}
+.hatch-cracks span:nth-child(4){width:44px;transform:rotate(-58deg)}
+.hatch-cracks span:nth-child(5){width:34px;transform:translate(25px,20px) rotate(48deg)}
+.hatch-cinematic.phase-crack .hatch-cracks,.hatch-cinematic.phase-burst .hatch-cracks{opacity:1}
+.hatch-particles{position:absolute;inset:0;pointer-events:none}
+.hatch-particle{
+  position:absolute;left:50%;top:50%;width:7px;height:7px;border-radius:50%;
+  background:var(--hatch-accent,#a66cff);box-shadow:0 0 12px var(--hatch-glow);
+  opacity:0;transform:translate(-50%,-50%) scale(.3)
+}
+.hatch-cinematic.phase-burst .hatch-particle,
+.hatch-cinematic.phase-reveal .hatch-particle{
+  animation:hatchParticle var(--dur,1.1s) ease-out forwards;
+  animation-delay:var(--delay,0s)
+}
+.hatch-flash{position:absolute;inset:-20%;background:radial-gradient(circle,#fff 0,rgba(255,255,255,.92) 7%,var(--hatch-accent,#a66cff) 18%,rgba(145,71,255,.18) 36%,transparent 62%);opacity:0;transform:scale(.55);pointer-events:none}
+.hatch-cinematic.phase-burst .hatch-flash{animation:hatchFlash .92s ease-out forwards}
+.hatch-creature-wrap{position:absolute;inset:0;display:grid;place-items:center;opacity:0;transform:scale(.55);transition:opacity .42s ease,transform .58s cubic-bezier(.2,.9,.2,1.22)}
+.hatch-creature-art{width:255px;height:255px;display:grid;place-items:center;filter:brightness(0) drop-shadow(0 0 28px var(--hatch-glow));transition:filter .55s ease,transform .55s ease}
+.hatch-creature-art img{width:100%;height:100%;max-width:255px;max-height:255px;object-fit:contain}
+.hatch-cinematic.phase-silhouette .hatch-creature-wrap,
+.hatch-cinematic.phase-reveal .hatch-creature-wrap,
+.hatch-cinematic.phase-done .hatch-creature-wrap{opacity:1;transform:scale(1)}
+.hatch-cinematic.phase-reveal .hatch-creature-art,
+.hatch-cinematic.phase-done .hatch-creature-art{filter:brightness(1) drop-shadow(0 0 34px var(--hatch-glow));animation:hatchCreatureFloat 2.8s ease-in-out infinite}
+.hatch-cinematic.phase-silhouette .hatch-egg-wrap,
+.hatch-cinematic.phase-reveal .hatch-egg-wrap,
+.hatch-cinematic.phase-done .hatch-egg-wrap{opacity:0;transform:scale(.25)}
+.hatch-copy{margin-top:-14px;min-height:148px;opacity:0;transform:translateY(14px);transition:.45s ease}
+.hatch-cinematic.phase-reveal .hatch-copy,.hatch-cinematic.phase-done .hatch-copy{opacity:1;transform:none}
+.hatch-rarity{
+  display:inline-flex;align-items:center;justify-content:center;padding:7px 12px;border-radius:999px;
+  border:1px solid color-mix(in srgb,var(--hatch-accent,#a66cff) 58%,transparent);
+  background:color-mix(in srgb,var(--hatch-accent,#a66cff) 12%,transparent);
+  color:var(--hatch-accent,#d9c4ff);font-size:11px;font-weight:1000;text-transform:uppercase;letter-spacing:.11em
+}
+.hatch-name{margin-top:12px;font-size:42px;font-weight:1000;line-height:1;color:#fff;text-shadow:0 0 24px var(--hatch-glow)}
+.hatch-meta{margin-top:9px;color:#c8cce2;font-size:15px;font-weight:800}
+.hatch-message{margin-top:8px;color:#929bbd;font-size:12px;line-height:1.45}
+.hatch-continue{
+  margin-top:18px;min-width:min(360px,86vw);min-height:50px;border:1px solid color-mix(in srgb,var(--hatch-accent,#a66cff) 65%,transparent);
+  border-radius:14px;background:linear-gradient(145deg,color-mix(in srgb,var(--hatch-accent,#9147ff) 82%,#5a2aa8),var(--hatch-accent,#9147ff));
+  color:#fff;font:inherit;font-size:14px;font-weight:950;cursor:pointer;box-shadow:0 12px 36px color-mix(in srgb,var(--hatch-accent,#9147ff) 25%,transparent);
+  opacity:0;transform:translateY(10px);pointer-events:none;transition:.35s ease
+}
+.hatch-cinematic.phase-done .hatch-continue{opacity:1;transform:none;pointer-events:auto}
+.hatch-skip{position:absolute;right:8px;bottom:8px;border:0;background:transparent;color:#7e88aa;font:inherit;font-size:11px;font-weight:850;cursor:pointer;padding:8px}
+.hatch-cinematic.phase-done .hatch-skip{display:none}
+@keyframes hatchAuraSpin{to{transform:rotate(360deg)}}
+@keyframes hatchRingPulse{0%,100%{transform:scale(.92);opacity:.18}50%{transform:scale(1.06);opacity:.52}}
+@keyframes hatchShake{0%,100%{transform:rotate(0)}10%,30%,50%,70%,90%{transform:rotate(-5deg) translateX(-3px)}20%,40%,60%,80%{transform:rotate(5deg) translateX(3px)}}
+@keyframes hatchShakeHard{0%,100%{transform:rotate(0) scale(1)}14%{transform:rotate(-9deg) translateX(-7px) scale(1.02)}28%{transform:rotate(9deg) translateX(7px) scale(1.03)}42%{transform:rotate(-11deg) translateX(-8px) scale(1.04)}56%{transform:rotate(11deg) translateX(8px) scale(1.05)}70%{transform:rotate(-7deg) translateX(-5px) scale(1.06)}84%{transform:rotate(7deg) translateX(5px) scale(1.07)}}
+@keyframes hatchFlash{0%{opacity:0;transform:scale(.45)}22%{opacity:1;transform:scale(1.02)}48%{opacity:.95;transform:scale(1.35)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes hatchParticle{0%{opacity:0;transform:translate(-50%,-50%) scale(.2)}18%{opacity:1}100%{opacity:0;transform:translate(calc(-50% + var(--x,0px)),calc(-50% + var(--y,-120px))) scale(1.4)}}
+@keyframes hatchCreatureFloat{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-10px) scale(1.025)}}
+@media(max-width:900px){
+  .hatch-cinematic{padding:14px}
+  .hatch-scene{min-height:560px}
+  .hatch-stage{width:310px;height:310px}
+  .hatch-egg-wrap{transform:scale(.88)}
+  .hatch-creature-art{width:220px;height:220px}
+  .hatch-creature-art img{max-width:220px;max-height:220px}
+  .hatch-name{font-size:34px}
+  .hatch-meta{font-size:13px}
+  .hatch-message{font-size:11px}
+  .hatch-topline{top:5px;font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .hatch-cinematic *{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+
+
+/* ===== CARTE D'AVENTURE PVE ===== */
+#pveModal .game-panel{overflow-x:hidden}
+.pve-map-shell{display:grid;gap:14px;margin-top:14px}
+.pve-map-player{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:#0d1224}
+.pve-map-player-main{display:flex;align-items:center;gap:11px;min-width:0}.pve-map-player-avatar{width:50px;height:50px;flex:0 0 50px;border-radius:14px;display:grid;place-items:center;background:radial-gradient(circle,rgba(145,71,255,.16),rgba(15,20,39,.94));border:1px solid rgba(145,71,255,.28);overflow:hidden}.pve-map-player-avatar img{width:46px;height:46px;object-fit:contain}.pve-map-player-name{font-size:16px;font-weight:950}.pve-map-player-meta{margin-top:3px;color:#9ea7c6;font-size:11px;font-weight:800}.pve-map-player-stats{display:flex;gap:7px;flex-wrap:wrap;justify-content:flex-end}.pve-map-stat{padding:6px 9px;border-radius:999px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);font-size:10px;font-weight:900;color:#dfe4f4;white-space:nowrap}
+.pve-zone-tabs{display:flex;gap:8px;overflow-x:auto;padding:2px 1px 7px;scrollbar-width:none}.pve-zone-tabs::-webkit-scrollbar{display:none}.pve-zone-tab{flex:0 0 auto;border:1px solid rgba(255,255,255,.10);background:#11162a;color:#939dba;border-radius:999px;padding:8px 11px;font:inherit;font-size:10.5px;font-weight:900;cursor:pointer;white-space:nowrap}.pve-zone-tab.active{border-color:rgba(145,71,255,.58);background:rgba(145,71,255,.16);color:#fff;box-shadow:0 0 18px rgba(145,71,255,.10)}.pve-zone-tab.complete{color:#9be7b7;border-color:rgba(57,210,115,.25)}.pve-zone-tab.locked{opacity:.42;cursor:default}
+.pve-adventure-map{--map-accent:#67ce83;position:relative;min-height:650px;overflow:hidden;border:1px solid color-mix(in srgb,var(--map-accent) 30%,rgba(255,255,255,.08));border-radius:22px;background:#0d1321;isolation:isolate;box-shadow:inset 0 0 80px rgba(0,0,0,.32)}
+.pve-adventure-map.theme-forest{--map-accent:#63d384;background:radial-gradient(circle at 18% 20%,rgba(65,138,80,.32),transparent 30%),radial-gradient(circle at 80% 72%,rgba(50,104,66,.27),transparent 34%),linear-gradient(180deg,#112319 0%,#0b1712 48%,#09110d 100%)}
+.pve-adventure-map.theme-ember{--map-accent:#ff9258;background:radial-gradient(circle at 15% 70%,rgba(255,94,41,.27),transparent 28%),radial-gradient(circle at 78% 18%,rgba(255,160,72,.19),transparent 30%),linear-gradient(180deg,#2c1512 0%,#1c0f12 52%,#0e0b10 100%)}
+.pve-adventure-map.theme-night{--map-accent:#a974ff;background:radial-gradient(circle at 15% 20%,rgba(103,91,211,.28),transparent 30%),radial-gradient(circle at 82% 68%,rgba(73,37,128,.32),transparent 34%),linear-gradient(180deg,#17152d 0%,#0e1021 50%,#090b16 100%)}
+.pve-adventure-map::before,.pve-adventure-map::after{content:"";position:absolute;inset:0;z-index:-2;pointer-events:none}.pve-adventure-map::before{background:radial-gradient(circle at 10% 16%,rgba(255,255,255,.08) 0 1px,transparent 2px),radial-gradient(circle at 72% 34%,rgba(255,255,255,.055) 0 1px,transparent 2px),radial-gradient(circle at 38% 72%,rgba(255,255,255,.055) 0 1px,transparent 2px);background-size:90px 90px,130px 130px,110px 110px;opacity:.45}.pve-adventure-map::after{background:linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px);background-size:32px 32px;opacity:.25}
+.pve-map-zone-head{position:relative;z-index:4;padding:20px 20px 8px;text-align:center}.pve-map-zone-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.15em;color:color-mix(in srgb,var(--map-accent) 75%,white);font-weight:950}.pve-map-zone-name{margin-top:5px;font-size:24px;font-weight:1000;color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.38)}.pve-map-zone-progress{margin-top:6px;color:#aab4cf;font-size:10.5px;font-weight:800}
+.pve-map-route{position:relative;min-height:540px;padding:28px 22px 34px;display:flex;flex-direction:column;justify-content:space-between;gap:28px}.pve-map-route::before{content:"";position:absolute;left:50%;top:24px;bottom:34px;width:7px;transform:translateX(-50%);border-radius:999px;background:linear-gradient(180deg,color-mix(in srgb,var(--map-accent) 70%,#fff),color-mix(in srgb,var(--map-accent) 25%,#1a1d2c));box-shadow:0 0 0 2px rgba(0,0,0,.20),0 0 24px color-mix(in srgb,var(--map-accent) 24%,transparent);opacity:.52}.pve-map-route::after{content:"";position:absolute;left:50%;top:26px;bottom:36px;width:2px;transform:translateX(-50%);background:repeating-linear-gradient(180deg,rgba(255,255,255,.85) 0 8px,transparent 8px 15px);opacity:.27}
+.pve-map-stop{position:relative;z-index:3;display:grid;grid-template-columns:1fr 82px 1fr;align-items:center;min-height:76px}.pve-map-stop.left .pve-map-node-wrap{grid-column:1 / 3;justify-self:end;padding-right:19px}.pve-map-stop.right .pve-map-node-wrap{grid-column:2 / 4;justify-self:start;padding-left:19px}.pve-map-node-wrap{display:flex;align-items:center;gap:10px;max-width:78%}.pve-map-stop.left .pve-map-node-wrap{flex-direction:row}.pve-map-stop.right .pve-map-node-wrap{flex-direction:row-reverse;text-align:right}.pve-map-node{position:relative;width:64px;height:64px;flex:0 0 64px;border-radius:50%;border:3px solid rgba(255,255,255,.20);background:linear-gradient(145deg,#252b43,#111528);color:#fff;display:grid;place-items:center;font:inherit;font-size:22px;font-weight:1000;cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,.34),0 0 0 5px rgba(0,0,0,.14);transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}.pve-map-node:hover:not(:disabled){transform:scale(1.07)}.pve-map-node.current{border-color:var(--map-accent);box-shadow:0 0 0 6px color-mix(in srgb,var(--map-accent) 13%,transparent),0 0 28px color-mix(in srgb,var(--map-accent) 40%,transparent),0 10px 26px rgba(0,0,0,.34);animation:pveCurrentPulse 1.9s ease-in-out infinite}.pve-map-node.won{background:linear-gradient(145deg,rgba(43,137,76,.9),rgba(19,63,37,.96));border-color:rgba(118,238,157,.76)}.pve-map-node.locked{opacity:.48;cursor:default;filter:grayscale(.45)}.pve-map-node.boss{width:76px;height:76px;flex-basis:76px;border-width:4px;background:linear-gradient(145deg,#4b315d,#1a1628);font-size:27px}.pve-map-node.final-boss{border-color:#f3c85b;box-shadow:0 0 0 6px rgba(243,200,91,.10),0 0 28px rgba(243,200,91,.22)}.pve-map-node.just-won{animation:pveVictoryBurst .78s ease both!important}.pve-map-node-label{min-width:0;padding:8px 10px;border-radius:12px;background:rgba(6,9,19,.58);border:1px solid rgba(255,255,255,.07);backdrop-filter:blur(5px);box-shadow:0 8px 20px rgba(0,0,0,.18)}.pve-map-node-name{font-size:11px;font-weight:950;color:#fff;line-height:1.25}.pve-map-node-meta{margin-top:3px;color:#8f9ab9;font-size:9.5px;font-weight:800}.pve-map-node-badge{display:inline-flex;margin-top:5px;padding:3px 6px;border-radius:999px;background:color-mix(in srgb,var(--map-accent) 12%,rgba(10,13,26,.9));border:1px solid color-mix(in srgb,var(--map-accent) 28%,transparent);color:color-mix(in srgb,var(--map-accent) 75%,white);font-size:8px;font-weight:950;text-transform:uppercase;letter-spacing:.08em}
+.pve-map-traveler{position:absolute;left:50%;top:50%;z-index:9;width:58px;height:58px;transform:translate(-50%,-135%);display:grid;place-items:center;border-radius:50%;background:radial-gradient(circle,rgba(145,71,255,.30),rgba(15,18,35,.74) 65%);border:2px solid rgba(194,153,255,.72);box-shadow:0 0 25px rgba(145,71,255,.38);pointer-events:none;animation:pveTravelerFloat 2s ease-in-out infinite}.pve-map-traveler img{width:52px;height:52px;object-fit:contain;filter:drop-shadow(0 5px 7px rgba(0,0,0,.35))}.pve-adventure-map.traveler-moving .pve-map-traveler{animation:pveTravelerAdvance .72s ease-in-out both}.pve-map-traveler-tag{position:absolute;bottom:-14px;left:50%;transform:translateX(-50%);padding:2px 6px;border-radius:99px;background:#7c3fdd;color:#fff;font-size:7px;font-weight:950;white-space:nowrap}
+.pve-map-detail{margin:0 14px 14px;padding:15px;border:1px solid rgba(255,255,255,.09);border-radius:16px;background:rgba(8,11,22,.88);backdrop-filter:blur(8px);box-shadow:0 12px 36px rgba(0,0,0,.24)}.pve-map-detail-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.pve-map-detail-title{font-size:16px;font-weight:1000}.pve-map-detail-type{margin-top:4px;color:#9ea7c6;font-size:10.5px;font-weight:800}.pve-map-detail-state{padding:5px 8px;border-radius:999px;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.04);font-size:9px;font-weight:950;white-space:nowrap}.pve-map-detail-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.pve-map-detail-stat{padding:9px;border-radius:10px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);text-align:center}.pve-map-detail-stat b{display:block;font-size:13px}.pve-map-detail-stat span{display:block;margin-top:2px;color:#8994b5;font-size:8.5px;text-transform:uppercase;font-weight:900;letter-spacing:.07em}.pve-map-detail-reward{margin-top:10px;color:#cbbbea;font-size:10px;font-weight:850;line-height:1.45}.pve-map-detail-actions{display:flex;gap:8px;margin-top:12px}.pve-map-detail-actions .hub-btn{flex:1;min-height:42px;font-size:12px}.pve-zone-transition{position:absolute;inset:0;z-index:30;display:grid;place-items:center;background:rgba(5,8,17,.78);backdrop-filter:blur(7px);opacity:0;pointer-events:none;transition:opacity .3s ease}.pve-zone-transition.active{opacity:1}.pve-zone-transition-card{text-align:center;transform:scale(.92);animation:pveZoneCard .7s ease forwards}.pve-zone-transition-icon{font-size:52px}.pve-zone-transition-title{margin-top:8px;font-size:24px;font-weight:1000}.pve-zone-transition-sub{margin-top:5px;color:#aab3ce;font-size:11px;font-weight:800}.pve-map-enter{animation:pveMapEnter .65s ease both}
+@keyframes pveCurrentPulse{0%,100%{transform:scale(1);filter:brightness(1)}50%{transform:scale(1.06);filter:brightness(1.14)}}@keyframes pveVictoryBurst{0%{transform:scale(1)}35%{transform:scale(1.24);box-shadow:0 0 0 14px rgba(75,220,123,.14),0 0 40px rgba(75,220,123,.46)}100%{transform:scale(1)}}@keyframes pveTravelerFloat{0%,100%{transform:translate(-50%,-135%)}50%{transform:translate(-50%,-148%)}}@keyframes pveTravelerAdvance{0%{transform:translate(-50%,-135%) scale(1)}50%{transform:translate(-50%,-190%) scale(1.12)}100%{transform:translate(-50%,-230%) scale(.86);opacity:.3}}@keyframes pveZoneCard{from{transform:scale(.88);opacity:0}to{transform:scale(1);opacity:1}}@keyframes pveMapEnter{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:none}}
+@media(max-width:900px){#pveModal .game-panel{padding:14px 10px calc(96px + env(safe-area-inset-bottom));border-radius:20px}.pve-map-player{padding:10px}.pve-map-player-avatar{width:44px;height:44px;flex-basis:44px}.pve-map-player-avatar img{width:40px;height:40px}.pve-map-player-name{font-size:14px}.pve-map-player-meta{font-size:9.5px}.pve-map-player-stats{gap:4px}.pve-map-stat{font-size:8.5px;padding:5px 7px}.pve-adventure-map{min-height:620px;border-radius:18px}.pve-map-zone-head{padding:16px 12px 4px}.pve-map-zone-name{font-size:20px}.pve-map-route{min-height:500px;padding:22px 10px 28px;gap:23px}.pve-map-stop{grid-template-columns:1fr 66px 1fr;min-height:68px}.pve-map-stop.left .pve-map-node-wrap{padding-right:11px}.pve-map-stop.right .pve-map-node-wrap{padding-left:11px}.pve-map-node-wrap{max-width:96%;gap:7px}.pve-map-node{width:54px;height:54px;flex-basis:54px;font-size:18px}.pve-map-node.boss{width:64px;height:64px;flex-basis:64px;font-size:22px}.pve-map-node-label{padding:7px 8px;max-width:124px}.pve-map-node-name{font-size:9.5px}.pve-map-node-meta{font-size:8.3px}.pve-map-traveler{width:50px;height:50px}.pve-map-traveler img{width:46px;height:46px}.pve-map-detail{margin:0 9px 10px;padding:13px}.pve-map-detail-title{font-size:14px}.pve-map-detail-stats{gap:5px}.pve-map-detail-stat{padding:8px 4px}.pve-map-detail-stat b{font-size:11px}.pve-map-detail-stat span{font-size:7.5px}}
 
 </style>
 </head>
@@ -2557,6 +2678,31 @@ html, body{
 
 </div></div>
 
+
+<div id="hatchCinematic" class="hatch-cinematic hidden" role="dialog" aria-modal="true" aria-labelledby="hatchCinematicName">
+  <div class="hatch-scene">
+    <div id="hatchTopline" class="hatch-topline">Quelque chose se passe…</div>
+    <div class="hatch-stage">
+      <div class="hatch-ring"></div>
+      <div id="hatchEggWrap" class="hatch-egg-wrap"></div>
+      <div class="hatch-cracks" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div id="hatchParticles" class="hatch-particles" aria-hidden="true"></div>
+      <div class="hatch-flash" aria-hidden="true"></div>
+      <div class="hatch-creature-wrap">
+        <div id="hatchCreatureArt" class="hatch-creature-art"></div>
+      </div>
+    </div>
+    <div class="hatch-copy">
+      <div id="hatchRarity" class="hatch-rarity">Lovys</div>
+      <div id="hatchCinematicName" class="hatch-name">Un Lovys est né !</div>
+      <div id="hatchCinematicMeta" class="hatch-meta"></div>
+      <div id="hatchCinematicMessage" class="hatch-message">Il rejoint ta collection.</div>
+    </div>
+    <button id="hatchContinue" class="hatch-continue" type="button">Découvrir mon Lovys</button>
+    <button id="hatchSkip" class="hatch-skip" type="button">Passer l’animation</button>
+  </div>
+</div>
+
 <!-- BIENVENUE DANS LE JEU -->
 <div id="gameIntroModal" class="game-intro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
   <div class="game-intro-panel">
@@ -2774,17 +2920,6 @@ html, body{
     <div id="incubatorAddContent"></div>
   </div>
 </div>
-
-<div id="hatchCinematic" class="hatch-cinematic hidden" role="dialog" aria-modal="true" aria-label="Éclosion du Lovys">
-  <div id="hatchStage" class="hatch-stage">
-    <div class="hatch-stars"></div><div class="hatch-ring"></div>
-    <div class="hatch-copy"><div class="hatch-kicker">Éclosion</div><div id="hatchMessage" class="hatch-message">Oh ? Ton œuf réagit…</div></div>
-    <div class="hatch-egg-wrap"><div class="egg-visual" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div><div class="hatch-cracks"></div></div>
-    <div class="hatch-particles"></div><div class="hatch-flash"></div>
-    <div class="hatch-reveal"><div id="hatchCreatureArt" class="hatch-creature-art"></div><div id="hatchRarity" class="hatch-rarity">Lovys</div><div id="hatchName" class="hatch-name">Lovys</div><div id="hatchType" class="hatch-type"></div><button id="hatchContinue" class="hatch-action" type="button">Découvrir mon compagnon</button></div>
-  </div>
-</div>
-
 <div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
 <div id="lovysXpTransferModal" class="lovys-xp-transfer-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysXpTransferTitle"><div class="lovys-xp-transfer-panel"><div class="lovys-xp-transfer-icon">⚡</div><div id="lovysXpTransferTitle" class="lovys-xp-transfer-title">Transférer l’XP Lovys</div><div id="lovysXpTransferCopy" class="lovys-xp-transfer-copy"></div><div id="lovysXpTransferAmount" class="lovys-xp-transfer-amount">0 XP en réserve</div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferTarget">Lovys destinataire</label><select id="lovysXpTransferTarget"></select></div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferValue">Quantité d’XP à transférer</label><input id="lovysXpTransferValue" type="number" min="1" step="1" inputmode="numeric"></div><div class="lovys-xp-transfer-actions"><button id="lovysXpTransferCancel" class="hub-btn" type="button">Annuler</button><button id="lovysXpTransferConfirm" class="hub-btn lovys-xp-transfer-confirm" type="button">⚡ Confirmer le transfert</button></div></div></div>
 <div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel"><div class="lovys-collection-head"><div><h2 id="lovysCollectionTitle">🐉 Ma collection de Lovys</h2><div class="hub-sub">Choisis ton Lovys actif et gère l’XP conservée en réserve.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve</div><div id="lovysCollectionGrid" class="lovys-collection-grid"></div></div></div>
@@ -4433,6 +4568,181 @@ $('badgeCollectionContent')?.addEventListener('click', event => {
 });
 
 
+
+let hatchCinematicCallback = null;
+let hatchCinematicTimers = [];
+let hatchAudioContext = null;
+
+function prepareHatchAudio() {
+  try {
+    if (!hatchAudioContext) hatchAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    if (hatchAudioContext.state === 'suspended') hatchAudioContext.resume();
+  } catch (_) {}
+}
+
+function hatchTone(frequency = 440, duration = .12, gain = .035, type = 'sine', delay = 0) {
+  try {
+    if (!hatchAudioContext || hatchAudioContext.state !== 'running') return;
+    const now = hatchAudioContext.currentTime + delay;
+    const osc = hatchAudioContext.createOscillator();
+    const amp = hatchAudioContext.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(frequency, now);
+    amp.gain.setValueAtTime(.0001, now);
+    amp.gain.exponentialRampToValueAtTime(Math.max(.001, gain), now + .015);
+    amp.gain.exponentialRampToValueAtTime(.0001, now + duration);
+    osc.connect(amp);
+    amp.connect(hatchAudioContext.destination);
+    osc.start(now);
+    osc.stop(now + duration + .04);
+  } catch (_) {}
+}
+
+function hatchSoundStep(kind) {
+  if (kind === 'shake') {
+    hatchTone(130,.08,.018,'triangle');
+    hatchTone(170,.08,.012,'triangle',.09);
+  } else if (kind === 'crack') {
+    hatchTone(520,.06,.025,'square');
+    hatchTone(740,.08,.018,'square',.06);
+  } else if (kind === 'burst') {
+    hatchTone(220,.20,.035,'sine');
+    hatchTone(440,.24,.028,'sine',.03);
+    hatchTone(880,.34,.020,'sine',.08);
+  } else if (kind === 'reveal') {
+    hatchTone(523.25,.25,.025,'sine');
+    hatchTone(659.25,.28,.025,'sine',.10);
+    hatchTone(783.99,.36,.030,'sine',.20);
+  }
+}
+
+function hatchRarityKey(rarity) {
+  const value = String(rarity || '').toLowerCase();
+  if (value.includes('myth')) return 'mythic';
+  if (value.includes('épique') || value.includes('epique')) return 'epic';
+  if (value.includes('rare')) return 'rare';
+  return 'common';
+}
+
+function buildHatchParticles(rarityKey) {
+  const box = $('hatchParticles');
+  if (!box) return;
+  const counts = { common:22, rare:28, epic:34, mythic:42 };
+  const count = counts[rarityKey] || 22;
+  let html = '';
+  for (let i = 0; i < count; i++) {
+    const angle = (Math.PI * 2 * i / count) + ((i % 3) * .09);
+    const radius = 115 + (i % 7) * 13;
+    const x = Math.round(Math.cos(angle) * radius);
+    const y = Math.round(Math.sin(angle) * radius);
+    const delay = ((i % 8) * .035).toFixed(2);
+    const dur = (0.85 + (i % 6) * .08).toFixed(2);
+    const size = 4 + (i % 5);
+    html += `<span class="hatch-particle" style="--x:${x}px;--y:${y}px;--delay:${delay}s;--dur:${dur}s;width:${size}px;height:${size}px"></span>`;
+  }
+  box.innerHTML = html;
+}
+
+function clearHatchTimers() {
+  hatchCinematicTimers.forEach(timer => clearTimeout(timer));
+  hatchCinematicTimers = [];
+}
+
+function setHatchPhase(phase) {
+  const modal = $('hatchCinematic');
+  if (!modal) return;
+  modal.classList.remove('phase-shake','phase-crack','phase-burst','phase-silhouette','phase-reveal','phase-done');
+  if (phase) modal.classList.add(`phase-${phase}`);
+}
+
+function finishHatchAnimation() {
+  clearHatchTimers();
+  setHatchPhase('done');
+  if ($('hatchTopline')) $('hatchTopline').textContent = 'Nouveau Lovys obtenu';
+}
+
+async function closeHatchAnimation() {
+  clearHatchTimers();
+  const modal = $('hatchCinematic');
+  if (modal) {
+    modal.classList.remove('active','phase-shake','phase-crack','phase-burst','phase-silhouette','phase-reveal','phase-done');
+    modal.classList.add('hidden');
+  }
+  document.body.style.overflow = '';
+  const callback = hatchCinematicCallback;
+  hatchCinematicCallback = null;
+  if (callback) await callback();
+}
+
+function playHatchAnimation(creature, callback) {
+  const modal = $('hatchCinematic');
+  if (!modal || !creature) {
+    if (callback) callback();
+    return;
+  }
+
+  prepareHatchAudio();
+  clearHatchTimers();
+  hatchCinematicCallback = callback || null;
+
+  const rarityKey = hatchRarityKey(creature.rarity);
+  modal.dataset.rarity = rarityKey;
+  $('hatchEggWrap').innerHTML = incubatorEggMarkup();
+  $('hatchCreatureArt').innerHTML = art(creature.id, 0, true) || `<div class="lovys-home-egg-icon">🐉</div>`;
+  $('hatchRarity').textContent = creature.rarity || 'Lovys';
+  $('hatchCinematicName').textContent = `${creature.name || 'Ton Lovys'} est né !`;
+  $('hatchCinematicMeta').textContent = `${creature.type || 'Type inconnu'} · ${creature.rarity || 'Lovys'}${Number.isFinite(Number(creature.dropRate)) ? ` · ${String(creature.dropRate).replace('.', ',')} %` : ''}`;
+  $('hatchCinematicMessage').textContent =
+    rarityKey === 'mythic' ? 'Incroyable… tu viens d’obtenir un Lovys mythique !' :
+    rarityKey === 'epic' ? 'Une énergie exceptionnelle se dégage de ton nouvel allié.' :
+    rarityKey === 'rare' ? 'Un Lovys rare rejoint ta collection.' :
+    'Ton nouveau Lovys rejoint ta collection.';
+  $('hatchTopline').textContent = 'Quelque chose se passe…';
+  buildHatchParticles(rarityKey);
+
+  modal.className = 'hatch-cinematic active';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  const extra = rarityKey === 'mythic' ? 650 : rarityKey === 'epic' ? 300 : 0;
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    setHatchPhase('shake');
+    $('hatchTopline').textContent = 'L’œuf commence à bouger…';
+    hatchSoundStep('shake');
+  }, 350));
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    setHatchPhase('crack');
+    $('hatchTopline').textContent = 'La coquille se fissure !';
+    hatchSoundStep('crack');
+  }, 1500 + extra * .25));
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    setHatchPhase('burst');
+    $('hatchTopline').textContent = 'Une énergie se libère…';
+    hatchSoundStep('burst');
+  }, 2400 + extra * .45));
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    setHatchPhase('silhouette');
+  }, 2900 + extra * .60));
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    setHatchPhase('reveal');
+    $('hatchTopline').textContent = 'Ton Lovys apparaît !';
+    hatchSoundStep('reveal');
+  }, 3350 + extra * .72));
+
+  hatchCinematicTimers.push(setTimeout(() => {
+    finishHatchAnimation();
+  }, 4250 + extra));
+}
+
+$('hatchContinue')?.addEventListener('click', closeHatchAnimation);
+$('hatchSkip')?.addEventListener('click', finishHatchAnimation);
+
+
 function renderGame() {
   if (!me?.user) return;
 
@@ -4450,46 +4760,11 @@ function renderGame() {
   scheduleTopDashboardSync();
 }
 
-
-let hatchCinematicCallback = null;
-function wait(ms){ return new Promise(resolve=>setTimeout(resolve,ms)); }
-function hatchCreatureArtMarkup(creature){
-  const id=creature?.id || '';
-  return art(id,0,false) || art(({lightning:'voltis',mist:'brumee',crystal:'crysal',forge:'ferox'}[id]),0,false) || '<div style="font-size:110px">🐉</div>';
-}
-async function playHatchCinematic(creature, callback){
-  const modal=$('hatchCinematic'), stage=$('hatchStage');
-  if(!modal||!stage){ if(callback) await callback(); return; }
-  hatchCinematicCallback=callback||null;
-  $('hatchName').textContent=creature?.name||'Nouveau Lovys';
-  $('hatchType').textContent=`${creature?.type||'Type inconnu'} · ${creature?.rarity||'Lovys'}${creature?.dropRate!=null?` · ${String(creature.dropRate).replace('.',',')} %`:''}`;
-  $('hatchRarity').textContent=creature?.rarity||'Lovys';
-  $('hatchCreatureArt').innerHTML=hatchCreatureArtMarkup(creature);
-  $('hatchContinue').textContent='Découvrir mon compagnon';
-  $('hatchMessage').textContent='Oh ? Ton œuf réagit…';
-  stage.className='hatch-stage phase-shake';
-  modal.classList.remove('hidden');
-  document.body.style.overflow='hidden';
-  await wait(1500);
-  $('hatchMessage').textContent='Quelque chose est en train de naître…';
-  stage.className='hatch-stage phase-crack';
-  await wait(1500);
-  $('hatchMessage').textContent='Ça y est !';
-  stage.className='hatch-stage phase-flash';
-  await wait(820);
-  stage.className='hatch-stage phase-reveal';
-}
-$('hatchContinue')?.addEventListener('click',async()=>{
-  $('hatchCinematic')?.classList.add('hidden');
-  document.body.style.overflow='';
-  const cb=hatchCinematicCallback; hatchCinematicCallback=null;
-  if(cb) await cb();
-});
-
 async function hatchEgg() {
   const button = $('hatchEgg');
   if (button.disabled) return;
 
+  prepareHatchAudio();
   button.disabled = true;
   button.textContent = 'Éclosion...';
 
@@ -4505,11 +4780,13 @@ async function hatchEgg() {
 
     const creature = data.creature;
 
-    await playHatchCinematic(creature, async () => {
-      showGame();
-      await loadGame();
-      if (isMobileGameUi()) openLovysCollection?.();
-    });
+    playHatchAnimation(
+      creature,
+      async () => {
+        showGame();
+        await loadGame();
+      }
+    );
   } catch (error) {
     console.error('Erreur éclosion :', error);
     alert('Impossible de contacter le serveur.');
@@ -4805,8 +5082,24 @@ $('lovysCollectionGrid')?.addEventListener('click',async e=>{
   if(transfer){openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));}
 });
 
-async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const r=await fetch('/api/pve',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Erreur');if($('hubFragments'))$('hubFragments').textContent=`🥚 ${d.eggFragments||0} Fragment${Number(d.eggFragments||0)>1?'s':''} d’œuf`;renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML='<div class="combat-report">🥚 Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>';return;}const c=`<div class="combat-report"><strong>${escapeHtml(d.creature.name)}</strong> · Niv. ${d.creature.level} · ${escapeHtml(d.creature.type)} · ❤️ ${d.creature.hp} · ⚔️ ${d.creature.power}</div>`;box.innerHTML=c+(d.zones||[]).map(z=>`<div class="pve-zone"><h3>${z.icon} ${escapeHtml(z.name)}</h3><div class="pve-fights">${z.fights.map(f=>`<div class="pve-fight ${f.won?'won':''} ${!f.unlocked?'locked':''}"><div class="pve-fight-name">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-fight-meta">Niv. conseillé ${f.level} · ${escapeHtml(f.type)}<br>❤️ ${f.hp} · ⚔️ ${f.power}<br>1re victoire : +${f.rewards.creatureXp} XP Lovys · +${f.rewards.globalXp} XP globale · +${f.rewards.fragments} 🥚</div><div class="hub-actions"><button class="hub-btn" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'Rejouer':'Combattre'}</button></div></div>`).join('')}</div></div>`).join('');}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
-$('openProgression')?.addEventListener('click',()=>{$('progressionModal')?.classList.remove('hidden');loadProgression(); syncMobileNavState?.();});$('progressionClose')?.addEventListener('click',()=> { $('progressionModal')?.classList.add('hidden'); syncMobileNavState?.(); });$('openPve')?.addEventListener('click',()=>{$('pveModal')?.classList.remove('hidden');loadPve(); syncMobileNavState?.();});$('pveClose')?.addEventListener('click',()=> { $('pveModal')?.classList.add('hidden'); syncMobileNavState?.(); });$('pveContent')?.addEventListener('click',async e=>{const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey:b.dataset.fight})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}$('combatResult').innerHTML=`<div class="combat-report"><strong>${d.victory?'✅ Victoire !':'❌ Défaite'}</strong><br>${d.firstWin?`Première victoire : +${d.reward.creatureXp||0} XP Lovys · +${d.reward.globalXp||0} XP globale · +${d.reward.fragments||0} Fragment(s) d’œuf`:'Combat rejoué : aucune nouvelle récompense de première victoire.'}<br>${d.rounds||0} tour(s).</div>`;await loadGame();await loadPve();});$('pveModal')?.addEventListener('click',e=>{if(e.target.id==='pveModal'){$('pveModal')?.classList.add('hidden');syncMobileNavState?.();}});
+let pveMapState={data:null,selectedZone:null,selectedFight:null};
+function pveFightInfoByKey(key){for(const z of (pveMapState.data?.zones||[])){const f=(z.fights||[]).find(x=>x.key===key);if(f)return {fight:f,zone:z,zoneIndex:(pveMapState.data.zones||[]).indexOf(z),fightIndex:(z.fights||[]).indexOf(f)};}return null;}
+function pveZoneAccessible(zone){return Boolean((zone?.fights||[]).some(f=>f.unlocked||f.won));}
+function pveZoneComplete(zone){const fights=zone?.fights||[];return fights.length>0&&fights.every(f=>f.won);}
+function pveDefaultZoneIndex(data){const zones=data?.zones||[];const pending=zones.findIndex(z=>(z.fights||[]).some(f=>f.unlocked&&!f.won));if(pending>=0)return pending;const lastAccessible=zones.map((z,i)=>pveZoneAccessible(z)?i:-1).filter(i=>i>=0).pop();return Number.isFinite(lastAccessible)?lastAccessible:0;}
+function pveSelectedFight(zone){if(!zone)return null;const chosen=(zone.fights||[]).find(f=>f.key===pveMapState.selectedFight&&(f.unlocked||f.won));if(chosen)return chosen;return (zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won)||(zone.fights||[])[0]||null;}
+function pveTravelerMarkup(){const id=me?.user?.creature_id;const evo=me?.user?.progression?.evolution||0;return `<div class="pve-map-traveler">${id?art(id,evo,true):'🐉'}<span class="pve-map-traveler-tag">Ton Lovys</span></div>`;}
+function pveFightDetailMarkup(f){if(!f)return'';const state=f.won?'Terminé':f.unlocked?'Disponible':'Verrouillé';return `<div class="pve-map-detail"><div class="pve-map-detail-top"><div><div class="pve-map-detail-title">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-map-detail-type">Niv. conseillé ${Number(f.level||1)} · ${escapeHtml(f.type||'Neutre')}</div></div><span class="pve-map-detail-state">${state}</span></div><div class="pve-map-detail-stats"><div class="pve-map-detail-stat"><b>❤️ ${Number(f.hp||0)}</b><span>Vie</span></div><div class="pve-map-detail-stat"><b>⚔️ ${Number(f.power||0)}</b><span>Puissance</span></div><div class="pve-map-detail-stat"><b>${f.boss?'👑 Boss':'⚔️ Combat'}</b><span>Type</span></div></div><div class="pve-map-detail-reward">🎁 1re victoire : +${Number(f.rewards?.creatureXp||0)} XP Lovys · +${Number(f.rewards?.globalXp||0)} XP globale · +${Number(f.rewards?.fragments||0)} Fragment${Number(f.rewards?.fragments||0)>1?'s':''} d’œuf</div><div class="pve-map-detail-actions"><button class="hub-btn" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'↻ Rejouer':'⚔️ Combattre'}</button></div></div>`;}
+function renderPveAdventureMap(data,zoneIndex=null){const box=$('pveContent');if(!box)return;pveMapState.data=data;const zones=data.zones||[];if(zoneIndex===null||zoneIndex===undefined)zoneIndex=pveMapState.selectedZone;if(zoneIndex===null||zoneIndex===undefined||!zones[zoneIndex]||!pveZoneAccessible(zones[zoneIndex]))zoneIndex=pveDefaultZoneIndex(data);pveMapState.selectedZone=zoneIndex;const zone=zones[zoneIndex]||zones[0];if(!zone){box.innerHTML='<div class="combat-report">Aucune zone disponible.</div>';return;}const selected=pveSelectedFight(zone);pveMapState.selectedFight=selected?.key||null;const current=(zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won);const currentKey=current?.key;const wonCount=(zone.fights||[]).filter(f=>f.won).length;const zoneTabs=zones.map((z,i)=>{const accessible=pveZoneAccessible(z);return `<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''} ${!accessible?'locked':''}" type="button" data-pve-zone="${i}" ${!accessible?'disabled':''}>${z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`}).join('');const reversed=[...(zone.fights||[])].reverse();const route=reversed.map((f,revIndex)=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const bossClass=f.finalBoss?'boss final-boss':f.boss?'boss':'';const icon=f.won?'✓':!f.unlocked?'🔒':f.finalBoss?'👑':f.boss?'⚜️':'⚔️';const badge=f.finalBoss?'Boss final':f.boss?'Mini-boss / Boss':f.won?'Validé':isCurrent?'Prochain combat':'Étape';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" type="button" data-pve-node="${escapeHtml(f.key)}" ${!f.unlocked&&!f.won?'disabled':''}>${icon}</button><div class="pve-map-node-label"><div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup():''}</div></div>`}).join('');const avatar=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';box.innerHTML=`<div class="pve-map-shell"><div class="pve-map-player"><div class="pve-map-player-main"><div class="pve-map-player-avatar">${avatar}</div><div><div class="pve-map-player-name">${escapeHtml(data.creature.name)}</div><div class="pve-map-player-meta">Niv. ${data.creature.level} · ${escapeHtml(data.creature.type)}</div></div></div><div class="pve-map-player-stats"><span class="pve-map-stat">❤️ ${data.creature.hp}</span><span class="pve-map-stat">⚔️ ${data.creature.power}</span><span class="pve-map-stat">🥚 ${Number(data.eggFragments||0)}</span></div></div><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter"><div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} / ${zones.length}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${route}</div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;}
+async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const r=await fetch('/api/pve',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Erreur');if($('hubFragments'))$('hubFragments').textContent=`🥚 ${d.eggFragments||0} Fragment${Number(d.eggFragments||0)>1?'s':''} d’œuf`;renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML='<div class="combat-report">🥚 Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>';return;}renderPveAdventureMap(d);}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
+async function animatePveVictory(fightKey){const info=pveFightInfoByKey(fightKey);const node=document.querySelector(`[data-pve-node="${CSS.escape(fightKey)}"]`);node?.classList.add('just-won');document.querySelector('.pve-adventure-map')?.classList.add('traveler-moving');await new Promise(r=>setTimeout(r,720));const isZoneEnd=Boolean(info&&info.fightIndex===(info.zone.fights||[]).length-1);if(isZoneEnd){const overlay=$('pveZoneTransition');const next=(pveMapState.data?.zones||[])[info.zoneIndex+1];if(overlay){overlay.innerHTML=`<div class="pve-zone-transition-card"><div class="pve-zone-transition-icon">${next?(next.icon||'🗺️'):'🏆'}</div><div class="pve-zone-transition-title">${next?'Zone terminée !':'Aventure terminée !'}</div><div class="pve-zone-transition-sub">${next?`Direction : ${escapeHtml(next.name)}`:'Tous les combats actuels ont été terminés.'}</div></div>`;overlay.classList.add('active');}await new Promise(r=>setTimeout(r,1000));pveMapState.selectedZone=null;pveMapState.selectedFight=null;}await loadGame();await loadPve();}
+$('openProgression')?.addEventListener$('openProgression')?.addEventListener('click',()=>{$('progressionModal')?.classList.remove('hidden');loadProgression(); syncMobileNavState?.();});$('progressionClose')?.addEventListener('click',()=> { $('progressionModal')?.classList.add('hidden'); syncMobileNavState?.(); });$('openPve')?.addEventListener('click',()=>{$('pveModal')?.classList.remove('hidden');loadPve(); syncMobileNavState?.();});$('pveClose')?.addEventListener('click',()=> { $('pveModal')?.classList.add('hidden'); syncMobileNavState?.(); });$('pveContent')?.addEventListener('click',async e=>{
+  const zoneBtn=e.target.closest('[data-pve-zone]');
+  if(zoneBtn){const idx=Number(zoneBtn.dataset.pveZone);if(Number.isFinite(idx)){pveMapState.selectedZone=idx;pveMapState.selectedFight=null;renderPveAdventureMap(pveMapState.data,idx);}return;}
+  const nodeBtn=e.target.closest('[data-pve-node]');
+  if(nodeBtn){pveMapState.selectedFight=nodeBtn.dataset.pveNode;const info=pveFightInfoByKey(pveMapState.selectedFight);const detail=$('pveMapDetail');if(detail&&info)detail.innerHTML=pveFightDetailMarkup(info.fight);document.querySelectorAll('.pve-map-node').forEach(n=>n.classList.toggle('selected',n.dataset.pveNode===pveMapState.selectedFight));return;}
+  const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const fightKey=b.dataset.fight;const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}if(!d.victory){$('combatResult').innerHTML=`<div class="combat-report"><strong>❌ Défaite</strong><br>${d.rounds||0} tour(s). Améliore ton Lovys puis retente le combat.</div>`;b.disabled=false;return;}$('combatResult').innerHTML='';await animatePveVictory(fightKey);
+});$('pveModal')?.addEventListener$('pveModal')?.addEventListener('click',e=>{if(e.target.id==='pveModal'){$('pveModal')?.classList.add('hidden');syncMobileNavState?.();}});
 let progressionBackdropMouseDown=false;
 $('progressionModal')?.addEventListener('mousedown',event=>{ progressionBackdropMouseDown=event.target.id==='progressionModal'; });
 $('progressionModal')?.addEventListener('mouseup',event=>{
@@ -4891,15 +5184,22 @@ function toggleMobilePanel(panel){
 async function hatchExtraIncubatorEgg(slot){
   const message=$('incubatorAddMessage');
   const button=$('incubatorHatchExtraEgg');
+  prepareHatchAudio();
   if(button){button.disabled=true;button.textContent='Éclosion…';}
   try{
     const response=await fetch('/api/incubator/hatch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot:Number(slot)})});
     const data=await response.json();
     if(!response.ok) throw new Error(data.error||'Éclosion impossible.');
-    if(message){message.className='incubator-add-message ok';message.textContent='Œuf prêt… lancement de l’éclosion !'; }
     closeIncubatorAddModal();
-    await playHatchCinematic(data.creature, async()=>{ await loadGame(); await loadIncubatorSlots(); openLovysCollection(); });
-  }catch(error){if(message){message.className='incubator-add-message error';message.textContent=error.message;} if(button){button.disabled=false;button.textContent='✨ Faire éclore';}}
+    await loadIncubatorSlots();
+    playHatchAnimation(data.creature, async()=>{
+      await loadGame();
+      openLovysCollection();
+    });
+  }catch(error){
+    if(message){message.className='incubator-add-message error';message.textContent=error.message;}
+    if(button){button.disabled=false;button.textContent='✨ Faire éclore';}
+  }
 }
 
 document.querySelector('.incubator-slots')?.addEventListener('click', event=>{
