@@ -4095,7 +4095,55 @@ app.get('/api/pve', async (req,res)=>{
 });
 
 app.post('/api/pve/fight', async (req,res)=>{
- const c=await pool.connect();try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const fight=pveFightByKey(String(req.body?.fightKey||''));if(!fight)return res.status(400).json({error:'Combat introuvable.'});await c.query('BEGIN');const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);const u=r.rows[0];if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut un Lovys éclos pour combattre.'});}const prev=pvePreviousFight(fight.key);if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);let ph=st.hp,eh=fight.hp,rounds=0;while(ph>0&&eh>0&&rounds<20){rounds++;eh-=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));if(eh<=0)break;ph-=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));}const victory=eh<=0;const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult})]);await c.query('COMMIT');res.json({ok:true,victory,firstWin,reward:rw,rounds});}catch(e){try{await c.query('ROLLBACK')}catch{};console.error(e);res.status(500).json({error:'Combat impossible.'});}finally{c.release();}
+ const c=await pool.connect();
+ try{
+  if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  const fight=pveFightByKey(String(req.body?.fightKey||''));
+  if(!fight)return res.status(400).json({error:'Combat introuvable.'});
+  await c.query('BEGIN');
+  const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+  const u=r.rows[0];
+  if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut un Lovys éclos pour combattre.'});}
+  const prev=pvePreviousFight(fight.key);
+  if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}
+  const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);
+  const playerMaxHp=Number(st.hp||1),enemyMaxHp=Number(fight.hp||1);
+  let ph=playerMaxHp,eh=enemyMaxHp,rounds=0;
+  const combatLog=[];
+  while(ph>0&&eh>0&&rounds<20){
+    rounds++;
+    const playerDamage=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));
+    eh-=playerDamage;
+    const step={round:rounds,playerDamage,enemyDamage:0,enemyHpAfter:Math.max(0,eh),playerHpAfter:Math.max(0,ph)};
+    if(eh<=0){combatLog.push(step);break;}
+    const enemyDamage=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));
+    ph-=enemyDamage;
+    step.enemyDamage=enemyDamage;
+    step.playerHpAfter=Math.max(0,ph);
+    combatLog.push(step);
+  }
+  const victory=eh<=0;
+  const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);
+  const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;
+  await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);
+  const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};
+  if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);
+  const battle={
+    typeMultiplier:mult,
+    player:{name:st.name||'Lovys',level:st.level,type:st.type,power:st.power,hp:playerMaxHp,maxHp:playerMaxHp},
+    enemy:{name:fight.name,level:fight.level,type:fight.type,power:fight.power,hp:enemyMaxHp,maxHp:enemyMaxHp,boss:Boolean(fight.boss)},
+    log:combatLog,
+    playerRemainingHp:Math.max(0,ph),
+    enemyRemainingHp:Math.max(0,eh)
+  };
+  await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult,combatLog})]);
+  await c.query('COMMIT');
+  res.json({ok:true,victory,firstWin,reward:rw,rounds,battle});
+ }catch(e){
+  try{await c.query('ROLLBACK')}catch{}
+  console.error(e);
+  res.status(500).json({error:'Combat impossible.'});
+ }finally{c.release();}
 });
 
 app.get('/api/badges', async (req, res) => {
