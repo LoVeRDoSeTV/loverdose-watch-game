@@ -841,6 +841,30 @@ async function initDatabase() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_lovys (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      creature_id TEXT NOT NULL,
+      xp DOUBLE PRECISION NOT NULL DEFAULT 0,
+      is_active BOOLEAN NOT NULL DEFAULT FALSE,
+      origin TEXT NOT NULL DEFAULT 'egg',
+      hatched_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS user_lovys_user_idx ON user_lovys (user_id)`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS user_lovys_one_active_idx ON user_lovys (user_id) WHERE is_active = TRUE`);
+
+  // Migration douce : le Lovys actif historique rejoint la collection.
+  await pool.query(`
+    INSERT INTO user_lovys (user_id, creature_id, xp, is_active, origin)
+    SELECT u.id, u.creature_id, u.xp, TRUE, 'legacy'
+    FROM users u
+    WHERE u.creature_id IS NOT NULL
+      AND NOT EXISTS (SELECT 1 FROM user_lovys l WHERE l.user_id=u.id)
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS user_active_boosts (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       boost_key TEXT NOT NULL,
@@ -884,6 +908,17 @@ async function initDatabase() {
       `,
       [broadcasterIdForProfile]
     );
+
+    // Mode test propriétaire : tant que le diffuseur n'a pas encore fait éclore
+    // son premier Lovys, son œuf de départ est directement prêt à éclore.
+    await pool.query(
+      `UPDATE users
+       SET watch_seconds = GREATEST(COALESCE(watch_seconds,0), $2),
+           updated_at = CURRENT_TIMESTAMP
+       WHERE twitch_id = $1 AND creature_id IS NULL`,
+      [broadcasterIdForProfile, EGG_HATCH_SECONDS]
+    );
+
   }
 
 
@@ -3780,6 +3815,12 @@ app.post(
         [creature.id, u.id]
       );
 
+      await client.query(`UPDATE user_lovys SET is_active=FALSE, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`, [u.id]);
+      await client.query(
+        `INSERT INTO user_lovys (user_id, creature_id, xp, is_active, origin) VALUES ($1,$2,0,TRUE,'starter_egg')`,
+        [u.id, creature.id]
+      );
+
       await client.query('COMMIT');
 
       res.json({
@@ -4023,28 +4064,26 @@ app.post('/api/progression/transfer-lovys-xp', async (req,res)=>{
   const client=await pool.connect();
   try{
     if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const lovysId=Number(req.body?.lovysId);
     await client.query('BEGIN');
-    const result=await client.query(
-      `SELECT id,creature_id,xp,pending_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,
-      [req.session.user.twitchId]
-    );
+    const result=await client.query(`SELECT id,creature_id,xp,pending_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
     const user=result.rows[0];
     if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
-    if(!user.creature_id){await client.query('ROLLBACK');return res.status(400).json({error:'Fais d’abord éclore un Lovys avant de transférer cette XP.'});}
-    const amount=Math.max(0,Math.floor(Number(user.pending_xp||0)));
-    if(amount<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Aucune XP Lovys en réserve à transférer.'});}
-    const updated=await client.query(
-      `UPDATE users SET xp=xp+$2,pending_xp=0,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING xp,pending_xp`,
-      [user.id,amount]
-    );
+    if(!Number.isInteger(lovysId)||lovysId<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Choisis un Lovys de ta collection.'});}
+    if(user.creature_id) await client.query(`UPDATE user_lovys SET xp=$2,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
+    const target=(await client.query(`SELECT id,creature_id,xp,is_active FROM user_lovys WHERE id=$1 AND user_id=$2 FOR UPDATE`,[lovysId,user.id])).rows[0];
+    if(!target){await client.query('ROLLBACK');return res.status(404).json({error:'Lovys introuvable dans ta collection.'});}
+    const reserve=Math.max(0,Math.floor(Number(user.pending_xp||0)));
+    const requested=Math.floor(Number(req.body?.amount||reserve));
+    const amount=Math.max(0,Math.min(reserve,requested));
+    if(amount<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Aucune XP Lovys disponible à transférer.'});}
+    await client.query(`UPDATE user_lovys SET xp=xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[target.id,amount]);
+    if(target.is_active) await client.query(`UPDATE users SET xp=xp+$2,pending_xp=pending_xp-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,amount]);
+    else await client.query(`UPDATE users SET pending_xp=pending_xp-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,amount]);
     await client.query('COMMIT');
     pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
-    return res.json({ok:true,message:`${amount} XP transférée à ton Lovys !`,transferredXp:amount,creatureXp:Number(updated.rows[0]?.xp||0),pendingXp:Number(updated.rows[0]?.pending_xp||0)});
-  }catch(error){
-    try{await client.query('ROLLBACK')}catch{}
-    console.error('Erreur transfert XP Lovys :',error);
-    return res.status(500).json({error:'Impossible de transférer l’XP au Lovys.'});
-  }finally{client.release();}
+    res.json({ok:true,message:`${amount} XP transférée à ton Lovys !`,transferredXp:amount,pendingXp:reserve-amount});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur transfert XP Lovys :',error);res.status(500).json({error:'Impossible de transférer l’XP au Lovys.'});}finally{client.release();}
 });
 
 app.post('/api/prestige', async (req,res)=>{
@@ -5196,6 +5235,68 @@ app.post('/api/incubator/place', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+
+app.post('/api/incubator/hatch', async (req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const slot=Number(req.body?.slot);
+    if(![1,2,3].includes(slot)) return res.status(400).json({error:'Emplacement invalide.'});
+    await client.query('BEGIN');
+    const ur=await client.query(`SELECT id,creature_id FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+    const user=ur.rows[0];
+    if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    if(!user.creature_id){await client.query('ROLLBACK');return res.status(400).json({error:'Fais d’abord éclore ton œuf de départ.'});}
+    const er=await client.query(`SELECT id,watched_seconds,status FROM user_incubator_eggs WHERE user_id=$1 AND slot=$2 FOR UPDATE`,[user.id,slot]);
+    const egg=er.rows[0];
+    if(!egg){await client.query('ROLLBACK');return res.status(404).json({error:'Aucun œuf dans cet emplacement.'});}
+    if(Number(egg.watched_seconds||0)<EGG_HATCH_SECONDS && egg.status!=='ready'){await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf n’est pas encore prêt à éclore.'});}
+    const creature=rollStandardEgg();
+    const created=await client.query(`INSERT INTO user_lovys (user_id,creature_id,xp,is_active,origin) VALUES($1,$2,0,FALSE,'incubator') RETURNING id`,[user.id,creature.id]);
+    await client.query(`DELETE FROM user_incubator_eggs WHERE id=$1`,[egg.id]);
+    await client.query('COMMIT');
+    pushLiveUpdate('incubator-update',{twitchId:req.session.user.twitchId});
+    res.json({ok:true,lovysId:Number(created.rows[0].id),creature:{id:creature.id,name:creature.name,type:creature.type,rarity:creature.rarity,dropRate:creature.dropRate}});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur éclosion œuf incubateur :',error);res.status(500).json({error:'Impossible de faire éclore cet œuf.'});}finally{client.release();}
+});
+
+app.get('/api/lovys', async (req,res)=>{
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
+    const user=ur.rows[0];
+    if(!user) return res.status(404).json({error:'Joueur introuvable.'});
+    if(user.creature_id){
+      await pool.query(`UPDATE user_lovys SET xp=$2, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
+    }
+    const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
+    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at};});
+    res.json({ok:true,lovys,pendingXp:Number(user.pending_xp||0)});
+  }catch(error){console.error('Erreur collection Lovys :',error);res.status(500).json({error:'Impossible de charger tes Lovys.'});}
+});
+
+app.post('/api/lovys/activate', async (req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const lovysId=Number(req.body?.lovysId);
+    if(!Number.isInteger(lovysId)||lovysId<=0) return res.status(400).json({error:'Lovys invalide.'});
+    await client.query('BEGIN');
+    const ur=await client.query(`SELECT id,creature_id,xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+    const user=ur.rows[0];
+    if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    if(user.creature_id) await client.query(`UPDATE user_lovys SET xp=$2,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
+    const target=(await client.query(`SELECT id,creature_id,xp FROM user_lovys WHERE id=$1 AND user_id=$2 FOR UPDATE`,[lovysId,user.id])).rows[0];
+    if(!target){await client.query('ROLLBACK');return res.status(404).json({error:'Ce Lovys ne fait pas partie de ta collection.'});}
+    await client.query(`UPDATE user_lovys SET is_active=FALSE,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,[user.id]);
+    await client.query(`UPDATE user_lovys SET is_active=TRUE,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[target.id]);
+    await client.query(`UPDATE users SET creature_id=$2,xp=$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,target.creature_id,Number(target.xp||0)]);
+    await client.query('COMMIT');
+    pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
+    res.json({ok:true,message:'Lovys actif changé.'});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur activation Lovys :',error);res.status(500).json({error:'Impossible de changer de Lovys actif.'});}finally{client.release();}
 });
 
 /* =========================================
