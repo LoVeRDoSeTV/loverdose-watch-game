@@ -2307,16 +2307,16 @@ html, body{
 
 
 /* PvE bestiaire — rendu SVG léger, sans empiler du CSS */
-.pve-enemy-art{position:relative;width:205px;height:205px;display:grid;place-items:center;transform:scale(var(--enemy-size,1));transform-origin:50% 86%;filter:drop-shadow(0 18px 18px rgba(0,0,0,.38));transition:transform .2s ease}
+.pve-enemy-art{position:relative;width:178px;height:178px;display:grid;place-items:center;transform:scale(var(--enemy-size,1));transform-origin:50% 86%;filter:drop-shadow(0 18px 18px rgba(0,0,0,.38));transition:transform .2s ease}
 .pve-enemy-art::before{content:"";position:absolute;inset:24px;border-radius:50%;background:radial-gradient(circle,var(--enemy-glow,rgba(145,71,255,.28)) 0,transparent 68%);opacity:.22;filter:blur(10px)}
-.pve-enemy-art img{position:relative;z-index:1;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;animation:pveEnemyFloat 2.9s ease-in-out infinite}
+.pve-enemy-art svg{position:relative;z-index:1;width:100%;height:100%;overflow:visible;animation:pveEnemyFloat 2.9s ease-in-out infinite}
 .pve-enemy-art.boss{filter:drop-shadow(0 0 18px var(--enemy-glow)) drop-shadow(0 22px 22px rgba(0,0,0,.45))}
-.pve-enemy-art.boss img{animation:pveEnemyBossFloat 2.4s ease-in-out infinite}
+.pve-enemy-art.boss svg{animation:pveEnemyBossFloat 2.4s ease-in-out infinite}
 .pve-battle-stage.zone-forest{background:radial-gradient(circle at 70% 24%,rgba(110,225,159,.13),transparent 24%),linear-gradient(180deg,#172b26,#091311)}
 .pve-battle-stage.zone-ember{background:radial-gradient(circle at 70% 24%,rgba(255,119,61,.16),transparent 25%),linear-gradient(180deg,#321713,#120b0b)}
 .pve-battle-stage.zone-night{background:radial-gradient(circle at 70% 24%,rgba(117,101,255,.18),transparent 25%),linear-gradient(180deg,#171a40,#090b1d)}
 @keyframes pveEnemyBossFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
-@media(max-width:900px){.pve-enemy-art{width:132px;height:132px}.pve-enemy-art.boss{width:148px;height:148px}}
+@media(max-width:900px){.pve-enemy-art{width:116px;height:116px}.pve-enemy-art.boss{width:128px;height:128px}}
 
 
 /* ===== PC V7 — tableau de bord Lovys / PvE ===== */
@@ -2360,6 +2360,17 @@ html, body{
   .lovys-hub-actions{position:relative;z-index:2;margin-top:13px}.lovys-home-btn{min-height:41px;font-size:11px;padding:10px 13px}.lovys-home-btn.primary{flex:1}
   @keyframes pcPveCurrent{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
 }
+
+
+/* ===== PvE Zone 1 — vrais monstres + arène Forêt des Premiers Éclats ===== */
+.pve-enemy-art.real-art{width:230px;height:230px;transform:scale(var(--enemy-size,1));transform-origin:50% 88%;filter:drop-shadow(0 0 16px color-mix(in srgb,var(--enemy-glow) 55%,transparent)) drop-shadow(0 22px 24px rgba(0,0,0,.42))}
+.pve-enemy-photo{display:block;width:100%;height:100%;object-fit:contain;user-select:none;pointer-events:none;filter:saturate(1.05) contrast(1.02)}
+.pve-enemy-art.real-art.boss{width:260px;height:260px}
+.pve-battle-stage.zone-forest{background:radial-gradient(circle at 78% 18%,rgba(168,93,255,.24),transparent 24%),radial-gradient(circle at 23% 72%,rgba(104,236,158,.18),transparent 30%),linear-gradient(180deg,#15332b 0%,#0d221d 48%,#07130f 100%)}
+.pve-battle-stage.zone-forest::after{content:'';position:absolute;inset:0;pointer-events:none;opacity:.75;background:radial-gradient(circle at 12% 20%,rgba(126,255,177,.18) 0 2px,transparent 3px),radial-gradient(circle at 88% 34%,rgba(186,122,255,.22) 0 2px,transparent 3px),radial-gradient(circle at 30% 12%,rgba(255,255,255,.10) 0 1px,transparent 2px),linear-gradient(110deg,transparent 0 14%,rgba(104,236,158,.035) 14% 15%,transparent 15% 100%);background-size:92px 92px,118px 118px,71px 71px,100% 100%}
+.pve-battle-stage.zone-forest .pve-battle-arena::before{content:'';position:absolute;left:3%;right:3%;bottom:14px;height:100px;border-radius:50%;background:radial-gradient(ellipse,rgba(74,173,105,.18),rgba(35,87,55,.08) 45%,transparent 72%);filter:blur(1px);pointer-events:none}
+.pc-pve-current{align-items:center!important;gap:12px!important}.pc-pve-current-copy{min-width:0;flex:1}.pc-pve-enemy-thumb{width:82px;height:82px;flex:0 0 82px;border-radius:18px;display:grid;place-items:center;background:radial-gradient(circle,rgba(113,226,157,.14),rgba(145,71,255,.07) 60%,transparent 72%);border:1px solid rgba(139,222,170,.18);overflow:hidden}.pc-pve-enemy-thumb img{width:76px;height:76px;object-fit:contain;filter:drop-shadow(0 7px 8px rgba(0,0,0,.35))}
+@media(max-width:900px){.pve-enemy-art.real-art{width:150px;height:150px}.pve-enemy-art.real-art.boss{width:168px;height:168px}.pve-enemy-photo{width:100%;height:100%}.pc-pve-enemy-thumb{display:none}}
 
 </style>
 </head>
@@ -3378,7 +3389,8 @@ function desktopPveRouteMarkup(pveData){
   const current=fights.find(f=>f.unlocked&&!f.won)||[...fights].reverse().find(f=>f.won)||fights[0];
   const nodes=fights.map((f,i)=>{const cls=f.won?'won':(f.key===current?.key?'current':(!f.unlocked?'locked':''));const boss=f.boss?' boss':'';return `<div class="pc-pve-node ${cls}${boss}" title="${escapeHtml(f.name||'Combat')}">${f.won?'✓':f.boss?'♛':i+1}</div>`}).join('');
   const rw=current?.rewards||{};
-  return `<div class="pc-pve-zone-card"><div class="pc-pve-zone-top"><div><div class="pc-pve-zone-label">${zone.icon||'🗺️'} Zone actuelle</div><div class="pc-pve-zone-title">${escapeHtml(zone.name||'Aventure')}</div><div class="pc-pve-zone-meta">Progression du bas vers le boss · ${(fights.filter(f=>f.won).length)} / ${fights.length} combats</div></div><div class="pc-pve-fragments"><b>🥚 ${Number(pveData?.eggFragments||0)}</b><span>Fragments</span></div></div><div class="pc-pve-route">${nodes}</div><div class="pc-pve-current"><div><div class="pc-pve-current-name">${current?.boss?'👑 ': '⚔️ '}${escapeHtml(current?.name||'Prochain combat')}</div><div class="pc-pve-current-sub">${escapeHtml(current?.type||'')} · ❤️ ${Number(current?.hp||0)} · ⚔️ ${Number(current?.power||0)}</div><div class="pc-pve-reward">1re victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s)</div></div><div class="pc-pve-level"><b>${Number(current?.level||1)}</b><span>Niv. conseillé</span></div></div></div>`;
+  const enemyCfg=current?pveEnemyVisual(current):null;const enemyThumb=enemyCfg?.image?`<div class="pc-pve-enemy-thumb"><img src="${enemyCfg.image}" alt=""></div>`:'';
+  return `<div class="pc-pve-zone-card"><div class="pc-pve-zone-top"><div><div class="pc-pve-zone-label">${zone.icon||'🗺️'} Zone actuelle</div><div class="pc-pve-zone-title">${escapeHtml(zone.name||'Aventure')}</div><div class="pc-pve-zone-meta">Progression du bas vers le boss · ${(fights.filter(f=>f.won).length)} / ${fights.length} combats</div></div><div class="pc-pve-fragments"><b>🥚 ${Number(pveData?.eggFragments||0)}</b><span>Fragments</span></div></div><div class="pc-pve-route">${nodes}</div><div class="pc-pve-current">${enemyThumb}<div class="pc-pve-current-copy"><div class="pc-pve-current-name">${current?.boss?'👑 ': '⚔️ '}${escapeHtml(current?.name||'Prochain combat')}</div><div class="pc-pve-current-sub">${escapeHtml(current?.type||'')} · ❤️ ${Number(current?.hp||0)} · ⚔️ ${Number(current?.power||0)}</div><div class="pc-pve-reward">1re victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s)</div></div><div class="pc-pve-level"><b>${Number(current?.level||1)}</b><span>Niv. conseillé</span></div></div></div>`;
 }
 function renderDesktopLovysHub(pveData = null) {
   const overview = $('desktopLovysOverview');
@@ -5251,31 +5263,169 @@ async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML=
 async function animatePveVictory(fightKey){const info=pveFightInfoByKey(fightKey);const node=document.querySelector(`[data-pve-node="${CSS.escape(fightKey)}"]`);node?.classList.add('just-won');document.querySelector('.pve-adventure-map')?.classList.add('traveler-moving');await new Promise(r=>setTimeout(r,720));const isZoneEnd=Boolean(info&&info.fightIndex===(info.zone.fights||[]).length-1);if(isZoneEnd){const overlay=$('pveZoneTransition');const next=(pveMapState.data?.zones||[])[info.zoneIndex+1];if(overlay){overlay.innerHTML=`<div class="pve-zone-transition-card"><div class="pve-zone-transition-icon">${next?(next.icon||'🗺️'):'🏆'}</div><div class="pve-zone-transition-title">${next?'Zone terminée !':'Aventure terminée !'}</div><div class="pve-zone-transition-sub">${next?`Direction : ${escapeHtml(next.name)}`:'Tous les combats actuels ont été terminés.'}</div></div>`;overlay.classList.add('active');}await new Promise(r=>setTimeout(r,1000));pveMapState.selectedZone=null;pveMapState.selectedFight=null;}await loadGame();await loadPve();}
 
 const PVE_BESTIARY={
-  forest_1:{zone:'forest',size:.66,boss:false,glow:'#73ebb0',src:'/pve/enemies/forest_1.svg'},
-  forest_2:{zone:'forest',size:.78,boss:false,glow:'#83efb6',src:'/pve/enemies/forest_2.svg'},
-  forest_3:{zone:'forest',size:.90,boss:false,glow:'#8feab9',src:'/pve/enemies/forest_3.svg'},
-  forest_4:{zone:'forest',size:1.02,boss:false,glow:'#c6a2ff',src:'/pve/enemies/forest_4.svg'},
-  forest_boss:{zone:'forest',size:1.22,boss:true,glow:'#8df5b3',src:'/pve/enemies/forest_boss.svg'},
-  ember_1:{zone:'ember',size:.72,boss:false,glow:'#ffb16f',src:'/pve/enemies/ember_1.svg'},
-  ember_2:{zone:'ember',size:.83,boss:false,glow:'#ff9f63',src:'/pve/enemies/ember_2.svg'},
-  ember_3:{zone:'ember',size:.95,boss:false,glow:'#ff9161',src:'/pve/enemies/ember_3.svg'},
-  ember_4:{zone:'ember',size:1.08,boss:false,glow:'#ff8554',src:'/pve/enemies/ember_4.svg'},
-  ember_boss:{zone:'ember',size:1.30,boss:true,glow:'#ff7d49',src:'/pve/enemies/ember_boss.svg'},
-  night_1:{zone:'night',size:.78,boss:false,glow:'#9b8fff',src:'/pve/enemies/night_1.svg'},
-  night_2:{zone:'night',size:.88,boss:false,glow:'#8ee1ff',src:'/pve/enemies/night_2.svg'},
-  night_3:{zone:'night',size:.98,boss:false,glow:'#c298ff',src:'/pve/enemies/night_3.svg'},
-  night_4:{zone:'night',size:1.10,boss:false,glow:'#998cff',src:'/pve/enemies/night_4.svg'},
-  night_mini:{zone:'night',size:1.20,boss:true,glow:'#caa8ff',src:'/pve/enemies/night_mini.svg'},
-  night_boss:{zone:'night',size:1.38,boss:true,glow:'#9181ff',src:'/pve/enemies/night_boss.svg'}
+  forest_1:{zone:'forest',size:.70,boss:false,glow:'#73ebb0',image:'/pve/zone1/germe-sauvage.png'},
+  forest_2:{zone:'forest',size:.76,boss:false,glow:'#83efb6',image:'/pve/zone1/rodeur-mousseux.png'},
+  forest_3:{zone:'forest',size:.82,boss:false,glow:'#8feab9',image:'/pve/zone1/sentinelle-racines.png'},
+  forest_4:{zone:'forest',size:.78,boss:false,glow:'#bda0ff',image:'/pve/zone1/lucibulle-sylvestre.png'},
+  forest_5:{zone:'forest',size:.86,boss:false,glow:'#b9a0ff',image:'/pve/zone1/mycelium-vif.png'},
+  forest_6:{zone:'forest',size:1.02,boss:true,miniBoss:true,glow:'#7ff0a8',image:'/pve/zone1/gardien-racines.png'},
+  forest_7:{zone:'forest',size:.93,boss:false,glow:'#c2a2ff',image:'/pve/zone1/esprit-sous-bois.png'},
+  forest_8:{zone:'forest',size:1.00,boss:false,glow:'#bba0ff',image:'/pve/zone1/sylve-fractale.png'},
+  forest_9:{zone:'forest',size:1.08,boss:false,glow:'#8feea9',image:'/pve/zone1/grand-myceliarque.png'},
+  forest_boss:{zone:'forest',size:1.22,boss:true,glow:'#8df5b3',image:'/pve/zone1/monarque-premiers-eclats.png'},
+  ember_1:{zone:'ember',size:.68,boss:false,glow:'#ffb16f',art:'sparkimp'},
+  ember_2:{zone:'ember',size:.80,boss:false,glow:'#ff9f63',art:'coalboar'},
+  ember_3:{zone:'ember',size:.92,boss:false,glow:'#ff9161',art:'flarelizard'},
+  ember_4:{zone:'ember',size:1.03,boss:false,glow:'#ff8554',art:'anvilguard'},
+  ember_boss:{zone:'ember',size:1.25,boss:true,glow:'#ff7d49',art:'infernotitan'},
+  night_1:{zone:'night',size:.72,boss:false,glow:'#9b8fff',art:'moondrop'},
+  night_2:{zone:'night',size:.82,boss:false,glow:'#8ee1ff',art:'shardowl'},
+  night_3:{zone:'night',size:.93,boss:false,glow:'#c298ff',art:'mirrormoth'},
+  night_4:{zone:'night',size:1.05,boss:false,glow:'#998cff',art:'duskknight'},
+  night_mini:{zone:'night',size:1.16,boss:true,glow:'#caa8ff',art:'astralseer'},
+  night_boss:{zone:'night',size:1.32,boss:true,glow:'#9181ff',art:'eclipsebehemoth'}
 };
 function pveEnemyVisual(fight){
   if(PVE_BESTIARY[fight?.key]) return PVE_BESTIARY[fight.key];
-  const t=String(fight?.type||'').toLowerCase(),lvl=Number(fight?.level||1),boss=Boolean(fight?.boss||fight?.finalBoss);
-  if(t.includes('verd')) return boss?PVE_BESTIARY.forest_boss:lvl<=1?PVE_BESTIARY.forest_1:lvl<=2?PVE_BESTIARY.forest_2:lvl<=3?PVE_BESTIARY.forest_3:PVE_BESTIARY.forest_4;
-  if(t.includes('cendre')||t.includes('forge')||t.includes('feu')) return boss?PVE_BESTIARY.ember_boss:lvl<=5?PVE_BESTIARY.ember_1:lvl<=6?PVE_BESTIARY.ember_2:lvl<=7?PVE_BESTIARY.ember_3:PVE_BESTIARY.ember_4;
+  const zone=String(fight?.zoneKey||fight?.zone||'night');
+  const lvl=Number(fight?.level||1);
+  const boss=Boolean(fight?.boss||fight?.finalBoss);
+  if(zone==='forest') return boss?(lvl>=10?PVE_BESTIARY.forest_boss:PVE_BESTIARY.forest_6):lvl<=1?PVE_BESTIARY.forest_1:lvl<=2?PVE_BESTIARY.forest_2:lvl<=3?PVE_BESTIARY.forest_3:lvl<=4?PVE_BESTIARY.forest_4:lvl<=5?PVE_BESTIARY.forest_5:lvl<=7?PVE_BESTIARY.forest_7:lvl<=8?PVE_BESTIARY.forest_8:PVE_BESTIARY.forest_9;
+  if(zone==='ember') return boss?PVE_BESTIARY.ember_boss:lvl<=5?PVE_BESTIARY.ember_1:lvl<=6?PVE_BESTIARY.ember_2:lvl<=7?PVE_BESTIARY.ember_3:PVE_BESTIARY.ember_4;
   return boss?(lvl>=15?PVE_BESTIARY.night_boss:PVE_BESTIARY.night_mini):lvl<=10?PVE_BESTIARY.night_1:lvl<=11?PVE_BESTIARY.night_2:lvl<=12?PVE_BESTIARY.night_3:PVE_BESTIARY.night_4;
 }
-function pveEnemySpriteMarkup(fight){const cfg=pveEnemyVisual(fight);return `<div class="pve-enemy-art ${cfg.boss?'boss':''}" style="--enemy-size:${cfg.size};--enemy-glow:${cfg.glow}"><img src="${cfg.src}" alt="${escapeHtml(fight?.name||'Ennemi PvE')}" draggable="false"></div>`;}
+function pveEnemySvg(fight){
+  const cfg=pveEnemyVisual(fight),id='e'+String(fight?.key||'x').replace(/[^a-z0-9]/gi,'');
+  const defs=`<defs><radialGradient id="g${id}" cx="34%" cy="24%"><stop offset="0" stop-color="#fff" stop-opacity=".32"/><stop offset=".36" stop-color="var(--m1)"/><stop offset="1" stop-color="var(--m2)"/></radialGradient><filter id="glow${id}"><feGaussianBlur stdDeviation="4" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+  const shell=(body,extra='',m1='#6d58a5',m2='#201936')=>`<svg viewBox="0 0 180 180" style="--m1:${m1};--m2:${m2}" aria-hidden="true">${defs}<ellipse cx="90" cy="154" rx="46" ry="10" fill="#000" opacity=".22"/>${extra}<g>${body}</g></svg>`;
+  switch(cfg.art){
+    case 'seedling': return shell(`
+      <circle cx="89" cy="101" r="34" fill="url(#g${id})" stroke="#75ebb1" stroke-width="4"/>
+      <path d="M83 63c-12-18-24-16-28-9 10 0 18 5 22 16m11-7c10-18 25-17 30-10-11 0-18 7-23 16" fill="none" stroke="#8ff3be" stroke-width="7" stroke-linecap="round"/>
+      <path d="M90 121c0 9-6 16-14 16-8 0-14-7-14-16 0-4 2-7 5-10 3 4 7 6 9 6s6-2 9-6c3 3 5 6 5 10Zm42 0c0 9-6 16-14 16s-14-7-14-16c0-4 2-7 5-10 3 4 7 6 9 6s6-2 9-6c3 3 5 6 5 10Z" fill="#25402d" opacity=".42"/>
+      <circle cx="78" cy="103" r="5" fill="#effff5"/>
+      <circle cx="102" cy="103" r="5" fill="#effff5"/>
+      <path d="M81 120c6 5 13 5 19 0" fill="none" stroke="#e6ffef" stroke-width="4.2" stroke-linecap="round"/>
+    `, `<circle cx="90" cy="95" r="50" fill="#67e7a4" opacity=".10" filter="url(#glow${id})"/>`, '#6dbb7a','#25402d');
+    case 'bramblecub': return shell(`
+      <path d="M47 114c0-30 18-50 45-50 26 0 44 18 44 47 0 27-19 44-46 44-28 0-43-15-43-41Z" fill="url(#g${id})" stroke="#88e5a8" stroke-width="4"/>
+      <path d="M62 74 46 50l22 10 10 14m32 0 15-24 9 22-20 10" fill="#34543b" stroke="#98f0b7" stroke-width="4" stroke-linejoin="round" stroke-linecap="round"/>
+      <circle cx="77" cy="103" r="5" fill="#f3fff7"/>
+      <circle cx="104" cy="103" r="5" fill="#f3fff7"/>
+      <path d="M79 121h24l-5 8H84Z" fill="#203126"/>
+      <path d="M56 133c-14 8-24 6-30 1 13 0 20-5 24-13" fill="none" stroke="#53795a" stroke-width="9" stroke-linecap="round"/>
+    `, `<circle cx="91" cy="92" r="53" fill="#7be8a8" opacity=".10" filter="url(#glow${id})"/>`, '#628968','#29392d');
+    case 'rootwarden': return shell(`
+      <path d="M55 132c-4-37 11-64 37-69 28-5 52 17 53 52 1 29-19 44-47 44-24 0-39-9-43-27Z" fill="url(#g${id})" stroke="#8ee4a4" stroke-width="4"/>
+      <path d="M68 76 57 48m22 24-5-32m25 30 10-29m12 36 16-24" stroke="#7e6440" stroke-width="9" stroke-linecap="round"/>
+      <path d="M67 136 49 159m35-18-5 25m32-25 13 23" stroke="#705537" stroke-width="10" stroke-linecap="round"/>
+      <circle cx="80" cy="103" r="5" fill="#ecfff3"/>
+      <circle cx="106" cy="103" r="5" fill="#ecfff3"/>
+      <path d="M81 122c6 4 11 4 17 0" fill="none" stroke="#e8fff0" stroke-width="4" stroke-linecap="round"/>
+    `, `<path d="M55 75c11-20 26-29 45-28 17 0 30 8 40 24" fill="none" stroke="#78edaa" stroke-width="5" opacity=".65"/>`, '#7b6948','#31271c');
+    case 'grovewisp': return shell(`
+      <path d="M90 45c26 0 44 25 40 57-4 31-21 50-40 50s-36-19-40-50c-4-32 14-57 40-57Z" fill="url(#g${id})" stroke="#d0a8ff" stroke-width="4"/>
+      <path d="M61 86 38 68m82 17 23-18M64 124l-20 20m72-20 19 19" stroke="#9770db" stroke-width="8" stroke-linecap="round"/>
+      <ellipse cx="77" cy="99" rx="5" ry="8" fill="#f5ebff"/>
+      <ellipse cx="102" cy="99" rx="5" ry="8" fill="#f5ebff"/>
+      <path d="M90 43V23m-10 8 10-11 10 11" fill="none" stroke="#9df0b8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M82 118c5 4 11 4 16 0" fill="none" stroke="#f4e5ff" stroke-width="4" stroke-linecap="round"/>
+    `, `<circle cx="90" cy="90" r="60" fill="#b887ff" opacity=".12" filter="url(#glow${id})"/>`, '#8b67b4','#2c2242');
+    case 'stagguardian': return shell(`
+      <path d="M54 118c0-40 17-66 42-66 28 0 49 29 49 67 0 31-21 45-48 45-25 0-43-15-43-46Z" fill="url(#g${id})" stroke="#9df2b5" stroke-width="5"/>
+      <path d="M68 69 47 39 34 19m27 33-4-28m60 44 18-29 11-20m-21 35 7-28" fill="none" stroke="#d0bb7f" stroke-width="8" stroke-linecap="round"/>
+      <path d="M68 82c-10 13-15 27-17 43m74-43c10 13 15 27 17 43" fill="none" stroke="#4a744a" stroke-width="8"/>
+      <circle cx="80" cy="108" r="6" fill="#ecfff2" filter="url(#glow${id})"/>
+      <circle cx="112" cy="108" r="6" fill="#ecfff2" filter="url(#glow${id})"/>
+      <path d="M89 125h15l-7 8Z" fill="#ecd6a0"/>
+    `, `<circle cx="96" cy="96" r="69" fill="#86f1b0" opacity=".12" filter="url(#glow${id})"/>`, '#6b7351','#293122');
+    case 'sparkimp': return shell(`
+      <path d="M59 122c-4-28 8-50 28-56 20-6 40 10 44 38 5 30-10 48-37 51-21 3-31-8-35-33Z" fill="url(#g${id})" stroke="#ffb16a" stroke-width="4"/>
+      <path d="M78 70c3-19 15-35 24-41-2 15 9 18 7 35m-42 26-17 10m83-8 18 8" fill="none" stroke="#ff8a4f" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="82" cy="108" r="5" fill="#fff0bd"/>
+      <circle cx="106" cy="105" r="5" fill="#fff0bd"/>
+      <path d="M86 123c7 4 13 4 19 0" fill="none" stroke="#ffe19b" stroke-width="4" stroke-linecap="round"/>
+    `, `<circle cx="96" cy="92" r="50" fill="#ff6f3d" opacity=".14" filter="url(#glow${id})"/>`, '#955032','#351614');
+    case 'coalboar': return shell(`
+      <path d="M47 121c0-31 20-51 48-51 31 0 48 19 46 47-2 26-20 42-49 42-29 0-45-14-45-38Z" fill="url(#g${id})" stroke="#ffa86a" stroke-width="4"/>
+      <path d="M61 84 50 60l18 9 9 16m37 1 15-22 9 19-18 10" fill="#5b3027" stroke="#ffb77c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="79" cy="105" r="5" fill="#ffe6b3"/>
+      <circle cx="104" cy="105" r="5" fill="#ffe6b3"/>
+      <path d="M74 123h32l-6 10H80Z" fill="#201111"/>
+      <path d="M54 134c-14 7-23 5-29 0 12 0 19-5 23-13" fill="none" stroke="#7a4b36" stroke-width="9" stroke-linecap="round"/>
+    `, `<circle cx="93" cy="95" r="53" fill="#ff8654" opacity=".10" filter="url(#glow${id})"/>`, '#7b4333','#2d1715');
+    case 'flarelizard': return shell(`
+      <path d="M40 118c12-35 37-53 69-48 23 3 38 19 36 39-2 24-21 38-51 38-22 0-38-8-54-29Z" fill="url(#g${id})" stroke="#ff9f69" stroke-width="4"/>
+      <path d="M51 124 26 142m90-2 26 13M123 89l24-11" stroke="#6b2b20" stroke-width="9" stroke-linecap="round"/>
+      <path d="M133 120c18 4 22 18 14 28-2-11-11-12-21-10" fill="none" stroke="#ff7048" stroke-width="8" stroke-linecap="round"/>
+      <circle cx="110" cy="100" r="6" fill="#fff0bf"/>
+      <path d="M81 76c7-16 18-27 29-34-2 12 5 18 2 30" fill="#ff7d49"/>
+    `, `<path d="M45 136c24 15 56 18 82 6" fill="none" stroke="#ff633d" stroke-width="4" opacity=".55"/>`, '#8f392a','#341616');
+    case 'anvilguard': return shell(`
+      <path d="M54 77 83 47l35 7 24 37-9 52-40 19-39-24Z" fill="url(#g${id})" stroke="#ffa86a" stroke-width="4"/>
+      <path d="M56 93 29 105m106-12 24 13M68 147l-12 19m58-21 17 20" stroke="#4f2720" stroke-width="12" stroke-linecap="round"/>
+      <rect x="72" y="86" width="16" height="10" rx="3" fill="#ffd78a"/>
+      <rect x="104" y="86" width="16" height="10" rx="3" fill="#ffd78a"/>
+      <path d="M79 120h35" stroke="#231314" stroke-width="8" stroke-linecap="round"/>
+    `, `<path d="M67 64 80 77m36-18-10 21m24 31-22 1m-45 3-18 8" stroke="#ff6e45" stroke-width="4" opacity=".8"/>`, '#73433a','#2d1b19');
+    case 'infernotitan': return shell(`
+      <path d="M48 124 58 69l35-30 42 15 24 41-12 53-49 20-45-22Z" fill="url(#g${id})" stroke="#ff9d58" stroke-width="5"/>
+      <path d="M59 86 29 68m111 19 25-20m-91 79-19 25m68-28 24 24" stroke="#61261d" stroke-width="15" stroke-linecap="round"/>
+      <path d="M67 95c12-17 44-21 62-3l-8 39H74Z" fill="#261111"/>
+      <path d="M77 101h16l-8 14Zm27 0h16l-8 14Z" fill="#ffd878"/>
+      <path d="M81 127h33" stroke="#ffbb65" stroke-width="7" stroke-linecap="round"/>
+      <path d="M79 52 91 24l8 26 15-20 1 31" fill="#ff6d42" filter="url(#glow${id})"/>
+    `, `<circle cx="99" cy="104" r="66" fill="#ff6038" opacity=".17" filter="url(#glow${id})"/>`, '#95352b','#341515');
+    case 'moondrop': return shell(`
+      <path d="M90 46c24 0 39 24 35 53-3 19-12 27-14 44l-16-12-13 16-7-19-16 10c2-15-8-24-6-42 3-30 17-50 37-50Z" fill="url(#g${id})" stroke="#a499ff" stroke-width="4"/>
+      <ellipse cx="78" cy="95" rx="5" ry="8" fill="#c7f2ff"/>
+      <ellipse cx="101" cy="95" rx="5" ry="8" fill="#c7f2ff"/>
+      <path d="M81 113c5 4 11 4 16 0" fill="none" stroke="#daf6ff" stroke-width="4" stroke-linecap="round"/>
+    `, `<circle cx="89" cy="91" r="56" fill="#7e74ff" opacity=".14" filter="url(#glow${id})"/>`, '#5c57a8','#181530');
+    case 'shardowl': return shell(`
+      <path d="M52 122 65 76l28-24 30 23 12 46-20 34H70Z" fill="url(#g${id})" stroke="#95e7ff" stroke-width="4"/>
+      <path d="M70 76 55 48l24 14 15-27 14 29 25-14-14 28" fill="#6488b2" stroke="#9df0ff" stroke-width="3" stroke-linejoin="round"/>
+      <circle cx="78" cy="100" r="6" fill="#effbff"/>
+      <circle cx="106" cy="100" r="6" fill="#effbff"/>
+      <path d="M80 124h26" stroke="#afe8ff" stroke-width="5" stroke-linecap="round"/>
+    `, `<circle cx="96" cy="92" r="56" fill="#6fd2ff" opacity=".13" filter="url(#glow${id})"/>`, '#50749f','#1d2942');
+    case 'mirrormoth': return shell(`
+      <path d="M89 43c25 0 43 22 39 53-2 21-12 32-18 49l-18-14-16 17-9-21-19 8c7-17 2-26 5-44 5-30 18-48 36-48Z" fill="url(#g${id})" stroke="#cd9cff" stroke-width="4"/>
+      <path d="M90 56 73 92l17 31 18-32Z" fill="#9b86ff" opacity=".42"/>
+      <path d="M57 70 40 58m83 9 18-12M60 123l-16 12m80-15 17 12" stroke="#8f7fff" stroke-width="3" opacity=".55"/>
+      <circle cx="79" cy="91" r="5" fill="#f8efff"/>
+      <circle cx="103" cy="91" r="5" fill="#f8efff"/>
+    `, `<circle cx="90" cy="91" r="60" fill="#b07dff" opacity=".12" filter="url(#glow${id})"/>`, '#6d58a6','#20183f');
+    case 'duskknight': return shell(`
+      <path d="M61 82 87 50l35 18 18 44-19 46H71l-20-43Z" fill="url(#g${id})" stroke="#a59dff" stroke-width="4"/>
+      <path d="M75 72 91 43l18 28 18 8-10 21H72l-12-19Z" fill="#29243f" stroke="#9d93ff" stroke-width="4"/>
+      <path d="M80 92h34" stroke="#9aeaff" stroke-width="6" stroke-linecap="round"/>
+      <path d="M51 111 28 129m110-19 22 19" stroke="#332d59" stroke-width="12" stroke-linecap="round"/>
+      <path d="M116 112 140 89" stroke="#b5acff" stroke-width="7" stroke-linecap="round"/>
+    `, `<circle cx="95" cy="100" r="62" fill="#786aff" opacity=".14" filter="url(#glow${id})"/>`, '#4f4974','#18152d');
+    case 'astralseer': return shell(`
+      <path d="M90 39c27 0 47 28 43 61-3 30-20 54-43 54s-39-24-43-54c-4-33 16-61 43-61Z" fill="url(#g${id})" stroke="#ddb8ff" stroke-width="4"/>
+      <path d="M63 71 44 48l27 10m46 13 20-25-28 11" fill="none" stroke="#8a71c7" stroke-width="8" stroke-linecap="round"/>
+      <ellipse cx="79" cy="98" rx="5" ry="9" fill="#f5ecff"/>
+      <ellipse cx="103" cy="98" rx="5" ry="9" fill="#f5ecff"/>
+      <path d="M90 74v44" stroke="#ddcbff" stroke-width="4"/>
+      <circle cx="90" cy="67" r="10" fill="none" stroke="#9be8ff" stroke-width="4"/>
+    `, `<circle cx="90" cy="90" r="68" fill="#b889ff" opacity=".14" filter="url(#glow${id})"/>`, '#725c96','#221a38');
+    case 'eclipsebehemoth': return shell(`
+      <path d="M50 123c0-47 19-80 46-80 30 0 53 36 53 80 0 32-22 46-53 46-28 0-46-14-46-46Z" fill="url(#g${id})" stroke="#a89cff" stroke-width="5"/>
+      <path d="M67 75 47 45 33 21m86 53 19-30 11-24" fill="none" stroke="#6157aa" stroke-width="10" stroke-linecap="round"/>
+      <path d="M65 91c13-15 51-15 64 0l-12 45H77Z" fill="#16132b"/>
+      <ellipse cx="80" cy="104" rx="6" ry="10" fill="#b6f0ff" filter="url(#glow${id})"/>
+      <ellipse cx="111" cy="104" rx="6" ry="10" fill="#b6f0ff" filter="url(#glow${id})"/>
+      <path d="M89 133h15" stroke="#baabff" stroke-width="6" stroke-linecap="round"/>
+      <circle cx="98" cy="33" r="23" fill="#18142d" stroke="#b4a2ff" stroke-width="5"/>
+      <path d="M98 4v17M71 16l12 14m43-14-12 14" stroke="#b4a2ff" stroke-width="4"/>
+    `, `<circle cx="98" cy="95" r="77" fill="#7868ff" opacity=".17" filter="url(#glow${id})"/>`, '#564a90','#17132c');
+    default:
+      return shell(`<circle cx="90" cy="100" r="48" fill="url(#g${id})"/><circle cx="75" cy="96" r="5" fill="#fff"/><circle cx="105" cy="96" r="5" fill="#fff"/>`);
+  }
+}
+function pveEnemySpriteMarkup(fight){const cfg=pveEnemyVisual(fight);const bossClass=cfg.boss?'boss':'';if(cfg.image)return `<div class="pve-enemy-art ${bossClass} real-art" style="--enemy-size:${cfg.size};--enemy-glow:${cfg.glow}"><img class="pve-enemy-photo" src="${cfg.image}" alt="${escapeHtml(fight?.name||'Monstre PvE')}"></div>`;return `<div class="pve-enemy-art ${bossClass}" style="--enemy-size:${cfg.size};--enemy-glow:${cfg.glow}">${pveEnemySvg(fight)}</div>`;}
 function setPveHp(prefix,hp,maxHp){const pct=Math.max(0,Math.min(100,Number(hp||0)/Math.max(1,Number(maxHp||1))*100));const bar=$(prefix+'Hp'),txt=$(prefix+'HpText');if(bar){bar.style.width=pct+'%';bar.classList.toggle('mid',pct<=55&&pct>25);bar.classList.toggle('low',pct<=25);}if(txt)txt.textContent=`${Math.max(0,Math.round(hp))} / ${Math.max(1,Math.round(maxHp))}`;}
 function pveWait(ms){return new Promise(r=>setTimeout(r,ms));}
 function pveDamagePop(id,amount){const el=$(id);if(!el)return;el.textContent=`-${Math.max(0,Math.round(amount))}`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
