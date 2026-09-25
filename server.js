@@ -4095,6 +4095,30 @@ app.post('/api/prestige', async (req,res)=>{
  const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); const up=await c.query(`UPDATE users SET global_xp=0,prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
 });
 
+
+const FRAGMENT_EGG_PRICE = 10;
+app.post('/api/fragments/buy-egg', async (req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
+    const quantity=Math.max(1,Math.min(99,Math.floor(Number(req.body?.quantity||1))));
+    const total=quantity*FRAGMENT_EGG_PRICE;
+    await client.query('BEGIN');
+    const result=await client.query(`SELECT id,egg_fragments FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+    const user=result.rows[0];
+    if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    const balance=Math.max(0,Number(user.egg_fragments||0));
+    if(balance<total){await client.query('ROLLBACK');return res.status(400).json({error:`Il te faut ${total} fragments pour cet achat.`});}
+    await client.query(`UPDATE users SET egg_fragments=egg_fragments-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,total]);
+    await client.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT (account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[req.session.account.id,quantity]);
+    await client.query('COMMIT');
+    const fragments=balance-total;
+    pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
+    pushLiveUpdate('shop-update',{twitchId:req.session.user.twitchId});
+    res.json({ok:true,quantity,spent:total,fragments,eggQuantity:quantity});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur achat œuf par fragments :',error);res.status(500).json({error:'Impossible d’acheter cet œuf.'});}finally{client.release();}
+});
+
 app.get('/api/pve', async (req,res)=>{
  try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); const r=await pool.query(`SELECT id,creature_id,xp,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);const u=r.rows[0];if(!u)return res.status(404).json({error:'Joueur introuvable.'});const pr=await pool.query(`SELECT fight_key,wins,attempts FROM user_pve_progress WHERE user_id=$1`,[u.id]);const map=new Map(pr.rows.map(x=>[x.fight_key,x]));const zones=PVE_ZONES.map(z=>({...z,fights:z.fights.map(f=>{const prev=pvePreviousFight(f.key);return {...f,won:Number(map.get(f.key)?.wins||0)>0,unlocked:!prev||Number(map.get(prev.key)?.wins||0)>0};})}));res.json({ok:true,hasCreature:Boolean(u.creature_id),creature:u.creature_id?creatureBattleStats(u):null,eggFragments:Number(u.egg_fragments||0),zones});}catch(e){res.status(500).json({error:'Impossible de charger l’aventure.'});}
 });
