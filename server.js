@@ -492,10 +492,15 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
 const PVE_ZONES = [
   { key:'forest', name:'Forêt des Premiers Éclats', icon:'🌿', fights:[
     {key:'forest_1',name:'Germe sauvage',level:1,type:'Verdance',hp:110,power:42,rewards:{creatureXp:4,globalXp:2,fragments:1}},
-    {key:'forest_2',name:'Rôdeur mousseux',level:2,type:'Verdance',hp:135,power:50,rewards:{creatureXp:5,globalXp:2,fragments:1}},
-    {key:'forest_3',name:'Sentinelle des racines',level:3,type:'Verdance',hp:160,power:58,rewards:{creatureXp:6,globalXp:3,fragments:1}},
-    {key:'forest_4',name:'Esprit du sous-bois',level:4,type:'Mirage',hp:190,power:66,rewards:{creatureXp:7,globalXp:3,fragments:1}},
-    {key:'forest_boss',name:'Gardien Sylvestre',level:5,type:'Verdance',hp:240,power:76,boss:true,rewards:{creatureXp:15,globalXp:6,fragments:4}}
+    {key:'forest_2',name:'Rôdeur mousseux',level:2,type:'Verdance',hp:130,power:48,rewards:{creatureXp:5,globalXp:2,fragments:1}},
+    {key:'forest_3',name:'Sentinelle des racines',level:3,type:'Verdance',hp:150,power:54,rewards:{creatureXp:6,globalXp:3,fragments:1}},
+    {key:'forest_4',name:'Lucibulle sylvestre',level:4,type:'Verdance',hp:175,power:60,rewards:{creatureXp:7,globalXp:3,fragments:1}},
+    {key:'forest_5',name:'Mycélium vif',level:5,type:'Verdance',hp:205,power:66,rewards:{creatureXp:8,globalXp:4,fragments:1}},
+    {key:'forest_6',name:'Gardien des Racines',level:6,type:'Verdance',hp:250,power:74,boss:true,miniBoss:true,rewards:{creatureXp:12,globalXp:5,fragments:3}},
+    {key:'forest_7',name:'Esprit du sous-bois',level:7,type:'Mirage',hp:275,power:78,rewards:{creatureXp:9,globalXp:4,fragments:1}},
+    {key:'forest_8',name:'Sylve fractale',level:8,type:'Verdance',hp:305,power:84,rewards:{creatureXp:10,globalXp:5,fragments:1}},
+    {key:'forest_9',name:'Grand mycéliarque',level:9,type:'Verdance',hp:340,power:90,rewards:{creatureXp:12,globalXp:5,fragments:2}},
+    {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,rewards:{creatureXp:20,globalXp:8,fragments:5}}
   ]},
   { key:'ember', name:'Cavernes de Braise', icon:'🔥', fights:[
     {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:7,globalXp:3,fragments:1}},
