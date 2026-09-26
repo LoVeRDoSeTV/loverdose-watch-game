@@ -4161,7 +4161,7 @@ body:has(#pveModal:not(.hidden)){
     <div class="sub-benefits-list">
       <div class="sub-benefit-row"><div class="sub-benefit-icon">⚡</div><div class="sub-benefit-copy"><strong>+20 % d’XP</strong><span>120 XP par heure au lieu de 100 XP/h.</span></div></div>
       <div class="sub-benefit-row"><div class="sub-benefit-icon">💰</div><div class="sub-benefit-copy"><strong>+20 % de LoVeR'Cash</strong><span>12 LoVeR'Cash par heure au lieu de 10 LoVeR'Cash/h.</span></div></div>
-      <div class="sub-benefit-row"><div class="sub-benefit-icon">🏅</div><div class="sub-benefit-copy"><strong>Badge exclusif Soutien Absolu</strong><span>Débloqué automatiquement lorsque ton abonnement Twitch est détecté.</span></div></div>
+      <div class="sub-benefit-row"><div class="sub-benefit-icon">🏅</div><div class="sub-benefit-copy"><strong>Badge exclusif Soutien Absolu</strong><span>Débloqué automatiquement avec +500 XP Lovys en réserve, +250 XP globale et +100 LoVeR'Cash.</span></div></div>
       <div class="sub-benefit-row"><div class="sub-benefit-icon">⭐</div><div class="sub-benefit-copy"><strong>Statut Sub</strong><span>Ton statut d’abonné est visible directement dans le Watch Game.</span></div></div>
     </div>
     <p id="subBenefitsNote" class="sub-benefits-note">Les bonus sont appliqués automatiquement par le tracker lorsque tu es présent pendant un live.</p>
@@ -5743,8 +5743,13 @@ function renderBadgeCollection() {
     const reserveNote = challenge.lovysXpToReserve && rewardLovysXp > 0
       ? `<span class="badge-reward-reserve">L’XP Lovys est ajoutée à ta réserve.</span>`
       : '';
+    const rewardLabel = isGlobalEvolution
+      ? (challenge.maxed
+          ? '✓ Récompense finale obtenue'
+          : `🎁 Palier ${Number(challenge.rewardStageHours || challenge.targetHours || 0)} h`)
+      : (unlocked ? '✓ Récompense obtenue' : '🎁 Récompense');
     const rewardBlock = rewardParts
-      ? `<div class="badge-xp-reward"><span class="badge-reward-label">${unlocked ? '✓ Récompense obtenue' : '🎁 Récompense'}</span>${rewardParts}${reserveNote}</div>`
+      ? `<div class="badge-xp-reward"><span class="badge-reward-label">${rewardLabel}</span>${rewardParts}${reserveNote}</div>`
       : '';
 
     return `
