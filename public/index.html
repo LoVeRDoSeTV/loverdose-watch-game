@@ -2773,7 +2773,7 @@ html, body{
           <div id="playerCardSubZone" class="player-sub-zone"></div>
         </div>
         <div id="playerCardTitle" class="player-card-title"></div>
-        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Compte niv. 1</span><span id="playerCardCreatureLevelValue">Lovys niv. 1</span><button id="playerCardProgressionMobile" class="player-card-progress-mobile" type="button">📈 Progression</button></div>
+        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Niveau global 1</span><span id="playerCardCreatureLevelValue" class="hidden"></span><button id="playerCardProgressionMobile" class="player-card-progress-mobile" type="button">📈 Progression</button></div>
       </div>
     </div>
     <div id="playerCardBadgesTrigger" class="player-card-rankbadges" role="button" tabindex="0" aria-label="Ouvrir mes badges" title="Ouvrir mes badges">
@@ -4334,10 +4334,10 @@ function renderPlayerVisitCard() {
   applyProfileCosmetics(document.querySelector('.player-visit-card'), me.user.cosmetic_background, me.user.cosmetic_frame);
   applyAvatarFrameCosmetics(avatarEl, me.user.cosmetic_avatar_frame);
   setHubFragmentsButton(Number(me.user.egg_fragments || 0));
-  levelValueEl.textContent = `Compte niv. ${me.user.global_progression?.level || 1} · ${me.user.global_grade?.name || 'Recrue'}`;
+  levelValueEl.textContent = `Niveau global ${me.user.global_progression?.level || 1} · ${me.user.global_grade?.name || 'Recrue'}`;
   const gradeEmblem = $('playerGradeEmblem'); if (gradeEmblem) { gradeEmblem.textContent = me.user.global_grade?.icon || '◆'; gradeEmblem.style.color = me.user.global_grade?.color || '#9aa3b8'; }
   const creatureLevelEl = $('playerCardCreatureLevelValue');
-  if (creatureLevelEl) creatureLevelEl.textContent = me.user.creature_id ? `Lovys niv. ${me.user.progression?.level || 1}` : 'Œuf en incubation';
+  if (creatureLevelEl) { creatureLevelEl.textContent = ''; creatureLevelEl.classList.add('hidden'); }
   const leaderboardRank = Number(me.user.leaderboard_rank);
   rankEl.textContent = Number.isFinite(leaderboardRank) && leaderboardRank > 0
     ? `#${leaderboardRank}`
