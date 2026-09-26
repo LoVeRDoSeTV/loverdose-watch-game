@@ -2504,6 +2504,22 @@ html, body{
 @media (max-width:1023px){.pve-lovys-sidebar{display:none}.pve-desktop-layout{display:block}}
 /* ===== /PVE DESKTOP LAYOUT V19 ===== */
 
+
+
+/* ===== Zone 1 — fond officiel Forêt des Premiers Éclats =====
+   Le chemin est déjà dessiné dans assets/fond-zone-1.png :
+   on masque donc le décor/chemin CSS de secours uniquement pour la Zone 1. */
+.pve-adventure-map.theme-forest{
+  background:
+    linear-gradient(180deg,rgba(4,10,18,.10) 0%,rgba(4,10,18,.04) 46%,rgba(4,10,18,.16) 100%),
+    url("assets/fond-zone-1.png") center center / cover no-repeat!important;
+}
+.pve-adventure-map.theme-forest .pve-zone-world{display:none!important}
+.pve-adventure-map.theme-forest::before,
+.pve-adventure-map.theme-forest::after{display:none!important}
+.pve-adventure-map.theme-forest .pve-route-svg{opacity:0!important;pointer-events:none!important}
+/* ===== /Zone 1 fond officiel ===== */
+
 </style>
 </head>
 <body class="auth-locked">
