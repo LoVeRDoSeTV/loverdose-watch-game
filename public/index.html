@@ -2673,6 +2673,80 @@ html, body{
 /* ===== /PVE ZONE 1 — MONSTRES POSÉS SUR LE VRAI CHEMIN V22 ===== */
 
 
+/* ===== PVE ZONE 1 — SCHÉMA VALIDÉ V23 =====
+   Positions 1→10 et chemin rose calés sur le schéma fourni par le créateur. */
+@media (min-width:1024px){
+  /* Le fond garde exactement le même repère 0→100 que le schéma. */
+  .pve-desktop-main .pve-adventure-map.theme-forest{
+    background-size:100% 100%!important;
+    background-position:center center!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-route{
+    position:relative!important;
+    display:block!important;
+    flex:1 1 auto!important;
+    min-height:0!important;
+    height:auto!important;
+    padding:0!important;
+    overflow:visible!important;
+  }
+  /* Chemin rose pointillé : même logique visuelle que le schéma, derrière les mobs. */
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-route-svg.pve-route-svg-schema{
+    display:block!important;
+    position:absolute!important;
+    inset:0!important;
+    width:100%!important;
+    height:100%!important;
+    opacity:1!important;
+    z-index:2!important;
+    overflow:visible!important;
+    pointer-events:none!important;
+    filter:drop-shadow(0 0 5px rgba(239,131,255,.62)) drop-shadow(0 0 11px rgba(145,71,255,.24))!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-route-svg-schema .pve-route-shadow{
+    display:none!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-route-svg-schema .pve-route-line{
+    fill:none!important;
+    stroke:#ef83ff!important;
+    stroke-width:7px!important;
+    stroke-linecap:round!important;
+    stroke-linejoin:round!important;
+    stroke-dasharray:22 27!important;
+    opacity:.94!important;
+    animation:pveSchemaPathGlow 2.4s ease-in-out infinite!important;
+  }
+  @keyframes pveSchemaPathGlow{
+    0%,100%{opacity:.78;filter:drop-shadow(0 0 1px rgba(255,255,255,.25))}
+    50%{opacity:1;filter:drop-shadow(0 0 4px rgba(239,131,255,.7))}
+  }
+
+  /* Tous les ennemis restent visibles avant le combat. */
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node.locked{
+    opacity:1!important;
+    border-color:rgba(210,199,231,.42)!important;
+    background:radial-gradient(circle,rgba(18,28,42,.62) 0%,rgba(8,13,25,.34) 58%,rgba(8,13,25,0) 78%)!important;
+    box-shadow:0 0 0 4px rgba(255,255,255,.035),0 8px 22px rgba(0,0,0,.38)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node.locked .pve-map-node-monster{
+    opacity:.82!important;
+    filter:grayscale(.28) brightness(.86) saturate(.82) drop-shadow(0 0 7px rgba(205,181,236,.24)) drop-shadow(0 7px 8px rgba(0,0,0,.5))!important;
+  }
+  /* Un peu plus grands pour lire le bestiaire directement sur la carte. */
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node{
+    width:80px!important;height:80px!important;flex-basis:80px!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node.boss{
+    width:96px!important;height:96px!important;flex-basis:96px!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node-monster{inset:-16%!important}
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node.locked .pve-map-node-lock{
+    opacity:.92!important;
+  }
+}
+/* ===== /PVE ZONE 1 — SCHÉMA VALIDÉ V23 ===== */
+
+
 </style>
 </head>
 <body class="auth-locked">
@@ -5599,7 +5673,13 @@ function pveWorldSceneryMarkup(zone){
   const key=String(zone?.key||'forest');
   return `<div class="pve-zone-world" aria-hidden="true"><div class="pve-world-stars"></div><div class="pve-world-orb"></div><div class="pve-island i1"></div><div class="pve-island i2"></div><div class="pve-island i3"></div><i class="pve-crystal c1"></i><i class="pve-crystal c2"></i><i class="pve-crystal c3"></i><i class="pve-crystal c4"></i><i class="pve-waterfall w1"></i><i class="pve-waterfall w2"></i><i class="pve-tree t1"></i><i class="pve-tree t2"></i><i class="pve-lava l1"></i><i class="pve-lava l2"></i><i class="pve-ember e1"></i><i class="pve-ember e2"></i><i class="pve-ember e3"></i><i class="pve-ember e4"></i><i class="pve-ruin r1"></i><i class="pve-ruin r2"></i><i class="pve-mist m1"></i><i class="pve-mist m2"></i><div class="pve-world-haze"></div></div>`;
 }
-function pveRouteSvgMarkup(){return `<svg class="pve-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="pve-route-shadow" d="M50 97 C21 90 22 80 54 76 C84 72 79 62 46 58 C16 54 20 44 55 40 C83 36 78 26 47 22 C24 19 27 11 51 4"/><path class="pve-route-line" d="M50 97 C21 90 22 80 54 76 C84 72 79 62 46 58 C16 54 20 44 55 40 C83 36 78 26 47 22 C24 19 27 11 51 4"/></svg>`;}
+function pveRouteSvgMarkup(zoneKey=''){
+  const generic='M50 97 C21 90 22 80 54 76 C84 72 79 62 46 58 C16 54 20 44 55 40 C83 36 78 26 47 22 C24 19 27 11 51 4';
+  // Zone 1 : tracé relevé directement depuis le schéma validé sur fond-zone-1.png.
+  const forest='M60.7 93 C53.5 90.8 48.5 88.8 45.4 85.6 C38.8 81.6 35.8 76.8 37.6 71.8 C41.7 68.5 47.2 66.4 51.2 64.7 C58.0 62.2 64.8 59.6 66.4 55.7 C68.0 50.2 64.4 45.6 58.4 41.4 C53.8 38.5 49.3 36.8 45.3 35.7 C40.4 33.4 37.0 29.5 37.9 25.9 C41.7 23.7 46.9 22.4 50.7 21.3 C55.3 18.5 57.8 14.1 56.3 11.8 C54.2 9.8 51.7 9.1 48.8 9.3';
+  const d=String(zoneKey)==='forest'?forest:generic;
+  return `<svg class="pve-route-svg ${String(zoneKey)==='forest'?'pve-route-svg-schema':''}" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="pve-route-shadow" vector-effect="non-scaling-stroke" d="${d}"/><path class="pve-route-line" vector-effect="non-scaling-stroke" d="${d}"/></svg>`;
+}
 function pveLovysSidebarMarkup(){
   const lovys=lovysCollectionData?.lovys||[];
   if(!lovys.length)return `<aside class="pve-lovys-sidebar"><div class="pve-lovys-sidebar-title">🐉 Mes Lovys</div><div class="pve-lovys-sidebar-sub">Aucun Lovys disponible.</div></aside>`;
@@ -5636,8 +5716,8 @@ function renderPveAdventureMap(data,zoneIndex=null){
   const wonCount=(zone.fights||[]).filter(f=>f.won).length;
   const zoneTabs=visibleZones.map((z,i)=>`<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''}" type="button" data-pve-zone="${i}">${z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`).join('');
   const reversed=[...(zone.fights||[])].reverse();
-  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[50,94],[43,84],[38,74],[48,65],[62,58],[68,49],[60,40],[50,32],[56,22],[62,11]];const pos=forestPathPos[Math.max(0,Math.min(forestPathPos.length-1,originalIndex))];const posStyle=(zone.key==='forest'&&pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" ${!f.unlocked&&!f.won?'disabled':''}>${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label"><div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup():''}</div></div>`}).join('');
-  const mainMarkup=`<div class="pve-desktop-main"><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter">${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup()}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
+  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[60.7,93.0],[45.4,85.6],[37.6,71.8],[51.2,64.7],[66.4,55.7],[58.4,41.4],[45.3,35.7],[37.9,25.9],[50.7,21.3],[48.8,9.3]];const pos=forestPathPos[Math.max(0,Math.min(forestPathPos.length-1,originalIndex))];const posStyle=(zone.key==='forest'&&pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" ${!f.unlocked&&!f.won?'disabled':''}>${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label"><div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup():''}</div></div>`}).join('');
+  const mainMarkup=`<div class="pve-desktop-main"><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter">${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
   box.innerHTML=window.matchMedia('(min-width:1024px)').matches?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
 }
