@@ -6236,7 +6236,76 @@ function renderPveAdventureMap(data,zoneIndex=null){
   if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
 }
 async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
-async function animatePveVictory(fightKey){const info=pveFightInfoByKey(fightKey);const node=document.querySelector(`[data-pve-node="${CSS.escape(fightKey)}"]`);node?.classList.add('just-won');document.querySelector('.pve-adventure-map')?.classList.add('traveler-moving');await new Promise(r=>setTimeout(r,720));const isZoneEnd=Boolean(info&&info.fightIndex===(info.zone.fights||[]).length-1);if(isZoneEnd){const overlay=$('pveZoneTransition');const next=(pveMapState.data?.zones||[])[info.zoneIndex+1];if(overlay){overlay.innerHTML=`<div class="pve-zone-transition-card"><div class="pve-zone-transition-icon">${next?(next.icon||'🗺️'):'🏆'}</div><div class="pve-zone-transition-title">${next?'Zone terminée !':'Aventure terminée !'}</div><div class="pve-zone-transition-sub">${next?`Direction : ${escapeHtml(next.name)}`:'Tous les combats actuels ont été terminés.'}</div></div>`;overlay.classList.add('active');}await new Promise(r=>setTimeout(r,1000));pveMapState.selectedZone=null;pveMapState.selectedFight=null;}await loadGame();await loadPve();}
+async function refreshPveAfterVictory(zoneIndex=null){
+  const [pveResponse]=await Promise.all([
+    fetch('/api/pve',{cache:'no-store'}),
+    loadGame(),
+    loadLovysCollection()
+  ]);
+  const d=await pveResponse.json();
+  if(!pveResponse.ok)throw new Error(d.error||'Erreur');
+  setHubFragmentsButton(Number(d.eggFragments||0));
+  renderDesktopLovysHub(d);
+  if(!d.hasCreature){const box=$('pveContent');if(box)box.innerHTML=`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}
+  renderPveAdventureMap(d,zoneIndex);
+}
+
+async function animatePveTravelerToFight(fromKey,toKey){
+  const traveler=document.querySelector('.pve-adventure-map .pve-map-traveler');
+  const fromNode=document.querySelector(`[data-pve-node="${CSS.escape(fromKey)}"]`);
+  const toNode=document.querySelector(`[data-pve-node="${CSS.escape(toKey)}"]`);
+  if(!traveler||!fromNode||!toNode)return;
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const tr=traveler.getBoundingClientRect(),fr=fromNode.getBoundingClientRect(),to=toNode.getBoundingClientRect();
+  const travelerCenterX=tr.left+tr.width/2,travelerCenterY=tr.top+tr.height/2;
+  const fromCenterX=fr.left+fr.width/2,fromCenterY=fr.top+fr.height/2;
+  const targetCenterX=to.left+to.width/2+(travelerCenterX-fromCenterX);
+  const targetCenterY=to.top+to.height/2+(travelerCenterY-fromCenterY);
+  const dx=targetCenterX-travelerCenterX,dy=targetCenterY-travelerCenterY;
+  traveler.style.zIndex='40';
+  const anim=traveler.animate([
+    {transform:'translate(-50%,-135%) translate(0px,0px) scale(1)',filter:'brightness(1)',opacity:1},
+    {offset:.22,transform:`translate(-50%,-135%) translate(${dx*.18}px,${dy*.18-12}px) scale(1.10)`,filter:'brightness(1.25)',opacity:1},
+    {offset:.72,transform:`translate(-50%,-135%) translate(${dx*.78}px,${dy*.78-8}px) scale(1.04)`,filter:'brightness(1.18)',opacity:1},
+    {transform:`translate(-50%,-135%) translate(${dx}px,${dy}px) scale(1)`,filter:'brightness(1)',opacity:1}
+  ],{duration:850,easing:'cubic-bezier(.22,.78,.24,1)',fill:'forwards'});
+  try{await anim.finished;}catch(_){ }
+}
+
+async function animatePveVictory(fightKey,result={}){
+  const info=pveFightInfoByKey(fightKey);
+  const node=document.querySelector(`[data-pve-node="${CSS.escape(fightKey)}"]`);
+  node?.classList.add('just-won');
+  const isFirstWin=Boolean(result?.firstWin);
+  const isZoneEnd=Boolean(info&&info.fightIndex===(info.zone.fights||[]).length-1);
+  const nextFight=info&&!isZoneEnd?(info.zone.fights||[])[info.fightIndex+1]:null;
+
+  if(isFirstWin&&nextFight){
+    await animatePveTravelerToFight(fightKey,nextFight.key);
+    pveMapState.selectedFight=nextFight.key;
+    await refreshPveAfterVictory(info?.zoneIndex??pveMapState.selectedZone);
+    return;
+  }
+
+  if(isFirstWin&&isZoneEnd){
+    document.querySelector('.pve-adventure-map')?.classList.add('traveler-moving');
+    await new Promise(r=>setTimeout(r,720));
+    const overlay=$('pveZoneTransition');
+    const next=(pveMapState.data?.zones||[])[info.zoneIndex+1];
+    if(overlay){
+      overlay.innerHTML=`<div class="pve-zone-transition-card"><div class="pve-zone-transition-icon">${next?(next.icon||'🗺️'):'🏆'}</div><div class="pve-zone-transition-title">${next?'Zone terminée !':'Aventure terminée !'}</div><div class="pve-zone-transition-sub">${next?`Direction : ${escapeHtml(next.name)}`:'Tous les combats actuels ont été terminés.'}</div></div>`;
+      overlay.classList.add('active');
+    }
+    await new Promise(r=>setTimeout(r,1000));
+    pveMapState.selectedZone=null;
+    pveMapState.selectedFight=null;
+    await refreshPveAfterVictory();
+    return;
+  }
+
+  // Rejouer un combat déjà gagné ne déplace pas le marqueur.
+  await refreshPveAfterVictory(info?.zoneIndex??pveMapState.selectedZone);
+}
 
 const PVE_BESTIARY={
   forest_1:{zone:'forest',size:.70,boss:false,glow:'#73ebb0',image:'/pve/zone1/germe-sauvage.png'},
@@ -6416,7 +6485,7 @@ $('pveContent')?.addEventListener('click',async e=>{
   const cat=e.target.closest('[data-pve-category]');if(cat){pveMapState.view=cat.dataset.pveCategory==='fragments'?'fragments':'map';renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
   const zb=e.target.closest('[data-pve-zone]');if(zb){const idx=Number(zb.dataset.pveZone);if(Number.isFinite(idx)){pveMapState.selectedZone=idx;pveMapState.selectedFight=null;renderPveAdventureMap(pveMapState.data,idx);}return;}
   const nb=e.target.closest('[data-pve-node]');if(nb){pveMapState.selectedFight=nb.dataset.pveNode;const info=pveFightInfoByKey(pveMapState.selectedFight),detail=$('pveMapDetail');if(detail&&info){detail.innerHTML=pveFightDetailMarkup(info.fight);detail.classList.add('detail-open');}document.querySelectorAll('.pve-map-node').forEach(n=>n.classList.toggle('selected',n.dataset.pveNode===pveMapState.selectedFight));return;}
-  const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const fightKey=b.dataset.fight,info=pveFightInfoByKey(fightKey);const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}$('combatResult').innerHTML='';await playPveBattleAnimation(info?.fight||{key:fightKey,name:'Combat'},d.battle,d);if(!d.victory){b.disabled=false;await loadPve();return;}await animatePveVictory(fightKey);
+  const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const fightKey=b.dataset.fight,info=pveFightInfoByKey(fightKey);const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}$('combatResult').innerHTML='';await playPveBattleAnimation(info?.fight||{key:fightKey,name:'Combat'},d.battle,d);if(!d.victory){b.disabled=false;await loadPve();return;}await animatePveVictory(fightKey,d);
 });
 $('pveModal')?.addEventListener('click',e=>{if(e.target.id==='pveModal'){$('pveModal')?.classList.add('hidden');syncMobileNavState?.();}});
 let progressionBackdropMouseDown=false;
