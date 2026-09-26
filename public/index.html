@@ -3060,6 +3060,66 @@ html, body{
 }
 /* ===== /PVE ZONE 1 — REPÈRE TON LOVYS PREMIUM V30 ===== */
 
+/* ===== /PVE ZONE 1 — LISIBILITÉ DES NOMS + NIVEAU 1 À DROITE V31 =====
+   IMPORTANT : aucune position des combats 1→10 n'est modifiée.
+   Cette finition agrandit uniquement les fiches texte de la zone 1 et place
+   la fiche du combat 1 (Germe sauvage) à droite du monstre. */
+@media (min-width:1024px){
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node-label{
+    width:max-content!important;
+    max-width:205px!important;
+    padding:7px 10px!important;
+    border-radius:11px!important;
+    background:rgba(4,8,17,.94)!important;
+    border:1px solid rgba(255,255,255,.16)!important;
+    box-shadow:0 9px 24px rgba(0,0,0,.52),0 0 0 1px rgba(0,0,0,.18)!important;
+    backdrop-filter:blur(8px)!important;
+    opacity:1!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node-name{
+    font-size:11.5px!important;
+    line-height:1.18!important;
+    font-weight:1000!important;
+    color:#fff!important;
+    text-shadow:0 1px 3px rgba(0,0,0,.9)!important;
+    white-space:nowrap;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node-meta{
+    margin-top:4px!important;
+    font-size:9px!important;
+    line-height:1.15!important;
+    font-weight:900!important;
+    color:#d4d9e8!important;
+    text-shadow:0 1px 2px rgba(0,0,0,.85)!important;
+    white-space:nowrap;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node-badge{
+    margin-top:5px!important;
+    padding:3px 7px!important;
+    font-size:7px!important;
+    line-height:1!important;
+    font-weight:1000!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-node::after{
+    font-size:8px!important;
+    min-width:25px!important;
+    padding:2px 6px!important;
+  }
+
+  /* Combat 1 uniquement : la fiche passe à droite, le monstre reste exactement à sa place. */
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-stop:has(.pve-map-node[data-step="1"]) .pve-map-node-label{
+    left:calc(100% + 15px)!important;
+    top:50%!important;
+    transform:translate(0,-50%)!important;
+    text-align:left!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-stop:has(.pve-map-node[data-step="1"]):hover .pve-map-node-label,
+  .pve-desktop-main .pve-adventure-map.theme-forest .pve-map-stop:has(.pve-map-node[data-step="1"] .current) .pve-map-node-label{
+    transform:translate(0,-50%)!important;
+  }
+}
+/* ===== /PVE ZONE 1 — LISIBILITÉ DES NOMS + NIVEAU 1 À DROITE V31 ===== */
+
 </style>
 </head>
 <body class="auth-locked">
