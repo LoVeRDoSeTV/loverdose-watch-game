@@ -3263,6 +3263,77 @@ body:has(#pveModal:not(.hidden)){
 /* ===== /PVE ZONE 1 — AFFICHAGE PREMIUM / LISIBILITÉ V33 ===== */
 
 </style>
+<style>
+
+/* ===== V35 — Fiche créature PvE immersive ===== */
+.pve-desktop-main #pveMapDetail,
+.pve-map-shell #pveMapDetail{
+  position:absolute!important;
+  inset:0!important;
+  width:auto!important;
+  z-index:45!important;
+  pointer-events:none!important;
+  margin:0!important;
+}
+.pve-desktop-main #pveMapDetail.detail-open,
+.pve-map-shell #pveMapDetail.detail-open{pointer-events:auto!important}
+#pveMapDetail .pve-map-detail-backdrop{
+  position:absolute;inset:0;display:grid;place-items:center;padding:24px;
+  background:rgba(3,7,15,.12);backdrop-filter:blur(0px);
+  opacity:0;pointer-events:none;transition:opacity .2s ease,background .2s ease,backdrop-filter .2s ease;
+}
+#pveMapDetail.detail-open .pve-map-detail-backdrop{
+  opacity:1;pointer-events:auto;background:rgba(3,7,15,.56);backdrop-filter:blur(4px);
+}
+#pveMapDetail .pve-map-detail.pve-monster-popup{
+  position:relative!important;margin:0!important;width:min(660px,92%)!important;max-width:660px!important;
+  display:grid!important;grid-template-columns:270px minmax(0,1fr);gap:10px;align-items:center;
+  padding:22px 24px 22px 18px!important;border-radius:24px!important;
+  border:1px solid color-mix(in srgb,var(--map-accent) 34%,rgba(255,255,255,.12))!important;
+  background:linear-gradient(145deg,rgba(17,23,42,.98),rgba(7,11,22,.98))!important;
+  box-shadow:0 28px 80px rgba(0,0,0,.62),inset 0 1px rgba(255,255,255,.04)!important;
+  transform:translateY(18px) scale(.96)!important;opacity:0!important;pointer-events:none!important;
+  transition:transform .22s cubic-bezier(.2,.8,.2,1),opacity .18s ease!important;overflow:hidden;
+}
+#pveMapDetail.detail-open .pve-map-detail.pve-monster-popup{
+  transform:none!important;opacity:1!important;pointer-events:auto!important;
+}
+.pve-monster-popup::before{content:"";position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 20% 50%,color-mix(in srgb,var(--map-accent) 13%,transparent),transparent 36%)}
+.pve-monster-popup-close{position:absolute!important;right:14px;top:14px;z-index:6;width:34px!important;height:34px!important;font-size:18px!important}
+.pve-monster-popup-visual{position:relative;min-height:250px;display:grid;place-items:center;isolation:isolate}
+.pve-monster-popup-visual .pve-enemy-art{z-index:3;animation:pvePopupCreatureFloat 2.35s ease-in-out infinite;will-change:transform}
+.pve-monster-popup-visual .pve-enemy-art.real-art{width:235px;height:235px}
+.pve-monster-popup-visual .pve-enemy-art.real-art.boss{width:255px;height:255px}
+.pve-monster-popup-visual .pve-enemy-photo{animation:pvePopupCreatureBreathe 2.35s ease-in-out infinite;filter:saturate(1.08) contrast(1.03) drop-shadow(0 15px 14px rgba(0,0,0,.34))}
+.pve-monster-popup-halo{position:absolute;z-index:1;width:190px;height:190px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--popup-glow) 32%,transparent),transparent 68%);filter:blur(7px);animation:pvePopupHalo 2.35s ease-in-out infinite}
+.pve-monster-popup-shadow{position:absolute;z-index:2;bottom:26px;width:125px;height:24px;border-radius:50%;background:rgba(0,0,0,.34);filter:blur(8px);animation:pvePopupShadow 2.35s ease-in-out infinite}
+.pve-monster-popup-info{position:relative;z-index:4;padding:12px 6px 8px 4px}
+.pve-monster-popup-kicker{display:inline-flex;margin-bottom:7px;padding:4px 8px;border-radius:999px;border:1px solid rgba(91,214,164,.24);background:rgba(91,214,164,.08);color:#a7e9cf;font-size:8px;font-weight:1000;letter-spacing:.11em}
+.pve-monster-popup .pve-map-detail-title{font-size:24px!important;line-height:1.08}
+.pve-monster-popup .pve-map-detail-type{font-size:11px!important;margin-top:6px!important}
+.pve-monster-popup .pve-map-detail-stats{margin-top:16px!important;gap:8px!important}
+.pve-monster-popup .pve-map-detail-stat{padding:11px 8px!important;background:rgba(255,255,255,.04)!important}
+.pve-monster-popup .pve-map-detail-stat b{font-size:14px!important}.pve-monster-popup .pve-map-detail-stat span{font-size:8px!important}
+.pve-monster-popup .pve-map-detail-reward{margin-top:13px!important;padding:10px 11px;border-radius:11px;background:rgba(145,71,255,.08);border:1px solid rgba(145,71,255,.16);font-size:10px!important;line-height:1.5}
+.pve-monster-popup .pve-map-detail-actions{margin-top:13px!important}.pve-monster-popup-fight{min-height:44px!important;font-size:12px!important}
+.pve-monster-popup-fight:disabled{opacity:.48;cursor:not-allowed}
+.pve-map-node.locked{cursor:pointer!important}
+.pve-map-node.locked:hover .pve-map-node-monster{transform:scale(1.05)}
+@keyframes pvePopupCreatureFloat{0%,100%{transform:translateY(3px) scale(var(--enemy-size,1))}50%{transform:translateY(-9px) scale(var(--enemy-size,1))}}
+@keyframes pvePopupCreatureBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.025)}}
+@keyframes pvePopupHalo{0%,100%{transform:scale(.92);opacity:.58}50%{transform:scale(1.08);opacity:.92}}
+@keyframes pvePopupShadow{0%,100%{transform:scaleX(1);opacity:.42}50%{transform:scaleX(.82);opacity:.26}}
+@media(max-width:700px){
+  #pveMapDetail .pve-map-detail-backdrop{padding:12px}
+  #pveMapDetail .pve-map-detail.pve-monster-popup{grid-template-columns:1fr;width:min(390px,96%)!important;padding:14px 16px 16px!important;gap:0;max-height:88%;overflow:auto}
+  .pve-monster-popup-visual{min-height:155px}.pve-monster-popup-visual .pve-enemy-art.real-art{width:155px;height:155px}.pve-monster-popup-visual .pve-enemy-art.real-art.boss{width:170px;height:170px}
+  .pve-monster-popup-halo{width:135px;height:135px}.pve-monster-popup-shadow{bottom:10px;width:95px}
+  .pve-monster-popup-info{padding:2px 2px 0}.pve-monster-popup .pve-map-detail-title{font-size:20px!important}.pve-monster-popup .pve-map-detail-stats{margin-top:11px!important}
+}
+@media(prefers-reduced-motion:reduce){.pve-monster-popup-visual .pve-enemy-art,.pve-monster-popup-visual .pve-enemy-photo,.pve-monster-popup-halo,.pve-monster-popup-shadow{animation:none!important}}
+/* ===== /V35 ===== */
+
+</style>
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
@@ -6173,7 +6244,14 @@ function pveDefaultZoneIndex(data){const zones=data?.zones||[];const pending=zon
 function pveVisibleZoneCount(data){const zones=data?.zones||[];if(!zones.length)return 0;let count=1;while(count<zones.length&&pveZoneComplete(zones[count-1]))count++;return count;}
 function pveSelectedFight(zone){if(!zone)return null;const chosen=(zone.fights||[]).find(f=>f.key===pveMapState.selectedFight&&(f.unlocked||f.won));if(chosen)return chosen;return (zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won)||(zone.fights||[])[0]||null;}
 function pveTravelerMarkup(step=0){const id=me?.user?.creature_id;const evo=me?.user?.progression?.evolution||0;return `<div class="pve-map-traveler" aria-label="Ton Lovys, position actuelle${step?` étape ${step}`:''}"><span class="pve-map-traveler-beam" aria-hidden="true"></span><span class="pve-map-traveler-ring r1" aria-hidden="true"></span><span class="pve-map-traveler-ring r2" aria-hidden="true"></span><span class="pve-map-traveler-art">${id?art(id,evo,true):'🐉'}</span><span class="pve-map-traveler-tag">Ton Lovys${step?`<span class="pve-map-traveler-step">Étape ${step}</span>`:''}</span></div>`;}
-function pveFightDetailMarkup(f){if(!f)return'';const state=f.won?'Terminé':f.unlocked?'Disponible':'Verrouillé';return `<div class="pve-map-detail"><div class="pve-map-detail-top"><div><div class="pve-map-detail-title">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-map-detail-type">Niv. conseillé ${Number(f.level||1)} · ${escapeHtml(f.type||'Neutre')}</div></div><div style="display:flex;align-items:center;gap:7px"><span class="pve-map-detail-state">${state}</span><button class="pve-map-detail-close" type="button" data-pve-detail-close aria-label="Fermer">×</button></div></div><div class="pve-map-detail-stats"><div class="pve-map-detail-stat"><b>❤️ ${Number(f.hp||0)}</b><span>Vie</span></div><div class="pve-map-detail-stat"><b>⚔️ ${Number(f.power||0)}</b><span>Puissance</span></div><div class="pve-map-detail-stat"><b>${f.boss?'👑 Boss':'⚔️ Combat'}</b><span>Type</span></div></div><div class="pve-map-detail-reward">🎁 1re victoire : +${Number(f.rewards?.creatureXp||0)} XP Lovys · +${Number(f.rewards?.globalXp||0)} XP globale · +${Number(f.rewards?.fragments||0)} Fragment${Number(f.rewards?.fragments||0)>1?'s':''} d’œuf</div><div class="pve-map-detail-actions"><button class="hub-btn" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'↻ Rejouer':'⚔️ Combattre'}</button></div></div>`;}
+function pveFightDetailMarkup(f){
+  if(!f)return'';
+  const state=f.won?'Terminé':f.unlocked?'Disponible':'Verrouillé';
+  const cfg=pveEnemyVisual(f)||{};
+  const monster=pveEnemySpriteMarkup(f);
+  const rewardFragments=Number(f.rewards?.fragments||0);
+  return `<div class="pve-map-detail-backdrop" data-pve-detail-backdrop><div class="pve-map-detail pve-monster-popup" role="dialog" aria-modal="true" aria-label="${escapeHtml(f.name)}"><button class="pve-map-detail-close pve-monster-popup-close" type="button" data-pve-detail-close aria-label="Fermer">×</button><div class="pve-monster-popup-visual" style="--popup-glow:${escapeHtml(cfg.glow||'#9147ff')}"><div class="pve-monster-popup-halo"></div>${monster}<div class="pve-monster-popup-shadow"></div></div><div class="pve-monster-popup-info"><div class="pve-monster-popup-kicker">${f.boss?'BOSS':'CRÉATURE'} · ${state.toUpperCase()}</div><div class="pve-map-detail-title">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-map-detail-type">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'Neutre')}</div><div class="pve-map-detail-stats"><div class="pve-map-detail-stat"><b>❤️ ${Number(f.hp||0)}</b><span>Vie</span></div><div class="pve-map-detail-stat"><b>⚔️ ${Number(f.power||0)}</b><span>Puissance</span></div><div class="pve-map-detail-stat"><b>${f.boss?'👑 Boss':'⚔️ Combat'}</b><span>Type</span></div></div><div class="pve-map-detail-reward">🎁 <strong>1re victoire</strong> · +${Number(f.rewards?.creatureXp||0)} XP Lovys · +${Number(f.rewards?.globalXp||0)} XP globale · +${rewardFragments} Fragment${rewardFragments>1?'s':''} d’œuf</div><div class="pve-map-detail-actions"><button class="hub-btn pve-monster-popup-fight" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'↻ Rejouer':f.unlocked?'⚔️ Combattre':'🔒 Combat verrouillé'}</button></div></div></div></div>`;
+}
 function pveFragmentsMarkup(data){let all=0,earned=0;const zones=(data?.zones||[]).map(z=>{let zAll=0,zEarned=0;const rows=(z.fights||[]).map(f=>{const n=Number(f.rewards?.fragments||0);zAll+=n;if(f.won)zEarned+=n;return `<div class="pve-fragment-row ${f.won?'won':(!f.unlocked?'locked':'')}"><div class="pve-fragment-row-main"><div class="pve-fragment-row-name">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-fragment-row-state">${f.won?'Récompense récupérée':f.unlocked?'Première victoire disponible':'Combat verrouillé'}</div></div><div class="pve-fragment-row-reward">${f.won?'✓ ':''}+${n} ${fragmentIconMarkup()}</div></div>`}).join('');all+=zAll;earned+=zEarned;return `<section class="pve-fragment-zone"><div class="pve-fragment-zone-head"><div class="pve-fragment-zone-name">${z.icon||'🗺️'} ${escapeHtml(z.name)}</div><div class="pve-fragment-zone-count">${zEarned} / ${zAll} gagnés</div></div><div class="pve-fragment-fights">${rows}</div></section>`}).join('');return `<div class="pve-fragments-panel"><section class="pve-fragment-hero"><div class="pve-fragment-kicker">Réserve de fragments d’œuf</div><div class="pve-fragment-balance">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')} ${Number(data?.eggFragments||0)} <small>fragment${Number(data?.eggFragments||0)>1?'s':''}</small></div><div class="pve-fragment-explain">Les fragments sont séparés du LoVeR'Cash. Tu les gagnes surtout lors des <strong>premières victoires PvE</strong> et ils restent synchronisés sur ton compte entre PC et mobile.</div><button class="hub-btn" data-open-fragment-shop type="button" style="margin-top:12px">${fragmentIconMarkup()} Ouvrir la boutique de fragments</button></section><div class="pve-fragment-info-grid"><div class="pve-fragment-info"><div class="pve-fragment-info-icon">⚔️</div><div class="pve-fragment-info-title">Comment en gagner ?</div><div class="pve-fragment-info-copy">Remporte un combat pour la première fois. Rejouer un combat déjà gagné ne redonne pas cette récompense.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')}</div><div class="pve-fragment-info-title">Ressource des œufs</div><div class="pve-fragment-info-copy">Ton solde est conservé sur ton compte et sert de ressource dédiée au système d’œufs et d’incubation.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">📊</div><div class="pve-fragment-info-title">Progression</div><div class="pve-fragment-info-copy">${earned} fragment(s) récupéré(s) sur ${all} actuellement proposés par les zones PvE.</div></div></div><div class="pve-fragment-zone-list">${zones}</div><div class="pve-fragment-footer">💡 Cette page te permet de voir immédiatement où récupérer les prochains fragments sans chercher combat par combat.</div></div>`;}
 function pveZoneVisualMeta(zone){
   const key=String(zone?.key||'forest');
@@ -6230,7 +6308,7 @@ function renderPveAdventureMap(data,zoneIndex=null){
   const wonCount=(zone.fights||[]).filter(f=>f.won).length;
   const zoneTabs=visibleZones.map((z,i)=>`<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''}" type="button" data-pve-zone="${i}">${z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`).join('');
   const reversed=[...(zone.fights||[])].reverse();
-  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const pos=forestPathPos[Math.max(0,Math.min(forestPathPos.length-1,originalIndex))];const posStyle=(zone.key==='forest'&&pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" ${!f.unlocked&&!f.won?'disabled':''}>${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label"><div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
+  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const pos=forestPathPos[Math.max(0,Math.min(forestPathPos.length-1,originalIndex))];const posStyle=(zone.key==='forest'&&pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" >${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label"><div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
   const mainMarkup=`<div class="pve-desktop-main"><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter">${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
   box.innerHTML=window.matchMedia('(min-width:1024px)').matches?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
@@ -6482,6 +6560,7 @@ $('pveContent')?.addEventListener('click',async e=>{
   const lovysBtn=e.target.closest('[data-pve-lovys]');
   if(lovysBtn){if(lovysBtn.classList.contains('active'))return;lovysBtn.disabled=true;try{const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(lovysBtn.dataset.pveLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');return;}await loadGame();await loadLovysCollection();await loadPve();}finally{lovysBtn.disabled=false;}return;}
   const closeDetail=e.target.closest('[data-pve-detail-close]');if(closeDetail){$('pveMapDetail')?.classList.remove('detail-open');return;}
+  if(e.target.matches?.('[data-pve-detail-backdrop]')){$('pveMapDetail')?.classList.remove('detail-open');return;}
   const cat=e.target.closest('[data-pve-category]');if(cat){pveMapState.view=cat.dataset.pveCategory==='fragments'?'fragments':'map';renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
   const zb=e.target.closest('[data-pve-zone]');if(zb){const idx=Number(zb.dataset.pveZone);if(Number.isFinite(idx)){pveMapState.selectedZone=idx;pveMapState.selectedFight=null;renderPveAdventureMap(pveMapState.data,idx);}return;}
   const nb=e.target.closest('[data-pve-node]');if(nb){pveMapState.selectedFight=nb.dataset.pveNode;const info=pveFightInfoByKey(pveMapState.selectedFight),detail=$('pveMapDetail');if(detail&&info){detail.innerHTML=pveFightDetailMarkup(info.fight);detail.classList.add('detail-open');}document.querySelectorAll('.pve-map-node').forEach(n=>n.classList.toggle('selected',n.dataset.pveNode===pveMapState.selectedFight));return;}
