@@ -3120,6 +3120,14 @@ html, body{
 }
 /* ===== /PVE ZONE 1 — LISIBILITÉ DES NOMS + NIVEAU 1 À DROITE V31 ===== */
 
+
+
+/* ===== PVE MODAL — MASQUER LE SCROLL DE PAGE V32 ===== */
+html:has(#pveModal:not(.hidden)),
+body:has(#pveModal:not(.hidden)){
+  overflow:hidden!important;
+}
+/* ===== /PVE MODAL — MASQUER LE SCROLL DE PAGE V32 ===== */
 </style>
 </head>
 <body class="auth-locked">
