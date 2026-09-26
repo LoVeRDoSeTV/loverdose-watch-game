@@ -39,6 +39,23 @@ const BADGE_TIME_REWARDS = Object.freeze({
   50: { lovysXp: 500, globalXp: 250, cash: 50 }
 });
 
+// Badges communautaires : récompenses simples mais utiles, obtenues une seule fois.
+const BADGE_SOCIAL_REWARD = Object.freeze({ lovysXp: 100, globalXp: 50, cash: 25 });
+
+// Badge d'abonnement : récompense plus marquée pour remercier le soutien Twitch.
+const BADGE_SUB_REWARD = Object.freeze({ lovysXp: 500, globalXp: 250, cash: 100 });
+
+// Badge progressif « Fidèle de la chaîne ».
+// Les montants correspondent au temps ajouté entre deux paliers : au total,
+// atteindre 1000 h rapporte 10 000 XP Lovys, 5 000 XP globale et 1 000 Cash.
+const BADGE_GLOBAL_STAGE_REWARDS = Object.freeze({
+  50:   { lovysXp: 500,  globalXp: 250,  cash: 50 },
+  100:  { lovysXp: 500,  globalXp: 250,  cash: 50 },
+  250:  { lovysXp: 1500, globalXp: 750,  cash: 150 },
+  500:  { lovysXp: 2500, globalXp: 1250, cash: 250 },
+  1000: { lovysXp: 5000, globalXp: 2500, cash: 500 }
+});
+
 // Défis journaliers : petites récompenses pour encourager la régularité
 // sans accélérer excessivement la progression globale.
 const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
@@ -1561,7 +1578,7 @@ async function awardBadgeXpOnce(userIds, badgeKey, xpAmount, rewardKey = badgeKe
   return result.rowCount || 0;
 }
 
-async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1') {
+async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1', legacyRewardKey = badgeKey) {
   const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
     .map(Number)
     .filter(Number.isInteger))];
@@ -1589,7 +1606,7 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
           SELECT ux.xp_amount
           FROM user_xp_rewards ux
           WHERE ux.user_id = e.user_id
-            AND ux.reward_key = $2
+            AND ux.reward_key = $8
           LIMIT 1
         ), 0) AS legacy_lovys_xp
       FROM eligible e
@@ -1625,7 +1642,8 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
       lovysXp,
       globalXp,
       cash,
-      globalThresholdForLevel(56)
+      globalThresholdForLevel(56),
+      String(legacyRewardKey || badgeKey)
     ]
   );
 
@@ -3295,7 +3313,7 @@ app.get('/auth/discord/callback', async (req, res) => {
           `,
           [userId]
         );
-        await awardBadgeXpOnce([userId], 'mission:discord:membre-communaute', 25);
+        await awardBadgeEconomyRewardsOnce([userId], 'mission:discord:membre-communaute', BADGE_SOCIAL_REWARD);
       }
     }
 
@@ -4313,7 +4331,7 @@ app.get('/api/badges', async (req, res) => {
         `,
         [user.id]
       );
-      await awardBadgeXpOnce([user.id], 'mission:discord:membre-communaute', 25);
+      await awardBadgeEconomyRewardsOnce([user.id], 'mission:discord:membre-communaute', BADGE_SOCIAL_REWARD);
     }
 
     if (user.is_sub) {
@@ -4414,7 +4432,16 @@ app.get('/api/badges', async (req, res) => {
 
       for (const stage of globalBadgeStages) {
         if (globalWatchHours >= stage.minHours) {
-          await awardXpOnce(user.id, `mission:global:fidele-chaine:${stage.minHours}h`, 50);
+          const stageRewards = BADGE_GLOBAL_STAGE_REWARDS[stage.minHours];
+          if (stageRewards) {
+            await awardBadgeEconomyRewardsOnce(
+              [user.id],
+              globalBadgeKey,
+              stageRewards,
+              `stage-${stage.minHours}h-v1`,
+              `mission:global:fidele-chaine:${stage.minHours}h`
+            );
+          }
         }
       }
     }
@@ -4504,26 +4531,21 @@ app.get('/api/badges', async (req, res) => {
       tier: 'global-1',
       evolution: 'Évolution I · Étincelle fidèle'
     };
+    const globalRewardStageHours = currentGlobalStage?.nextHours || currentGlobalStage?.minHours || 50;
+    const globalDisplayReward = BADGE_GLOBAL_STAGE_REWARDS[globalRewardStageHours] || BADGE_GLOBAL_STAGE_REWARDS[50];
 
     const badgeEconomyRewards = [
       ['challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]],
       ['challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]],
       ['challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50]],
-      ['mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]]
+      ['mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]],
+      ['mission:discord:membre-communaute', BADGE_SOCIAL_REWARD],
+      ['mission:instagram:communaute', BADGE_SOCIAL_REWARD],
+      ['mission:tiktok:communaute', BADGE_SOCIAL_REWARD],
+      ['mission:sub:soutien-absolu', BADGE_SUB_REWARD]
     ];
     for (const [badgeKey, rewards] of badgeEconomyRewards) {
       await awardBadgeEconomyRewardsOnce([user.id], badgeKey, rewards);
-    }
-
-    // Les autres badges conservent pour l'instant leur récompense XP historique.
-    const badgeXpRewards = [
-      ['mission:discord:membre-communaute', 25],
-      ['mission:instagram:communaute', 25],
-      ['mission:tiktok:communaute', 25],
-      ['mission:sub:soutien-absolu', 100]
-    ];
-    for (const [badgeKey, xpReward] of badgeXpRewards) {
-      await awardBadgeXpOnce([user.id], badgeKey, xpReward);
     }
 
     // Relit l'état XP après la réconciliation des récompenses.
@@ -4650,7 +4672,11 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'Discord',
           missionType: 'discord',
           badgeCategory: 'social',
-          rewardXp: 25,
+          rewardXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardLovysXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_SOCIAL_REWARD.globalXp,
+          rewardCash: BADGE_SOCIAL_REWARD.cash,
+          lovysXpToReserve: true,
           socialNetwork: 'discord',
           socialActionUrl: '/auth/discord',
           targetHours: 0,
@@ -4671,7 +4697,11 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'Instagram',
           missionType: 'instagram',
           badgeCategory: 'social',
-          rewardXp: 25,
+          rewardXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardLovysXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_SOCIAL_REWARD.globalXp,
+          rewardCash: BADGE_SOCIAL_REWARD.cash,
+          lovysXpToReserve: true,
           socialNetwork: 'instagram',
           socialActionUrl: 'https://www.instagram.com/loverdosetv/',
           unlockOnClick: true,
@@ -4693,7 +4723,11 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'TikTok',
           missionType: 'tiktok',
           badgeCategory: 'social',
-          rewardXp: 25,
+          rewardXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardLovysXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_SOCIAL_REWARD.globalXp,
+          rewardCash: BADGE_SOCIAL_REWARD.cash,
+          lovysXpToReserve: true,
           socialNetwork: 'tiktok',
           socialActionUrl: 'https://www.tiktok.com/@loverdosetv',
           unlockOnClick: true,
@@ -4715,7 +4749,11 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'Spécial · Abonnement',
           missionType: 'subscription',
           badgeCategory: 'twitch',
-          rewardXp: 100,
+          rewardXp: BADGE_SUB_REWARD.lovysXp,
+          rewardLovysXp: BADGE_SUB_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_SUB_REWARD.globalXp,
+          rewardCash: BADGE_SUB_REWARD.cash,
+          lovysXpToReserve: true,
           targetHours: 0,
           watchSeconds: 0,
           unlocked: Boolean(subUnlocked),
@@ -4736,7 +4774,12 @@ app.get('/api/badges', async (req, res) => {
           gameName: `Global · ${globalDisplayStage.evolution}`,
           missionType: 'global-evolution',
           badgeCategory: 'twitch',
-          rewardXp: 50,
+          rewardXp: globalDisplayReward.lovysXp,
+          rewardLovysXp: globalDisplayReward.lovysXp,
+          rewardGlobalXp: globalDisplayReward.globalXp,
+          rewardCash: globalDisplayReward.cash,
+          lovysXpToReserve: true,
+          rewardStageHours: globalRewardStageHours,
           evolutionName: globalDisplayStage.evolution,
           evolutionLevel: globalBadgeStages.findIndex(stage => stage.tier === globalDisplayStage.tier) + 1,
           maxEvolutionLevel: globalBadgeStages.length,
@@ -4832,17 +4875,29 @@ app.post('/api/badges/social-click', async (req, res) => {
       [userId, badge.badgeKey, badge.gameId, badge.gameName, badge.badgeName, badge.badgeImage, badge.badgeChallenge]
     );
 
-    const xpGranted = await awardBadgeXpOnce([userId], badge.badgeKey, 25);
+    const rewardGranted = await awardBadgeEconomyRewardsOnce([userId], badge.badgeKey, BADGE_SOCIAL_REWARD);
 
     pushLiveUpdate('challenge-update', {
       userId: Number(userId),
       badgeKey: badge.badgeKey,
       network,
-      xpGranted: xpGranted ? 25 : 0,
+      rewardGranted: Boolean(rewardGranted),
+      rewardLovysXp: rewardGranted ? BADGE_SOCIAL_REWARD.lovysXp : 0,
+      rewardGlobalXp: rewardGranted ? BADGE_SOCIAL_REWARD.globalXp : 0,
+      rewardCash: rewardGranted ? BADGE_SOCIAL_REWARD.cash : 0,
       at: Date.now()
     });
 
-    return res.json({ ok: true, network, url: badge.url, badgeKey: badge.badgeKey, xpGranted: xpGranted ? 25 : 0 });
+    return res.json({
+      ok: true,
+      network,
+      url: badge.url,
+      badgeKey: badge.badgeKey,
+      rewardGranted: Boolean(rewardGranted),
+      rewardLovysXp: rewardGranted ? BADGE_SOCIAL_REWARD.lovysXp : 0,
+      rewardGlobalXp: rewardGranted ? BADGE_SOCIAL_REWARD.globalXp : 0,
+      rewardCash: rewardGranted ? BADGE_SOCIAL_REWARD.cash : 0
+    });
   } catch (error) {
     console.error('Erreur badge réseau social :', error);
     return res.status(500).json({ error: 'Impossible de débloquer ce badge.' });
