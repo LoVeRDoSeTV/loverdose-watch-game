@@ -3609,6 +3609,74 @@ body:has(#pveModal:not(.hidden)){
 }
 .pc-pve-level b{font-size:19px!important;line-height:1!important}
 .pc-pve-level span{display:block;margin-top:4px!important}
+
+
+/* ===== V42 — Harmonisation du dashboard PC ===== */
+@media (min-width:901px){
+  /* Défis : même information, mais une zone moins haute et plus légère. */
+  .daily-challenges-card{padding:18px 20px 16px!important}
+  .daily-challenges-head{margin-bottom:10px!important}
+  .daily-challenges-head h2{font-size:21px!important}
+  .daily-challenges-subtitle{font-size:11.5px!important;margin-top:3px!important}
+  .daily-challenges-reset{font-size:10.5px!important}
+  .daily-challenges-summary{font-size:11.5px!important;margin-bottom:10px!important}
+  .daily-challenges-grid{gap:12px!important}
+  .daily-challenge{padding:13px 14px!important;gap:8px!important;border-radius:13px!important}
+  .daily-challenge-icon{width:36px!important;height:36px!important;flex-basis:36px!important;font-size:19px!important}
+  .daily-challenge-title{font-size:14px!important}
+  .daily-challenge-desc{font-size:10.8px!important}
+  .daily-reward-pill{font-size:10.5px!important;padding:4px 8px!important}
+  .daily-challenge-progress{height:7px!important}
+  .daily-challenge-progress-text{font-size:10.5px!important}
+  .daily-challenge-button{min-height:32px!important;padding:6px 10px!important;font-size:10.5px!important}
+  .daily-challenge-status{font-size:10.5px!important}
+  .daily-challenges-note,.daily-challenges-message{font-size:9.8px!important}
+  .daily-challenges-message{margin-top:7px!important;min-height:12px!important}
+  .daily-challenges-note{margin-top:5px!important}
+
+  /* Deux cartes du bas plus équilibrées : le PvE gagne un peu de présence. */
+  .desktop-lovys-hub{grid-template-columns:minmax(0,1.06fr) minmax(460px,.94fr)!important;gap:16px!important}
+  .desktop-lovys-card{min-height:430px!important;padding:22px!important}
+  .lovys-card-head .hub-title{font-size:21px!important}
+
+  /* Lovys : illustration et XP légèrement plus présentes sans ajouter de contenu. */
+  .lovys-overview-main{grid-template-columns:245px minmax(0,1fr)!important;gap:24px!important;margin-top:20px!important}
+  .lovys-home-artbox{min-height:286px!important}
+  .lovys-home-artbox img{max-width:240px!important;height:240px!important}
+  .lovys-home-name{font-size:40px!important}
+  .lovys-home-track{padding:15px 16px!important}
+  .lovys-home-track-bar{height:11px!important}
+
+  /* PvE : identité plus claire et profondeur très discrète. */
+  .lovys-pve-card{border-color:rgba(91,214,164,.24)!important;box-shadow:0 20px 55px rgba(0,0,0,.28),0 0 34px rgba(73,179,160,.045)!important}
+  .pc-pve-zone-card{padding:18px 20px 17px!important;border-color:rgba(91,214,164,.23)!important;background:radial-gradient(circle at 84% 4%,rgba(82,194,180,.14),transparent 29%),radial-gradient(circle at 48% 76%,rgba(145,71,255,.08),transparent 34%),linear-gradient(160deg,rgba(13,20,36,.97),rgba(8,13,27,.99))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.025),0 12px 30px rgba(0,0,0,.14)!important}
+  .pc-pve-zone-title{font-size:24px!important}
+  .pc-pve-zone-meta{font-size:10px!important}
+  .pc-pve-route-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:17px 7px -11px;padding:0 3px;color:#7784a5;font-size:8.5px;font-weight:900;text-transform:uppercase;letter-spacing:.08em}
+  .pc-pve-route-head b{color:#c8d2eb;font-size:10px;letter-spacing:.02em}
+  .pc-pve-route{margin-top:23px!important;margin-bottom:13px!important}
+  .pc-pve-node{width:40px!important;height:40px!important}
+  .pc-pve-node.current{width:49px!important;height:49px!important}
+
+  /* Prochain combat : le contenu remplit réellement la carte. */
+  .pc-pve-current{position:relative!important;gap:7px!important;padding:16px 14px 12px!important;border-top-color:rgba(255,255,255,.075)!important}
+  .pc-pve-next-badge{display:inline-flex;align-items:center;justify-content:center;padding:5px 10px;margin-bottom:1px;border-radius:999px;border:1px solid rgba(145,71,255,.32);background:rgba(145,71,255,.11);color:#dccaff;font-size:8px;font-weight:1000;text-transform:uppercase;letter-spacing:.1em;box-shadow:0 0 18px rgba(145,71,255,.07)}
+  .pc-pve-enemy-thumb{width:126px!important;height:126px!important;flex-basis:126px!important;margin:0 auto!important;border-radius:24px!important;background:radial-gradient(circle,rgba(104,231,164,.19),rgba(145,71,255,.09) 58%,transparent 74%)!important;box-shadow:0 0 28px rgba(84,210,165,.06)!important}
+  .pc-pve-enemy-thumb img{width:118px!important;height:118px!important;filter:drop-shadow(0 10px 12px rgba(0,0,0,.42))!important}
+  .pc-pve-current-name{font-size:17px!important;letter-spacing:-.015em}
+  .pc-pve-current-sub{display:flex!important;align-items:center!important;justify-content:center!important;flex-wrap:wrap!important;gap:5px 10px!important;margin-top:5px!important;color:#9ca8c7!important;font-size:10px!important}
+  .pc-pve-current-sub span{white-space:nowrap}
+  .pc-pve-reward{margin-top:8px!important;font-size:10px!important;color:#e3d5fb!important}
+  .pc-pve-level{display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;min-width:0!important;padding:7px 13px!important;margin-top:3px!important;border-radius:999px!important;background:rgba(145,71,255,.11)!important;border-color:rgba(145,71,255,.30)!important}
+  .pc-pve-level span{order:0!important;margin:0!important;font-size:8px!important;letter-spacing:.08em!important}
+  .pc-pve-level b{order:1!important;font-size:18px!important}
+  .lovys-hub-actions{margin-top:11px!important;gap:9px!important}
+  .lovys-home-btn{min-height:42px!important}
+  #openProgression{flex:0 0 auto!important;opacity:.88}
+  #openPve{font-size:12px!important;box-shadow:0 8px 24px rgba(145,71,255,.18)!important}
+}
+/* ===== /V42 ===== */
+
 </style>
 
 </head>
@@ -4646,7 +4714,7 @@ function desktopPveRouteMarkup(pveData){
   const nodes=fights.map((f,i)=>{const cls=f.won?'won':(f.key===current?.key?'current':(!f.unlocked?'locked':''));const boss=f.boss?' boss':'';return `<div class="pc-pve-node ${cls}${boss}" title="${escapeHtml(f.name||'Combat')}">${f.won?'✓':f.boss?'♛':i+1}</div>`}).join('');
   const rw=current?.rewards||{};
   const enemyCfg=current?pveEnemyVisual(current):null;const enemyThumb=enemyCfg?.image?`<div class="pc-pve-enemy-thumb"><img src="${enemyCfg.image}" alt=""></div>`:'';
-  return `<div class="pc-pve-zone-card"><div class="pc-pve-zone-top"><div><div class="pc-pve-zone-label">${zone.icon||'🗺️'} Zone actuelle</div><div class="pc-pve-zone-title">${escapeHtml(zone.name||'Aventure')}</div><div class="pc-pve-zone-meta">Progression du bas vers le boss · ${(fights.filter(f=>f.won).length)} / ${fights.length} combats</div></div><button class="pc-pve-fragments" data-open-fragment-shop type="button" title="Ouvrir la boutique de fragments"><b>${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')} ${Number(pveData?.eggFragments||0)}</b><span>Fragments</span></button></div><div class="pc-pve-route">${nodes}</div><div class="pc-pve-current">${enemyThumb}<div class="pc-pve-current-copy"><div class="pc-pve-current-name">${current?.boss?'👑 ': '⚔️ '}${escapeHtml(current?.name||'Prochain combat')}</div><div class="pc-pve-current-sub">${escapeHtml(current?.type||'')} · ❤️ ${Number(current?.hp||0)} · ⚔️ ${Number(current?.power||0)}</div><div class="pc-pve-reward">1re victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s)</div></div><div class="pc-pve-level"><b>${Number(current?.level||1)}</b><span>Niv. conseillé</span></div></div></div>`;
+  return `<div class="pc-pve-zone-card"><div class="pc-pve-zone-top"><div><div class="pc-pve-zone-label">${zone.icon||'🗺️'} Zone actuelle</div><div class="pc-pve-zone-title">${escapeHtml(zone.name||'Aventure')}</div><div class="pc-pve-zone-meta">Progression vers le boss</div></div><button class="pc-pve-fragments" data-open-fragment-shop type="button" title="Ouvrir la boutique de fragments"><b>${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')} ${Number(pveData?.eggFragments||0)}</b><span>Fragments</span></button></div><div class="pc-pve-route-head"><span>Progression de la zone</span><b>${fights.filter(f=>f.won).length} / ${fights.length}</b></div><div class="pc-pve-route">${nodes}</div><div class="pc-pve-current"><div class="pc-pve-next-badge">⚔️ Prochain combat</div>${enemyThumb}<div class="pc-pve-current-copy"><div class="pc-pve-current-name">${current?.boss?'👑 ': ''}${escapeHtml(current?.name||'Prochain combat')}</div><div class="pc-pve-current-sub"><span>${escapeHtml(current?.type||'')}</span><span>❤️ ${Number(current?.hp||0)}</span><span>⚔️ ${Number(current?.power||0)}</span></div><div class="pc-pve-reward">1re victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s)</div></div><div class="pc-pve-level"><span>Niveau conseillé</span><b>${Number(current?.level||1)}</b></div></div></div>`;
 }
 function eggIconMarkup(cls='egg-inline-icon'){return `<span class="${cls}" aria-hidden="true"></span>`;}
 function fragmentIconMarkup(cls='fragment-inline-icon'){return `<span class="${cls}" aria-hidden="true"></span>`;}
