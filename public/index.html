@@ -2435,6 +2435,50 @@ html, body{
 }
 /* ===== /V15 override ===== */
 
+
+/* ===== PVE DESKTOP LARGE PREMIUM V17 ===== */
+@media (min-width:1024px){
+  #pveModal{
+    padding:14px;
+    align-items:center;
+    justify-content:center;
+  }
+  #pveModal .game-panel{
+    width:min(96vw,1600px);
+    height:92vh;
+    max-width:none;
+    max-height:none;
+    margin:0;
+    padding:22px 24px 24px;
+    border-radius:22px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    box-sizing:border-box;
+  }
+  #pveModal .game-head{
+    flex:0 0 auto;
+    padding-bottom:10px;
+  }
+  #pveModal #pveContent{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    overflow-x:hidden;
+    padding-right:8px;
+    scrollbar-width:thin;
+    scrollbar-color:#6840a6 transparent;
+  }
+  #pveModal #combatResult{flex:0 0 auto}
+  #pveModal .pve-map-shell{width:100%;max-width:none}
+  #pveModal .pve-adventure-map{
+    width:100%;
+    min-height:760px;
+  }
+  #pveModal .pve-map-route{min-height:640px}
+}
+/* ===== /PVE DESKTOP LARGE PREMIUM V17 ===== */
+
 </style>
 </head>
 <body class="auth-locked">
