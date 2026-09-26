@@ -31,6 +31,14 @@ const LOVERCASH_PER_MINUTE = 10 / 60;
 const GLOBAL_XP_PER_HOUR = 50;
 const GLOBAL_XP_SUB_PER_HOUR = 60;
 
+// Récompenses des badges de temps de visionnage.
+// L'XP Lovys de badge est stockée dans la réserve afin que le joueur
+// choisisse ensuite le Lovys qui la recevra.
+const BADGE_TIME_REWARDS = Object.freeze({
+  25: { lovysXp: 250, globalXp: 125, cash: 25 },
+  50: { lovysXp: 500, globalXp: 250, cash: 50 }
+});
+
 // Défis journaliers : petites récompenses pour encourager la régularité
 // sans accélérer excessivement la progression globale.
 const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
@@ -1553,6 +1561,77 @@ async function awardBadgeXpOnce(userIds, badgeKey, xpAmount, rewardKey = badgeKe
   return result.rowCount || 0;
 }
 
+async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1') {
+  const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
+    .map(Number)
+    .filter(Number.isInteger))];
+
+  const lovysXp = Math.max(0, Number(rewards?.lovysXp) || 0);
+  const globalXp = Math.max(0, Number(rewards?.globalXp) || 0);
+  const cash = Math.max(0, Number(rewards?.cash) || 0);
+  if (!ids.length || !badgeKey || (!lovysXp && !globalXp && !cash)) return 0;
+
+  // Les anciennes versions donnaient déjà un petit montant d'XP Lovys à
+  // certains badges. On le déduit du nouveau montant pour ne pas récompenser
+  // deux fois les joueurs qui avaient déjà débloqué le badge.
+  const result = await pool.query(
+    `
+    WITH eligible AS (
+      SELECT DISTINCT ub.user_id
+      FROM user_badges ub
+      WHERE ub.user_id = ANY($1::int[])
+        AND ub.badge_key = $2
+    ),
+    legacy AS (
+      SELECT
+        e.user_id,
+        COALESCE((
+          SELECT ux.xp_amount
+          FROM user_xp_rewards ux
+          WHERE ux.user_id = e.user_id
+            AND ux.reward_key = $2
+          LIMIT 1
+        ), 0) AS legacy_lovys_xp
+      FROM eligible e
+    ),
+    rewarded AS (
+      INSERT INTO user_xp_rewards (user_id, reward_key, xp_amount)
+      SELECT user_id, $3, $4
+      FROM legacy
+      ON CONFLICT (user_id, reward_key) DO NOTHING
+      RETURNING user_id
+    ),
+    grants AS (
+      SELECT
+        r.user_id,
+        GREATEST(0, $4 - LEAST($4, l.legacy_lovys_xp)) AS lovys_xp
+      FROM rewarded r
+      JOIN legacy l ON l.user_id = r.user_id
+    )
+    UPDATE users u
+    SET pending_xp = u.pending_xp + grants.lovys_xp,
+        global_xp = LEAST(u.global_xp + $5, $7),
+        points = u.points + $6,
+        lifetime_lovercash_earned = u.lifetime_lovercash_earned + $6,
+        updated_at = CURRENT_TIMESTAMP
+    FROM grants
+    WHERE u.id = grants.user_id
+    RETURNING u.id
+    `,
+    [
+      ids,
+      String(badgeKey),
+      `${String(badgeKey)}:${String(rewardVersion)}`,
+      lovysXp,
+      globalXp,
+      cash,
+      globalThresholdForLevel(56)
+    ]
+  );
+
+  return result.rowCount || 0;
+}
+
 async function awardXpOnce(userId, rewardKey, xpAmount) {
   const id = Number(userId);
   if (!Number.isInteger(id) || !rewardKey || !(Number(xpAmount) > 0)) return false;
@@ -1792,7 +1871,7 @@ async function runTrackerTick() {
             `,
             [matchedUserIds]
           );
-          await awardBadgeXpOnce(matchedUserIds, 'challenge:dofus:gardien-emeraude:50h', 50);
+          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]);
         }
 
         if (currentGameName.trim().toLowerCase() === 'palworld') {
@@ -1827,7 +1906,7 @@ async function runTrackerTick() {
             `,
             [matchedUserIds]
           );
-          await awardBadgeXpOnce(matchedUserIds, 'challenge:palworld:maitre-des-spheres:50h', 50);
+          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]);
         }
 
 
@@ -1863,7 +1942,7 @@ async function runTrackerTick() {
             `,
             [matchedUserIds]
           );
-          await awardBadgeXpOnce(matchedUserIds, 'challenge:mw4:operateur-elite:50h', 50);
+          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50]);
         }
 
         if (specialMode === 'zombie') {
@@ -1923,7 +2002,7 @@ async function runTrackerTick() {
             `,
             [matchedUserIds]
           );
-          await awardBadgeXpOnce(matchedUserIds, 'mission:zombie:maitre-des-morts:25h', 50);
+          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]);
         }
 
       }
@@ -4426,11 +4505,18 @@ app.get('/api/badges', async (req, res) => {
       evolution: 'Évolution I · Étincelle fidèle'
     };
 
+    const badgeEconomyRewards = [
+      ['challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]],
+      ['challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]],
+      ['challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50]],
+      ['mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]]
+    ];
+    for (const [badgeKey, rewards] of badgeEconomyRewards) {
+      await awardBadgeEconomyRewardsOnce([user.id], badgeKey, rewards);
+    }
+
+    // Les autres badges conservent pour l'instant leur récompense XP historique.
     const badgeXpRewards = [
-      ['challenge:dofus:gardien-emeraude:50h', 50],
-      ['challenge:palworld:maitre-des-spheres:50h', 50],
-      ['challenge:mw4:operateur-elite:50h', 50],
-      ['mission:zombie:maitre-des-morts:25h', 50],
       ['mission:discord:membre-communaute', 25],
       ['mission:instagram:communaute', 25],
       ['mission:tiktok:communaute', 25],
@@ -4474,7 +4560,11 @@ app.get('/api/badges', async (req, res) => {
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Dofus',
           gameName: 'Dofus',
           badgeCategory: 'twitch',
-          rewardXp: 50,
+          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
+          rewardCash: BADGE_TIME_REWARDS[50].cash,
+          lovysXpToReserve: true,
           targetHours: 50,
           watchSeconds: dofusWatchSeconds,
           unlocked: Boolean(dofusUnlocked),
@@ -4492,7 +4582,11 @@ app.get('/api/badges', async (req, res) => {
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Palworld',
           gameName: 'Palworld',
           badgeCategory: 'twitch',
-          rewardXp: 50,
+          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
+          rewardCash: BADGE_TIME_REWARDS[50].cash,
+          lovysXpToReserve: true,
           targetHours: 50,
           watchSeconds: palworldWatchSeconds,
           unlocked: Boolean(palworldUnlocked),
@@ -4510,7 +4604,11 @@ app.get('/api/badges', async (req, res) => {
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
           gameName: 'Call of Duty: Modern Warfare 4',
           badgeCategory: 'twitch',
-          rewardXp: 50,
+          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
+          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
+          rewardCash: BADGE_TIME_REWARDS[50].cash,
+          lovysXpToReserve: true,
           targetHours: 50,
           watchSeconds: mw4WatchSeconds,
           unlocked: Boolean(mw4Unlocked),
@@ -4529,7 +4627,11 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'Zombie',
           missionType: 'special-mode',
           badgeCategory: 'twitch',
-          rewardXp: 50,
+          rewardXp: BADGE_TIME_REWARDS[25].lovysXp,
+          rewardLovysXp: BADGE_TIME_REWARDS[25].lovysXp,
+          rewardGlobalXp: BADGE_TIME_REWARDS[25].globalXp,
+          rewardCash: BADGE_TIME_REWARDS[25].cash,
+          lovysXpToReserve: true,
           targetHours: 25,
           watchSeconds: zombieWatchSeconds,
           unlocked: Boolean(zombieUnlocked),
