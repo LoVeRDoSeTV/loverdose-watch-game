@@ -5218,7 +5218,7 @@ function incubatorEggMarkup() {
 }
 
 function incubatorLovysDropsMarkup() {
-  return `<div id="incubatorDropPanel" class="incubator-drop-panel hidden">
+  return `<div id="incubatorDropPanel" class="incubator-drop-panel">
     <div class="incubator-drop-head"><div class="incubator-drop-title">🎲 Lovys possibles</div><div class="incubator-drop-total">100 % au total</div></div>
     <div class="egg-drop-list">
       <div class="egg-drop-row common"><div class="egg-drop-main"><img class="egg-drop-thumb" src="/Mossy.png" alt="Mossy"><span class="egg-drop-name">Mossy · Commun</span></div><b>17,5 %</b></div>
@@ -5300,9 +5300,8 @@ function openIncubatorAddModal(slot) {
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · choisis un œuf disponible.`;
   if (available > 0) {
-    content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">${eggIconMarkup()} ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button><button id="incubatorDropToggle" class="hub-btn incubator-drop-toggle" type="button" aria-expanded="false">Voir les Lovys possibles</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+    content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">${eggIconMarkup()} ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
     $('incubatorPlaceEgg')?.addEventListener('click', placeEggInSelectedSlot);
-    bindIncubatorDropToggle();
   } else {
     incubatorShopTargetSlot = selectedIncubatorSlot;
     selectedIncubatorSlot = null;
@@ -5338,9 +5337,7 @@ function openExtraEggInfo(slotData) {
   selectedIncubatorSlot = Number(slotData.slot);
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · œuf en cours d’incubation.`;
   const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
-  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé ses 6 heures d’incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / 6 h 00</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}<button id="incubatorDropToggle" class="hub-btn incubator-drop-toggle" type="button" aria-expanded="false">Voir les Lovys possibles</button><button id="incubatorInfoClose" class="hub-btn" type="button">Fermer</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
-  $('incubatorInfoClose')?.addEventListener('click', closeIncubatorAddModal);
-  bindIncubatorDropToggle();
+  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé ses 6 heures d’incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / 6 h 00</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}</div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
   $('incubatorHatchExtraEgg')?.addEventListener('click',()=>hatchExtraIncubatorEgg(slotData.slot));
   $('incubatorAddModal')?.classList.remove('hidden');
 }
