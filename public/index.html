@@ -4396,6 +4396,35 @@ body:has(#pveModal:not(.hidden)){
 @media(max-width:600px){.reward-wheel-head{min-height:54px;padding-right:80px}.reward-wheel-gift{right:8px;top:8px;transform:scale(.86) rotate(4deg);transform-origin:top right}.reward-wheel-title{font-size:17px}.reward-wheel-card::after{right:-70px;top:-58px}.reward-wheel-sub{max-width:230px}}
 @media(max-width:600px){.reward-wheel-win-popup{padding:16px}.reward-wheel-win-card{padding:24px 18px 18px;border-radius:22px}.reward-wheel-win-title{font-size:26px}.reward-wheel-win-icon{width:92px;height:92px;font-size:48px}.reward-wheel-win-reward{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.reward-wheel-win-popup,.reward-wheel-win-card,.reward-wheel-win-icon{animation:none!important;transition:none!important}}
+
+/* V87 — cadrage des fonds Portefeuille + Roue */
+.wallet-card{
+  background-image:
+    linear-gradient(90deg,rgba(7,10,22,.48) 0%,rgba(7,10,22,.58) 48%,rgba(7,10,22,.68) 100%),
+    url('reward-wallet-bg.png');
+  background-position:center center;
+  background-repeat:no-repeat;
+  background-size:100% 100%;
+  box-shadow:0 14px 40px rgba(0,0,0,.24),inset 0 0 44px rgba(6,8,20,.30);
+}
+.reward-wheel-card{
+  background-image:
+    linear-gradient(180deg,rgba(5,8,20,.08) 0%,rgba(7,10,24,.16) 24%,rgba(7,10,24,.28) 52%,rgba(7,10,24,.42) 76%,rgba(7,10,24,.50) 100%),
+    url('reward-wheel-bg.png');
+  background-position:center center,center center;
+  background-size:100% 100%,100% 100%;
+  background-repeat:no-repeat,no-repeat;
+}
+.reward-wheel-card::after{display:none}
+@media(max-width:700px){
+  .wallet-card{
+    background-size:auto 100%;
+    background-position:left center;
+  }
+  .reward-wheel-card{
+    background-size:100% 100%,100% 100%;
+  }
+}
 </style>
 
 </head>
