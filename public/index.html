@@ -7476,16 +7476,19 @@ async function loadProgression(){
     const grade=d.grade||{};
     const gradeList=Array.isArray(d.grades)?d.grades:[];
     const globalLevelXpRewards=Array.isArray(d.globalLevelXpRewards)?d.globalLevelXpRewards:[];
+    const globalLevelCashRewards=Array.isArray(d.globalLevelCashRewards)?d.globalLevelCashRewards:[];
     const lovysXpRewards=Array.isArray(d.globalLovysXpRewards)?d.globalLovysXpRewards:[];
     const rewardForLevel=(level)=>{
       const gr=gradeList.find(x=>Number(x.min)===level);
       const globalXpReward=globalLevelXpRewards.find(x=>Number(x.level)===level);
+      const cashReward=globalLevelCashRewards.find(x=>Number(x.level)===level);
       const xpReward=lovysXpRewards.find(x=>Number(x.level)===level);
       const parts=[];
       let icon='';
       if(gr){ icon='🏅'; parts.push(`Titre ${gr.name||''}`.trim()); }
       if(level===55){ icon='🏆'; parts.push('Fond Ascension'); }
       if(globalXpReward){ if(!icon)icon='⭐'; parts.push(`+${Number(globalXpReward.xp||0)} XP globale`); }
+      if(cashReward){ if(!icon)icon='💰'; parts.push(`+${Number(cashReward.cash||0)} LoVeR'Cash`); }
       if(xpReward){ if(!icon)icon='🐉'; parts.push(`+${Number(xpReward.xp||0)} XP Lovys`); }
       return parts.length?{icon,name:parts.join(' · ')}:null;
     };
@@ -7494,13 +7497,15 @@ async function loadProgression(){
       const gradeAtLevel=gradeList.find(x=>lvl>=Number(x.min)&&lvl<=Number(x.max))||grade||{};
       const titleReward=gradeList.find(x=>Number(x.min)===lvl);
       const globalXpReward=globalLevelXpRewards.find(x=>Number(x.level)===lvl);
+      const cashReward=globalLevelCashRewards.find(x=>Number(x.level)===lvl);
       const xpReward=lovysXpRewards.find(x=>Number(x.level)===lvl);
       const details=[];
       let majorIcon=gradeAtLevel?.icon||'◆';
       let title=`Palier niveau ${lvl}`;
       if(titleReward){ details.push(`Débloque le titre « ${titleReward.name} ».`); title=`Titre : \"${titleReward.name}\"`; majorIcon='🏅'; }
       if(globalXpReward){ details.push(`Donne +${Number(globalXpReward.xp||0)} XP globale pour commencer à remplir le niveau suivant.`); if(!titleReward){ title=`Bonus global +${Number(globalXpReward.xp||0)} XP`; majorIcon='⭐'; } }
-      if(xpReward){ details.push(`Ajoute +${Number(xpReward.xp||0)} XP à ton Lovys.`); if(!titleReward&&!globalXpReward){ title=`Bonus Lovys +${Number(xpReward.xp||0)} XP`; majorIcon='🐉'; } }
+      if(cashReward){ details.push(`Donne +${Number(cashReward.cash||0)} LoVeR'Cash.`); if(!titleReward&&!globalXpReward){ title=`Bonus +${Number(cashReward.cash||0)} LoVeR'Cash`; majorIcon='💰'; } }
+      if(xpReward){ details.push(`Ajoute +${Number(xpReward.xp||0)} XP à ton Lovys.`); if(!titleReward&&!globalXpReward&&!cashReward){ title=`Bonus Lovys +${Number(xpReward.xp||0)} XP`; majorIcon='🐉'; } }
       if(lvl===55){ details.push('Débloque le fond « Ascension » et l’accès au Prestige une fois la barre remplie.'); title='Palier Prestige'; majorIcon='🏆'; }
       if(!details.length){ details.push('Pas de récompense directe sur ce niveau, mais il te rapproche du prochain palier important.'); }
       const rangeText = gradeAtLevel?.min && gradeAtLevel?.max ? `Grade ${gradeAtLevel.name} · niveaux ${gradeAtLevel.min} à ${gradeAtLevel.max}` : (gradeAtLevel?.name ? `Grade ${gradeAtLevel.name}` : 'Progression globale');
