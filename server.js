@@ -113,8 +113,9 @@ function dailyChallengeByKey(key, dateKey = dailyChallengeDateKey()) {
 
 
 // Roues de récompenses : une roue quotidienne toutes les 24 h et une roue bonus
-// après 7 jours de connexion consécutifs. Les tirages et les gains sont validés
-// côté serveur pour empêcher les relances depuis le navigateur.
+// après 7 lives Twitch distincts auxquels le joueur a réellement assisté.
+// Les jours sans live ne cassent rien : la progression reste acquise.
+// Les tirages et les gains sont validés côté serveur.
 const DAILY_WHEEL_REWARDS = Object.freeze([
   { key:'cash_5',        icon:'💰', label:"+5 LoVeR'Cash",              chance:20, type:'cash',       amount:5 },
   { key:'global_xp_10',  icon:'⭐', label:'+10 XP globale',              chance:18, type:'global_xp',  amount:10 },
@@ -137,13 +138,6 @@ const WEEKLY_WHEEL_REWARDS = Object.freeze([
   { key:'mystery_egg',   icon:'🥚', label:'1 Œuf mystère',               chance:5,  type:'inventory',  itemKey:'mystery_egg', amount:1 }
 ]);
 
-function previousDateKey(dateKey) {
-  const [year, month, day] = String(dateKey).split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() - 1);
-  return date.toISOString().slice(0, 10);
-}
-
 function publicWheelReward(reward) {
   return { key:reward.key, icon:reward.icon, label:reward.label, chance:reward.chance };
 }
@@ -158,38 +152,49 @@ function weightedWheelReward(rewards) {
   return rewards[rewards.length - 1];
 }
 
-async function syncRewardWheelLogin(client, userId) {
+// La roue premium progresse uniquement avec des lives Twitch distincts réellement suivis.
+async function syncRewardWheelState(client, userId) {
   await client.query(
     `INSERT INTO user_reward_wheels (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
     [userId]
   );
+
   const result = await client.query(
-    `SELECT user_id, daily_last_spin_at, weekly_last_spin_at, login_streak, last_connection_date, weekly_ready
-     FROM user_reward_wheels WHERE user_id=$1 FOR UPDATE`,
+    `SELECT user_id, daily_last_spin_at, weekly_last_spin_at, weekly_ready,
+            weekly_live_checkpoint
+     FROM user_reward_wheels
+     WHERE user_id=$1
+     FOR UPDATE`,
     [userId]
   );
   const state = result.rows[0];
-  const today = dailyChallengeDateKey();
-  const lastDate = state.last_connection_date
-    ? new Intl.DateTimeFormat('en-CA', { timeZone:DAILY_CHALLENGE_TIMEZONE, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(state.last_connection_date))
-    : null;
 
-  if (!state.weekly_ready && lastDate !== today) {
-    const nextStreak = lastDate === previousDateKey(today)
-      ? Math.min(7, Number(state.login_streak || 0) + 1)
-      : 1;
-    const weeklyReady = nextStreak >= 7;
-    const updated = await client.query(
+  const attendanceResult = await client.query(
+    `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1`,
+    [userId]
+  );
+  const totalLiveAttendance = Math.max(0, Number(attendanceResult.rows[0]?.count || 0));
+  const checkpoint = Math.max(0, Number(state.weekly_live_checkpoint || 0));
+  const rawProgress = Math.max(0, totalLiveAttendance - checkpoint);
+  const weeklyLiveProgress = Math.min(7, rawProgress);
+  const weeklyReady = rawProgress >= 7;
+
+  if (Boolean(state.weekly_ready) !== weeklyReady) {
+    await client.query(
       `UPDATE user_reward_wheels
-       SET login_streak=$2, last_connection_date=$3::date, weekly_ready=$4, updated_at=CURRENT_TIMESTAMP
-       WHERE user_id=$1
-       RETURNING user_id, daily_last_spin_at, weekly_last_spin_at, login_streak, last_connection_date, weekly_ready`,
-      [userId, nextStreak, today, weeklyReady]
+       SET weekly_ready=$2, updated_at=CURRENT_TIMESTAMP
+       WHERE user_id=$1`,
+      [userId, weeklyReady]
     );
-    return updated.rows[0];
   }
 
-  return state;
+  return {
+    ...state,
+    weekly_ready: weeklyReady,
+    weekly_live_progress: weeklyLiveProgress,
+    total_live_attendance: totalLiveAttendance,
+    weekly_live_checkpoint: checkpoint
+  };
 }
 
 async function applyWheelReward(client, userId, accountId, reward) {
@@ -1313,9 +1318,15 @@ async function initDatabase() {
       weekly_last_spin_at TIMESTAMPTZ,
       login_streak INTEGER NOT NULL DEFAULT 0 CHECK (login_streak BETWEEN 0 AND 7),
       last_connection_date DATE,
+      weekly_live_checkpoint INTEGER NOT NULL DEFAULT 0,
       weekly_ready BOOLEAN NOT NULL DEFAULT FALSE,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE user_reward_wheels
+    ADD COLUMN IF NOT EXISTS weekly_live_checkpoint INTEGER NOT NULL DEFAULT 0
   `);
 
   await pool.query(`
@@ -4421,7 +4432,7 @@ app.get('/api/reward-wheels', async (req, res) => {
     const userResult = await client.query(`SELECT id FROM users WHERE twitch_id=$1`, [req.session.user.twitchId]);
     const user = userResult.rows[0];
     if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Joueur introuvable.' }); }
-    const state = await syncRewardWheelLogin(client, user.id);
+    const state = await syncRewardWheelState(client, user.id);
     await client.query('COMMIT');
 
     const lastDaily = state.daily_last_spin_at ? new Date(state.daily_last_spin_at) : null;
@@ -4430,7 +4441,7 @@ app.get('/api/reward-wheels', async (req, res) => {
     res.json({
       ok:true,
       daily:{ available:dailyAvailable, lastSpinAt:lastDaily?.toISOString() || null, nextSpinAt:dailyAvailable ? null : nextDailyAt.toISOString(), rewards:DAILY_WHEEL_REWARDS.map(publicWheelReward) },
-      weekly:{ available:Boolean(state.weekly_ready), streak:Number(state.login_streak || 0), goal:7, lastSpinAt:state.weekly_last_spin_at ? new Date(state.weekly_last_spin_at).toISOString() : null, rewards:WEEKLY_WHEEL_REWARDS.map(publicWheelReward) }
+      weekly:{ available:Boolean(state.weekly_ready), streak:Number(state.weekly_live_progress || 0), attendedLives:Number(state.weekly_live_progress || 0), totalLives:Number(state.total_live_attendance || 0), goal:7, lastSpinAt:state.weekly_last_spin_at ? new Date(state.weekly_last_spin_at).toISOString() : null, rewards:WEEKLY_WHEEL_REWARDS.map(publicWheelReward) }
     });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
@@ -4453,7 +4464,7 @@ app.post('/api/reward-wheels/spin', async (req, res) => {
     );
     const user = userResult.rows[0];
     if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Joueur introuvable.' }); }
-    const state = await syncRewardWheelLogin(client, user.id);
+    const state = await syncRewardWheelState(client, user.id);
 
     if (wheelType === 'daily' && state.daily_last_spin_at) {
       const nextSpin = new Date(state.daily_last_spin_at).getTime() + 24 * 60 * 60 * 1000;
@@ -4464,7 +4475,7 @@ app.post('/api/reward-wheels/spin', async (req, res) => {
     }
     if (wheelType === 'weekly' && !state.weekly_ready) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error:'Atteins 7 jours de connexion consécutifs pour débloquer cette roue.' });
+      return res.status(409).json({ error:'Assiste à 7 lives différents pour débloquer cette roue.' });
     }
 
     const rewards = wheelType === 'daily' ? DAILY_WHEEL_REWARDS : WEEKLY_WHEEL_REWARDS;
@@ -4474,9 +4485,19 @@ app.post('/api/reward-wheels/spin', async (req, res) => {
     if (wheelType === 'daily') {
       await client.query(`UPDATE user_reward_wheels SET daily_last_spin_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`, [user.id]);
     } else {
+      const nextCheckpoint = Math.min(
+        Number(state.total_live_attendance || 0),
+        Number(state.weekly_live_checkpoint || 0) + 7
+      );
+      const remainingLiveProgress = Math.max(0, Number(state.total_live_attendance || 0) - nextCheckpoint);
       await client.query(
-        `UPDATE user_reward_wheels SET weekly_last_spin_at=CURRENT_TIMESTAMP,weekly_ready=FALSE,login_streak=0,last_connection_date=$2::date,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,
-        [user.id, dailyChallengeDateKey()]
+        `UPDATE user_reward_wheels
+         SET weekly_last_spin_at=CURRENT_TIMESTAMP,
+             weekly_live_checkpoint=$2,
+             weekly_ready=$3,
+             updated_at=CURRENT_TIMESTAMP
+         WHERE user_id=$1`,
+        [user.id, nextCheckpoint, remainingLiveProgress >= 7]
       );
     }
     await client.query(
