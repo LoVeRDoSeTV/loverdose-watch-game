@@ -56,11 +56,20 @@ const BADGE_GLOBAL_STAGE_REWARDS = Object.freeze({
   1000: { lovysXp: 5000, globalXp: 2500, cash: 500 }
 });
 
-// Petit bonus d'XP globale à chaque niveau atteint. Il est versé une seule fois
-// par niveau et par Prestige, puis sert à amorcer la barre du niveau suivant.
+// Récompenses de niveau global : la plupart des niveaux donnent un petit bonus
+// d'XP globale, mais tous les 5 niveaux ce bonus est remplacé par du LoVeR'Cash.
+// Chaque récompense n'est versée qu'une seule fois par niveau et par Prestige.
+const GLOBAL_LEVEL_CASH_REWARDS = Object.freeze([
+  { level:5, cash:5 }, { level:10, cash:5 }, { level:15, cash:10 },
+  { level:20, cash:10 }, { level:25, cash:15 }, { level:30, cash:15 },
+  { level:35, cash:20 }, { level:40, cash:20 }, { level:45, cash:25 },
+  { level:50, cash:30 }, { level:55, cash:40 }
+]);
+const GLOBAL_LEVEL_CASH_LEVELS = new Set(GLOBAL_LEVEL_CASH_REWARDS.map(reward => reward.level));
 const GLOBAL_LEVEL_XP_REWARDS = Object.freeze(
   Array.from({ length: 54 }, (_, index) => {
     const level = index + 2;
+    if (GLOBAL_LEVEL_CASH_LEVELS.has(level)) return null;
     const xp = level <= 10 ? 10
       : level <= 20 ? 15
       : level <= 30 ? 20
@@ -68,7 +77,7 @@ const GLOBAL_LEVEL_XP_REWARDS = Object.freeze(
       : level <= 50 ? 30
       : 40;
     return { level, xp };
-  })
+  }).filter(Boolean)
 );
 
 // Badge progressif basé sur le nombre de lives Twitch distincts réellement suivis.
@@ -614,7 +623,7 @@ const creatures = [
 ];
 
 async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
-  if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, globalXp:Number(globalXp||0) };
+  if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:Number(globalXp||0) };
   let effectiveGlobalXp = Math.max(0, Number(globalXp) || 0);
   let progression = globalProgressionFromXp(effectiveGlobalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
@@ -625,7 +634,7 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
 
   const userStateResult = await clientOrPool.query(`SELECT creature_id, prestige FROM users WHERE id=$1 LIMIT 1`, [userId]);
   const userState = userStateResult.rows[0];
-  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, globalXp:effectiveGlobalXp };
+  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:effectiveGlobalXp };
 
   // Récompense chaque niveau atteint une seule fois. Si le bonus fait franchir
   // un nouveau niveau, ce nouveau palier est lui aussi traité dans la même synchro.
@@ -658,6 +667,28 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
     );
   }
   progression = globalProgressionFromXp(effectiveGlobalXp);
+
+  // Tous les 5 niveaux, le bonus d'XP globale est remplacé par du LoVeR'Cash.
+  let cashGranted = 0;
+  for (const reward of GLOBAL_LEVEL_CASH_REWARDS) {
+    if (progression.level < reward.level) continue;
+    const inserted = await clientOrPool.query(
+      `INSERT INTO user_global_cash_level_rewards (user_id,prestige,level,cash_amount)
+       VALUES ($1,$2,$3,$4)
+       ON CONFLICT (user_id,prestige,level) DO NOTHING
+       RETURNING cash_amount`,
+      [userId, Number(userState.prestige || 0), reward.level, reward.cash]
+    );
+    if (!inserted.rowCount) continue;
+    cashGranted += Math.max(0, Number(inserted.rows[0]?.cash_amount || reward.cash || 0));
+  }
+  if (cashGranted > 0) {
+    await clientOrPool.query(
+      `UPDATE users SET points=points+$2, lifetime_lovercash_earned=lifetime_lovercash_earned+$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, cashGranted]
+    );
+  }
+
   const finalRewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) finalRewardKeys.push('reward_bg_level55');
   for (const key of finalRewardKeys) {
@@ -695,7 +726,7 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
     );
   }
 
-  return { lovysXpGranted:0, pendingXpGranted, globalXpGranted, globalXp:effectiveGlobalXp };
+  return { lovysXpGranted:0, pendingXpGranted, globalXpGranted, cashGranted, globalXp:effectiveGlobalXp };
 }
 
 const PVE_ZONES = [
@@ -1284,6 +1315,17 @@ async function initDatabase() {
       prestige INTEGER NOT NULL DEFAULT 0,
       level INTEGER NOT NULL,
       xp_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, prestige, level)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_global_cash_level_rewards (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      prestige INTEGER NOT NULL DEFAULT 0,
+      level INTEGER NOT NULL,
+      cash_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (user_id, prestige, level)
     );
@@ -3049,6 +3091,11 @@ app.post('/api/account/reset-game', async (req, res) => {
     );
 
     await client.query(
+      `DELETE FROM user_global_cash_level_rewards WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
       `DELETE FROM user_live_attendance WHERE user_id = $1`,
       [user.id]
     );
@@ -4015,6 +4062,8 @@ app.get(
       u.xp = Number(u.xp || 0) + Number(syncedGlobalRewards.lovysXpGranted || 0);
       u.pending_xp = Number(u.pending_xp || 0) + Number(syncedGlobalRewards.pendingXpGranted || 0);
       u.global_xp = Number(syncedGlobalRewards.globalXp ?? u.global_xp ?? 0);
+      u.points = Number(u.points || 0) + Number(syncedGlobalRewards.cashGranted || 0);
+      u.lifetime_lovercash_earned = Number(u.lifetime_lovercash_earned || 0) + Number(syncedGlobalRewards.cashGranted || 0);
 
       res.json({
 
@@ -4528,7 +4577,7 @@ app.get('/api/progression', async (req,res)=>{
     u.global_xp=Number(xpState.global_xp??u.global_xp??0);
     const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(xpState.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLevelXpRewards:GLOBAL_LEVEL_XP_REWARDS,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLevelXpRewards:GLOBAL_LEVEL_XP_REWARDS,globalLevelCashRewards:GLOBAL_LEVEL_CASH_REWARDS,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
 });
 
