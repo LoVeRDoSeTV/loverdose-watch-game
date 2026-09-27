@@ -1952,6 +1952,7 @@ html, body{
 .daily-challenge-detail-modal{position:fixed;inset:0;z-index:1000060;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(3,5,15,.86);backdrop-filter:blur(10px)}
 .daily-challenge-detail-modal.hidden{display:none}
 .daily-challenge-detail-panel{width:min(560px,94vw);max-height:84vh;overflow:auto;padding:28px;border:1px solid rgba(145,71,255,.45);border-radius:20px;background:linear-gradient(180deg,#15192d,#0f1325);box-shadow:0 28px 90px rgba(0,0,0,.60)}
+@media(min-width:901px){.daily-challenge-detail-panel.has-challenge-bg{background-image:linear-gradient(90deg,rgba(8,11,25,.97) 0%,rgba(8,11,25,.90) 42%,rgba(8,11,25,.66) 68%,rgba(8,11,25,.54) 100%),linear-gradient(180deg,rgba(10,13,28,.28),rgba(10,13,28,.56)),var(--daily-detail-bg);background-size:cover,cover,cover;background-position:center,center,center right;background-repeat:no-repeat;box-shadow:0 28px 90px rgba(0,0,0,.68),inset 0 0 42px rgba(11,6,28,.28)}}
 .daily-challenge-detail-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:20px}.daily-challenge-detail-close{width:42px;height:42px;flex:0 0 42px;border-radius:50%;border:1px solid rgba(255,255,255,.13);background:#1a1f35;color:#fff;font-size:22px;cursor:pointer}.daily-challenge-detail-icon{width:64px;height:64px;display:grid;place-items:center;border-radius:16px;background:rgba(145,71,255,.12);border:1px solid rgba(145,71,255,.28);font-size:32px;margin-bottom:14px}.daily-challenge-detail-title{font-size:25px;font-weight:950;color:#fff;line-height:1.15}.daily-challenge-detail-desc{margin-top:9px;color:#b7bfd8;font-size:15px;line-height:1.55}.daily-challenge-detail-rewards{display:flex;flex-wrap:wrap;gap:9px;margin:20px 0}.daily-challenge-detail-progress{height:11px;border-radius:999px;overflow:hidden;background:#292f4b;border:1px solid rgba(255,255,255,.06)}.daily-challenge-detail-progress>span{display:block;height:100%;background:linear-gradient(90deg,#7041bd,#b982ff,#e0c7ff)}.daily-challenge-detail-progress-text{display:flex;justify-content:space-between;gap:10px;margin-top:9px;color:#9ba5c4;font-size:14px;font-weight:850}.daily-challenge-detail-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.daily-challenge-detail-actions .daily-challenge-button{flex:1;min-height:44px;font-size:14px}.daily-challenge{cursor:pointer}
 @media(min-width:901px){
   .player-card-kicker{font-size:18px}.player-card-name{font-size:24px}.player-card-title{font-size:16px}.player-card-level{font-size:15px}.player-card-rank-label{font-size:13px}.player-card-action{font-size:14px;min-height:46px}.player-card-progress-mobile{font-size:13px;padding:7px 12px}
@@ -5011,7 +5012,7 @@ body:has(#pveModal:not(.hidden)){
 </div>
 
 <div id="dailyChallengeDetailModal" class="daily-challenge-detail-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyChallengeDetailTitle">
-  <div class="daily-challenge-detail-panel">
+  <div id="dailyChallengeDetailPanel" class="daily-challenge-detail-panel">
     <div class="daily-challenge-detail-head">
       <div>
         <div id="dailyChallengeDetailIcon" class="daily-challenge-detail-icon">🎯</div>
@@ -6118,9 +6119,28 @@ function getDailyChallengeByKey(challengeKey) {
   return (dailyChallengesData?.challenges || []).find(challenge => String(challenge.key || '') === String(challengeKey || '')) || null;
 }
 function closeDailyChallengeDetail() { $('dailyChallengeDetailModal')?.classList.add('hidden'); }
+function setDailyChallengeDetailBackground(challengeKey) {
+  const panel = $('dailyChallengeDetailPanel');
+  if (!panel) return;
+  const image = ({
+    watch_30:'daily-challenge-watch-30.png',
+    watch_60:'daily-challenge-watch-60.png',
+    watch_120:'daily-challenge-watch-120.png',
+    global_xp_25:'daily-challenge-global-xp.png',
+    cash_10:'daily-challenge-cash.png'
+  })[String(challengeKey || '')] || '';
+  if (image) {
+    panel.style.setProperty('--daily-detail-bg', `url('${image}')`);
+    panel.classList.add('has-challenge-bg');
+  } else {
+    panel.style.removeProperty('--daily-detail-bg');
+    panel.classList.remove('has-challenge-bg');
+  }
+}
 function renderDailyChallengeDetail(challengeKey) {
   const challenge = getDailyChallengeByKey(challengeKey);
   if (!challenge) return;
+  setDailyChallengeDetailBackground(challenge.key);
   const goal = Math.max(1, Number(challenge.goal || 1));
   const progress = Math.max(0, Math.min(goal, Number(challenge.progress || 0)));
   const pct = Math.max(0, Math.min(100, (progress / goal) * 100));
