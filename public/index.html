@@ -3293,16 +3293,16 @@ body:has(#pveModal:not(.hidden)){
 .reward-wheel-odds-row{position:relative;overflow:hidden;display:grid;grid-template-columns:32px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:47px;padding:7px 8px;border:1px solid rgba(255,255,255,.065);border-radius:10px;background:rgba(255,255,255,.025);color:#d8ddef}.reward-wheel-odds-row::after{content:'';position:absolute;left:0;bottom:0;height:3px;width:var(--drop);max-width:100%;border-radius:0 999px 999px 0;background:linear-gradient(90deg,#7443c7,#b875ff);opacity:.85}.reward-wheel-card.weekly-mode .reward-wheel-odds-row::after{background:linear-gradient(90deg,#a96c18,#ffe08a)}.reward-wheel-odds-icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;background:rgba(145,71,255,.10);border:1px solid rgba(145,71,255,.14);font-size:18px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}.reward-wheel-card.weekly-mode .reward-wheel-odds-icon{background:rgba(243,200,91,.08);border-color:rgba(243,200,91,.13)}.reward-wheel-odds-label{min-width:0;font-size:10px;font-weight:850;line-height:1.2;color:#d7dced}.reward-wheel-odds-chance{min-width:48px;padding:5px 7px;border-radius:9px;border:1px solid rgba(185,130,255,.30);background:rgba(145,71,255,.12);color:#fff;font-size:14px;font-weight:1000;line-height:1;text-align:center;box-shadow:0 0 14px rgba(145,71,255,.08)}.reward-wheel-card.weekly-mode .reward-wheel-odds-chance{border-color:rgba(243,200,91,.35);background:rgba(243,200,91,.10);color:#ffe08a;box-shadow:0 0 14px rgba(243,200,91,.07)}.reward-wheel-odds-chance small{display:block;margin-top:3px;color:#aeb7d1;font-size:6.5px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.reward-wheel-card.weekly-mode .reward-wheel-odds-chance small{color:#cdbb8c}
 
 @media(min-width:1181px){
-  /* V90 — PC : les 3 défis restent visibles en colonne pour remplir le panneau. */
+  /* V91 — PC : les 3 défis sont affichés côte à côte en 3 colonnes. */
   .dashboard-side-stack .daily-challenges-head{margin-bottom:8px}
   .dashboard-side-stack .daily-challenges-head h2{font-size:18px}
   .dashboard-side-stack .daily-challenges-subtitle{font-size:10px}
   .dashboard-side-stack .daily-challenges-reset{font-size:9px}
   .dashboard-side-stack .daily-challenges-summary{font-size:10px;margin-bottom:9px}
   .dashboard-side-stack .daily-carousel-controls{display:none!important}
-  .dashboard-side-stack .daily-challenges-grid{display:flex!important;flex-direction:column;gap:9px!important}
+  .dashboard-side-stack .daily-challenges-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:10px!important;align-items:stretch}
   .dashboard-side-stack .daily-challenge,
-  .dashboard-side-stack .daily-challenge.carousel-active{display:flex!important;min-height:0!important;padding:10px 12px!important;gap:6px!important;flex:0 0 auto}
+  .dashboard-side-stack .daily-challenge.carousel-active{display:flex!important;min-width:0!important;min-height:0!important;height:100%!important;padding:10px 12px!important;gap:6px!important;flex:0 0 auto}
   .dashboard-side-stack .daily-challenge-top{gap:8px}
   .dashboard-side-stack .daily-challenge-icon{width:32px!important;height:32px!important;flex-basis:32px!important;font-size:17px!important;border-radius:9px}
   .dashboard-side-stack .daily-challenge-title{font-size:12.5px!important;line-height:1.15}
