@@ -3680,6 +3680,96 @@ body:has(#pveModal:not(.hidden)){
 
 </style>
 
+
+<style>
+/* ===== V48 — PVE ZONE 2 : FORGES DU CŒUR ARDENT ===== */
+.pve-adventure-map.theme-ember{
+  --map-accent:#ff7a3d;
+  --map-accent-2:#d65cff;
+  background:
+    linear-gradient(180deg,rgba(22,5,2,.08) 0%,rgba(8,3,2,.03) 48%,rgba(10,2,1,.16) 100%),
+    url("assets/fond-zone-2.png") center center / cover no-repeat!important;
+}
+.pve-adventure-map.theme-ember .pve-zone-world{display:none!important}
+.pve-adventure-map.theme-ember::before,
+.pve-adventure-map.theme-ember::after{display:none!important}
+.pve-adventure-map.theme-ember .pve-route-svg{display:none!important}
+
+@media (min-width:1024px){
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-route{
+    position:relative!important;display:block!important;flex:1 1 auto!important;
+    min-height:0!important;height:auto!important;padding:0!important;overflow:visible!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-route::before,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-route::after,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-start,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-goal{display:none!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop{
+    position:absolute!important;left:var(--pve-x,50%)!important;top:var(--pve-y,50%)!important;
+    width:auto!important;min-height:0!important;display:block!important;z-index:8!important;
+    transform:translate(-50%,-50%)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop.left .pve-map-node-wrap,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop.right .pve-map-node-wrap{
+    display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;
+    padding:0!important;gap:4px!important;max-width:none!important;text-align:center!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node{
+    width:74px!important;height:74px!important;flex-basis:74px!important;
+    border:2px solid rgba(255,216,183,.30)!important;
+    background:radial-gradient(circle,rgba(65,21,8,.48) 0%,rgba(24,8,7,.24) 55%,rgba(8,4,4,0) 76%)!important;
+    box-shadow:0 10px 22px rgba(0,0,0,.36),0 0 0 5px rgba(255,122,61,.035)!important;
+    backdrop-filter:none!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.boss{width:90px!important;height:90px!important;flex-basis:90px!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.final-boss{width:102px!important;height:102px!important;flex-basis:102px!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-monster{inset:-18%!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.current{
+    border-color:#ffd1a6!important;
+    box-shadow:0 0 0 7px rgba(255,101,42,.18),0 0 26px rgba(255,128,62,.96),0 0 54px rgba(213,80,255,.34),0 12px 28px rgba(0,0,0,.46)!important;
+    animation:pveCurrentFocusV33 2.1s ease-in-out infinite!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.won{
+    border-color:#7ff0bd!important;
+    box-shadow:0 0 0 5px rgba(74,220,154,.12),0 0 24px rgba(74,220,154,.58),0 10px 24px rgba(0,0,0,.4)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.locked{
+    opacity:.42!important;filter:grayscale(.25) saturate(.72)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node::after{
+    bottom:-9px!important;z-index:12!important;min-width:23px!important;padding:2px 6px!important;font-size:7px!important;background:rgba(17,7,7,.93)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-label{
+    position:absolute!important;left:50%!important;top:calc(100% + 12px)!important;transform:translate(-50%,4px)!important;
+    width:max-content!important;max-width:220px!important;padding:7px 10px!important;
+    background:linear-gradient(180deg,rgba(18,5,4,.96),rgba(8,5,12,.92))!important;
+    border:1px solid rgba(255,184,125,.18)!important;box-shadow:0 8px 22px rgba(0,0,0,.48)!important;
+    backdrop-filter:blur(7px)!important;opacity:.82!important;transition:.16s ease!important;pointer-events:none!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop:hover .pve-map-node-label,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop:has(.pve-map-node.current) .pve-map-node-label{opacity:1!important;transform:translate(-50%,0)!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-name{font-size:12.5px!important;line-height:1.15!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-meta{margin-top:3px!important;font-size:9.5px!important;color:#e0c8bd!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-badge{margin-top:4px!important;padding:3px 7px!important;font-size:7.2px!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-zone-head{
+    position:absolute!important;left:12px!important;top:12px!important;width:max-content!important;max-width:370px!important;
+    padding:9px 11px 10px!important;border-radius:13px!important;
+    background:linear-gradient(135deg,rgba(23,6,4,.90),rgba(10,7,15,.72))!important;
+    border:1px solid rgba(255,145,87,.18)!important;box-shadow:0 10px 28px rgba(0,0,0,.32)!important;backdrop-filter:blur(8px)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-zone-kicker{padding:3px 7px!important;font-size:7px!important;letter-spacing:.11em!important;background:rgba(36,10,5,.56)!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-zone-name{margin-top:5px!important;font-size:17px!important;line-height:1.1!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-zone-lore{display:none!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-zone-progress{margin-top:6px!important;padding:3px 7px!important;font-size:7.5px!important;color:#f0d9cf!important;background:rgba(25,7,5,.66)!important}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler{z-index:13!important;filter:drop-shadow(0 0 11px rgba(255,115,55,.72)) drop-shadow(0 0 16px rgba(145,71,255,.45))!important}
+}
+@media (max-width:1023px){
+  .pve-adventure-map.theme-ember{background-position:center center!important}
+  .pve-adventure-map.theme-ember .pve-map-node.boss{width:76px;height:76px;flex-basis:76px}
+}
+/* ===== /V48 — PVE ZONE 2 ===== */
+</style>
+
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
@@ -6651,7 +6741,7 @@ function pveZoneVisualMeta(zone){
   const key=String(zone?.key||'forest');
   const map={
     forest:{lore:'Une forêt suspendue baignée de cristaux vivants. Les racines anciennes protègent le passage vers le Gardien Sylvestre.',danger:'🌿 Verdance · Cristaux · Îlots suspendus'},
-    ember:{lore:'Sous la montagne, les galeries respirent la chaleur. Plus tu montes, plus la forge naturelle se rapproche du Cœur de Magma.',danger:'🔥 Cendre · Forge · Rivières de lave'},
+    ember:{lore:'Un chemin suspendu traverse les Forges du Cœur Ardent. Plus tu montes au-dessus du magma, plus la chaleur et les gardiens deviennent redoutables.',danger:'🔥 Cendre · Forge · Magma · Obsidienne'},
     night:{lore:'Des ruines flottent dans une nuit éternelle. Brume, miroirs et énergie du Néant entourent le Seigneur de l’Éclipse.',danger:'🌙 Néant · Mirage · Ruines astrales'}
   };
   return map[key]||map.forest;
@@ -6661,8 +6751,8 @@ function pveWorldSceneryMarkup(zone){
   return `<div class="pve-zone-world" aria-hidden="true"><div class="pve-world-stars"></div><div class="pve-world-orb"></div><div class="pve-island i1"></div><div class="pve-island i2"></div><div class="pve-island i3"></div><i class="pve-crystal c1"></i><i class="pve-crystal c2"></i><i class="pve-crystal c3"></i><i class="pve-crystal c4"></i><i class="pve-waterfall w1"></i><i class="pve-waterfall w2"></i><i class="pve-tree t1"></i><i class="pve-tree t2"></i><i class="pve-lava l1"></i><i class="pve-lava l2"></i><i class="pve-ember e1"></i><i class="pve-ember e2"></i><i class="pve-ember e3"></i><i class="pve-ember e4"></i><i class="pve-ruin r1"></i><i class="pve-ruin r2"></i><i class="pve-mist m1"></i><i class="pve-mist m2"></i><div class="pve-world-haze"></div></div>`;
 }
 function pveRouteSvgMarkup(zoneKey=''){
-  // Zone 1 : le fond contient déjà le vrai chemin. On place uniquement les 10 combats dessus.
-  if(String(zoneKey)==='forest') return '';
+  // Zones 1 et 2 : le fond contient déjà le vrai chemin. On place uniquement les combats dessus.
+  if(['forest','ember'].includes(String(zoneKey))) return '';
   const generic='M50 97 C21 90 22 80 54 76 C84 72 79 62 46 58 C16 54 20 44 55 40 C83 36 78 26 47 22 C24 19 27 11 51 4';
   return `<svg class="pve-route-svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path class="pve-route-shadow" vector-effect="non-scaling-stroke" d="${generic}"/><path class="pve-route-line" vector-effect="non-scaling-stroke" d="${generic}"/></svg>`;
 }
@@ -6702,7 +6792,7 @@ function renderPveAdventureMap(data,zoneIndex=null){
   const wonCount=(zone.fights||[]).filter(f=>f.won).length;
   const zoneTabs=visibleZones.map((z,i)=>`<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''}" type="button" data-pve-zone="${i}">${z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`).join('');
   const reversed=[...(zone.fights||[])].reverse();
-  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const pos=forestPathPos[Math.max(0,Math.min(forestPathPos.length-1,originalIndex))];const posStyle=(zone.key==='forest'&&pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" >${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label">${f.boss?`<div class="pve-map-boss-heading"><span class="pve-map-boss-logo ${isFinal?'zone-boss':'mini-boss'}" aria-hidden="true"><span class="pve-map-boss-logo-mark">${isFinal?'B':'M'}</span></span><span class="pve-map-boss-kind">${isFinal?'BOSS DE ZONE':'MINI-BOSS'}</span></div>`:''}<div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
+  const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const emberPathPos=[[48.0,91.0],[37.0,82.0],[47.0,72.0],[60.0,64.0],[63.0,54.0],[52.0,46.0],[43.0,37.0],[50.0,29.0],[61.0,20.0],[61.0,10.5]];const pathPos=zone.key==='forest'?forestPathPos:zone.key==='ember'?emberPathPos:null;const pos=pathPos?pathPos[Math.max(0,Math.min(pathPos.length-1,originalIndex))]:null;const posStyle=(pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" >${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label">${f.boss?`<div class="pve-map-boss-heading"><span class="pve-map-boss-logo ${isFinal?'zone-boss':'mini-boss'}" aria-hidden="true"><span class="pve-map-boss-logo-mark">${isFinal?'B':'M'}</span></span><span class="pve-map-boss-kind">${isFinal?'BOSS DE ZONE':'MINI-BOSS'}</span></div>`:''}<div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
   const mainMarkup=`<div class="pve-desktop-main"><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter">${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
   box.innerHTML=window.matchMedia('(min-width:1024px)').matches?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
@@ -6790,11 +6880,16 @@ const PVE_BESTIARY={
   forest_8:{zone:'forest',size:1.00,boss:false,glow:'#bba0ff',image:'/pve/zone1/sylve-fractale.png'},
   forest_9:{zone:'forest',size:1.08,boss:false,glow:'#8feea9',image:'/pve/zone1/grand-myceliarque.png'},
   forest_boss:{zone:'forest',size:1.22,boss:true,glow:'#8df5b3',image:'/pve/zone1/monarque-premiers-eclats.png'},
-  ember_1:{zone:'ember',size:.68,boss:false,glow:'#ffb16f',art:'sparkimp'},
-  ember_2:{zone:'ember',size:.80,boss:false,glow:'#ff9f63',art:'coalboar'},
-  ember_3:{zone:'ember',size:.92,boss:false,glow:'#ff9161',art:'flarelizard'},
-  ember_4:{zone:'ember',size:1.03,boss:false,glow:'#ff8554',art:'anvilguard'},
-  ember_boss:{zone:'ember',size:1.25,boss:true,glow:'#ff7d49',art:'infernotitan'},
+  ember_1:{zone:'ember',size:.72,boss:false,glow:'#ffb45f',image:'/pve/zone2/flammeche-cavernicole.png'},
+  ember_2:{zone:'ember',size:.80,boss:false,glow:'#ff9c4a',image:'/pve/zone2/roche-ardente.png'},
+  ember_3:{zone:'ember',size:.86,boss:false,glow:'#ff8d43',image:'/pve/zone2/salamandre-braise.png'},
+  ember_4:{zone:'ember',size:.82,boss:false,glow:'#ff9b4f',image:'/pve/zone2/scarabraise.png'},
+  ember_5:{zone:'ember',size:.90,boss:false,glow:'#e76cff',image:'/pve/zone2/fumarok.png'},
+  ember_6:{zone:'ember',size:1.05,boss:true,miniBoss:true,glow:'#ff7540',image:'/pve/zone2/colosse-scories.png'},
+  ember_7:{zone:'ember',size:.96,boss:false,glow:'#ff8a43',image:'/pve/zone2/vipere-magmatique.png'},
+  ember_8:{zone:'ember',size:1.02,boss:false,glow:'#ff7440',image:'/pve/zone2/obsidrake.png'},
+  ember_9:{zone:'ember',size:1.10,boss:false,glow:'#ff6538',image:'/pve/zone2/titan-forge.png'},
+  ember_boss:{zone:'ember',size:1.26,boss:true,glow:'#ff5b32',image:'/pve/zone2/coeur-magma.png'},
   night_1:{zone:'night',size:.72,boss:false,glow:'#9b8fff',art:'moondrop'},
   night_2:{zone:'night',size:.82,boss:false,glow:'#8ee1ff',art:'shardowl'},
   night_3:{zone:'night',size:.93,boss:false,glow:'#c298ff',art:'mirrormoth'},
@@ -6808,7 +6903,7 @@ function pveEnemyVisual(fight){
   const lvl=Number(fight?.level||1);
   const boss=Boolean(fight?.boss||fight?.finalBoss);
   if(zone==='forest') return boss?(lvl>=10?PVE_BESTIARY.forest_boss:PVE_BESTIARY.forest_6):lvl<=1?PVE_BESTIARY.forest_1:lvl<=2?PVE_BESTIARY.forest_2:lvl<=3?PVE_BESTIARY.forest_3:lvl<=4?PVE_BESTIARY.forest_4:lvl<=5?PVE_BESTIARY.forest_5:lvl<=7?PVE_BESTIARY.forest_7:lvl<=8?PVE_BESTIARY.forest_8:PVE_BESTIARY.forest_9;
-  if(zone==='ember') return boss?PVE_BESTIARY.ember_boss:lvl<=5?PVE_BESTIARY.ember_1:lvl<=6?PVE_BESTIARY.ember_2:lvl<=7?PVE_BESTIARY.ember_3:PVE_BESTIARY.ember_4;
+  if(zone==='ember') return boss?(lvl>=15?PVE_BESTIARY.ember_boss:PVE_BESTIARY.ember_6):lvl<=5?PVE_BESTIARY.ember_1:lvl<=6?PVE_BESTIARY.ember_2:lvl<=7?PVE_BESTIARY.ember_3:lvl<=8?PVE_BESTIARY.ember_4:lvl<=9?PVE_BESTIARY.ember_5:lvl<=11?PVE_BESTIARY.ember_7:lvl<=12?PVE_BESTIARY.ember_8:PVE_BESTIARY.ember_9;
   return boss?(lvl>=15?PVE_BESTIARY.night_boss:PVE_BESTIARY.night_mini):lvl<=10?PVE_BESTIARY.night_1:lvl<=11?PVE_BESTIARY.night_2:lvl<=12?PVE_BESTIARY.night_3:PVE_BESTIARY.night_4;
 }
 function pveEnemySvg(fight){
