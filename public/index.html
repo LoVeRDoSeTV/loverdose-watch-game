@@ -4397,6 +4397,18 @@ body:has(#pveModal:not(.hidden)){
 @media(max-width:600px){.reward-wheel-win-popup{padding:16px}.reward-wheel-win-card{padding:24px 18px 18px;border-radius:22px}.reward-wheel-win-title{font-size:26px}.reward-wheel-win-icon{width:92px;height:92px;font-size:48px}.reward-wheel-win-reward{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.reward-wheel-win-popup,.reward-wheel-win-card,.reward-wheel-win-icon{animation:none!important;transition:none!important}}
 
+/* V88 — chances de drop dans une vraie popup */
+.reward-wheel-odds-popup{position:fixed;inset:0;z-index:10075;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,6,16,.82);backdrop-filter:blur(10px);animation:wheelWinFade .2s ease both}
+.reward-wheel-odds-popup.hidden{display:none!important}
+.reward-wheel-odds-popup-card{position:relative;width:min(520px,100%);max-height:min(760px,88vh);overflow:auto;padding:24px;border:1px solid rgba(180,127,255,.50);border-radius:24px;background:radial-gradient(circle at 50% 0,rgba(145,71,255,.20),transparent 34%),linear-gradient(165deg,#151a31,#090e1e 75%);box-shadow:0 28px 85px rgba(0,0,0,.62),0 0 44px rgba(145,71,255,.15);animation:wheelWinPop .32s cubic-bezier(.2,.85,.25,1.12) both}
+.reward-wheel-odds-popup.weekly .reward-wheel-odds-popup-card{border-color:rgba(255,211,101,.55);background:radial-gradient(circle at 50% 0,rgba(236,178,48,.18),transparent 34%),linear-gradient(165deg,#1e1913,#090e1e 75%);box-shadow:0 28px 85px rgba(0,0,0,.62),0 0 44px rgba(236,178,48,.13)}
+.reward-wheel-odds-popup-close{position:absolute;right:15px;top:15px;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.13);background:#171c31;color:#fff;font-size:21px;line-height:1;cursor:pointer;z-index:2}.reward-wheel-odds-popup-close:hover{background:#222943;border-color:rgba(185,130,255,.42)}
+.reward-wheel-odds-popup-kicker{padding-right:44px;color:#b9a2e9;font-size:9px;font-weight:1000;letter-spacing:.14em;text-transform:uppercase}.reward-wheel-odds-popup.weekly .reward-wheel-odds-popup-kicker{color:#ffe08a}
+.reward-wheel-odds-popup-title{margin-top:6px;padding-right:44px;color:#fff;font-size:25px;line-height:1.08;font-weight:1000}.reward-wheel-odds-popup-sub{margin-top:7px;color:#9fa9c8;font-size:11px;line-height:1.45;font-weight:750}
+.reward-wheel-odds-popup-list{display:grid;gap:8px;margin-top:19px}.reward-wheel-odds-popup-list .reward-wheel-odds-row{min-height:58px;grid-template-columns:40px minmax(0,1fr) auto;padding:9px 10px;background:rgba(255,255,255,.035)}.reward-wheel-odds-popup-list .reward-wheel-odds-icon{width:38px;height:38px;font-size:22px}.reward-wheel-odds-popup-list .reward-wheel-odds-label{font-size:12px}.reward-wheel-odds-popup-list .reward-wheel-odds-chance{min-width:66px;padding:8px 10px;font-size:18px}.reward-wheel-odds-popup-list .reward-wheel-odds-row::after{height:4px}.reward-wheel-odds-popup.weekly .reward-wheel-odds-popup-list .reward-wheel-odds-row::after{background:linear-gradient(90deg,#a96c18,#ffe08a)}.reward-wheel-odds-popup.weekly .reward-wheel-odds-popup-list .reward-wheel-odds-icon{background:rgba(243,200,91,.08);border-color:rgba(243,200,91,.13)}.reward-wheel-odds-popup.weekly .reward-wheel-odds-popup-list .reward-wheel-odds-chance{border-color:rgba(243,200,91,.35);background:rgba(243,200,91,.10);color:#ffe08a}
+.reward-wheel-odds-popup-note{margin-top:15px;padding-top:13px;border-top:1px solid rgba(255,255,255,.07);color:#7883a4;font-size:9px;line-height:1.5;text-align:center;font-weight:750}
+@media(max-width:600px){.reward-wheel-odds-popup{padding:14px}.reward-wheel-odds-popup-card{max-height:88vh;padding:20px 15px 16px;border-radius:20px}.reward-wheel-odds-popup-title{font-size:22px}.reward-wheel-odds-popup-list{gap:7px;margin-top:15px}.reward-wheel-odds-popup-list .reward-wheel-odds-row{min-height:54px;grid-template-columns:36px minmax(0,1fr) auto;padding:8px}.reward-wheel-odds-popup-list .reward-wheel-odds-icon{width:34px;height:34px;font-size:20px}.reward-wheel-odds-popup-list .reward-wheel-odds-label{font-size:11px}.reward-wheel-odds-popup-list .reward-wheel-odds-chance{min-width:58px;padding:7px 8px;font-size:16px}}
+
 /* V87 — cadrage des fonds Portefeuille + Roue */
 .wallet-card{
   background-image:
@@ -4838,6 +4850,17 @@ body:has(#pveModal:not(.hidden)){
     <div id="rewardWheelWinReward" class="reward-wheel-win-reward">Récompense</div>
     <div id="rewardWheelWinNote" class="reward-wheel-win-note">Ta récompense a été ajoutée automatiquement à ton compte.</div>
     <button id="rewardWheelWinOk" class="reward-wheel-win-ok" type="button">OK, récupérer ma récompense</button>
+  </div>
+</div>
+
+<div id="rewardWheelOddsPopup" class="reward-wheel-odds-popup hidden" role="dialog" aria-modal="true" aria-labelledby="rewardWheelOddsPopupTitle">
+  <div class="reward-wheel-odds-popup-card">
+    <button id="rewardWheelOddsPopupClose" class="reward-wheel-odds-popup-close" type="button" aria-label="Fermer">×</button>
+    <div id="rewardWheelOddsPopupKicker" class="reward-wheel-odds-popup-kicker">🎡 Roue quotidienne</div>
+    <div id="rewardWheelOddsPopupTitle" class="reward-wheel-odds-popup-title">Récompenses & chances</div>
+    <div class="reward-wheel-odds-popup-sub">Voici toutes les récompenses possibles et leur probabilité de tomber.</div>
+    <div id="rewardWheelOddsPopupList" class="reward-wheel-odds-popup-list"></div>
+    <div class="reward-wheel-odds-popup-note">Le résultat du tirage est déterminé côté serveur selon ces probabilités.</div>
   </div>
 </div>
 
@@ -6008,7 +6031,11 @@ function renderRewardWheel() {
   const rewards=state?.rewards || [];
   disc.querySelectorAll('.reward-wheel-label').forEach(el=>el.remove());
   rewards.forEach((reward,index)=>{ const el=document.createElement('span'); el.className='reward-wheel-label'; el.style.setProperty('--a',`${index*45+22.5}deg`); el.textContent=reward.icon||'🎁'; el.title=`${reward.label} · ${reward.chance}%`; disc.appendChild(el); });
-  if ($('rewardWheelOdds')) $('rewardWheelOdds').innerHTML=`<div class="reward-wheel-odds-head"><span>🎯 Chances de drop</span><span>Probabilité</span></div>`+rewards.map(r=>{ const chance=Math.max(0,Math.min(100,Number(r.chance||0))); return `<div class="reward-wheel-odds-row" style="--drop:${chance}%"><span class="reward-wheel-odds-icon">${escapeHtml(r.icon||'🎁')}</span><span class="reward-wheel-odds-label">${escapeHtml(r.label||'Récompense')}</span><strong class="reward-wheel-odds-chance">${chance}%<small>drop</small></strong></div>`; }).join('');
+  const oddsRows=rewards.map(r=>{ const chance=Math.max(0,Math.min(100,Number(r.chance||0))); return `<div class="reward-wheel-odds-row" style="--drop:${chance}%"><span class="reward-wheel-odds-icon">${escapeHtml(r.icon||'🎁')}</span><span class="reward-wheel-odds-label">${escapeHtml(r.label||'Récompense')}</span><strong class="reward-wheel-odds-chance">${chance}%<small>drop</small></strong></div>`; }).join('');
+  if ($('rewardWheelOdds')) $('rewardWheelOdds').innerHTML=oddsRows;
+  if ($('rewardWheelOddsPopupList')) $('rewardWheelOddsPopupList').innerHTML=oddsRows;
+  $('rewardWheelOddsPopup')?.classList.toggle('weekly',rewardWheelType==='weekly');
+  if ($('rewardWheelOddsPopupKicker')) $('rewardWheelOddsPopupKicker').textContent=rewardWheelType==='weekly'?'👑 Roue des 7 lives':'🎡 Roue quotidienne';
   if (rewardWheelSpinning) { spin.disabled=true; spin.textContent='La roue tourne…'; return; }
   const available=Boolean(state?.available);
   spin.disabled=!available;
@@ -6061,6 +6088,16 @@ function showRewardWheelWinPopup(reward,wheelType='daily') {
   modal.classList.remove('hidden');
   setTimeout(()=>$('rewardWheelWinOk')?.focus(),60);
 }
+
+function openRewardWheelOddsPopup() {
+  const modal=$('rewardWheelOddsPopup');
+  if(!modal) return;
+  modal.classList.toggle('weekly',rewardWheelType==='weekly');
+  if($('rewardWheelOddsPopupKicker')) $('rewardWheelOddsPopupKicker').textContent=rewardWheelType==='weekly'?'👑 Roue des 7 lives':'🎡 Roue quotidienne';
+  modal.classList.remove('hidden');
+  setTimeout(()=>$('rewardWheelOddsPopupClose')?.focus(),50);
+}
+function closeRewardWheelOddsPopup() { $('rewardWheelOddsPopup')?.classList.add('hidden'); }
 
 async function spinRewardWheel() {
   const state=currentWheelState(); if(rewardWheelSpinning || !state?.available) return;
@@ -9588,10 +9625,12 @@ $('dailyChallengesCard')?.addEventListener('mouseleave',()=>{dailyCarouselPaused
 $('rewardWheelDailyTab')?.addEventListener('click',()=>{rewardWheelType='daily'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
 $('rewardWheelWeeklyTab')?.addEventListener('click',()=>{rewardWheelType='weekly'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
 $('rewardWheelSpin')?.addEventListener('click',spinRewardWheel);
-$('rewardWheelOddsToggle')?.addEventListener('click',()=>{ const odds=$('rewardWheelOdds'), btn=$('rewardWheelOddsToggle'); if(!odds||!btn) return; const open=odds.classList.toggle('open'); btn.textContent=open?'Masquer les récompenses & chances':'Voir les récompenses & chances'; });
+$('rewardWheelOddsToggle')?.addEventListener('click',openRewardWheelOddsPopup);
+$('rewardWheelOddsPopupClose')?.addEventListener('click',closeRewardWheelOddsPopup);
+$('rewardWheelOddsPopup')?.addEventListener('click',event=>{if(event.target===$('rewardWheelOddsPopup')) closeRewardWheelOddsPopup();});
 $('rewardWheelWinOk')?.addEventListener('click',closeRewardWheelWinPopup);
 $('rewardWheelWinPopup')?.addEventListener('click',event=>{if(event.target===$('rewardWheelWinPopup')) closeRewardWheelWinPopup();});
-document.addEventListener('keydown',event=>{if(event.key==='Escape' && !$('rewardWheelWinPopup')?.classList.contains('hidden')) closeRewardWheelWinPopup();});
+document.addEventListener('keydown',event=>{if(event.key!=='Escape') return; if(!$('rewardWheelWinPopup')?.classList.contains('hidden')) closeRewardWheelWinPopup(); if(!$('rewardWheelOddsPopup')?.classList.contains('hidden')) closeRewardWheelOddsPopup();});
 window.addEventListener('resize',()=>{applyDailyCarouselState();restartDailyCarousel();});
 
 $('playerCardCollection')?.addEventListener('click', () => {
