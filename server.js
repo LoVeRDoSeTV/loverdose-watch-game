@@ -56,6 +56,33 @@ const BADGE_GLOBAL_STAGE_REWARDS = Object.freeze({
   1000: { lovysXp: 5000, globalXp: 2500, cash: 500 }
 });
 
+// Petit bonus d'XP globale à chaque niveau atteint. Il est versé une seule fois
+// par niveau et par Prestige, puis sert à amorcer la barre du niveau suivant.
+const GLOBAL_LEVEL_XP_REWARDS = Object.freeze(
+  Array.from({ length: 54 }, (_, index) => {
+    const level = index + 2;
+    const xp = level <= 10 ? 10
+      : level <= 20 ? 15
+      : level <= 30 ? 20
+      : level <= 40 ? 25
+      : level <= 50 ? 30
+      : 40;
+    return { level, xp };
+  })
+);
+
+// Badge progressif basé sur le nombre de lives Twitch distincts réellement suivis.
+// Un même live ne peut compter qu'une fois, même après une déconnexion/reconnexion.
+const LIVE_ATTENDANCE_STAGES = Object.freeze([
+  { count:1,   nextCount:5,   image:'/Watch1.png', tier:'attendance-1', evolution:'Premier rendez-vous', titleKey:'reward_title_live_1',   titleName:'Premier rendez-vous', rewards:{ lovysXp:25,   globalXp:10,  cash:5 } },
+  { count:5,   nextCount:10,  image:'/Watch1.png', tier:'attendance-2', evolution:'Habitué',             titleKey:'reward_title_live_5',   titleName:'Habitué du live',     rewards:{ lovysXp:50,   globalXp:25,  cash:10 } },
+  { count:10,  nextCount:25,  image:'/Watch2.png', tier:'attendance-3', evolution:'Fidèle',              titleKey:'reward_title_live_10',  titleName:'Fidèle du direct',    rewards:{ lovysXp:100,  globalXp:50,  cash:20 } },
+  { count:25,  nextCount:50,  image:'/Watch2.png', tier:'attendance-4', evolution:'Pilier',              titleKey:'reward_title_live_25',  titleName:'Pilier du live',      rewards:{ lovysXp:200,  globalXp:100, cash:40 } },
+  { count:50,  nextCount:100, image:'/Watch3.png', tier:'attendance-5', evolution:'Toujours présent',    titleKey:'reward_title_live_50',  titleName:'Toujours présent',    rewards:{ lovysXp:350,  globalXp:175, cash:70 } },
+  { count:100, nextCount:250, image:'/Watch4.png', tier:'attendance-6', evolution:'Vétéran',             titleKey:'reward_title_live_100', titleName:'Vétéran du live',     rewards:{ lovysXp:600,  globalXp:300, cash:120 } },
+  { count:250, nextCount:null,image:'/Watch5.png', tier:'attendance-7', evolution:'Légende des lives',   titleKey:'reward_title_live_250', titleName:'Légende des lives',   rewards:{ lovysXp:1000, globalXp:500, cash:250 } }
+]);
+
 // Défis journaliers : petites récompenses pour encourager la régularité
 // sans accélérer excessivement la progression globale.
 const DAILY_CHALLENGE_TIMEZONE = 'Europe/Paris';
@@ -471,8 +498,9 @@ const creatures = [
 ];
 
 async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
-  if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0 };
-  const progression = globalProgressionFromXp(globalXp);
+  if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, globalXp:Number(globalXp||0) };
+  let effectiveGlobalXp = Math.max(0, Number(globalXp) || 0);
+  let progression = globalProgressionFromXp(effectiveGlobalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) rewardKeys.push('reward_bg_level55');
   for (const key of rewardKeys) {
@@ -481,7 +509,47 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
 
   const userStateResult = await clientOrPool.query(`SELECT creature_id, prestige FROM users WHERE id=$1 LIMIT 1`, [userId]);
   const userState = userStateResult.rows[0];
-  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0 };
+  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, globalXp:effectiveGlobalXp };
+
+  // Récompense chaque niveau atteint une seule fois. Si le bonus fait franchir
+  // un nouveau niveau, ce nouveau palier est lui aussi traité dans la même synchro.
+  let globalXpGranted = 0;
+  let changed = true;
+  while (changed) {
+    changed = false;
+    progression = globalProgressionFromXp(effectiveGlobalXp);
+    for (const reward of GLOBAL_LEVEL_XP_REWARDS) {
+      if (reward.level > progression.level) continue;
+      const inserted = await clientOrPool.query(
+        `INSERT INTO user_global_xp_level_rewards (user_id,prestige,level,xp_amount)
+         VALUES ($1,$2,$3,$4)
+         ON CONFLICT (user_id,prestige,level) DO NOTHING
+         RETURNING xp_amount`,
+        [userId, Number(userState.prestige || 0), reward.level, reward.xp]
+      );
+      if (!inserted.rowCount) continue;
+      const amount = Math.max(0, Number(inserted.rows[0]?.xp_amount || reward.xp || 0));
+      if (!amount) continue;
+      effectiveGlobalXp = Math.min(globalThresholdForLevel(56), effectiveGlobalXp + amount);
+      globalXpGranted += amount;
+      changed = true;
+    }
+  }
+  if (globalXpGranted > 0) {
+    await clientOrPool.query(
+      `UPDATE users SET global_xp=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, effectiveGlobalXp]
+    );
+  }
+  progression = globalProgressionFromXp(effectiveGlobalXp);
+  const finalRewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
+  if (progression.level >= 55) finalRewardKeys.push('reward_bg_level55');
+  for (const key of finalRewardKeys) {
+    await clientOrPool.query(
+      `INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`,
+      [accountId,key]
+    );
+  }
 
   let lovysXpGranted = 0;
   let pendingXpGranted = 0;
@@ -511,7 +579,7 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
     );
   }
 
-  return { lovysXpGranted:0, pendingXpGranted };
+  return { lovysXpGranted:0, pendingXpGranted, globalXpGranted, globalXp:effectiveGlobalXp };
 }
 
 const PVE_ZONES = [
@@ -615,6 +683,13 @@ const SHOP_ITEMS = [
   { key:'reward_title_champion', category:'title', subcategory:'gold', name:'Champion du Direct', price:0, color:'#f3c85b', description:'Débloqué au niveau global 41.', rewardOnly:true },
   { key:'reward_title_legende_grade', category:'title', subcategory:'gold', name:'Légende du Live', price:0, color:'#ffd86b', description:'Débloqué au niveau global 46.', rewardOnly:true },
   { key:'reward_title_mythique', category:'title', subcategory:'gold', name:'Mythique du Watch Game', price:0, color:'#fff0a8', description:'Débloqué au niveau global 51.', rewardOnly:true },
+  { key:'reward_title_live_1', category:'title', subcategory:'silver', name:'Premier rendez-vous', price:0, color:'#d9e2ef', description:'Débloqué en assistant à 1 live.', rewardOnly:true },
+  { key:'reward_title_live_5', category:'title', subcategory:'blue', name:'Habitué du live', price:0, color:'#79c8ff', description:'Débloqué en assistant à 5 lives.', rewardOnly:true },
+  { key:'reward_title_live_10', category:'title', subcategory:'green', name:'Fidèle du direct', price:0, color:'#69e3a7', description:'Débloqué en assistant à 10 lives.', rewardOnly:true },
+  { key:'reward_title_live_25', category:'title', subcategory:'violet', name:'Pilier du live', price:0, color:'#b785ff', description:'Débloqué en assistant à 25 lives.', rewardOnly:true },
+  { key:'reward_title_live_50', category:'title', subcategory:'pink', name:'Toujours présent', price:0, color:'#ff8ad9', description:'Débloqué en assistant à 50 lives.', rewardOnly:true },
+  { key:'reward_title_live_100', category:'title', subcategory:'gold', name:'Vétéran du live', price:0, color:'#f3c85b', description:'Débloqué en assistant à 100 lives.', rewardOnly:true },
+  { key:'reward_title_live_250', category:'title', subcategory:'gold', name:'Légende des lives', price:0, color:'#ffd86b', description:'Débloqué en assistant à 250 lives.', rewardOnly:true },
   { key:'reward_bg_level55', category:'background', subcategory:'special', name:'Ascension', price:0, preview:'level55', description:'Fond exclusif débloqué au niveau global 55.', rewardOnly:true },
   { key:'bg_nebula', category:'background', subcategory:'classic', name:'Nébuleuse violette', price:300, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
   { key:'bg_starry', category:'background', subcategory:'classic', name:'Nuit étoilée', price:400, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
@@ -1084,6 +1159,26 @@ async function initDatabase() {
       claimed_at TIMESTAMPTZ,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
       PRIMARY KEY (user_id, challenge_date, challenge_key)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_global_xp_level_rewards (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      prestige INTEGER NOT NULL DEFAULT 0,
+      level INTEGER NOT NULL,
+      xp_amount DOUBLE PRECISION NOT NULL DEFAULT 0,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, prestige, level)
+    );
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_live_attendance (
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      stream_id TEXT NOT NULL,
+      attended_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, stream_id)
     );
   `);
 
@@ -1808,6 +1903,16 @@ async function runTrackerTick() {
         .filter(Number.isInteger);
 
       if (matchedUserIds.length > 0) {
+        const currentStreamId = String(stream?.id || '').trim();
+        if (currentStreamId) {
+          await pool.query(
+            `INSERT INTO user_live_attendance (user_id, stream_id)
+             SELECT user_id, $2 FROM unnest($1::int[]) AS user_id
+             ON CONFLICT (user_id, stream_id) DO NOTHING`,
+            [matchedUserIds, currentStreamId]
+          );
+        }
+
         // Tous les œufs supplémentaires placés dans l'incubateur progressent
         // en parallèle pendant le live, quel que soit l'appareil utilisé.
         await pool.query(
@@ -2791,6 +2896,16 @@ app.post('/api/account/reset-game', async (req, res) => {
     );
 
     await client.query(
+      `DELETE FROM user_global_xp_level_rewards WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
+      `DELETE FROM user_live_attendance WHERE user_id = $1`,
+      [user.id]
+    );
+
+    await client.query(
       `DELETE FROM user_game_watch WHERE user_id = $1`,
       [user.id]
     );
@@ -3748,6 +3863,7 @@ app.get(
       const syncedGlobalRewards = await syncGlobalLevelRewards(pool, u.id, req.session.account.id, u.global_xp);
       u.xp = Number(u.xp || 0) + Number(syncedGlobalRewards.lovysXpGranted || 0);
       u.pending_xp = Number(u.pending_xp || 0) + Number(syncedGlobalRewards.pendingXpGranted || 0);
+      u.global_xp = Number(syncedGlobalRewards.globalXp ?? u.global_xp ?? 0);
 
       res.json({
 
@@ -4159,11 +4275,13 @@ app.get('/api/progression', async (req,res)=>{
     const u=r.rows[0]; if(!u) return res.status(404).json({error:'Joueur introuvable.'});
     const syncedRewards=await syncGlobalLevelRewards(pool,u.id,req.session.account.id,u.global_xp);
     u.xp=Number(u.xp||0)+Number(syncedRewards.lovysXpGranted||0);
-    const refreshedXp=await pool.query(`SELECT xp,pending_xp FROM users WHERE id=$1`,[u.id]);
-    const xpState=refreshedXp.rows[0]||{xp:u.xp,pending_xp:0};
+    u.global_xp=Number(syncedRewards.globalXp??u.global_xp??0);
+    const refreshedXp=await pool.query(`SELECT xp,pending_xp,global_xp FROM users WHERE id=$1`,[u.id]);
+    const xpState=refreshedXp.rows[0]||{xp:u.xp,pending_xp:0,global_xp:u.global_xp};
+    u.global_xp=Number(xpState.global_xp??u.global_xp??0);
     const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(xpState.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLevelXpRewards:GLOBAL_LEVEL_XP_REWARDS,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
 });
 
@@ -4525,6 +4643,69 @@ app.get('/api/badges', async (req, res) => {
     const tiktokUnlocked = badgeResult.rows.find(item => item.badge_key === tiktokBadgeKey) || null;
 
     const globalUnlocked = badgeResult.rows.find(item => item.badge_key === globalBadgeKey) || null;
+
+    const attendanceBadgeKey = 'mission:attendance:lives-assistes';
+    const attendanceCountResult = await pool.query(
+      `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1`,
+      [user.id]
+    );
+    const liveAttendanceCount = Math.max(0, Number(attendanceCountResult.rows[0]?.count || 0));
+    let attendanceStage = null;
+    for (const stage of LIVE_ATTENDANCE_STAGES) {
+      if (liveAttendanceCount >= stage.count) attendanceStage = stage;
+    }
+    if (attendanceStage) {
+      await pool.query(
+        `INSERT INTO user_badges (
+           user_id,badge_key,game_id,game_name,badge_name,badge_image,badge_challenge,tier,threshold_hours
+         ) VALUES ($1,$2,'live-attendance',$3,'Présence en live',$4,$5,$6,$7)
+         ON CONFLICT (user_id,badge_key) DO UPDATE SET
+           game_name=EXCLUDED.game_name,
+           badge_name=EXCLUDED.badge_name,
+           badge_image=EXCLUDED.badge_image,
+           badge_challenge=EXCLUDED.badge_challenge,
+           tier=EXCLUDED.tier,
+           threshold_hours=EXCLUDED.threshold_hours`,
+        [
+          user.id,
+          attendanceBadgeKey,
+          `Lives assistés · ${attendanceStage.evolution}`,
+          attendanceStage.image,
+          attendanceStage.nextCount
+            ? `Assister à ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
+            : 'Évolution maximale atteinte · 250 lives assistés',
+          attendanceStage.tier,
+          attendanceStage.count
+        ]
+      );
+
+      for (const stage of LIVE_ATTENDANCE_STAGES) {
+        if (liveAttendanceCount < stage.count) continue;
+        await awardBadgeEconomyRewardsOnce(
+          [user.id],
+          attendanceBadgeKey,
+          stage.rewards,
+          `attendance-${stage.count}-v1`,
+          `mission:attendance:lives-assistes:${stage.count}`
+        );
+        await pool.query(
+          `INSERT INTO shop_inventory (account_id,item_key,quantity)
+           VALUES ($1,$2,1)
+           ON CONFLICT (account_id,item_key) DO NOTHING`,
+          [req.session.account.id, stage.titleKey]
+        );
+      }
+    }
+    const attendanceUnlockedResult = await pool.query(
+      `SELECT badge_key,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1 AND badge_key=$2 LIMIT 1`,
+      [user.id, attendanceBadgeKey]
+    );
+    const attendanceUnlocked = attendanceUnlockedResult.rows[0] || null;
+    const attendanceDisplayStage = attendanceStage || LIVE_ATTENDANCE_STAGES[0];
+    const attendanceRewardStage = attendanceStage?.nextCount
+      ? (LIVE_ATTENDANCE_STAGES.find(stage => stage.count === attendanceStage.nextCount) || attendanceStage)
+      : attendanceDisplayStage;
+
     const currentGlobalStage = globalStage;
     const nextGlobalTargetHours = currentGlobalStage
       ? (currentGlobalStage.nextHours || currentGlobalStage.minHours)
@@ -4770,6 +4951,43 @@ app.get('/api/badges', async (req, res) => {
             : Number(subUnlocked.leaderboard_slot)
         },
         {
+          badgeKey: attendanceBadgeKey,
+          badgeName: 'Présence en live',
+          badgeImage: attendanceDisplayStage.image,
+          badgeChallenge: attendanceStage?.nextCount
+            ? `Assister à ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
+            : (attendanceStage ? 'Évolution maximale atteinte · 250 lives assistés' : 'Assister à ton premier live'),
+          gameName: `Lives assistés · ${attendanceDisplayStage.evolution}`,
+          missionType: 'live-attendance',
+          badgeCategory: 'twitch',
+          rewardXp: attendanceRewardStage.rewards.lovysXp,
+          rewardLovysXp: attendanceRewardStage.rewards.lovysXp,
+          rewardGlobalXp: attendanceRewardStage.rewards.globalXp,
+          rewardCash: attendanceRewardStage.rewards.cash,
+          rewardTitle: attendanceRewardStage.titleName,
+          celebrationStageId: attendanceStage?.count || 0,
+          celebrationStageName: attendanceStage?.evolution || '',
+          celebrationRewardLovysXp: attendanceStage?.rewards?.lovysXp || 0,
+          celebrationRewardGlobalXp: attendanceStage?.rewards?.globalXp || 0,
+          celebrationRewardCash: attendanceStage?.rewards?.cash || 0,
+          celebrationRewardTitle: attendanceStage?.titleName || '',
+          lovysXpToReserve: true,
+          attendanceCount: liveAttendanceCount,
+          targetCount: attendanceStage?.nextCount || attendanceDisplayStage.count,
+          rewardStageCount: attendanceRewardStage.count,
+          evolutionName: attendanceDisplayStage.evolution,
+          evolutionLevel: attendanceStage ? LIVE_ATTENDANCE_STAGES.findIndex(stage => stage.count === attendanceStage.count) + 1 : 0,
+          maxEvolutionLevel: LIVE_ATTENDANCE_STAGES.length,
+          unlocked: Boolean(attendanceUnlocked),
+          maxed: Boolean(attendanceStage && !attendanceStage.nextCount),
+          equippedSlot: attendanceUnlocked?.equipped_slot === null || attendanceUnlocked?.equipped_slot === undefined
+            ? null
+            : Number(attendanceUnlocked.equipped_slot),
+          leaderboardSlot: attendanceUnlocked?.leaderboard_slot === null || attendanceUnlocked?.leaderboard_slot === undefined
+            ? null
+            : Number(attendanceUnlocked.leaderboard_slot)
+        },
+        {
           badgeKey: globalBadgeKey,
           badgeName: 'Fidèle de la chaîne',
           badgeImage: globalDisplayStage.image,
@@ -4783,6 +5001,12 @@ app.get('/api/badges', async (req, res) => {
           rewardLovysXp: globalDisplayReward.lovysXp,
           rewardGlobalXp: globalDisplayReward.globalXp,
           rewardCash: globalDisplayReward.cash,
+          celebrationStageId: currentGlobalStage?.minHours || 0,
+          celebrationStageName: currentGlobalStage?.evolution || '',
+          celebrationRewardLovysXp: currentGlobalStage ? (BADGE_GLOBAL_STAGE_REWARDS[currentGlobalStage.minHours]?.lovysXp || 0) : 0,
+          celebrationRewardGlobalXp: currentGlobalStage ? (BADGE_GLOBAL_STAGE_REWARDS[currentGlobalStage.minHours]?.globalXp || 0) : 0,
+          celebrationRewardCash: currentGlobalStage ? (BADGE_GLOBAL_STAGE_REWARDS[currentGlobalStage.minHours]?.cash || 0) : 0,
+          celebrationRewardTitle: '',
           lovysXpToReserve: true,
           rewardStageHours: globalRewardStageHours,
           evolutionName: globalDisplayStage.evolution,
