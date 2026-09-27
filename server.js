@@ -112,6 +112,117 @@ function dailyChallengeByKey(key, dateKey = dailyChallengeDateKey()) {
 }
 
 
+// Roues de récompenses : une roue quotidienne toutes les 24 h et une roue bonus
+// après 7 jours de connexion consécutifs. Les tirages et les gains sont validés
+// côté serveur pour empêcher les relances depuis le navigateur.
+const DAILY_WHEEL_REWARDS = Object.freeze([
+  { key:'cash_5',        icon:'💰', label:"+5 LoVeR'Cash",              chance:20, type:'cash',       amount:5 },
+  { key:'global_xp_10',  icon:'⭐', label:'+10 XP globale',              chance:18, type:'global_xp',  amount:10 },
+  { key:'lovys_xp_15',   icon:'🐉', label:'+15 XP Lovys en réserve',     chance:18, type:'lovys_xp',   amount:15 },
+  { key:'fragment_1',    icon:'🥚', label:"+1 Fragment d'œuf",          chance:14, type:'fragments',  amount:1 },
+  { key:'cash_10',       icon:'💰', label:"+10 LoVeR'Cash",             chance:12, type:'cash',       amount:10 },
+  { key:'global_xp_20',  icon:'⭐', label:'+20 XP globale',              chance:7,  type:'global_xp',  amount:20 },
+  { key:'lovys_xp_25',   icon:'🐉', label:'+25 XP Lovys en réserve',     chance:6,  type:'lovys_xp',   amount:25 },
+  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 1 h',   chance:5,  type:'inventory',  itemKey:'boost_xp_x2', amount:1 }
+]);
+
+const WEEKLY_WHEEL_REWARDS = Object.freeze([
+  { key:'cash_25',       icon:'💰', label:"+25 LoVeR'Cash",             chance:20, type:'cash',       amount:25 },
+  { key:'global_xp_50',  icon:'⭐', label:'+50 XP globale',              chance:18, type:'global_xp',  amount:50 },
+  { key:'lovys_xp_75',   icon:'🐉', label:'+75 XP Lovys en réserve',     chance:17, type:'lovys_xp',   amount:75 },
+  { key:'fragment_3',    icon:'🥚', label:"+3 Fragments d'œuf",         chance:15, type:'fragments',  amount:3 },
+  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 1 h',   chance:10, type:'inventory',  itemKey:'boost_xp_x2', amount:1 },
+  { key:'boost_cash_1h', icon:'💰', label:"Booster LoVeR'Cash ×2 · 1 h",chance:8,  type:'inventory',  itemKey:'boost_cash_x2', amount:1 },
+  { key:'cash_50',       icon:'💎', label:"+50 LoVeR'Cash",             chance:7,  type:'cash',       amount:50 },
+  { key:'mystery_egg',   icon:'🥚', label:'1 Œuf mystère',               chance:5,  type:'inventory',  itemKey:'mystery_egg', amount:1 }
+]);
+
+function previousDateKey(dateKey) {
+  const [year, month, day] = String(dateKey).split('-').map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+function publicWheelReward(reward) {
+  return { key:reward.key, icon:reward.icon, label:reward.label, chance:reward.chance };
+}
+
+function weightedWheelReward(rewards) {
+  const roll = crypto.randomInt(100);
+  let cursor = 0;
+  for (const reward of rewards) {
+    cursor += Number(reward.chance || 0);
+    if (roll < cursor) return reward;
+  }
+  return rewards[rewards.length - 1];
+}
+
+async function syncRewardWheelLogin(client, userId) {
+  await client.query(
+    `INSERT INTO user_reward_wheels (user_id) VALUES ($1) ON CONFLICT (user_id) DO NOTHING`,
+    [userId]
+  );
+  const result = await client.query(
+    `SELECT user_id, daily_last_spin_at, weekly_last_spin_at, login_streak, last_connection_date, weekly_ready
+     FROM user_reward_wheels WHERE user_id=$1 FOR UPDATE`,
+    [userId]
+  );
+  const state = result.rows[0];
+  const today = dailyChallengeDateKey();
+  const lastDate = state.last_connection_date
+    ? new Intl.DateTimeFormat('en-CA', { timeZone:DAILY_CHALLENGE_TIMEZONE, year:'numeric', month:'2-digit', day:'2-digit' }).format(new Date(state.last_connection_date))
+    : null;
+
+  if (!state.weekly_ready && lastDate !== today) {
+    const nextStreak = lastDate === previousDateKey(today)
+      ? Math.min(7, Number(state.login_streak || 0) + 1)
+      : 1;
+    const weeklyReady = nextStreak >= 7;
+    const updated = await client.query(
+      `UPDATE user_reward_wheels
+       SET login_streak=$2, last_connection_date=$3::date, weekly_ready=$4, updated_at=CURRENT_TIMESTAMP
+       WHERE user_id=$1
+       RETURNING user_id, daily_last_spin_at, weekly_last_spin_at, login_streak, last_connection_date, weekly_ready`,
+      [userId, nextStreak, today, weeklyReady]
+    );
+    return updated.rows[0];
+  }
+
+  return state;
+}
+
+async function applyWheelReward(client, userId, accountId, reward) {
+  if (reward.type === 'cash') {
+    await client.query(
+      `UPDATE users SET points=points+$2, lifetime_lovercash_earned=lifetime_lovercash_earned+$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, reward.amount]
+    );
+  } else if (reward.type === 'global_xp') {
+    await client.query(
+      `UPDATE users SET global_xp=LEAST(global_xp+$2,$3), updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, reward.amount, globalThresholdForLevel(56)]
+    );
+  } else if (reward.type === 'lovys_xp') {
+    await client.query(
+      `UPDATE users SET pending_xp=pending_xp+$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, reward.amount]
+    );
+  } else if (reward.type === 'fragments') {
+    await client.query(
+      `UPDATE users SET egg_fragments=egg_fragments+$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, reward.amount]
+    );
+  } else if (reward.type === 'inventory' && reward.itemKey) {
+    await client.query(
+      `INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES($1,$2,$3)
+       ON CONFLICT (account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$3,purchased_at=CURRENT_TIMESTAMP`,
+      [accountId, reward.itemKey, reward.amount || 1]
+    );
+  }
+}
+
+
 // Tracker Twitch : présence dans le chat pendant que la chaîne est en live.
 // Ce n'est pas une mesure certifiée de lecture vidéo individuelle.
 const TRACKER_INTERVAL_MS = 15 * 1000;
@@ -1192,6 +1303,32 @@ async function initDatabase() {
       PRIMARY KEY (user_id, prestige, level)
     );
   `);
+
+
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_reward_wheels (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      daily_last_spin_at TIMESTAMPTZ,
+      weekly_last_spin_at TIMESTAMPTZ,
+      login_streak INTEGER NOT NULL DEFAULT 0 CHECK (login_streak BETWEEN 0 AND 7),
+      last_connection_date DATE,
+      weekly_ready BOOLEAN NOT NULL DEFAULT FALSE,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_reward_wheel_spins (
+      id BIGSERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      wheel_type TEXT NOT NULL CHECK (wheel_type IN ('daily','weekly')),
+      reward_key TEXT NOT NULL,
+      reward_label TEXT NOT NULL,
+      spun_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS user_reward_wheel_spins_user_idx ON user_reward_wheel_spins (user_id, spun_at DESC)`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS user_pve_progress (
     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -2910,6 +3047,9 @@ app.post('/api/account/reset-game', async (req, res) => {
       [user.id]
     );
 
+    await client.query(`DELETE FROM user_reward_wheel_spins WHERE user_id = $1`, [user.id]);
+    await client.query(`DELETE FROM user_reward_wheels WHERE user_id = $1`, [user.id]);
+
     await client.query(
       `DELETE FROM user_active_boosts WHERE user_id = $1`,
       [user.id]
@@ -4266,6 +4406,92 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
   } finally {
     client.release();
   }
+});
+
+
+
+/* =========================================
+   ROUES DE RÉCOMPENSES
+========================================= */
+app.get('/api/reward-wheels', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    await client.query('BEGIN');
+    const userResult = await client.query(`SELECT id FROM users WHERE twitch_id=$1`, [req.session.user.twitchId]);
+    const user = userResult.rows[0];
+    if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Joueur introuvable.' }); }
+    const state = await syncRewardWheelLogin(client, user.id);
+    await client.query('COMMIT');
+
+    const lastDaily = state.daily_last_spin_at ? new Date(state.daily_last_spin_at) : null;
+    const nextDailyAt = lastDaily ? new Date(lastDaily.getTime() + 24 * 60 * 60 * 1000) : null;
+    const dailyAvailable = !nextDailyAt || nextDailyAt.getTime() <= Date.now();
+    res.json({
+      ok:true,
+      daily:{ available:dailyAvailable, lastSpinAt:lastDaily?.toISOString() || null, nextSpinAt:dailyAvailable ? null : nextDailyAt.toISOString(), rewards:DAILY_WHEEL_REWARDS.map(publicWheelReward) },
+      weekly:{ available:Boolean(state.weekly_ready), streak:Number(state.login_streak || 0), goal:7, lastSpinAt:state.weekly_last_spin_at ? new Date(state.weekly_last_spin_at).toISOString() : null, rewards:WEEKLY_WHEEL_REWARDS.map(publicWheelReward) }
+    });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erreur roues de récompenses :', error);
+    res.status(500).json({ error:'Impossible de charger les roues.' });
+  } finally { client.release(); }
+});
+
+app.post('/api/reward-wheels/spin', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+    const wheelType = String(req.body?.wheelType || '').trim();
+    if (!['daily','weekly'].includes(wheelType)) return res.status(400).json({ error:'Roue invalide.' });
+
+    await client.query('BEGIN');
+    const userResult = await client.query(
+      `SELECT id,points,global_xp,pending_xp,egg_fragments FROM users WHERE twitch_id=$1 FOR UPDATE`,
+      [req.session.user.twitchId]
+    );
+    const user = userResult.rows[0];
+    if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Joueur introuvable.' }); }
+    const state = await syncRewardWheelLogin(client, user.id);
+
+    if (wheelType === 'daily' && state.daily_last_spin_at) {
+      const nextSpin = new Date(state.daily_last_spin_at).getTime() + 24 * 60 * 60 * 1000;
+      if (nextSpin > Date.now()) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ error:'La roue quotidienne n’est pas encore disponible.', nextSpinAt:new Date(nextSpin).toISOString() });
+      }
+    }
+    if (wheelType === 'weekly' && !state.weekly_ready) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error:'Atteins 7 jours de connexion consécutifs pour débloquer cette roue.' });
+    }
+
+    const rewards = wheelType === 'daily' ? DAILY_WHEEL_REWARDS : WEEKLY_WHEEL_REWARDS;
+    const reward = weightedWheelReward(rewards);
+    await applyWheelReward(client, user.id, req.session.account.id, reward);
+
+    if (wheelType === 'daily') {
+      await client.query(`UPDATE user_reward_wheels SET daily_last_spin_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`, [user.id]);
+    } else {
+      await client.query(
+        `UPDATE user_reward_wheels SET weekly_last_spin_at=CURRENT_TIMESTAMP,weekly_ready=FALSE,login_streak=0,last_connection_date=$2::date,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,
+        [user.id, dailyChallengeDateKey()]
+      );
+    }
+    await client.query(
+      `INSERT INTO user_reward_wheel_spins (user_id,wheel_type,reward_key,reward_label) VALUES($1,$2,$3,$4)`,
+      [user.id, wheelType, reward.key, reward.label]
+    );
+    const balances = await client.query(`SELECT points,global_xp,pending_xp,egg_fragments FROM users WHERE id=$1`, [user.id]);
+    await client.query('COMMIT');
+    pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
+    res.json({ ok:true, wheelType, reward:publicWheelReward(reward), balances:balances.rows[0] || {} });
+  } catch (error) {
+    try { await client.query('ROLLBACK'); } catch {}
+    console.error('Erreur lancement roue :', error);
+    res.status(500).json({ error:'Impossible de lancer la roue.' });
+  } finally { client.release(); }
 });
 
 app.get('/api/progression', async (req,res)=>{
