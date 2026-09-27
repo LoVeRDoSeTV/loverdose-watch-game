@@ -4118,6 +4118,19 @@ body:has(#pveModal:not(.hidden)){
 }
 /* ===== /V69 — PVE MOBILE : CADRAGE DES FONDS ===== */
 
+/* ===== V70 — ZONE 1 : FOND MOBILE =====
+   Zone 1 uniquement, mobile uniquement. Le fond suit maintenant toute la
+   hauteur de la route sans zoom/crop horizontal. Aucun impact sur PC/Zone 2. */
+@media (max-width:900px){
+  #pveModal .pve-adventure-map.theme-forest{
+    background-size:100% 100%,100% 100%!important;
+    background-position:center top,center top!important;
+    background-repeat:no-repeat,no-repeat!important;
+  }
+}
+/* ===== /V70 — ZONE 1 : FOND MOBILE ===== */
+
+
 
 </style>
 </head>
