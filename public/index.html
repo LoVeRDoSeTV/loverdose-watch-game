@@ -4733,14 +4733,14 @@ body:has(#pveModal:not(.hidden)){
 
 <section id="rewardWheelCard" class="reward-wheel-card" aria-label="Roues de récompenses">
   <div class="reward-wheel-head">
-    <div><div class="reward-wheel-title">🎡 Roue des récompenses</div><div class="reward-wheel-sub">Un petit bonus chaque jour, puis une roue premium après 7 jours consécutifs.</div></div>
+    <div><div class="reward-wheel-title">🎡 Roue des récompenses</div><div class="reward-wheel-sub">Un petit bonus chaque jour, puis une roue premium après 7 lives différents assistés.</div></div>
   </div>
   <div class="reward-wheel-tabs">
     <button id="rewardWheelDailyTab" class="reward-wheel-tab active" type="button">☀️ Quotidienne</button>
-    <button id="rewardWheelWeeklyTab" class="reward-wheel-tab weekly" type="button">👑 7 jours</button>
+    <button id="rewardWheelWeeklyTab" class="reward-wheel-tab weekly" type="button">👑 7 lives</button>
   </div>
   <div class="reward-wheel-streak">
-    <div class="reward-wheel-streak-top"><span>🔥 Série de connexion</span><strong id="rewardWheelStreakText">0 / 7</strong></div>
+    <div class="reward-wheel-streak-top"><span>🔥 Lives assistés</span><strong id="rewardWheelStreakText">0 / 7</strong></div>
     <div id="rewardWheelStreakDots" class="reward-wheel-dots"></div>
   </div>
   <div class="reward-wheel-stage">
@@ -5975,9 +5975,9 @@ function renderRewardWheel() {
   if (rewardWheelSpinning) { spin.disabled=true; spin.textContent='La roue tourne…'; return; }
   const available=Boolean(state?.available);
   spin.disabled=!available;
-  spin.textContent=rewardWheelType==='weekly' ? (available?'👑 Lancer la roue 7 jours':'🔒 Roue 7 jours verrouillée') : (available?'🎡 Lancer la roue':'⏳ Déjà lancée');
+  spin.textContent=rewardWheelType==='weekly' ? (available?'👑 Lancer la roue 7 lives':'🔒 Roue 7 lives verrouillée') : (available?'🎡 Lancer la roue':'⏳ Déjà lancée');
   if (status) {
-    if (rewardWheelType==='weekly') status.textContent=available?'Série terminée ! Ta roue premium est prête.':`Encore ${Math.max(0,goal-streak)} jour${Math.max(0,goal-streak)>1?'s':''} de connexion consécutive.`;
+    if (rewardWheelType==='weekly') status.textContent=available?'7 lives validés ! Ta roue premium est prête.':`Encore ${Math.max(0,goal-streak)} live${Math.max(0,goal-streak)>1?'s':''} différent${Math.max(0,goal-streak)>1?'s':''} à assister. Ta progression ne se perd pas entre deux lives.`;
     else if (available) status.textContent='Disponible maintenant · 1 lancement toutes les 24 h.';
     else status.textContent='Prochain lancement dans…';
   }
@@ -6014,7 +6014,7 @@ function showRewardWheelWinPopup(reward,wheelType='daily') {
   const jackpot=reward?.key==='mystery_egg';
   modal.classList.toggle('weekly',wheelType==='weekly');
   modal.classList.toggle('jackpot',jackpot);
-  if($('rewardWheelWinKicker')) $('rewardWheelWinKicker').textContent=jackpot?'✨ JACKPOT !':(wheelType==='weekly'?'👑 Roue des 7 jours':'🎡 Roue quotidienne');
+  if($('rewardWheelWinKicker')) $('rewardWheelWinKicker').textContent=jackpot?'✨ JACKPOT !':(wheelType==='weekly'?'👑 Roue des 7 lives':'🎡 Roue quotidienne');
   if($('rewardWheelWinTitle')) $('rewardWheelWinTitle').textContent=jackpot?'Récompense exceptionnelle !':'Félicitations !';
   if($('rewardWheelWinIcon')) $('rewardWheelWinIcon').textContent=reward?.icon||'🎁';
   if($('rewardWheelWinReward')) $('rewardWheelWinReward').textContent=reward?.label||'Récompense gagnée !';
