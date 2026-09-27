@@ -3263,6 +3263,40 @@ body:has(#pveModal:not(.hidden)){
 }
 /* ===== /PVE ZONE 1 — AFFICHAGE PREMIUM / LISIBILITÉ V33 ===== */
 
+
+
+/* ===== DASHBOARD PC : défis rotatifs + roues + incubateur pleine largeur ===== */
+.dashboard-side-stack{grid-area:side;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,360px);gap:14px;min-width:0;padding-top:12px;align-items:stretch}
+.dashboard-head-grid{grid-template-columns:minmax(470px,580px) minmax(0,1fr);grid-template-areas:"left side" "incubator incubator"}
+.dashboard-head-grid .incubator-topbar{margin-top:0;width:100%;height:auto!important;min-height:0!important}
+.dashboard-side-stack .daily-challenges-card{margin-top:0;min-width:0;height:100%;padding:16px}
+.daily-carousel-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 10px}
+.daily-carousel-arrow{width:34px;height:34px;border-radius:10px;border:1px solid rgba(145,71,255,.32);background:rgba(145,71,255,.10);color:#fff;font-size:20px;font-weight:950;cursor:pointer;transition:.16s}
+.daily-carousel-arrow:hover{background:rgba(145,71,255,.20);border-color:rgba(185,130,255,.55)}
+.daily-carousel-position{font-size:10px;font-weight:900;color:#9ea7c6;letter-spacing:.06em}
+
+.reward-wheel-card{position:relative;overflow:hidden;min-width:0;padding:16px;border:1px solid rgba(145,71,255,.30);background:radial-gradient(circle at 50% 28%,rgba(145,71,255,.14),transparent 42%),linear-gradient(165deg,rgba(21,25,43,.98),rgba(12,16,32,.98));box-shadow:0 14px 40px rgba(0,0,0,.20)}
+.reward-wheel-card::after{content:'';position:absolute;inset:auto -80px -110px auto;width:230px;height:230px;border-radius:50%;background:radial-gradient(circle,rgba(255,210,91,.08),transparent 68%);pointer-events:none}
+.reward-wheel-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;position:relative;z-index:2}.reward-wheel-title{font-size:18px;font-weight:950}.reward-wheel-sub{margin-top:3px;color:#9ea7c6;font-size:10px;line-height:1.35}
+.reward-wheel-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:11px;position:relative;z-index:2}.reward-wheel-tab{min-height:34px;border:1px solid rgba(255,255,255,.10);background:#11162a;color:#aeb7d1;border-radius:10px;font:inherit;font-size:10px;font-weight:900;cursor:pointer}.reward-wheel-tab.active{border-color:rgba(145,71,255,.58);background:rgba(145,71,255,.18);color:#fff}.reward-wheel-tab.weekly.active{border-color:rgba(243,200,91,.48);background:rgba(243,200,91,.10);color:#ffe29a}
+.reward-wheel-streak{margin-top:10px;padding:9px;border:1px solid rgba(255,255,255,.07);border-radius:11px;background:rgba(8,12,25,.48);position:relative;z-index:2}.reward-wheel-streak-top{display:flex;justify-content:space-between;gap:8px;font-size:9.5px;font-weight:900;color:#b8c0d8}.reward-wheel-dots{display:flex;gap:5px;margin-top:7px}.reward-wheel-dot{height:6px;flex:1;border-radius:999px;background:#29304b}.reward-wheel-dot.on{background:linear-gradient(90deg,#7443c7,#c087ff)}.reward-wheel-dot.ready{background:linear-gradient(90deg,#d39a2f,#ffe08a);box-shadow:0 0 10px rgba(243,200,91,.30)}
+.reward-wheel-stage{position:relative;width:210px;height:210px;margin:12px auto 8px;z-index:2}.reward-wheel-pointer{position:absolute;z-index:5;left:50%;top:-5px;transform:translateX(-50%);width:0;height:0;border-left:11px solid transparent;border-right:11px solid transparent;border-top:22px solid #fff;filter:drop-shadow(0 3px 4px rgba(0,0,0,.55))}.reward-wheel-disc{position:absolute;inset:8px;border-radius:50%;border:5px solid #d9c2ff;background:conic-gradient(#6f3dc4 0 45deg,#2d3568 45deg 90deg,#8c4ed9 90deg 135deg,#253253 135deg 180deg,#7440b8 180deg 225deg,#303965 225deg 270deg,#9a58e4 270deg 315deg,#252d50 315deg 360deg);box-shadow:0 0 0 4px rgba(145,71,255,.18),0 0 34px rgba(145,71,255,.25),inset 0 0 24px rgba(0,0,0,.35);transition:transform 4.4s cubic-bezier(.12,.72,.08,1)}.reward-wheel-card.weekly-mode .reward-wheel-disc{border-color:#ffe08a;background:conic-gradient(#a96c18 0 45deg,#49361d 45deg 90deg,#c38a27 90deg 135deg,#55411f 135deg 180deg,#b8771d 180deg 225deg,#4a371d 225deg 270deg,#d49b35 270deg 315deg,#5a431f 315deg 360deg);box-shadow:0 0 0 4px rgba(243,200,91,.15),0 0 38px rgba(243,200,91,.22),inset 0 0 24px rgba(0,0,0,.35)}
+.reward-wheel-disc::after{content:'LD';position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:#0d1122;border:4px solid rgba(255,255,255,.70);color:#fff;font-size:13px;font-weight:1000;box-shadow:0 6px 18px rgba(0,0,0,.45)}
+.reward-wheel-label{position:absolute;left:50%;top:50%;width:34px;height:34px;margin:-17px;display:grid;place-items:center;font-size:20px;transform:rotate(var(--a)) translateY(-73px) rotate(calc(var(--a) * -1));filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.reward-wheel-actions{position:relative;z-index:2;text-align:center}.reward-wheel-spin{width:100%;min-height:40px;border:1px solid rgba(185,130,255,.55);border-radius:11px;background:linear-gradient(135deg,#6f36c8,#a75dff);color:#fff;font:inherit;font-size:12px;font-weight:950;cursor:pointer;box-shadow:0 8px 22px rgba(91,45,160,.25)}.reward-wheel-card.weekly-mode .reward-wheel-spin:not(:disabled){border-color:#e6b94f;background:linear-gradient(135deg,#9d6517,#d39a2f);color:#fff6d8}.reward-wheel-spin:disabled{cursor:default;opacity:.52;box-shadow:none}.reward-wheel-status{min-height:30px;margin-top:7px;color:#aab3ce;font-size:9.5px;font-weight:850;line-height:1.35}.reward-wheel-result{min-height:22px;margin-top:7px;color:#fff;font-size:11px;font-weight:950}.reward-wheel-result.jackpot{color:#ffe08a;text-shadow:0 0 12px rgba(243,200,91,.40)}
+.reward-wheel-odds-toggle{margin-top:7px;border:0;background:transparent;color:#bca6e8;font:inherit;font-size:9px;font-weight:900;cursor:pointer;text-decoration:underline;text-underline-offset:2px}.reward-wheel-odds{display:none;margin-top:8px;padding:8px;border:1px solid rgba(255,255,255,.07);border-radius:10px;background:rgba(7,10,22,.74);text-align:left}.reward-wheel-odds.open{display:grid;gap:5px}.reward-wheel-odds-row{display:flex;justify-content:space-between;gap:8px;color:#aeb7d1;font-size:8.5px}.reward-wheel-odds-row strong{color:#fff}.reward-wheel-card.weekly-mode .reward-wheel-odds-row strong{color:#ffe08a}
+
+@media(min-width:1181px){
+  .dashboard-side-stack .daily-challenges-head{margin-bottom:8px}.dashboard-side-stack .daily-challenges-head h2{font-size:18px}.dashboard-side-stack .daily-challenges-subtitle{font-size:10px}.dashboard-side-stack .daily-challenges-reset{font-size:9px}.dashboard-side-stack .daily-challenges-summary{font-size:10px;margin-bottom:8px}.dashboard-side-stack .daily-challenges-grid{display:block}.dashboard-side-stack .daily-challenge{display:none;padding:12px;gap:8px;min-height:190px}.dashboard-side-stack .daily-challenge.carousel-active{display:flex}.dashboard-side-stack .daily-challenge-icon{width:34px;height:34px;flex-basis:34px;font-size:18px}.dashboard-side-stack .daily-challenge-title{font-size:13px}.dashboard-side-stack .daily-challenge-desc{font-size:10px}.dashboard-side-stack .daily-reward-pill{font-size:9px;padding:4px 6px}.dashboard-side-stack .daily-challenge-progress-text{font-size:9px}.dashboard-side-stack .daily-challenge-button{font-size:10px;min-height:32px;padding:6px 9px}.dashboard-side-stack .daily-challenges-note,.dashboard-side-stack .daily-challenges-message{font-size:9px}.dashboard-side-stack .daily-challenges-note{margin-top:5px}
+}
+@media(max-width:1180px){
+  .dashboard-head-grid{grid-template-columns:1fr;grid-template-areas:"left" "incubator" "side"}.dashboard-side-stack{grid-area:side;display:flex;flex-direction:column;padding-top:0}.dashboard-side-stack .daily-challenges-card{order:1;margin-top:0}.reward-wheel-card{order:2}.daily-carousel-controls{display:none}.reward-wheel-stage{width:240px;height:240px}.reward-wheel-label{transform:rotate(var(--a)) translateY(-85px) rotate(calc(var(--a) * -1))}
+}
+@media(max-width:900px){
+  .dashboard-side-stack{gap:10px}.reward-wheel-card{padding:15px;border-radius:16px}.reward-wheel-title{font-size:18px}.reward-wheel-sub{font-size:10px}.reward-wheel-stage{width:230px;height:230px;margin-top:10px}.reward-wheel-label{transform:rotate(var(--a)) translateY(-81px) rotate(calc(var(--a) * -1))}.reward-wheel-spin{min-height:44px;font-size:13px}.reward-wheel-status{font-size:10px}.reward-wheel-odds-row{font-size:9.5px}
+}
+@media(prefers-reduced-motion:reduce){.reward-wheel-disc{transition-duration:.01ms!important}}
+
 </style>
 <style>
 
@@ -4654,6 +4688,52 @@ body:has(#pveModal:not(.hidden)){
     <button id="playerCardShop" class="player-card-action wallet-shop-button" type="button">🛒 Boutique</button>
   </aside>
   </div>
+<div class="dashboard-side-stack">
+<section id="dailyChallengesCard" class="daily-challenges-card" aria-label="Défis journaliers">
+  <div class="daily-challenges-head">
+    <div>
+      <h2>🎯 Défis du jour</h2>
+      <div class="daily-challenges-subtitle">3 petits objectifs pour progresser sans accélérer trop vite le jeu.</div>
+    </div>
+    <div id="dailyChallengesReset" class="daily-challenges-reset">Renouvellement à 00h00</div>
+  </div>
+  <div id="dailyChallengesSummary" class="daily-challenges-summary">Chargement…</div>
+  <div class="daily-carousel-controls" aria-label="Navigation des défis">
+    <button id="dailyChallengePrev" class="daily-carousel-arrow" type="button" aria-label="Défi précédent">‹</button>
+    <div id="dailyCarouselPosition" class="daily-carousel-position">1 / 3</div>
+    <button id="dailyChallengeNext" class="daily-carousel-arrow" type="button" aria-label="Défi suivant">›</button>
+  </div>
+  <div id="dailyChallengesGrid" class="daily-challenges-grid"></div>
+  <div id="dailyChallengesMessage" class="daily-challenges-message"></div>
+  <div class="daily-challenges-note">Tous les défis sont vérifiés automatiquement par le jeu.</div>
+</section>
+
+<section id="rewardWheelCard" class="reward-wheel-card" aria-label="Roues de récompenses">
+  <div class="reward-wheel-head">
+    <div><div class="reward-wheel-title">🎡 Roue des récompenses</div><div class="reward-wheel-sub">Un petit bonus chaque jour, puis une roue premium après 7 jours consécutifs.</div></div>
+  </div>
+  <div class="reward-wheel-tabs">
+    <button id="rewardWheelDailyTab" class="reward-wheel-tab active" type="button">☀️ Quotidienne</button>
+    <button id="rewardWheelWeeklyTab" class="reward-wheel-tab weekly" type="button">👑 7 jours</button>
+  </div>
+  <div class="reward-wheel-streak">
+    <div class="reward-wheel-streak-top"><span>🔥 Série de connexion</span><strong id="rewardWheelStreakText">0 / 7</strong></div>
+    <div id="rewardWheelStreakDots" class="reward-wheel-dots"></div>
+  </div>
+  <div class="reward-wheel-stage">
+    <div class="reward-wheel-pointer" aria-hidden="true"></div>
+    <div id="rewardWheelDisc" class="reward-wheel-disc" aria-hidden="true"></div>
+  </div>
+  <div class="reward-wheel-actions">
+    <button id="rewardWheelSpin" class="reward-wheel-spin" type="button" disabled>Chargement…</button>
+    <div id="rewardWheelStatus" class="reward-wheel-status"></div>
+    <div id="rewardWheelResult" class="reward-wheel-result"></div>
+    <button id="rewardWheelOddsToggle" class="reward-wheel-odds-toggle" type="button">Voir les récompenses & chances</button>
+    <div id="rewardWheelOdds" class="reward-wheel-odds"></div>
+  </div>
+</section>
+
+</div>
 <section class="card incubator-topbar" aria-label="Incubateur">
   <div class="incubator-topbar-head">
     <div>
@@ -4688,19 +4768,6 @@ body:has(#pveModal:not(.hidden)){
 
 </div>
 
-<section id="dailyChallengesCard" class="daily-challenges-card" aria-label="Défis journaliers">
-  <div class="daily-challenges-head">
-    <div>
-      <h2>🎯 Défis du jour</h2>
-      <div class="daily-challenges-subtitle">3 petits objectifs pour progresser sans accélérer trop vite le jeu.</div>
-    </div>
-    <div id="dailyChallengesReset" class="daily-challenges-reset">Renouvellement à 00h00</div>
-  </div>
-  <div id="dailyChallengesSummary" class="daily-challenges-summary">Chargement…</div>
-  <div id="dailyChallengesGrid" class="daily-challenges-grid"></div>
-  <div id="dailyChallengesMessage" class="daily-challenges-message"></div>
-  <div class="daily-challenges-note">Tous les défis sont vérifiés automatiquement par le jeu.</div>
-</section>
 <div id="dailyChallengeDetailModal" class="daily-challenge-detail-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyChallengeDetailTitle">
   <div class="daily-challenge-detail-panel">
     <div class="daily-challenge-detail-head">
@@ -5143,6 +5210,14 @@ body:has(#pveModal:not(.hidden)){
 <script>
 let me = null;
 let dailyChallengesData = null;
+let dailyCarouselIndex = 0;
+let dailyCarouselTimer = null;
+let dailyCarouselPaused = false;
+let rewardWheelData = null;
+let rewardWheelType = 'daily';
+let rewardWheelSpinning = false;
+let rewardWheelRotation = 0;
+let rewardWheelCountdownTimer = null;
 let shouldShowGameIntro = false;
 
 const $ = id => document.getElementById(id);
@@ -5664,24 +5739,9 @@ async function refreshAccountState() {
 }
 
 function syncTopDashboardHeights() {
-  const leftStack = document.querySelector('.dashboard-left-stack');
+  // Depuis V78 l’incubateur occupe sa propre ligne : aucune hauteur forcée.
   const incubator = document.querySelector('.incubator-topbar');
-  if (!leftStack || !incubator) return;
-
-  if (window.matchMedia('(max-width: 1180px)').matches) {
-    incubator.style.height = '';
-    incubator.style.minHeight = '';
-    return;
-  }
-
-  const leftHeight = Math.ceil(leftStack.getBoundingClientRect().height);
-  if (!leftHeight) return;
-
-  const topOffset = parseFloat(getComputedStyle(leftStack).paddingTop || '0') || 0;
-  const targetHeight = Math.max(0, Math.round(leftHeight - topOffset));
-
-  incubator.style.height = `${targetHeight}px`;
-  incubator.style.minHeight = `${targetHeight}px`;
+  if (incubator) { incubator.style.height = ''; incubator.style.minHeight = ''; }
 }
 
 function scheduleTopDashboardSync() {
@@ -5719,6 +5779,23 @@ function formatDailyChallengeProgress(challenge) {
   if (challenge.type === 'cash') return `${Math.floor(Number(challenge.progress || 0))} / ${Math.floor(Number(challenge.goal || 0))} LoVeR'Cash`;
   if (challenge.type === 'global_xp') return `${Math.floor(Number(challenge.progress || 0))} / ${Math.floor(Number(challenge.goal || 0))} XP`;
   return challenge.completed ? 'Terminé' : 'En cours';
+}
+
+
+function isDesktopDailyCarousel() { return window.matchMedia('(min-width: 1181px)').matches; }
+function applyDailyCarouselState() {
+  const cards = Array.from(document.querySelectorAll('#dailyChallengesGrid .daily-challenge'));
+  if (!cards.length) return;
+  dailyCarouselIndex = ((dailyCarouselIndex % cards.length) + cards.length) % cards.length;
+  cards.forEach((card,index) => card.classList.toggle('carousel-active', !isDesktopDailyCarousel() || index === dailyCarouselIndex));
+  if ($('dailyCarouselPosition')) $('dailyCarouselPosition').textContent = `${dailyCarouselIndex + 1} / ${cards.length}`;
+}
+function moveDailyCarousel(direction = 1) { dailyCarouselIndex += direction; applyDailyCarouselState(); restartDailyCarousel(); }
+function restartDailyCarousel() {
+  if (dailyCarouselTimer) clearInterval(dailyCarouselTimer);
+  dailyCarouselTimer = null;
+  if (!isDesktopDailyCarousel()) return;
+  dailyCarouselTimer = setInterval(() => { if (!dailyCarouselPaused) { dailyCarouselIndex += 1; applyDailyCarouselState(); } }, 8000);
 }
 
 function renderDailyChallenges() {
@@ -5764,6 +5841,8 @@ function renderDailyChallenges() {
       <div class="daily-challenge-actions">${actions}</div>
     </article>`;
   }).join('');
+  applyDailyCarouselState();
+  restartDailyCarousel();
 }
 
 function getDailyChallengeByKey(challengeKey) {
@@ -5834,6 +5913,82 @@ function syncLoverCashDisplays(user = me?.user) {
   if ($('loverCash')) $('loverCash').textContent = loverCash;
 }
 
+
+function formatWheelCountdown(ms) {
+  const total = Math.max(0, Math.ceil(ms / 1000));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  return `${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s`;
+}
+function currentWheelState() { return rewardWheelData?.[rewardWheelType] || null; }
+function renderRewardWheel() {
+  const card=$('rewardWheelCard'), disc=$('rewardWheelDisc'), spin=$('rewardWheelSpin'), status=$('rewardWheelStatus'), result=$('rewardWheelResult');
+  if (!card || !disc || !spin) return;
+  const state=currentWheelState();
+  card.classList.toggle('weekly-mode', rewardWheelType === 'weekly');
+  $('rewardWheelDailyTab')?.classList.toggle('active', rewardWheelType === 'daily');
+  $('rewardWheelWeeklyTab')?.classList.toggle('active', rewardWheelType === 'weekly');
+  const streak=Number(rewardWheelData?.weekly?.streak || 0), goal=Number(rewardWheelData?.weekly?.goal || 7);
+  if ($('rewardWheelStreakText')) $('rewardWheelStreakText').textContent=`${streak} / ${goal}`;
+  if ($('rewardWheelStreakDots')) $('rewardWheelStreakDots').innerHTML=Array.from({length:goal},(_,i)=>`<span class="reward-wheel-dot${i<streak?' on':''}${streak>=goal?' ready':''}"></span>`).join('');
+  const rewards=state?.rewards || [];
+  disc.querySelectorAll('.reward-wheel-label').forEach(el=>el.remove());
+  rewards.forEach((reward,index)=>{ const el=document.createElement('span'); el.className='reward-wheel-label'; el.style.setProperty('--a',`${index*45+22.5}deg`); el.textContent=reward.icon||'🎁'; el.title=`${reward.label} · ${reward.chance}%`; disc.appendChild(el); });
+  if ($('rewardWheelOdds')) $('rewardWheelOdds').innerHTML=rewards.map(r=>`<div class="reward-wheel-odds-row"><span>${escapeHtml(r.icon||'🎁')} ${escapeHtml(r.label||'Récompense')}</span><strong>${Number(r.chance||0)}%</strong></div>`).join('');
+  if (rewardWheelSpinning) { spin.disabled=true; spin.textContent='La roue tourne…'; return; }
+  const available=Boolean(state?.available);
+  spin.disabled=!available;
+  spin.textContent=rewardWheelType==='weekly' ? (available?'👑 Lancer la roue 7 jours':'🔒 Roue 7 jours verrouillée') : (available?'🎡 Lancer la roue':'⏳ Déjà lancée');
+  if (status) {
+    if (rewardWheelType==='weekly') status.textContent=available?'Série terminée ! Ta roue premium est prête.':`Encore ${Math.max(0,goal-streak)} jour${Math.max(0,goal-streak)>1?'s':''} de connexion consécutive.`;
+    else if (available) status.textContent='Disponible maintenant · 1 lancement toutes les 24 h.';
+    else status.textContent='Prochain lancement dans…';
+  }
+  if (result && !rewardWheelSpinning && !result.dataset.keep) result.textContent='';
+  updateRewardWheelCountdown();
+}
+function updateRewardWheelCountdown() {
+  if (rewardWheelType!=='daily' || !rewardWheelData?.daily || rewardWheelData.daily.available) return;
+  const target=Date.parse(rewardWheelData.daily.nextSpinAt || '');
+  if (!Number.isFinite(target)) return;
+  const remaining=target-Date.now();
+  if (remaining<=0) { loadRewardWheels(); return; }
+  if ($('rewardWheelStatus')) $('rewardWheelStatus').textContent=`Prochain lancement dans ${formatWheelCountdown(remaining)}`;
+}
+async function loadRewardWheels() {
+  try {
+    const response=await fetch('/api/reward-wheels',{cache:'no-store'}); const data=await response.json();
+    if(!response.ok) throw new Error(data.error||'Impossible de charger les roues.');
+    rewardWheelData=data;
+    if (data.weekly?.available) rewardWheelType='weekly';
+    renderRewardWheel();
+    if (rewardWheelCountdownTimer) clearInterval(rewardWheelCountdownTimer);
+    rewardWheelCountdownTimer=setInterval(updateRewardWheelCountdown,1000);
+  } catch(error) { console.error('Erreur roues :',error); if($('rewardWheelStatus')) $('rewardWheelStatus').textContent='Impossible de charger la roue.'; }
+}
+async function spinRewardWheel() {
+  const state=currentWheelState(); if(rewardWheelSpinning || !state?.available) return;
+  rewardWheelSpinning=true;
+  const resultEl=$('rewardWheelResult'); if(resultEl){resultEl.textContent='';resultEl.className='reward-wheel-result';resultEl.dataset.keep='';}
+  renderRewardWheel();
+  try {
+    const response=await fetch('/api/reward-wheels/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wheelType:rewardWheelType})});
+    const data=await response.json(); if(!response.ok) throw new Error(data.error||'Impossible de lancer la roue.');
+    const rewards=state.rewards||[]; const index=Math.max(0,rewards.findIndex(r=>r.key===data.reward?.key));
+    const target=rewardWheelRotation + 360*6 + (360 - (index*45+22.5));
+    rewardWheelRotation=target;
+    if($('rewardWheelDisc')) $('rewardWheelDisc').style.transform=`rotate(${target}deg)`;
+    setTimeout(async()=>{
+      rewardWheelSpinning=false;
+      if(resultEl){ const jackpot=data.reward?.key==='mystery_egg'; resultEl.textContent=`${jackpot?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${jackpot?' jackpot':''}`; resultEl.dataset.keep='1'; }
+      if(data.balances && me?.user){ me.user.points=Number(data.balances.points??me.user.points); me.user.global_xp=Number(data.balances.global_xp??me.user.global_xp); me.user.pending_xp=Number(data.balances.pending_xp??me.user.pending_xp); me.user.egg_fragments=Number(data.balances.egg_fragments??me.user.egg_fragments); syncLoverCashDisplays(me.user); }
+      await Promise.all([loadRewardWheels(),loadIncubatorSlots(),syncDesktopLovysHub()]);
+      if(resultEl){ resultEl.textContent=`${data.reward?.key==='mystery_egg'?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${data.reward?.key==='mystery_egg'?' jackpot':''}`; resultEl.dataset.keep='1'; }
+    },4500);
+  } catch(error) { rewardWheelSpinning=false; if(resultEl){resultEl.textContent=error.message||'Impossible de lancer la roue.';resultEl.dataset.keep='1';} renderRewardWheel(); }
+}
+
 async function loadGame() {
   try {
     const response = await fetch('/api/me', { cache: 'no-store' });
@@ -5855,6 +6010,7 @@ async function loadGame() {
     await syncDesktopLovysHub();
     await loadBadges();
     await loadDailyChallenges();
+    await loadRewardWheels();
     setupTopDashboardSync();
     scheduleTopDashboardSync();
   } catch (error) {
@@ -9321,6 +9477,17 @@ $('dailyChallengesGrid')?.addEventListener('click', event => {
 $('dailyChallengeDetailActions')?.addEventListener('click', event => { handleDailyChallengeAction(event); });
 $('dailyChallengeDetailClose')?.addEventListener('click', closeDailyChallengeDetail);
 $('dailyChallengeDetailModal')?.addEventListener('click', event => { if (event.target.id === 'dailyChallengeDetailModal') closeDailyChallengeDetail(); });
+
+
+$('dailyChallengePrev')?.addEventListener('click',()=>moveDailyCarousel(-1));
+$('dailyChallengeNext')?.addEventListener('click',()=>moveDailyCarousel(1));
+$('dailyChallengesCard')?.addEventListener('mouseenter',()=>{dailyCarouselPaused=true;});
+$('dailyChallengesCard')?.addEventListener('mouseleave',()=>{dailyCarouselPaused=false;});
+$('rewardWheelDailyTab')?.addEventListener('click',()=>{rewardWheelType='daily'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
+$('rewardWheelWeeklyTab')?.addEventListener('click',()=>{rewardWheelType='weekly'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
+$('rewardWheelSpin')?.addEventListener('click',spinRewardWheel);
+$('rewardWheelOddsToggle')?.addEventListener('click',()=>{$('rewardWheelOdds')?.classList.toggle('open');});
+window.addEventListener('resize',()=>{applyDailyCarouselState();restartDailyCarousel();});
 
 $('playerCardCollection')?.addEventListener('click', () => {
   $('badgeCollectionModal')?.classList.remove('hidden');
