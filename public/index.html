@@ -4368,6 +4368,29 @@ body:has(#pveModal:not(.hidden)){
 /* ===== /V77 ===== */
 </style>
 
+
+<style id="rewardWheelWinPopupStyles">
+.reward-wheel-win-popup{position:fixed;inset:0;z-index:10080;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,6,16,.78);backdrop-filter:blur(10px);animation:wheelWinFade .22s ease both}
+.reward-wheel-win-popup.hidden{display:none!important}
+.reward-wheel-win-card{position:relative;width:min(430px,100%);overflow:hidden;padding:28px 24px 22px;border:1px solid rgba(180,127,255,.58);border-radius:24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 40%),linear-gradient(165deg,#151a31,#0b1021 72%);box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 42px rgba(145,71,255,.20);text-align:center;animation:wheelWinPop .42s cubic-bezier(.2,.85,.25,1.16) both}
+.reward-wheel-win-popup.weekly .reward-wheel-win-card{border-color:rgba(255,211,101,.62);background:radial-gradient(circle at 50% 8%,rgba(236,178,48,.24),transparent 42%),linear-gradient(165deg,#201a13,#0d1020 72%);box-shadow:0 28px 80px rgba(0,0,0,.58),0 0 44px rgba(236,178,48,.18)}
+.reward-wheel-win-popup.jackpot .reward-wheel-win-card{box-shadow:0 28px 80px rgba(0,0,0,.62),0 0 58px rgba(255,211,101,.34)}
+.reward-wheel-win-kicker{font-size:10px;font-weight:1000;letter-spacing:.16em;text-transform:uppercase;color:#b8a0e8}
+.reward-wheel-win-popup.weekly .reward-wheel-win-kicker,.reward-wheel-win-popup.jackpot .reward-wheel-win-kicker{color:#ffe08a}
+.reward-wheel-win-title{margin-top:7px;font-size:30px;line-height:1.05;font-weight:1000;color:#fff}
+.reward-wheel-win-icon{width:104px;height:104px;margin:20px auto 14px;display:grid;place-items:center;border-radius:50%;font-size:54px;background:radial-gradient(circle,rgba(174,118,255,.26),rgba(92,44,160,.10) 62%,transparent 64%);border:1px solid rgba(195,154,255,.34);box-shadow:0 0 30px rgba(145,71,255,.22);animation:wheelWinIcon 1.7s ease-in-out infinite}
+.reward-wheel-win-popup.weekly .reward-wheel-win-icon,.reward-wheel-win-popup.jackpot .reward-wheel-win-icon{background:radial-gradient(circle,rgba(255,215,112,.25),rgba(173,112,20,.10) 62%,transparent 64%);border-color:rgba(255,224,138,.38);box-shadow:0 0 34px rgba(243,200,91,.22)}
+.reward-wheel-win-copy{color:#9ea7c6;font-size:12px;font-weight:800}.reward-wheel-win-reward{margin-top:8px;font-size:21px;line-height:1.2;font-weight:1000;color:#fff}
+.reward-wheel-win-popup.jackpot .reward-wheel-win-reward{color:#ffe08a}
+.reward-wheel-win-note{margin-top:9px;color:#818aa8;font-size:10px;font-weight:750;line-height:1.45}
+.reward-wheel-win-ok{width:100%;margin-top:22px;min-height:46px;border:1px solid rgba(190,145,255,.62);border-radius:14px;background:linear-gradient(135deg,#7137ca,#a75dff);color:#fff;font:inherit;font-size:13px;font-weight:1000;cursor:pointer;box-shadow:0 10px 28px rgba(105,52,181,.25)}
+.reward-wheel-win-popup.weekly .reward-wheel-win-ok,.reward-wheel-win-popup.jackpot .reward-wheel-win-ok{border-color:#e6b94f;background:linear-gradient(135deg,#986014,#d39a2f);color:#fff9e9}
+.reward-wheel-win-ok:hover{filter:brightness(1.08);transform:translateY(-1px)}
+@keyframes wheelWinFade{from{opacity:0}to{opacity:1}}@keyframes wheelWinPop{from{opacity:0;transform:translateY(18px) scale(.94)}to{opacity:1;transform:none}}@keyframes wheelWinIcon{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+@media(max-width:600px){.reward-wheel-win-popup{padding:16px}.reward-wheel-win-card{padding:24px 18px 18px;border-radius:22px}.reward-wheel-win-title{font-size:26px}.reward-wheel-win-icon{width:92px;height:92px;font-size:48px}.reward-wheel-win-reward{font-size:19px}}
+@media(prefers-reduced-motion:reduce){.reward-wheel-win-popup,.reward-wheel-win-card,.reward-wheel-win-icon{animation:none!important;transition:none!important}}
+</style>
+
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
@@ -4766,6 +4789,19 @@ body:has(#pveModal:not(.hidden)){
   </div>
 </section>
 
+</div>
+
+
+<div id="rewardWheelWinPopup" class="reward-wheel-win-popup hidden" role="dialog" aria-modal="true" aria-labelledby="rewardWheelWinTitle">
+  <div class="reward-wheel-win-card">
+    <div id="rewardWheelWinKicker" class="reward-wheel-win-kicker">🎡 Roue quotidienne</div>
+    <div id="rewardWheelWinTitle" class="reward-wheel-win-title">Félicitations !</div>
+    <div id="rewardWheelWinIcon" class="reward-wheel-win-icon">🎁</div>
+    <div class="reward-wheel-win-copy">Tu as gagné :</div>
+    <div id="rewardWheelWinReward" class="reward-wheel-win-reward">Récompense</div>
+    <div id="rewardWheelWinNote" class="reward-wheel-win-note">Ta récompense a été ajoutée automatiquement à ton compte.</div>
+    <button id="rewardWheelWinOk" class="reward-wheel-win-ok" type="button">OK, récupérer ma récompense</button>
+  </div>
 </div>
 
 <div id="dailyChallengeDetailModal" class="daily-challenge-detail-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyChallengeDetailTitle">
@@ -5967,13 +6003,36 @@ async function loadRewardWheels() {
     rewardWheelCountdownTimer=setInterval(updateRewardWheelCountdown,1000);
   } catch(error) { console.error('Erreur roues :',error); if($('rewardWheelStatus')) $('rewardWheelStatus').textContent='Impossible de charger la roue.'; }
 }
+
+function closeRewardWheelWinPopup() {
+  const modal=$('rewardWheelWinPopup');
+  if(modal) modal.classList.add('hidden');
+}
+function showRewardWheelWinPopup(reward,wheelType='daily') {
+  const modal=$('rewardWheelWinPopup');
+  if(!modal) return;
+  const jackpot=reward?.key==='mystery_egg';
+  modal.classList.toggle('weekly',wheelType==='weekly');
+  modal.classList.toggle('jackpot',jackpot);
+  if($('rewardWheelWinKicker')) $('rewardWheelWinKicker').textContent=jackpot?'✨ JACKPOT !':(wheelType==='weekly'?'👑 Roue des 7 jours':'🎡 Roue quotidienne');
+  if($('rewardWheelWinTitle')) $('rewardWheelWinTitle').textContent=jackpot?'Récompense exceptionnelle !':'Félicitations !';
+  if($('rewardWheelWinIcon')) $('rewardWheelWinIcon').textContent=reward?.icon||'🎁';
+  if($('rewardWheelWinReward')) $('rewardWheelWinReward').textContent=reward?.label||'Récompense gagnée !';
+  if($('rewardWheelWinNote')) $('rewardWheelWinNote').textContent=reward?.key==='mystery_egg'
+    ? 'Ton œuf mystère a été ajouté automatiquement à ton inventaire.'
+    : 'Ta récompense a été ajoutée automatiquement à ton compte.';
+  modal.classList.remove('hidden');
+  setTimeout(()=>$('rewardWheelWinOk')?.focus(),60);
+}
+
 async function spinRewardWheel() {
   const state=currentWheelState(); if(rewardWheelSpinning || !state?.available) return;
+  const spunWheelType=rewardWheelType;
   rewardWheelSpinning=true;
   const resultEl=$('rewardWheelResult'); if(resultEl){resultEl.textContent='';resultEl.className='reward-wheel-result';resultEl.dataset.keep='';}
   renderRewardWheel();
   try {
-    const response=await fetch('/api/reward-wheels/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wheelType:rewardWheelType})});
+    const response=await fetch('/api/reward-wheels/spin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({wheelType:spunWheelType})});
     const data=await response.json(); if(!response.ok) throw new Error(data.error||'Impossible de lancer la roue.');
     const rewards=state.rewards||[]; const index=Math.max(0,rewards.findIndex(r=>r.key===data.reward?.key));
     const target=rewardWheelRotation + 360*6 + (360 - (index*45+22.5));
@@ -5982,6 +6041,7 @@ async function spinRewardWheel() {
     setTimeout(async()=>{
       rewardWheelSpinning=false;
       if(resultEl){ const jackpot=data.reward?.key==='mystery_egg'; resultEl.textContent=`${jackpot?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${jackpot?' jackpot':''}`; resultEl.dataset.keep='1'; }
+      showRewardWheelWinPopup(data.reward,spunWheelType);
       if(data.balances && me?.user){ me.user.points=Number(data.balances.points??me.user.points); me.user.global_xp=Number(data.balances.global_xp??me.user.global_xp); me.user.pending_xp=Number(data.balances.pending_xp??me.user.pending_xp); me.user.egg_fragments=Number(data.balances.egg_fragments??me.user.egg_fragments); syncLoverCashDisplays(me.user); }
       await Promise.all([loadRewardWheels(),loadIncubatorSlots(),syncDesktopLovysHub()]);
       if(resultEl){ resultEl.textContent=`${data.reward?.key==='mystery_egg'?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${data.reward?.key==='mystery_egg'?' jackpot':''}`; resultEl.dataset.keep='1'; }
@@ -9487,6 +9547,9 @@ $('rewardWheelDailyTab')?.addEventListener('click',()=>{rewardWheelType='daily';
 $('rewardWheelWeeklyTab')?.addEventListener('click',()=>{rewardWheelType='weekly'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
 $('rewardWheelSpin')?.addEventListener('click',spinRewardWheel);
 $('rewardWheelOddsToggle')?.addEventListener('click',()=>{$('rewardWheelOdds')?.classList.toggle('open');});
+$('rewardWheelWinOk')?.addEventListener('click',closeRewardWheelWinPopup);
+$('rewardWheelWinPopup')?.addEventListener('click',event=>{if(event.target===$('rewardWheelWinPopup')) closeRewardWheelWinPopup();});
+document.addEventListener('keydown',event=>{if(event.key==='Escape' && !$('rewardWheelWinPopup')?.classList.contains('hidden')) closeRewardWheelWinPopup();});
 window.addEventListener('resize',()=>{applyDailyCarouselState();restartDailyCarousel();});
 
 $('playerCardCollection')?.addEventListener('click', () => {
