@@ -6044,12 +6044,13 @@ function formatDailyChallengeProgress(challenge) {
 }
 
 
-/* V96 — Les 3 défis restent affichés en permanence : aucun défilement automatique sur PC. */
+/* V97 — PC : les 3 défis restent fixes. Ne pas appliquer carousel-active,
+   car cette classe possède un fond générique prioritaire qui masque les fonds illustrés. */
 function isDesktopDailyCarousel() { return false; }
 function applyDailyCarouselState() {
   const cards = Array.from(document.querySelectorAll('#dailyChallengesGrid .daily-challenge'));
   if (!cards.length) return;
-  cards.forEach(card => card.classList.add('carousel-active'));
+  cards.forEach(card => card.classList.remove('carousel-active'));
   if ($('dailyCarouselPosition')) $('dailyCarouselPosition').textContent = '';
 }
 function moveDailyCarousel() { applyDailyCarouselState(); }
