@@ -4462,6 +4462,88 @@ body:has(#pveModal:not(.hidden)){
 }
 </style>
 
+
+<style>
+/* ===== V92 — Défis du jour PC : vraies cartes verticales premium ===== */
+@media (min-width:1181px){
+  .dashboard-side-stack .daily-challenges-card{
+    position:relative;
+    overflow:hidden;
+    padding:20px 22px 18px!important;
+    background:
+      radial-gradient(circle at 50% 48%,rgba(145,71,255,.075) 0,rgba(145,71,255,.025) 24%,transparent 52%),
+      radial-gradient(circle at 12% 88%,rgba(109,54,190,.055),transparent 24%),
+      radial-gradient(circle at 90% 16%,rgba(132,86,214,.045),transparent 22%),
+      linear-gradient(165deg,rgba(18,23,43,.99),rgba(9,13,29,.99));
+    box-shadow:0 16px 44px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.025);
+  }
+  .dashboard-side-stack .daily-challenges-card:before{
+    content:'';position:absolute;inset:76px 4% auto;height:290px;pointer-events:none;opacity:.24;
+    background:
+      radial-gradient(circle at 17% 48%,transparent 0 56px,rgba(145,71,255,.10) 57px 58px,transparent 59px),
+      radial-gradient(circle at 50% 48%,transparent 0 82px,rgba(145,71,255,.075) 83px 84px,transparent 85px),
+      radial-gradient(circle at 83% 48%,transparent 0 56px,rgba(145,71,255,.10) 57px 58px,transparent 59px);
+  }
+  .dashboard-side-stack .daily-challenges-card>*{position:relative;z-index:1}
+  .dashboard-side-stack .daily-challenges-head{margin-bottom:6px!important}
+  .dashboard-side-stack .daily-challenges-head h2{font-size:22px!important;line-height:1.05}
+  .dashboard-side-stack .daily-challenges-subtitle{font-size:11px!important;margin-top:5px!important;color:#9fa9c9}
+  .dashboard-side-stack .daily-challenges-reset{font-size:9.5px!important;padding:5px 9px;border:1px solid rgba(145,71,255,.14);border-radius:999px;background:rgba(145,71,255,.055);color:#cbb9ff}
+  .dashboard-side-stack .daily-challenges-summary{font-size:11px!important;margin:8px 0 13px!important;color:#c3cae1}
+  .dashboard-side-stack .daily-carousel-controls{display:none!important}
+  .dashboard-side-stack .daily-challenges-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:14px!important;align-items:stretch}
+
+  .dashboard-side-stack .daily-challenge,
+  .dashboard-side-stack .daily-challenge.carousel-active{
+    position:relative;display:grid!important;grid-template-rows:auto minmax(76px,auto) auto auto auto;
+    min-width:0!important;min-height:282px!important;height:auto!important;padding:18px 16px 15px!important;gap:10px!important;
+    border:1px solid rgba(145,71,255,.17)!important;border-radius:17px!important;
+    background:linear-gradient(180deg,rgba(25,29,53,.94),rgba(12,16,33,.96))!important;
+    box-shadow:0 10px 24px rgba(0,0,0,.16),inset 0 1px 0 rgba(255,255,255,.035);
+    transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+    overflow:hidden;
+  }
+  .dashboard-side-stack .daily-challenge:before{
+    content:'';position:absolute;left:14%;right:14%;top:-54px;height:120px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(ellipse,rgba(145,71,255,.15),transparent 68%);
+  }
+  .dashboard-side-stack .daily-challenge:hover{transform:translateY(-2px);border-color:rgba(185,130,255,.34)!important;box-shadow:0 14px 30px rgba(0,0,0,.22),0 0 24px rgba(117,62,190,.055),inset 0 1px 0 rgba(255,255,255,.045)}
+  .dashboard-side-stack .daily-challenge.complete{border-color:rgba(145,71,255,.42)!important;box-shadow:0 12px 28px rgba(0,0,0,.18),inset 0 0 28px rgba(145,71,255,.045)}
+  .dashboard-side-stack .daily-challenge.claimed{border-color:rgba(55,205,117,.38)!important;box-shadow:0 12px 28px rgba(0,0,0,.18),inset 0 0 30px rgba(55,205,117,.045)}
+
+  .dashboard-side-stack .daily-challenge-top{position:relative;z-index:1;display:flex!important;flex-direction:column!important;align-items:center!important;text-align:center!important;gap:8px!important;min-height:92px}
+  .dashboard-side-stack .daily-challenge-icon{
+    width:50px!important;height:50px!important;flex:0 0 50px!important;border-radius:15px!important;font-size:25px!important;
+    background:linear-gradient(145deg,rgba(145,71,255,.20),rgba(87,48,147,.08))!important;
+    border:1px solid rgba(185,130,255,.28)!important;
+    box-shadow:0 7px 18px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.06),0 0 18px rgba(145,71,255,.07);
+  }
+  .dashboard-side-stack .daily-challenge-title{font-size:15px!important;line-height:1.15!important;font-weight:950!important;color:#fff}
+  .dashboard-side-stack .daily-challenge-desc{font-size:10.5px!important;line-height:1.4!important;margin-top:4px!important;color:#9ea8c8;max-width:280px}
+
+  .dashboard-side-stack .daily-challenge-rewards{
+    align-content:flex-start;justify-content:center;gap:6px!important;padding:10px 8px 9px;border:1px solid rgba(255,255,255,.055);border-radius:12px;
+    background:rgba(5,8,19,.30);
+  }
+  .dashboard-side-stack .daily-challenge-rewards:before{content:'RÉCOMPENSES';display:block;flex:0 0 100%;text-align:center;margin-bottom:2px;color:#727e9f;font-size:8px;font-weight:950;letter-spacing:.13em}
+  .dashboard-side-stack .daily-reward-pill{font-size:9.5px!important;padding:4px 7px!important;border-radius:999px!important;white-space:nowrap}
+
+  .dashboard-side-stack .daily-challenge-progress{height:9px!important;margin-top:1px;background:#242b47!important;border-color:rgba(255,255,255,.055)!important;box-shadow:inset 0 2px 4px rgba(0,0,0,.22)}
+  .dashboard-side-stack .daily-challenge-progress>span{box-shadow:0 0 10px rgba(170,108,255,.22)}
+  .dashboard-side-stack .daily-challenge-progress-text{font-size:10px!important;color:#929dbd!important;margin-top:-4px}
+  .dashboard-side-stack .daily-challenge-progress-text span:first-child{color:#c2cae1;font-weight:950}
+  .dashboard-side-stack .daily-challenge-progress-text span:last-child{padding:2px 7px;border-radius:999px;background:rgba(145,71,255,.08);color:#bba6ef}
+  .dashboard-side-stack .daily-challenge.complete .daily-challenge-progress-text span:last-child,
+  .dashboard-side-stack .daily-challenge.claimed .daily-challenge-progress-text span:last-child{background:rgba(55,205,117,.09);color:#8ee1ad}
+
+  .dashboard-side-stack .daily-challenge-actions{display:flex!important;justify-content:center!important;align-items:end!important;margin-top:0!important;min-height:31px}
+  .dashboard-side-stack .daily-challenge-button{min-width:104px!important;min-height:31px!important;padding:6px 12px!important;border-radius:9px!important;font-size:9.5px!important}
+  .dashboard-side-stack .daily-challenge-status{font-size:10px!important;padding:7px 10px;border-radius:9px;background:rgba(55,205,117,.075);border:1px solid rgba(55,205,117,.16)}
+  .dashboard-side-stack .daily-challenges-message{margin-top:8px!important;min-height:10px!important;font-size:9px!important}
+  .dashboard-side-stack .daily-challenges-note{display:none!important}
+}
+</style>
+
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
