@@ -4541,6 +4541,47 @@ body:has(#pveModal:not(.hidden)){
   .dashboard-side-stack .daily-challenge-status{font-size:10px!important;padding:7px 10px;border-radius:9px;background:rgba(55,205,117,.075);border:1px solid rgba(55,205,117,.16)}
   .dashboard-side-stack .daily-challenges-message{margin-top:8px!important;min-height:10px!important;font-size:9px!important}
   .dashboard-side-stack .daily-challenges-note{display:none!important}
+
+  /* V93 — panneau plus compact + fonds illustrés par type de défi (PC uniquement). */
+  .dashboard-side-stack .daily-challenges-card{
+    height:auto!important;
+    align-self:start!important;
+    background-image:
+      linear-gradient(180deg,rgba(7,10,24,.72),rgba(7,10,24,.84)),
+      url('daily-challenges-bg.png')!important;
+    background-position:center center,center center!important;
+    background-size:cover,cover!important;
+    background-repeat:no-repeat,no-repeat!important;
+  }
+  .dashboard-side-stack .daily-challenges-card:before{display:none!important}
+  .dashboard-side-stack .daily-challenge,
+  .dashboard-side-stack .daily-challenge.carousel-active{
+    grid-template-rows:auto minmax(62px,auto) auto auto auto!important;
+    min-height:238px!important;
+    padding:15px 14px 13px!important;
+    gap:8px!important;
+    background-position:right center!important;
+    background-size:cover!important;
+    background-repeat:no-repeat!important;
+  }
+  .dashboard-side-stack .daily-challenge:before{
+    inset:0!important;
+    height:auto!important;
+    border-radius:inherit!important;
+    background:linear-gradient(180deg,rgba(8,11,25,.16),rgba(8,11,25,.30))!important;
+    opacity:1!important;
+  }
+  .dashboard-side-stack .daily-challenge>*{position:relative;z-index:1}
+  .dashboard-side-stack .daily-challenge-watch-30{background-image:linear-gradient(90deg,rgba(8,11,25,.96) 0%,rgba(8,11,25,.88) 48%,rgba(8,11,25,.42) 100%),url('daily-challenge-watch-30.png')!important}
+  .dashboard-side-stack .daily-challenge-watch-60{background-image:linear-gradient(90deg,rgba(8,11,25,.96) 0%,rgba(8,11,25,.88) 48%,rgba(8,11,25,.42) 100%),url('daily-challenge-watch-60.png')!important}
+  .dashboard-side-stack .daily-challenge-watch-120{background-image:linear-gradient(90deg,rgba(8,11,25,.96) 0%,rgba(8,11,25,.88) 48%,rgba(8,11,25,.38) 100%),url('daily-challenge-watch-120.png')!important}
+  .dashboard-side-stack .daily-challenge-global-xp{background-image:linear-gradient(90deg,rgba(8,11,25,.96) 0%,rgba(8,11,25,.88) 48%,rgba(8,11,25,.40) 100%),url('daily-challenge-global-xp.png')!important}
+  .dashboard-side-stack .daily-challenge-cash{background-image:linear-gradient(90deg,rgba(8,11,25,.96) 0%,rgba(8,11,25,.88) 48%,rgba(8,11,25,.38) 100%),url('daily-challenge-cash.png')!important}
+  .dashboard-side-stack .daily-challenge-top{min-height:78px!important;gap:6px!important}
+  .dashboard-side-stack .daily-challenge-icon{width:44px!important;height:44px!important;flex:0 0 44px!important;font-size:22px!important}
+  .dashboard-side-stack .daily-challenge-rewards{padding:8px 7px 7px!important;background:rgba(5,8,19,.54)!important;backdrop-filter:blur(2px)}
+  .dashboard-side-stack .daily-challenge-actions{min-height:29px!important}
+  .dashboard-side-stack .daily-challenge-button{min-height:29px!important}
 }
 </style>
 
@@ -6031,7 +6072,15 @@ function renderDailyChallenges() {
       actions = `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
     }
 
-    return `<article class="daily-challenge${challenge.completed ? ' complete' : ''}${challenge.claimed ? ' claimed' : ''}" data-daily-detail="${escapeHtml(challenge.key)}">
+    const visualClass = ({
+      watch_30:'daily-challenge-watch-30',
+      watch_60:'daily-challenge-watch-60',
+      watch_120:'daily-challenge-watch-120',
+      global_xp_25:'daily-challenge-global-xp',
+      cash_10:'daily-challenge-cash'
+    })[String(challenge.key || '')] || '';
+
+    return `<article class="daily-challenge ${visualClass}${challenge.completed ? ' complete' : ''}${challenge.claimed ? ' claimed' : ''}" data-daily-detail="${escapeHtml(challenge.key)}">
       <div class="daily-challenge-top">
         <div class="daily-challenge-icon">${escapeHtml(challenge.icon || '🎯')}</div>
         <div><div class="daily-challenge-title">${escapeHtml(challenge.title || 'Défi')}</div><div class="daily-challenge-desc">${escapeHtml(challenge.description || '')}</div></div>
