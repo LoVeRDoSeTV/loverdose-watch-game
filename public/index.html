@@ -3859,6 +3859,27 @@ body:has(#pveModal:not(.hidden)){
 /* ===== /V52 ===== */
 </style>
 
+<style>
+/* ===== V53 — ZONE 2 : MONSTRES LÉGÈREMENT RÉDUITS =====
+   On conserve exactement les positions V52 du schéma utilisateur.
+   Seule la taille visuelle des monstres est réduite pour mieux lire le chemin. */
+@media (min-width:1024px){
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node{
+    width:94px!important;height:94px!important;flex-basis:94px!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.boss{
+    width:114px!important;height:114px!important;flex-basis:114px!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.final-boss{
+    width:134px!important;height:134px!important;flex-basis:134px!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node-monster{
+    inset:-18%!important;
+  }
+}
+/* ===== /V53 ===== */
+</style>
+
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
