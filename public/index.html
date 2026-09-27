@@ -4180,6 +4180,160 @@ body:has(#pveModal:not(.hidden)){
 }
 /* ===== /V76 ===== */
 </style>
+
+
+<style>
+/* ===== V77 — ZONE 2 : MÊME SÉLECTEUR « TON LOVYS » QUE LA ZONE 1 (PC) =====
+   Cohérence visuelle entre les deux zones. Les positions des combats restent inchangées. */
+@media (min-width:1024px){
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler{
+    left:54px!important;
+    right:auto!important;
+    top:-12px!important;
+    bottom:auto!important;
+    width:48px!important;
+    height:48px!important;
+    z-index:18!important;
+    overflow:visible!important;
+    isolation:isolate;
+    border:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+    filter:none!important;
+    transform:none!important;
+    animation:pveTravelerPremiumFloat 2.25s ease-in-out infinite!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop.left .pve-map-traveler,
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop.right .pve-map-traveler{
+    left:54px!important;
+    right:auto!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler::before{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:78%;
+    width:62px;
+    height:24px;
+    transform:translate(-50%,-50%);
+    border-radius:50%;
+    border:2px solid rgba(203,169,255,.92);
+    background:radial-gradient(ellipse,rgba(255,255,255,.28) 0 12%,rgba(174,104,255,.28) 34%,rgba(145,71,255,.08) 58%,transparent 72%);
+    box-shadow:0 0 7px rgba(255,255,255,.66),0 0 18px rgba(190,126,255,.88),0 0 34px rgba(145,71,255,.55),inset 0 0 12px rgba(226,202,255,.36);
+    z-index:-1;
+    animation:pveTravelerGroundPulse 1.75s ease-in-out infinite;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    top:calc(100% + 15px);
+    width:0;
+    height:0;
+    transform:translateX(-50%);
+    border-left:6px solid transparent;
+    border-right:6px solid transparent;
+    border-top:9px solid #d9b9ff;
+    filter:drop-shadow(0 0 4px #fff) drop-shadow(0 0 7px #9147ff);
+    z-index:5;
+    animation:pveTravelerPointer 1.35s ease-in-out infinite;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-beam{
+    position:absolute;
+    left:50%;
+    top:-18px;
+    width:42px;
+    height:76px;
+    transform:translateX(-50%);
+    border-radius:50%;
+    background:linear-gradient(180deg,transparent 0%,rgba(193,145,255,.04) 18%,rgba(179,116,255,.16) 68%,rgba(145,71,255,.02) 100%);
+    filter:blur(5px);
+    opacity:.85;
+    z-index:-2;
+    pointer-events:none;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-ring{
+    position:absolute;
+    left:50%;
+    top:78%;
+    width:62px;
+    height:24px;
+    transform:translate(-50%,-50%) scale(.82);
+    border-radius:50%;
+    border:1.5px solid rgba(218,190,255,.74);
+    opacity:0;
+    z-index:-1;
+    pointer-events:none;
+    animation:pveTravelerRingWave 2s ease-out infinite;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-ring.r2{animation-delay:1s}
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-art{
+    position:relative;
+    z-index:3;
+    width:48px!important;
+    height:48px!important;
+    display:grid;
+    place-items:center;
+    border-radius:50%;
+    filter:drop-shadow(0 0 5px rgba(255,255,255,.82)) drop-shadow(0 0 11px rgba(174,103,255,.92)) drop-shadow(0 7px 8px rgba(0,0,0,.48));
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-art img{
+    width:46px!important;
+    height:46px!important;
+    max-width:46px!important;
+    max-height:46px!important;
+    object-fit:contain;
+    filter:none!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-tag{
+    bottom:auto!important;
+    top:-28px!important;
+    left:50%!important;
+    min-width:62px;
+    transform:translateX(-50%)!important;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:1px;
+    padding:4px 8px 3px!important;
+    border-radius:999px!important;
+    border:1px solid rgba(215,185,255,.58);
+    background:linear-gradient(180deg,rgba(111,52,199,.96),rgba(73,31,137,.96))!important;
+    color:#fff;
+    box-shadow:0 0 0 2px rgba(145,71,255,.10),0 5px 14px rgba(0,0,0,.38),0 0 16px rgba(145,71,255,.35);
+    font-size:6.8px!important;
+    line-height:1.05;
+    letter-spacing:.055em;
+    text-transform:uppercase;
+    font-weight:1000!important;
+    white-space:nowrap;
+    z-index:7;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-traveler-step{
+    display:inline!important;
+    color:#eadcff;
+    font-size:5.5px;
+    letter-spacing:.03em;
+    font-weight:900;
+    opacity:.9;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.current{
+    box-shadow:0 0 0 5px rgba(145,71,255,.12),0 0 0 9px rgba(199,155,255,.055),0 0 25px rgba(183,126,255,.82),0 0 46px rgba(145,71,255,.42),0 12px 28px rgba(0,0,0,.45)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-stop:has(.pve-map-node.current) .pve-map-node-label{
+    border-color:rgba(189,139,255,.28)!important;
+    box-shadow:0 8px 20px rgba(0,0,0,.38),0 0 15px rgba(145,71,255,.14)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember.traveler-moving .pve-map-traveler{
+    animation:pveTravelerPremiumAdvance .72s cubic-bezier(.2,.85,.28,1) both!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember.traveler-moving .pve-map-traveler::before{
+    animation:pveTravelerVictoryPulse .72s ease-out both!important;
+  }
+}
+/* ===== /V77 ===== */
+</style>
+
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
