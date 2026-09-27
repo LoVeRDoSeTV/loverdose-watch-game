@@ -527,12 +527,17 @@ const PVE_ZONES = [
     {key:'forest_9',name:'Grand mycéliarque',level:9,type:'Verdance',hp:340,power:90,rewards:{creatureXp:12,globalXp:5,fragments:2}},
     {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,rewards:{creatureXp:20,globalXp:8,fragments:5}}
   ]},
-  { key:'ember', name:'Cavernes de Braise', icon:'🔥', fights:[
-    {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:7,globalXp:3,fragments:1}},
-    {key:'ember_2',name:'Roche ardente',level:6,type:'Forge',hp:265,power:84,rewards:{creatureXp:8,globalXp:3,fragments:1}},
-    {key:'ember_3',name:'Salamandre de braise',level:7,type:'Cendre',hp:300,power:92,rewards:{creatureXp:9,globalXp:4,fragments:1}},
-    {key:'ember_4',name:'Golem de forge',level:9,type:'Forge',hp:350,power:104,rewards:{creatureXp:11,globalXp:4,fragments:2}},
-    {key:'ember_boss',name:'Cœur de Magma',level:10,type:'Cendre',hp:430,power:118,boss:true,rewards:{creatureXp:20,globalXp:8,fragments:5}}
+  { key:'ember', name:'Forges du Cœur Ardent', icon:'🔥', fights:[
+    {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:10,globalXp:4,fragments:1}},
+    {key:'ember_2',name:'Roche ardente',level:6,type:'Forge',hp:270,power:84,rewards:{creatureXp:11,globalXp:4,fragments:1}},
+    {key:'ember_3',name:'Salamandre de braise',level:7,type:'Cendre',hp:305,power:92,rewards:{creatureXp:12,globalXp:5,fragments:1}},
+    {key:'ember_4',name:'Scarabraise',level:8,type:'Forge',hp:345,power:100,rewards:{creatureXp:13,globalXp:5,fragments:1}},
+    {key:'ember_5',name:'Fumarok',level:9,type:'Cendre',hp:385,power:108,rewards:{creatureXp:14,globalXp:6,fragments:1}},
+    {key:'ember_6',name:'Colosse des scories',level:10,type:'Forge',hp:450,power:120,boss:true,miniBoss:true,rewards:{creatureXp:20,globalXp:8,fragments:3}},
+    {key:'ember_7',name:'Vipère magmatique',level:11,type:'Cendre',hp:480,power:126,rewards:{creatureXp:16,globalXp:7,fragments:1}},
+    {key:'ember_8',name:'Obsidrake',level:12,type:'Forge',hp:525,power:134,rewards:{creatureXp:18,globalXp:8,fragments:2}},
+    {key:'ember_9',name:'Titan de la Forge',level:13,type:'Forge',hp:580,power:144,rewards:{creatureXp:20,globalXp:9,fragments:2}},
+    {key:'ember_boss',name:'Cœur de Magma',level:15,type:'Cendre',hp:700,power:160,boss:true,finalBoss:true,rewards:{creatureXp:32,globalXp:14,fragments:6}}
   ]},
   { key:'night', name:'Ruines Nocturnes', icon:'🌙', fights:[
     {key:'night_1',name:'Ombre errante',level:10,type:'Néant',hp:420,power:116,rewards:{creatureXp:10,globalXp:4,fragments:1}},
