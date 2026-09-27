@@ -6044,20 +6044,19 @@ function formatDailyChallengeProgress(challenge) {
 }
 
 
-function isDesktopDailyCarousel() { return window.matchMedia('(min-width: 1181px)').matches; }
+/* V96 — Les 3 défis restent affichés en permanence : aucun défilement automatique sur PC. */
+function isDesktopDailyCarousel() { return false; }
 function applyDailyCarouselState() {
   const cards = Array.from(document.querySelectorAll('#dailyChallengesGrid .daily-challenge'));
   if (!cards.length) return;
-  dailyCarouselIndex = ((dailyCarouselIndex % cards.length) + cards.length) % cards.length;
-  cards.forEach((card,index) => card.classList.toggle('carousel-active', !isDesktopDailyCarousel() || index === dailyCarouselIndex));
-  if ($('dailyCarouselPosition')) $('dailyCarouselPosition').textContent = `${dailyCarouselIndex + 1} / ${cards.length}`;
+  cards.forEach(card => card.classList.add('carousel-active'));
+  if ($('dailyCarouselPosition')) $('dailyCarouselPosition').textContent = '';
 }
-function moveDailyCarousel(direction = 1) { dailyCarouselIndex += direction; applyDailyCarouselState(); restartDailyCarousel(); }
+function moveDailyCarousel() { applyDailyCarouselState(); }
 function restartDailyCarousel() {
   if (dailyCarouselTimer) clearInterval(dailyCarouselTimer);
   dailyCarouselTimer = null;
-  if (!isDesktopDailyCarousel()) return;
-  dailyCarouselTimer = setInterval(() => { if (!dailyCarouselPaused) { dailyCarouselIndex += 1; applyDailyCarouselState(); } }, 8000);
+  dailyCarouselPaused = false;
 }
 
 function renderDailyChallenges() {
@@ -9811,10 +9810,6 @@ $('dailyChallengeDetailClose')?.addEventListener('click', closeDailyChallengeDet
 $('dailyChallengeDetailModal')?.addEventListener('click', event => { if (event.target.id === 'dailyChallengeDetailModal') closeDailyChallengeDetail(); });
 
 
-$('dailyChallengePrev')?.addEventListener('click',()=>moveDailyCarousel(-1));
-$('dailyChallengeNext')?.addEventListener('click',()=>moveDailyCarousel(1));
-$('dailyChallengesCard')?.addEventListener('mouseenter',()=>{dailyCarouselPaused=true;});
-$('dailyChallengesCard')?.addEventListener('mouseleave',()=>{dailyCarouselPaused=false;});
 $('rewardWheelDailyTab')?.addEventListener('click',()=>{rewardWheelType='daily'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
 $('rewardWheelWeeklyTab')?.addEventListener('click',()=>{rewardWheelType='weekly'; if($('rewardWheelResult')){$('rewardWheelResult').textContent='';$('rewardWheelResult').dataset.keep='';} renderRewardWheel();});
 $('rewardWheelSpin')?.addEventListener('click',spinRewardWheel);
