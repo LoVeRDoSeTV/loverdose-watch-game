@@ -4133,6 +4133,38 @@ body:has(#pveModal:not(.hidden)){
 
 
 </style>
+
+<style id="badge-unlock-celebration-v72">
+/* V72 · Célébration premium lors du déblocage / de l'évolution d'un badge */
+.badge-unlock-celebration{position:fixed;inset:0;z-index:1000025;display:grid;place-items:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .24s ease}
+.badge-unlock-celebration.show{opacity:1;pointer-events:auto}
+.badge-unlock-card{position:relative;width:min(520px,calc(100vw - 32px));overflow:hidden;border:1px solid rgba(162,104,255,.58);border-radius:28px;padding:30px 28px 24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 34%),linear-gradient(180deg,#171a34 0%,#0d1021 100%);box-shadow:0 30px 100px rgba(0,0,0,.68),0 0 55px rgba(145,71,255,.18);text-align:center;transform:translateY(22px) scale(.92);opacity:0;transition:transform .42s cubic-bezier(.2,.85,.25,1.15),opacity .28s ease}
+.badge-unlock-celebration.show .badge-unlock-card{transform:translateY(0) scale(1);opacity:1}
+.badge-unlock-glow{position:absolute;left:50%;top:-110px;width:340px;height:340px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(173,119,255,.34),rgba(145,71,255,.08) 48%,transparent 70%);filter:blur(3px);pointer-events:none;animation:badgeUnlockGlow 2.1s ease-in-out infinite}
+.badge-unlock-kicker{position:relative;z-index:2;display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.055);color:#d9c8ff;font-size:10px;font-weight:1000;letter-spacing:.16em;text-transform:uppercase}
+.badge-unlock-title{position:relative;z-index:2;margin:12px 0 4px;font-size:clamp(25px,5vw,34px);line-height:1.05;font-weight:1000;color:#fff;text-shadow:0 3px 18px rgba(0,0,0,.38)}
+.badge-unlock-stage{position:relative;z-index:2;min-height:18px;color:#b8bfd6;font-size:12px;font-weight:800}
+.badge-unlock-logo-wrap{position:relative;z-index:2;width:150px;height:150px;margin:22px auto 16px;display:grid;place-items:center}
+.badge-unlock-ring,.badge-unlock-ring::before{position:absolute;inset:4px;border-radius:50%;border:1px solid rgba(190,150,255,.45);content:"";animation:badgeUnlockRing 1.7s ease-out infinite}
+.badge-unlock-ring::before{inset:13px;animation-delay:.35s}
+.badge-unlock-logo{position:relative;z-index:2;width:108px;height:108px;object-fit:contain;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));animation:badgeUnlockLogo .62s cubic-bezier(.2,.85,.25,1.2) both}
+.badge-unlock-logo-fallback{position:relative;z-index:2;width:108px;height:108px;display:grid;place-items:center;font-size:70px;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));animation:badgeUnlockLogo .62s cubic-bezier(.2,.85,.25,1.2) both}
+.badge-unlock-name{position:relative;z-index:2;font-size:21px;font-weight:1000;color:#fff}
+.badge-unlock-reward-title{position:relative;z-index:2;margin:18px 0 9px;color:#8f98b4;font-size:10px;font-weight:1000;letter-spacing:.14em;text-transform:uppercase}
+.badge-unlock-rewards{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.badge-unlock-reward{min-height:64px;padding:10px 7px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.045);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff}
+.badge-unlock-reward b{font-size:13px}.badge-unlock-reward span{font-size:9px;color:#9ea7c2;font-weight:800}.badge-unlock-reward.title{grid-column:1/-1;min-height:52px;border-color:rgba(145,71,255,.30);background:rgba(145,71,255,.10)}
+.badge-unlock-reserve{position:relative;z-index:2;margin-top:8px;color:#858da8;font-size:9px;font-weight:700}
+.badge-unlock-ok{position:relative;z-index:2;width:100%;margin-top:18px;border:1px solid rgba(186,145,255,.62);border-radius:14px;padding:13px 18px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:#fff;font:inherit;font-size:13px;font-weight:1000;cursor:pointer;box-shadow:0 10px 28px rgba(124,58,237,.26);transition:transform .16s ease,filter .16s ease}
+.badge-unlock-ok:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.badge-unlock-particle{position:absolute;z-index:1;width:6px;height:6px;border-radius:50%;background:#c8a7ff;box-shadow:0 0 12px currentColor;opacity:0;animation:badgeUnlockParticle 1.45s ease-out infinite;animation-delay:var(--delay);left:var(--x);top:var(--y)}
+@keyframes badgeUnlockLogo{0%{transform:scale(.35) rotate(-10deg);opacity:0}70%{transform:scale(1.12) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes badgeUnlockRing{0%{transform:scale(.72);opacity:.8}100%{transform:scale(1.28);opacity:0}}
+@keyframes badgeUnlockGlow{0%,100%{transform:translateX(-50%) scale(.94);opacity:.72}50%{transform:translateX(-50%) scale(1.06);opacity:1}}
+@keyframes badgeUnlockParticle{0%{transform:translateY(12px) scale(.2);opacity:0}20%{opacity:.9}100%{transform:translateY(-42px) scale(1.15);opacity:0}}
+@media(max-width:600px){.badge-unlock-celebration{padding:14px}.badge-unlock-card{padding:25px 18px 19px;border-radius:23px}.badge-unlock-logo-wrap{width:128px;height:128px;margin:18px auto 12px}.badge-unlock-logo,.badge-unlock-logo-fallback{width:92px;height:92px}.badge-unlock-logo-fallback{font-size:60px}.badge-unlock-title{font-size:27px}.badge-unlock-name{font-size:19px}.badge-unlock-rewards{gap:6px}.badge-unlock-reward{min-height:59px;padding:8px 5px}.badge-unlock-reward b{font-size:11px}.badge-unlock-ok{padding:12px 16px}}
+@media(prefers-reduced-motion:reduce){.badge-unlock-card,.badge-unlock-celebration,.badge-unlock-logo,.badge-unlock-logo-fallback,.badge-unlock-ring,.badge-unlock-ring::before,.badge-unlock-glow,.badge-unlock-particle{animation:none!important;transition:none!important}}
+</style>
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
@@ -5872,6 +5904,132 @@ let badgeCollectionView = 'unlocked';
 let badgeCategoryFilter = 'all';
 let unlockedBadgeCategoryFilter = 'all';
 
+const badgeCelebrationQueue = [];
+let badgeCelebrationActive = false;
+
+function badgeCelebrationStorageKey() {
+  const userKey = String(me?.user?.twitch_id || me?.user?.id || me?.user?.game_username || 'player');
+  return `loverdose:badge-celebrations:v72:${userKey}`;
+}
+
+function badgeCelebrationSignature(challenge) {
+  if (!challenge?.unlocked || !challenge?.badgeKey) return '';
+  if (challenge.missionType === 'live-attendance' || challenge.missionType === 'global-evolution') {
+    const stageId = Number(challenge.celebrationStageId || challenge.evolutionLevel || 0);
+    return stageId > 0 ? `${challenge.badgeKey}:stage:${stageId}` : '';
+  }
+  return `${challenge.badgeKey}:unlocked`;
+}
+
+function badgeCelebrationDescriptor(challenge) {
+  const progressive = challenge.missionType === 'live-attendance' || challenge.missionType === 'global-evolution';
+  const lovysXp = Number(progressive ? challenge.celebrationRewardLovysXp : challenge.rewardLovysXp || challenge.rewardXp) || 0;
+  const globalXp = Number(progressive ? challenge.celebrationRewardGlobalXp : challenge.rewardGlobalXp) || 0;
+  const cash = Number(progressive ? challenge.celebrationRewardCash : challenge.rewardCash) || 0;
+  const rewardTitle = String(progressive ? challenge.celebrationRewardTitle : challenge.rewardTitle || '').trim();
+  return {
+    signature: badgeCelebrationSignature(challenge),
+    badgeName: String(challenge.badgeName || 'Nouveau badge'),
+    badgeImage: String(challenge.badgeImage || ''),
+    stageName: String(progressive ? (challenge.celebrationStageName || challenge.evolutionName || '') : ''),
+    lovysXp,
+    globalXp,
+    cash,
+    rewardTitle,
+    reserve: Boolean(challenge.lovysXpToReserve && lovysXp > 0)
+  };
+}
+
+function ensureBadgeCelebrationModal() {
+  let modal = document.getElementById('badgeUnlockCelebration');
+  if (modal) return modal;
+  modal = document.createElement('div');
+  modal.id = 'badgeUnlockCelebration';
+  modal.className = 'badge-unlock-celebration';
+  modal.setAttribute('aria-hidden', 'true');
+  modal.innerHTML = `<div class="badge-unlock-card" role="dialog" aria-modal="true" aria-labelledby="badgeUnlockTitle">
+    <div class="badge-unlock-glow"></div>
+    ${Array.from({length:18},(_,i)=>`<i class="badge-unlock-particle" style="--x:${8 + ((i*29)%84)}%;--y:${18 + ((i*17)%67)}%;--delay:${((i%7)*.13).toFixed(2)}s"></i>`).join('')}
+    <div class="badge-unlock-kicker">✦ Badge débloqué</div>
+    <div class="badge-unlock-title" id="badgeUnlockTitle">Félicitations !</div>
+    <div class="badge-unlock-stage" id="badgeUnlockStage"></div>
+    <div class="badge-unlock-logo-wrap"><div class="badge-unlock-ring"></div><div id="badgeUnlockLogo"></div></div>
+    <div class="badge-unlock-name" id="badgeUnlockName"></div>
+    <div class="badge-unlock-reward-title">Récompenses obtenues</div>
+    <div class="badge-unlock-rewards" id="badgeUnlockRewards"></div>
+    <div class="badge-unlock-reserve" id="badgeUnlockReserve"></div>
+    <button class="badge-unlock-ok" id="badgeUnlockOk" type="button">OK</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelector('#badgeUnlockOk')?.addEventListener('click', closeBadgeCelebration);
+  modal.addEventListener('click', event => { if (event.target === modal) closeBadgeCelebration(); });
+  return modal;
+}
+
+function showNextBadgeCelebration() {
+  if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
+  const item = badgeCelebrationQueue.shift();
+  if (!item) return;
+  badgeCelebrationActive = true;
+  const modal = ensureBadgeCelebrationModal();
+  const logo = modal.querySelector('#badgeUnlockLogo');
+  const stage = modal.querySelector('#badgeUnlockStage');
+  const name = modal.querySelector('#badgeUnlockName');
+  const rewards = modal.querySelector('#badgeUnlockRewards');
+  const reserve = modal.querySelector('#badgeUnlockReserve');
+  if (stage) stage.textContent = item.stageName ? `Nouvelle évolution · ${item.stageName}` : 'Un nouveau badge rejoint ta collection';
+  if (name) name.textContent = item.badgeName;
+  if (logo) logo.innerHTML = item.badgeImage
+    ? `<img class="badge-unlock-logo" src="${escapeHtml(item.badgeImage)}" alt="${escapeHtml(item.badgeName)}">`
+    : '<div class="badge-unlock-logo-fallback">🏆</div>';
+  const rewardParts = [];
+  if (item.lovysXp > 0) rewardParts.push(`<div class="badge-unlock-reward"><b>🐉 +${item.lovysXp}</b><span>XP Lovys</span></div>`);
+  if (item.globalXp > 0) rewardParts.push(`<div class="badge-unlock-reward"><b>⭐ +${item.globalXp}</b><span>XP globale</span></div>`);
+  if (item.cash > 0) rewardParts.push(`<div class="badge-unlock-reward"><b>💰 +${item.cash}</b><span>LoVeR'Cash</span></div>`);
+  if (item.rewardTitle) rewardParts.push(`<div class="badge-unlock-reward title"><b>🏷️ « ${escapeHtml(item.rewardTitle)} »</b><span>Nouveau titre débloqué</span></div>`);
+  if (!rewardParts.length) rewardParts.push('<div class="badge-unlock-reward title"><b>🏅 Badge ajouté</b><span>Disponible dans Mes badges</span></div>');
+  if (rewards) rewards.innerHTML = rewardParts.join('');
+  if (reserve) reserve.textContent = item.reserve ? 'L’XP Lovys a été ajoutée à ta réserve d’XP.' : '';
+  modal.setAttribute('aria-hidden', 'false');
+  requestAnimationFrame(() => modal.classList.add('show'));
+  setTimeout(() => modal.querySelector('#badgeUnlockOk')?.focus(), 260);
+}
+
+function closeBadgeCelebration() {
+  const modal = document.getElementById('badgeUnlockCelebration');
+  if (!modal || !badgeCelebrationActive) return;
+  modal.classList.remove('show');
+  modal.setAttribute('aria-hidden', 'true');
+  badgeCelebrationActive = false;
+  setTimeout(showNextBadgeCelebration, 220);
+}
+
+function syncBadgeUnlockCelebrations(challenges = []) {
+  if (!me?.user) return;
+  const descriptors = (Array.isArray(challenges) ? challenges : [])
+    .filter(challenge => challenge?.unlocked)
+    .map(badgeCelebrationDescriptor)
+    .filter(item => item.signature);
+  const currentSignatures = [...new Set(descriptors.map(item => item.signature))];
+  const storageKey = badgeCelebrationStorageKey();
+  let previous = null;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    previous = raw ? JSON.parse(raw) : null;
+  } catch (_) { previous = null; }
+
+  // Première visite avec V72 : on mémorise l'existant sans rejouer tous les anciens badges.
+  if (!Array.isArray(previous)) {
+    try { localStorage.setItem(storageKey, JSON.stringify(currentSignatures)); } catch (_) {}
+    return;
+  }
+
+  const seen = new Set(previous);
+  descriptors.filter(item => !seen.has(item.signature)).forEach(item => badgeCelebrationQueue.push(item));
+  try { localStorage.setItem(storageKey, JSON.stringify(currentSignatures)); } catch (_) {}
+  showNextBadgeCelebration();
+}
+
 function badgeVisual(badge, className = 'badge-art') {
   if (badge?.badgeImage) {
     return `<img class="${className}" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
@@ -6064,6 +6222,7 @@ async function loadBadges() {
     if (!response.ok) throw new Error(data.error || 'Impossible de charger les badges.');
 
     badgeData = data;
+    syncBadgeUnlockCelebrations(data.challenges || []);
     if (data.xpSummary && me?.user) {
       me.user.xp = Number(data.xpSummary.xp || 0);
       me.user.pending_xp = Number(data.xpSummary.pendingXp || 0);
@@ -6148,22 +6307,31 @@ function renderBadgeCollection() {
     const unlocked = Boolean(challenge.unlocked);
     const isSubscriptionMission = challenge.missionType === 'subscription';
     const isGlobalEvolution = challenge.missionType === 'global-evolution';
+    const isLiveAttendance = challenge.missionType === 'live-attendance';
     const isSpecialModeMission = challenge.missionType === 'special-mode';
     const isSocialMission = categoryOf(challenge) === 'social';
     const isInstantMission = isSocialMission || isSubscriptionMission;
     const watchedHours = Math.max(0, Number(challenge.watchSeconds || 0) / 3600);
     const targetHours = Number(challenge.targetHours ?? 0);
+    const attendanceCount = Math.max(0, Number(challenge.attendanceCount || 0));
+    const targetCount = Math.max(1, Number(challenge.targetCount || 1));
     const percent = isInstantMission
       ? (unlocked ? 100 : 0)
-      : Math.min(100, targetHours > 0 ? watchedHours / targetHours * 100 : 0);
+      : isLiveAttendance
+        ? Math.min(100, attendanceCount / targetCount * 100)
+        : Math.min(100, targetHours > 0 ? watchedHours / targetHours * 100 : 0);
 
     const progressText = isSubscriptionMission
       ? (unlocked ? 'Abonnement détecté · Badge débloqué' : 'S’abonner pour débloquer ce badge')
       : isSocialMission
         ? (unlocked ? 'Condition validée · Badge débloqué' : 'Action requise sur le réseau social')
-        : (isGlobalEvolution && challenge.maxed
-            ? `${watchedHours.toFixed(1).replace('.', ',')} h · Évolution maximale`
-            : `${watchedHours.toFixed(1).replace('.', ',')} h / ${targetHours} h`);
+        : isLiveAttendance
+          ? (challenge.maxed
+              ? `${attendanceCount} lives assistés · Évolution maximale`
+              : `${attendanceCount} / ${targetCount} lives assistés`)
+          : (isGlobalEvolution && challenge.maxed
+              ? `${watchedHours.toFixed(1).replace('.', ',')} h · Évolution maximale`
+              : `${watchedHours.toFixed(1).replace('.', ',')} h / ${targetHours} h`);
 
     const missionSource = isSocialMission
       ? (challenge.socialNetwork === 'discord'
@@ -6175,6 +6343,8 @@ function renderBadgeCollection() {
               : `Réseaux sociaux · ${challenge.gameName}`)
       : isGlobalEvolution
         ? `Visionnage global · ${challenge.evolutionName || 'Fidèle de la chaîne'}`
+        : isLiveAttendance
+          ? `Régularité · ${challenge.evolutionName || 'Présence en live'}`
         : isSpecialModeMission
           ? `Mode spécial · ${challenge.gameName}`
           : isSubscriptionMission
@@ -6217,10 +6387,12 @@ function renderBadgeCollection() {
     const rewardLovysXp = Math.max(0, Number(challenge.rewardLovysXp ?? challenge.rewardXp ?? 0));
     const rewardGlobalXp = Math.max(0, Number(challenge.rewardGlobalXp || 0));
     const rewardCash = Math.max(0, Number(challenge.rewardCash || 0));
+    const rewardTitle = String(challenge.rewardTitle || '').trim();
     const rewardParts = [
       rewardLovysXp > 0 ? `<span class="badge-reward-pill">🐉 +${rewardLovysXp} XP Lovys</span>` : '',
       rewardGlobalXp > 0 ? `<span class="badge-reward-pill">⭐ +${rewardGlobalXp} XP globale</span>` : '',
-      rewardCash > 0 ? `<span class="badge-reward-pill cash">💰 +${rewardCash} LoVeR'Cash</span>` : ''
+      rewardCash > 0 ? `<span class="badge-reward-pill cash">💰 +${rewardCash} LoVeR'Cash</span>` : '',
+      rewardTitle ? `<span class="badge-reward-pill">🏷️ Titre « ${escapeHtml(rewardTitle)} »</span>` : ''
     ].filter(Boolean).join('');
     const reserveNote = challenge.lovysXpToReserve && rewardLovysXp > 0
       ? `<span class="badge-reward-reserve">L’XP Lovys est ajoutée à ta réserve.</span>`
@@ -6229,7 +6401,11 @@ function renderBadgeCollection() {
       ? (challenge.maxed
           ? '✓ Récompense finale obtenue'
           : `🎁 Palier ${Number(challenge.rewardStageHours || challenge.targetHours || 0)} h`)
-      : (unlocked ? '✓ Récompense obtenue' : '🎁 Récompense');
+      : isLiveAttendance
+        ? (challenge.maxed
+            ? '✓ Récompense finale obtenue'
+            : `🎁 Palier ${Number(challenge.rewardStageCount || challenge.targetCount || 0)} lives`)
+        : (unlocked ? '✓ Récompense obtenue' : '🎁 Récompense');
     const rewardBlock = rewardParts
       ? `<div class="badge-xp-reward"><span class="badge-reward-label">${rewardLabel}</span>${rewardParts}${reserveNote}</div>`
       : '';
@@ -6244,7 +6420,7 @@ function renderBadgeCollection() {
             <div class="badge-challenge-name">${escapeHtml(challenge.badgeName)}</div>
             <div class="badge-challenge-game">${escapeHtml(missionSource)}</div>
           </div>
-          <div class="badge-challenge-state">${isGlobalEvolution && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
+          <div class="badge-challenge-state">${(isGlobalEvolution || isLiveAttendance) && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
         </div>
         ${progressBlock}
         ${isSocialMission ? `<div class="badge-challenge-bottom"><span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span></div>` : ''}
@@ -6914,14 +7090,17 @@ async function loadProgression(){
     const percent=progressionPct(g.xpIntoLevel,g.xpForNextLevel);
     const grade=d.grade||{};
     const gradeList=Array.isArray(d.grades)?d.grades:[];
+    const globalLevelXpRewards=Array.isArray(d.globalLevelXpRewards)?d.globalLevelXpRewards:[];
     const lovysXpRewards=Array.isArray(d.globalLovysXpRewards)?d.globalLovysXpRewards:[];
     const rewardForLevel=(level)=>{
       const gr=gradeList.find(x=>Number(x.min)===level);
+      const globalXpReward=globalLevelXpRewards.find(x=>Number(x.level)===level);
       const xpReward=lovysXpRewards.find(x=>Number(x.level)===level);
       const parts=[];
       let icon='';
       if(gr){ icon='🏅'; parts.push(`Titre ${gr.name||''}`.trim()); }
       if(level===55){ icon='🏆'; parts.push('Fond Ascension'); }
+      if(globalXpReward){ if(!icon)icon='⭐'; parts.push(`+${Number(globalXpReward.xp||0)} XP globale`); }
       if(xpReward){ if(!icon)icon='🐉'; parts.push(`+${Number(xpReward.xp||0)} XP Lovys`); }
       return parts.length?{icon,name:parts.join(' · ')}:null;
     };
@@ -6929,12 +7108,14 @@ async function loadProgression(){
       const lvl=Math.max(1,Math.min(55,Number(level||1)));
       const gradeAtLevel=gradeList.find(x=>lvl>=Number(x.min)&&lvl<=Number(x.max))||grade||{};
       const titleReward=gradeList.find(x=>Number(x.min)===lvl);
+      const globalXpReward=globalLevelXpRewards.find(x=>Number(x.level)===lvl);
       const xpReward=lovysXpRewards.find(x=>Number(x.level)===lvl);
       const details=[];
       let majorIcon=gradeAtLevel?.icon||'◆';
       let title=`Palier niveau ${lvl}`;
       if(titleReward){ details.push(`Débloque le titre « ${titleReward.name} ».`); title=`Titre : \"${titleReward.name}\"`; majorIcon='🏅'; }
-      if(xpReward){ details.push(`Ajoute +${Number(xpReward.xp||0)} XP à ton Lovys.`); if(!titleReward){ title=`Bonus Lovys +${Number(xpReward.xp||0)} XP`; majorIcon='🐉'; } }
+      if(globalXpReward){ details.push(`Donne +${Number(globalXpReward.xp||0)} XP globale pour commencer à remplir le niveau suivant.`); if(!titleReward){ title=`Bonus global +${Number(globalXpReward.xp||0)} XP`; majorIcon='⭐'; } }
+      if(xpReward){ details.push(`Ajoute +${Number(xpReward.xp||0)} XP à ton Lovys.`); if(!titleReward&&!globalXpReward){ title=`Bonus Lovys +${Number(xpReward.xp||0)} XP`; majorIcon='🐉'; } }
       if(lvl===55){ details.push('Débloque le fond « Ascension » et l’accès au Prestige une fois la barre remplie.'); title='Palier Prestige'; majorIcon='🏆'; }
       if(!details.length){ details.push('Pas de récompense directe sur ce niveau, mais il te rapproche du prochain palier important.'); }
       const rangeText = gradeAtLevel?.min && gradeAtLevel?.max ? `Grade ${gradeAtLevel.name} · niveaux ${gradeAtLevel.min} à ${gradeAtLevel.max}` : (gradeAtLevel?.name ? `Grade ${gradeAtLevel.name}` : 'Progression globale');
@@ -7796,7 +7977,7 @@ function renderShopItemPreview() {
   $('shopItemPreviewName').textContent = item.name || 'Article';
   $('shopItemPreviewDesc').textContent = item.description || '';
 
-  const price = item.rewardOnly ? 'Récompense de niveau' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+  const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
   let statusText = '';
   if (item.category === 'object') {
     if (Number(item.quantity || 0) > 0) statusText = `Possédé : ${Number(item.quantity)}`;
@@ -7886,7 +8067,7 @@ function renderShop() {
   if (backgroundFilterWrap) backgroundFilterWrap.classList.toggle('hidden', shopCategory !== 'background');
   if (frameFilterWrap) frameFilterWrap.classList.toggle('hidden', shopCategory !== 'frame');
   if (avatarFrameFilterWrap) avatarFrameFilterWrap.classList.toggle('hidden', shopCategory !== 'avatar_frame');
-  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item => item.category === shopCategory), shopCategory);
+  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item => item.category === shopCategory && !(item.category === 'title' && item.rewardOnly)), shopCategory);
   let items = allCategoryItems;
   if (shopCategory === 'title' && shopTitleFilter !== 'all') {
     items = allCategoryItems.filter(item => getTitleColorGroup(item) === shopTitleFilter);
@@ -7898,7 +8079,7 @@ function renderShop() {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
   $('shopGrid').innerHTML = items.map(item => {
-    const price = item.rewardOnly ? 'Récompense de niveau' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+    const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
     const activeText = activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
@@ -8945,6 +9126,9 @@ function startLiveUpdates() {
 }
 
 window.addEventListener('resize', scheduleTopDashboardSync);
+window.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && badgeCelebrationActive) closeBadgeCelebration();
+});
 
 startLiveUpdates();
 
