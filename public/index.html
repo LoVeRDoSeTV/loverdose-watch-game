@@ -5981,9 +5981,28 @@ async function refreshAccountState() {
 }
 
 function syncTopDashboardHeights() {
-  // Depuis V78 l’incubateur occupe sa propre ligne : aucune hauteur forcée.
+  // L’incubateur occupe sa propre ligne : aucune hauteur forcée.
   const incubator = document.querySelector('.incubator-topbar');
   if (incubator) { incubator.style.height = ''; incubator.style.minHeight = ''; }
+
+  // V94 — PC : le bloc Défis du jour se termine exactement au même niveau
+  // que l’ensemble Carte joueur + Portefeuille à gauche.
+  const leftStack = document.querySelector('.dashboard-left-stack');
+  const dailyCard = document.querySelector('.dashboard-side-stack .daily-challenges-card');
+  if (dailyCard) {
+    if (window.matchMedia('(min-width:1181px)').matches && leftStack) {
+      const leftStyles = window.getComputedStyle(leftStack);
+      const topPadding = parseFloat(leftStyles.paddingTop || '0') || 0;
+      const targetHeight = Math.max(0, leftStack.getBoundingClientRect().height - topPadding);
+      dailyCard.style.setProperty('height', `${Math.round(targetHeight)}px`, 'important');
+      dailyCard.style.setProperty('min-height', `${Math.round(targetHeight)}px`, 'important');
+      dailyCard.style.setProperty('max-height', `${Math.round(targetHeight)}px`, 'important');
+    } else {
+      dailyCard.style.removeProperty('height');
+      dailyCard.style.removeProperty('min-height');
+      dailyCard.style.removeProperty('max-height');
+    }
+  }
 }
 
 function scheduleTopDashboardSync() {
