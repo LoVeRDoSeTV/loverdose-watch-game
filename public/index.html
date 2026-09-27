@@ -4165,6 +4165,21 @@ body:has(#pveModal:not(.hidden)){
 @media(max-width:600px){.badge-unlock-celebration{padding:14px}.badge-unlock-card{padding:25px 18px 19px;border-radius:23px}.badge-unlock-logo-wrap{width:128px;height:128px;margin:18px auto 12px}.badge-unlock-logo,.badge-unlock-logo-fallback{width:92px;height:92px}.badge-unlock-logo-fallback{font-size:60px}.badge-unlock-title{font-size:27px}.badge-unlock-name{font-size:19px}.badge-unlock-rewards{gap:6px}.badge-unlock-reward{min-height:59px;padding:8px 5px}.badge-unlock-reward b{font-size:11px}.badge-unlock-ok{padding:12px 16px}}
 @media(prefers-reduced-motion:reduce){.badge-unlock-card,.badge-unlock-celebration,.badge-unlock-logo,.badge-unlock-logo-fallback,.badge-unlock-ring,.badge-unlock-ring::before,.badge-unlock-glow,.badge-unlock-particle{animation:none!important;transition:none!important}}
 </style>
+
+<style>
+/* ===== V76 — ZONE 2 PC : MONSTRES BLOQUÉS PLUS VISIBLES ===== */
+@media (min-width:1024px){
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.locked{
+    opacity:.86!important;
+    filter:saturate(.88) brightness(.96)!important;
+  }
+  .pve-desktop-main .pve-adventure-map.theme-ember .pve-map-node.locked .pve-map-node-monster{
+    opacity:.92!important;
+    filter:grayscale(.18) brightness(.90) saturate(.88) drop-shadow(0 9px 11px rgba(0,0,0,.62))!important;
+  }
+}
+/* ===== /V76 ===== */
+</style>
 </head>
 <body class="auth-locked">
   <div id="authOverlay" class="auth-overlay">
