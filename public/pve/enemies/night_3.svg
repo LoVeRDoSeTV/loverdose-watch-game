@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Spectre du miroir">
+<defs>
+ <radialGradient id="body" cx="35%" cy="25%" r="80%"><stop offset="0" stop-color="#ead8ff"/><stop offset=".52" stop-color="#6c58a7"/><stop offset="1" stop-color="#20183e"/></radialGradient>
+ <radialGradient id="aura" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#ead8ff" stop-opacity=".38"/><stop offset="1" stop-color="#ead8ff" stop-opacity="0"/></radialGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="10" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="shadow"><feGaussianBlur in="SourceAlpha" stdDeviation="6"/><feOffset dy="10"/><feComponentTransfer><feFuncA type="linear" slope=".28"/></feComponentTransfer><feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<ellipse cx="256" cy="446" rx="130" ry="28" fill="#05070b" opacity=".30"/>
+<circle cx="256" cy="250" r="190" fill="url(#aura)" opacity=".28"/>
+<g filter="url(#shadow)">
+<path d="M254 108c79 0 133 71 124 165-6 68-38 107-58 169l-63-48-50 58-31-69-68 29c27-59 7-93 18-158 17-94 63-146 128-146Z" fill="url(#body)" stroke="#b38cff" stroke-width="15"/>
+<path d="M261 167 204 283l55 106 70-108Z" fill="#8d7cff" opacity=".44"/>
+<path d="M155 211 95 169m281 36 67-44M166 382l-59 44m264-53 61 45" stroke="#8a77ff" stroke-width="12" opacity=".62"/>
+<ellipse cx="221" cy="276" rx="17" ry="20" fill="#f6efff"/><ellipse cx="311" cy="276" rx="17" ry="20" fill="#f6efff"/>
+</g>
+</svg>
