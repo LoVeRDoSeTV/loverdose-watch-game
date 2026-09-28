@@ -2483,11 +2483,11 @@ app.use(
     lastModified: true,
     setHeaders(res, filePath) {
       if (/\.(?:webp|svg|ico|woff2?)$/i.test(filePath)) {
-        // Images : 24 h de cache + réutilisation temporaire pendant la revalidation.
-        res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+        // V100 — Assets versionnés : cache navigateur 1 an.
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (/\.(?:css|js)$/i.test(filePath)) {
-        // CSS/JS utilisent ?v=99 dans index.html : le changement de version casse le cache.
-        res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
+        // V100 — CSS/JS utilisent ?v=100 : une nouvelle version casse immédiatement le cache.
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (/\.html$/i.test(filePath)) {
         // Toujours vérifier l'HTML afin qu'un nouveau déploiement soit visible immédiatement.
         res.setHeader('Cache-Control', 'no-cache');
