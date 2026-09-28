@@ -6,7 +6,7 @@ Jeu communautaire web lié à Twitch : temps de visionnage, LoVeR'Cash, Lovys,
 
 ÉTAT DU PROJET
 --------------
-- Frontend : public/index.html (responsive PC + mobile)
+- Frontend : public/index.html + public/styles.css + public/app.js (responsive PC + mobile)
 - Backend : Node.js / Express dans server.js
 - Base de données : PostgreSQL
 - Authentification : compte du jeu + liaison Twitch / Discord
@@ -24,11 +24,14 @@ server.js
 package.json
 env.example
 public/
-  index.html
+  index.html              -> structure HTML légère
+  styles.css              -> styles du jeu
+  app.js                  -> logique frontend principale
+  auth-fallback.js        -> filet de sécurité connexion
   assets/
-    egg-premium.png       -> visuel officiel des œufs
-    fragment-premium.png  -> visuel officiel des Fragments d'œuf
-    fond-zone-1.png       -> fond de la Zone 1 PvE
+    egg-premium.webp       -> visuel officiel des œufs
+    fragment-premium.webp  -> visuel officiel des Fragments d'œuf
+    fond-zone-1.webp       -> fond de la Zone 1 PvE
   pve/
     zone1/                -> les 10 monstres de la Forêt des Premiers Éclats
     enemies/              -> anciens visuels / visuels de secours des autres zones
@@ -50,7 +53,7 @@ Nombre de combats : 10
 10. Monarque des Premiers Éclats (boss de zone)
 
 Le fond officiel de la Zone 1 est :
-  public/assets/fond-zone-1.png
+  public/assets/fond-zone-1.webp
 
 Le chemin est directement intégré dans cette image. Le frontend masque donc le
 ancien chemin/décor CSS de secours sur la Zone 1 et conserve les ronds de combat,
@@ -63,8 +66,8 @@ Les zones PvE sont révélées progressivement :
 
 ŒUFS ET FRAGMENTS
 -----------------
-- Visuel œuf : public/assets/egg-premium.png
-- Visuel fragment : public/assets/fragment-premium.png
+- Visuel œuf : public/assets/egg-premium.webp
+- Visuel fragment : public/assets/fragment-premium.webp
 - Les œufs supplémentaires peuvent être placés dans l'incubateur.
 - Les emplacements actifs progressent simultanément avec le temps de visionnage Twitch.
 - Les Fragments d'œuf sont principalement gagnés en PvE.
@@ -117,5 +120,5 @@ NOTES
 -----
 - Les ressources statiques sont servies depuis public/.
 - Les chemins d'assets doivent respecter exactement la casse des noms de fichiers.
-- Ne pas renommer egg-premium.png, fragment-premium.png ou fond-zone-1.png sans mettre à jour index.html.
+- Ne pas renommer egg-premium.webp, fragment-premium.webp ou fond-zone-1.webp sans mettre à jour index.html.
 - Les modifications PC et mobile partagent la même progression serveur et le même compte.

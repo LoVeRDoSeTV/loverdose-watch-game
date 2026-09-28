@@ -5,12 +5,16 @@ import pg from 'pg';
 import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import compression from 'compression';
 
 const { Pool } = pg;
 
 const app = express();
 
 app.set('trust proxy', 1);
+
+// V99 — Compresse HTML/CSS/JS/JSON avant envoi pour réduire la bande passante Render.
+app.use(compression());
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -2479,10 +2483,13 @@ app.use(
     lastModified: true,
     setHeaders(res, filePath) {
       if (/\.(?:webp|svg|ico|woff2?)$/i.test(filePath)) {
-        // Assets change far less often than the HTML. Cache them to reduce Render bandwidth.
-        // 24 h is deliberately conservative while the game is still under active development.
+        // Images : 24 h de cache + réutilisation temporaire pendant la revalidation.
         res.setHeader('Cache-Control', 'public, max-age=86400, stale-while-revalidate=604800');
+      } else if (/\.(?:css|js)$/i.test(filePath)) {
+        // CSS/JS utilisent ?v=99 dans index.html : le changement de version casse le cache.
+        res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=2592000');
       } else if (/\.html$/i.test(filePath)) {
+        // Toujours vérifier l'HTML afin qu'un nouveau déploiement soit visible immédiatement.
         res.setHeader('Cache-Control', 'no-cache');
       }
     }
