@@ -8,7 +8,9 @@ export function createHelmetMiddleware({ production = false } = {}) {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'"],
         styleSrc: ["'self'", "'unsafe-inline'"],
-        imgSrc: ["'self'", 'data:'],
+        // Images locales + avatars Twitch renvoyés par l'API Helix.
+        // Les badges/visuels du jeu restent servis localement via 'self'.
+        imgSrc: ["'self'", 'data:', 'https://static-cdn.jtvnw.net'],
         connectSrc: ["'self'"],
         fontSrc: ["'self'", 'data:'],
         objectSrc: ["'none'"],
