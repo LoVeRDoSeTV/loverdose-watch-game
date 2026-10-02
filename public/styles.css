@@ -4763,3 +4763,86 @@ body:has(#pveModal:not(.hidden)){
 @media (max-width:900px){
   .desktop-game-nav,.desktop-lobby-page,.trade-composer{display:none!important}
 }
+
+
+/* =========================================================
+   V110 — VRAIES PAGES PC
+   Les destinations principales remplacent l'accueil au lieu
+   de s'afficher en popup. Mobile <= 900px reste inchangé.
+========================================================= */
+@media (min-width:901px){
+  /* Une seule page principale visible à la fois. */
+  body[data-desktop-view]:not([data-desktop-view="home"]):not([data-desktop-view="incubator"]) #nextActionsBar,
+  body[data-desktop-view]:not([data-desktop-view="home"]):not([data-desktop-view="incubator"]) .dashboard-head-grid,
+  body[data-desktop-view]:not([data-desktop-view="home"]):not([data-desktop-view="incubator"]) .desktop-lovys-hub,
+  body[data-desktop-view]:not([data-desktop-view="home"]):not([data-desktop-view="incubator"]) #pick,
+  body[data-desktop-view]:not([data-desktop-view="home"]):not([data-desktop-view="incubator"]) #game{display:none!important}
+
+  /* Lovys / PvE / Progression / Boutique : sections normales du document. */
+  #pveModal,.lovys-collection-modal,#progressionModal,.shop-modal{
+    position:relative!important;
+    inset:auto!important;
+    top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    z-index:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    margin:24px 0 0!important;
+    padding:0!important;
+    align-items:stretch!important;
+    justify-content:stretch!important;
+    overflow:visible!important;
+    background:transparent!important;
+    backdrop-filter:none!important;
+  }
+  #pveModal .game-panel,.lovys-collection-panel,#progressionModal .game-panel,.shop-panel{
+    width:100%!important;
+    max-width:none!important;
+    min-height:0!important;
+    margin:0!important;
+    border-radius:22px!important;
+  }
+  .lovys-collection-panel{min-height:0!important}
+  .lovys-collection-grid,.lovys-fragments-grid{align-content:start!important}
+
+  /* Lobby : vraie page, pas de couche fixe au-dessus de l'accueil. */
+  .desktop-lobby-page{
+    position:relative!important;
+    inset:auto!important;
+    top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    z-index:auto!important;
+    width:100%!important;
+    min-height:0!important;
+    margin:24px 0 0!important;
+    padding:0!important;
+    overflow:visible!important;
+    background:transparent!important;
+  }
+  .desktop-lobby-shell{width:100%!important;min-height:0!important;margin:0!important}
+
+  /* Classement : même comportement qu'une page. */
+  body.desktop-leaderboard-open .global-leaderboard{
+    display:block!important;
+    position:relative!important;
+    inset:auto!important;
+    top:auto!important;right:auto!important;bottom:auto!important;left:auto!important;
+    transform:none!important;
+    z-index:auto!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:24px 0 0!important;
+    padding:28px 30px!important;
+    overflow:visible!important;
+  }
+
+  /* Incubateur : vraie destination, sans conserver une hauteur artificielle. */
+  body[data-desktop-view="incubator"] .dashboard-head-grid{margin-top:24px!important}
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{min-height:0!important}
+
+  /* Le scroll appartient désormais à la page du navigateur. */
+  html:has(#pveModal:not(.hidden)),body:has(#pveModal:not(.hidden)){
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+  }
+}

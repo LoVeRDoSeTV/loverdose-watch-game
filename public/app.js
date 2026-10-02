@@ -4765,12 +4765,28 @@ function closeDesktopPrimaryPages(except=''){
   if(except!=='lobby')$('desktopLobbyPage')?.classList.add('hidden');
   if(except!=='leaderboard')document.body.classList.remove('desktop-leaderboard-open');
 }
+let desktopLeaderboardPlaceholder=null;
+function syncDesktopLeaderboardPlacement(){
+  const board=document.querySelector('.global-leaderboard');
+  const app=$('app');
+  if(!board||!app)return;
+  if(isDesktopGameUi()){
+    if(!desktopLeaderboardPlaceholder){
+      desktopLeaderboardPlaceholder=document.createComment('leaderboard-mobile-origin');
+      board.parentNode?.insertBefore(desktopLeaderboardPlaceholder,board);
+    }
+    if(board.parentElement!==app)app.appendChild(board);
+  }else if(desktopLeaderboardPlaceholder?.parentNode){
+    desktopLeaderboardPlaceholder.parentNode.insertBefore(board,desktopLeaderboardPlaceholder.nextSibling);
+  }
+}
 async function openDesktopView(view='home'){
   if(!isDesktopGameUi())return;
+  syncDesktopLeaderboardPlacement();
   desktopView=view;setDesktopNavActive(view);
   document.body.dataset.desktopView=view;
   closeDesktopPrimaryPages(view);
-  window.scrollTo({top:0,behavior:'smooth'});
+  window.scrollTo({top:0,behavior:'auto'});
   if(view==='home'||view==='incubator')return;
   if(view==='lovys'){await openLovysCollection('collection');return;}
   if(view==='pve'){$('pveModal')?.classList.remove('hidden');await loadPve();return;}
@@ -4781,6 +4797,8 @@ async function openDesktopView(view='home'){
 }
 
 document.querySelectorAll('[data-desktop-view]').forEach(btn=>btn.addEventListener('click',()=>openDesktopView(btn.dataset.desktopView)));
+window.addEventListener('resize',()=>{syncDesktopLeaderboardPlacement();});
+if(isDesktopGameUi())syncDesktopLeaderboardPlacement();
 
 function lobbyPlayerMarkup(player){
   const active=player.lovys;const avatar=player.profileImageUrl?`<img loading="lazy" decoding="async" src="${escapeHtml(player.profileImageUrl)}" alt="">`:'👤';
