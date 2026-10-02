@@ -1253,7 +1253,7 @@ function runNextAction(button) {
   if (action === 'hatch-extra') { closeNextActions(); const slot=incubatorData?.slots?.find(item=>Number(item.slot)===Number(button.dataset.slot)); if(slot) openExtraEggInfo(slot); return; }
   if (action === 'place-egg') { closeNextActions(); openIncubatorAddModal(Number(button.dataset.slot)); return; }
   if (action === 'wheel-daily' || action === 'wheel-weekly') { rewardWheelType = action === 'wheel-weekly' ? 'weekly' : 'daily'; renderRewardWheel(); scrollToGameElement('#rewardWheelCard'); return; }
-  if (action === 'lovys-rank') { closeNextActions(); openLovysCollection(); return; }
+  if (action === 'lovys-rank') { closeNextActions(); openLovysCollection('fragments'); return; }
   if (action === 'pve') { closeNextActions(); $('pveModal')?.classList.remove('hidden'); loadPve(); syncMobileNavState?.(); return; }
   if (action === 'incubator-view') { closeNextActions(); if (isMobileGameUi()) openMobileEggDetails(); else scrollToGameElement('.incubator-topbar'); }
 }
@@ -2599,39 +2599,117 @@ $('lovysXpTransferConfirm')?.addEventListener('click',async()=>{
   finally{btn.disabled=false;btn.textContent='⚡ Confirmer le transfert';}
 });
 
-let lovysCollectionData={lovys:[],pendingXp:0};
+let lovysCollectionData={lovys:[],pendingXp:0,universalFragments:0};
+let lovysCollectionTab='collection';
+
+function lovysRankStars(rank){return '⭐'.repeat(Math.max(1,Math.min(5,Number(rank||1))));}
+function lovysFragmentProgress(l){
+  const cost=Number(l?.nextRankCost||0),specific=Math.max(0,Number(l?.fragments||0));
+  if(!cost)return {cost:0,specific,pct:100,missing:0};
+  return {cost,specific,pct:Math.max(0,Math.min(100,(specific/cost)*100)),missing:Math.max(0,cost-specific)};
+}
+function renderLovysCollectionTabs(){
+  const collection=$('lovysCollectionGrid'),fragments=$('lovysFragmentsPanel');
+  const collectionBtn=$('lovysCollectionTabCollection'),fragmentsBtn=$('lovysCollectionTabFragments');
+  const showFragments=lovysCollectionTab==='fragments';
+  collection?.classList.toggle('hidden',showFragments);
+  fragments?.classList.toggle('hidden',!showFragments);
+  collectionBtn?.classList.toggle('active',!showFragments);
+  fragmentsBtn?.classList.toggle('active',showFragments);
+  collectionBtn?.setAttribute('aria-selected',String(!showFragments));
+  fragmentsBtn?.setAttribute('aria-selected',String(showFragments));
+}
+function renderLovysFragmentInventory(data){
+  const universalBox=$('lovysUniversalFragments'),grid=$('lovysFragmentsGrid');
+  if(!grid)return;
+  const universal=Math.max(0,Number(data?.universalFragments||0));
+  if(universalBox) universalBox.innerHTML=`<div class="lovys-universal-icon">🧩</div><div><div class="lovys-universal-label">Fragments universels</div><div class="lovys-universal-value">${universal.toLocaleString('fr-FR')}</div><div class="lovys-universal-help">Utilisables pour compléter jusqu’à 50 % du coût d’un rang. Ils sont surtout obtenus avec les doublons d’un Lovys déjà rang ⭐⭐⭐⭐⭐.</div></div>`;
+  const withFragments=(data?.lovys||[]).filter(l=>Number(l.fragments||0)>0);
+  if(!withFragments.length){
+    grid.innerHTML='<div class="lovys-fragments-empty"><div>🧩</div><strong>Aucun fragment de Lovys pour le moment</strong><span>Quand un œuf donne un Lovys que tu possèdes déjà, le doublon est automatiquement transformé en fragments ici.</span></div>';
+    return;
+  }
+  grid.innerHTML=withFragments.map(l=>{
+    const p=lovysFragmentProgress(l),stars=lovysRankStars(l.rank),max=!p.cost;
+    const universalNeeded=p.cost?Math.max(0,p.cost-p.specific):0;
+    const universalCap=p.cost?Math.floor(p.cost/2):0;
+    const helper=max?'Rang maximum atteint':l.canRankUp?(p.specific>=p.cost?'Assez de fragments spécifiques pour améliorer ce Lovys.':`Amélioration possible avec ${universalNeeded} fragment${universalNeeded>1?'s':''} universel${universalNeeded>1?'s':''}.`):p.specific>=Math.ceil(p.cost/2)?`Il manque ${p.missing} fragment${p.missing>1?'s':''}. Les universels peuvent en couvrir jusqu’à ${universalCap}.`:`Continue à obtenir des doublons de ${escapeHtml(l.name)}.`;
+    return `<article class="lovys-fragment-card ${l.canRankUp?'ready':''}"><div class="lovys-fragment-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-fragment-body"><div class="lovys-fragment-top"><div><div class="lovys-fragment-name">${escapeHtml(l.name)}</div><div class="lovys-fragment-rarity">${escapeHtml(l.rarity)} · ${escapeHtml(l.type)}</div></div><div class="lovys-fragment-rank">${stars}<span>Rang ${Number(l.rank||1)}/5</span></div></div><div class="lovys-fragment-balance-line"><strong>🧩 ${p.specific.toLocaleString('fr-FR')}</strong><span>${max?'MAX':`/ ${p.cost} pour le rang suivant`}</span></div>${max?'':`<div class="lovys-fragment-progress"><span style="width:${p.pct}%"></span></div>`}<div class="lovys-fragment-helper">${helper}</div>${max?'':`<button class="hub-btn lovys-fragment-rank-btn" type="button" data-rank-lovys="${Number(l.id)}" ${l.canRankUp?'':'disabled'}>⭐ Passer au rang ${Number(l.rank||1)+1}</button>`}</div></article>`;
+  }).join('');
+}
+function renderLovysCollection(data){
+  const grid=$('lovysCollectionGrid');
+  const lovys=data?.lovys||[];
+  if($('lovysCollectionCount')) $('lovysCollectionCount').textContent=String(lovys.length);
+  const fragmentOwners=lovys.filter(l=>Number(l.fragments||0)>0).length;
+  if($('lovysFragmentsCount')) $('lovysFragmentsCount').textContent=String(fragmentOwners);
+  if(!grid)return;
+  if(!lovys.length){grid.innerHTML='<div class="hub-sub">Aucun Lovys pour le moment. Fais éclore ton premier œuf.</div>';renderLovysFragmentInventory(data);renderLovysCollectionTabs();return;}
+  grid.innerHTML=lovys.map(l=>{const st=l.stats||{};const stars=lovysRankStars(l.rank);const cost=Number(l.nextRankCost||0);return `<article class="lovys-collection-card ${l.isActive?'active':''}"><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}<br>Niveau ${Number(l.level||1)} · ${Math.floor(Number(l.xp||0)).toLocaleString('fr-FR')} XP</div><div class="lovys-combat-stats"><span>❤️ ${Number(st.hp||0)}</span><span>⚔️ ${Number(st.attack||0)}</span><span>🛡️ ${Number(st.defense||0)}</span><span>⚡ ${Number(st.speed||0)}</span></div><div class="lovys-talent-box"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong><span>${escapeHtml(l.talent?.description||'')}</span></div><div class="lovys-fragment-line">🧩 ${Number(l.fragments||0)} fragment(s)${cost?` · prochain rang : ${cost}`:' · rang maximum'}</div>${l.isActive?'<div class="lovys-collection-active">Lovys actif</div>':''}<div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Rendre actif</button>`}${Number(data.pendingXp||0)>0?`<button class="hub-btn" type="button" data-transfer-lovys="${l.id}">⚡ Donner de l’XP</button>`:''}${cost?`<button class="hub-btn lovys-rank-btn" type="button" data-rank-lovys="${l.id}" ${l.canRankUp?'':'disabled'}>⭐ Rang suivant · ${cost} fragments</button>`:''}</div></article>`}).join('');
+  renderLovysFragmentInventory(data);
+  renderLovysCollectionTabs();
+}
 async function loadLovysCollection(){
   const grid=$('lovysCollectionGrid');
+  const fragmentsGrid=$('lovysFragmentsGrid');
   if(grid) grid.innerHTML='<div class="hub-sub">Chargement…</div>';
+  if(fragmentsGrid) fragmentsGrid.innerHTML='<div class="hub-sub">Chargement…</div>';
   try{
     const response=await fetch('/api/lovys',{cache:'no-store'});
     const data=await response.json();
     if(!response.ok) throw new Error(data.error||'Impossible de charger la collection.');
     lovysCollectionData=data;
     if($('lovysCollectionReserve')) $('lovysCollectionReserve').textContent=`⚡ ${Math.floor(Number(data.pendingXp||0)).toLocaleString('fr-FR')} XP en réserve · 🧩 ${Number(data.universalFragments||0)} fragments universels`;
-    if(!grid) return data;
-    if(!data.lovys?.length){grid.innerHTML='<div class="hub-sub">Aucun Lovys pour le moment. Fais éclore ton premier œuf.</div>';return data;}
-    grid.innerHTML=data.lovys.map(l=>{const st=l.stats||{};const stars='⭐'.repeat(Math.max(1,Number(l.rank||1)));const cost=Number(l.nextRankCost||0);return `<article class="lovys-collection-card ${l.isActive?'active':''}"><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}<br>Niveau ${Number(l.level||1)} · ${Math.floor(Number(l.xp||0)).toLocaleString('fr-FR')} XP</div><div class="lovys-combat-stats"><span>❤️ ${Number(st.hp||0)}</span><span>⚔️ ${Number(st.attack||0)}</span><span>🛡️ ${Number(st.defense||0)}</span><span>⚡ ${Number(st.speed||0)}</span></div><div class="lovys-talent-box"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong><span>${escapeHtml(l.talent?.description||'')}</span></div><div class="lovys-fragment-line">🧩 ${Number(l.fragments||0)} fragment(s)${cost?` · prochain rang : ${cost}`:' · rang maximum'}</div>${l.isActive?'<div class="lovys-collection-active">Lovys actif</div>':''}<div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Rendre actif</button>`}${Number(data.pendingXp||0)>0?`<button class="hub-btn" type="button" data-transfer-lovys="${l.id}">⚡ Donner de l’XP</button>`:''}${cost?`<button class="hub-btn lovys-rank-btn" type="button" data-rank-lovys="${l.id}" ${l.canRankUp?'':'disabled'}>⭐ Rang suivant · ${cost} fragments</button>`:''}</div></article>`}).join('');
+    renderLovysCollection(data);
     return data;
-  }catch(error){if(grid)grid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;return null;}
+  }catch(error){
+    if(grid)grid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
+    if(fragmentsGrid)fragmentsGrid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
+    return null;
+  }
 }
-async function openLovysCollection(){
+async function openLovysCollection(tab='collection'){
+  lovysCollectionTab=tab==='fragments'?'fragments':'collection';
   $('lovysCollectionModal')?.classList.remove('hidden');
   if(isMobileGameUi()) document.body.style.overflow='hidden';
+  renderLovysCollectionTabs();
   await loadLovysCollection();
   syncMobileNavState?.();
 }
 function closeLovysCollection(){ $('lovysCollectionModal')?.classList.add('hidden'); if(isMobileGameUi())document.body.style.overflow=''; syncMobileNavState?.(); }
-$('openLovysCollection')?.addEventListener('click',openLovysCollection);
+$('openLovysCollection')?.addEventListener('click',()=>openLovysCollection('collection'));
 $('lovysCollectionClose')?.addEventListener('click',closeLovysCollection);
 $('lovysCollectionModal')?.addEventListener('click',e=>{if(e.target.id==='lovysCollectionModal')closeLovysCollection();});
+document.querySelectorAll('[data-lovys-tab]').forEach(btn=>btn.addEventListener('click',()=>{lovysCollectionTab=btn.dataset.lovysTab==='fragments'?'fragments':'collection';renderLovysCollectionTabs();}));
+async function rankUpLovysFromButton(rankBtn){
+  const lovysId=Number(rankBtn?.dataset.rankLovys||0);
+  const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);
+  if(!chosen)return;
+  if(!confirm(`Améliorer ${chosen.name} pour ${Number(chosen.nextRankCost||0)} fragments ? Les fragments universels peuvent couvrir jusqu’à 50 % du coût si nécessaire.`))return;
+  rankBtn.disabled=true;
+  try{
+    const r=await fetch('/api/lovys/rank-up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId})});
+    const d=await r.json();
+    if(!r.ok){alert(d.error||'Amélioration impossible.');return;}
+    alert(d.message||'Rang amélioré !');
+    await loadGame();
+    await loadLovysCollection();
+    await loadPve();
+  }finally{
+    if(document.body.contains(rankBtn)) rankBtn.disabled=false;
+  }
+}
 $('lovysCollectionGrid')?.addEventListener('click',async e=>{
   const activate=e.target.closest('[data-activate-lovys]');
   if(activate){activate.disabled=true;const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(activate.dataset.activateLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');activate.disabled=false;return;}await loadGame();await loadLovysCollection();return;}
   const rankBtn=e.target.closest('[data-rank-lovys]');
-  if(rankBtn){const lovysId=Number(rankBtn.dataset.rankLovys);const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);if(!chosen)return;if(!confirm(`Améliorer ${chosen.name} pour ${Number(chosen.nextRankCost||0)} fragments ? Les fragments universels peuvent couvrir jusqu’à 50 % du coût si nécessaire.`))return;rankBtn.disabled=true;const r=await fetch('/api/lovys/rank-up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId})});const d=await r.json();if(!r.ok){alert(d.error||'Amélioration impossible.');rankBtn.disabled=false;return;}alert(d.message||'Rang amélioré !');await loadLovysCollection();await loadPve();return;}
+  if(rankBtn){await rankUpLovysFromButton(rankBtn);return;}
   const transfer=e.target.closest('[data-transfer-lovys]');
   if(transfer){openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));}
+});
+$('lovysFragmentsGrid')?.addEventListener('click',async e=>{
+  const rankBtn=e.target.closest('[data-rank-lovys]');
+  if(rankBtn) await rankUpLovysFromButton(rankBtn);
 });
 
 
@@ -4551,7 +4629,7 @@ window.addEventListener('keydown', event => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js?v=105').catch(error => console.warn('Service worker non disponible :', error));
+    navigator.serviceWorker.register('/service-worker.js?v=106').catch(error => console.warn('Service worker non disponible :', error));
   });
 }
 
