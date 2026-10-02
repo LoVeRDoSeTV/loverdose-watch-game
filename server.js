@@ -2277,8 +2277,8 @@ async function runTrackerTick() {
           `
           UPDATE user_incubator_eggs
           SET
-            watched_seconds = LEAST(watched_seconds + $2, $3),
-            status = CASE WHEN watched_seconds + $2 >= $3 THEN 'ready' ELSE 'incubating' END,
+            watched_seconds = LEAST(watched_seconds + $2::bigint, $3::bigint),
+            status = CASE WHEN watched_seconds + $2::bigint >= $3::bigint THEN 'ready' ELSE 'incubating' END,
             updated_at = CURRENT_TIMESTAMP
           WHERE user_id = ANY($1::int[])
             AND status = 'incubating'
@@ -2289,7 +2289,7 @@ async function runTrackerTick() {
         await pool.query(
           `
           INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, global_xp_earned, lovercash_earned, updated_at)
-          SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5 ELSE $4 END, CASE WHEN u.is_sub THEN $7 ELSE $6 END, CURRENT_TIMESTAMP
+          SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5::double precision ELSE $4::double precision END, CASE WHEN u.is_sub THEN $7::double precision ELSE $6::double precision END, CURRENT_TIMESTAMP
           FROM users u WHERE u.id = ANY($1::int[])
           ON CONFLICT (user_id, activity_date) DO UPDATE SET
             watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
@@ -2313,7 +2313,7 @@ async function runTrackerTick() {
             user_id,
             $2,
             $3,
-            $4,
+            $4::bigint,
             CURRENT_TIMESTAMP
           FROM unnest($1::int[]) AS user_id
           ON CONFLICT (user_id, game_id)
@@ -2445,7 +2445,7 @@ async function runTrackerTick() {
               user_id,
               'special:zombie',
               'Zombie',
-              $2,
+              $2::bigint,
               CURRENT_TIMESTAMP
             FROM unnest($1::int[]) AS user_id
             ON CONFLICT (user_id, game_id)
