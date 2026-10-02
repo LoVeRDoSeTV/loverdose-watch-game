@@ -5063,3 +5063,45 @@ body:has(#pveModal:not(.hidden)){
   body[data-desktop-view="shop"] #shopModal .shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 /* ===== /V115 ===== */
+\n\n/* =========================================================
+   V117 — PC : NAVIGATION PRINCIPALE EN VRAIES PAGES
+   Aucun clic sur le fond ne ferme Lovys/PvE/Progression/Boutique/Compte.
+   Le bouton ⓘ reste une vraie popup. Mobile inchangé.
+========================================================= */
+@media (min-width:901px){
+  /* Mon compte devient lui aussi une destination de page. */
+  body[data-desktop-view="account"] #accountModal{
+    position:fixed!important;
+    top:126px!important;right:0!important;bottom:0!important;left:0!important;
+    z-index:1000020!important;
+    display:block!important;
+    padding:28px 42px 64px!important;
+    overflow-y:auto!important;
+    background:#090c17!important;
+    backdrop-filter:none!important;
+  }
+  body[data-desktop-view="account"] #accountModal.hidden{display:none!important}
+  body[data-desktop-view="account"] #accountModal .account-panel{
+    width:min(1180px,100%)!important;
+    min-height:calc(100vh - 218px)!important;
+    margin:0 auto!important;
+    padding:32px 36px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="account"] #accountModal .account-panel-head{
+    padding-bottom:20px!important;
+    margin-bottom:6px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+  body[data-desktop-view="account"] #accountModal .account-panel-head h2{font-size:30px!important}
+  body[data-desktop-view="account"] #accountModal .account-close{display:none!important}
+  body[data-desktop-view="account"] #accountModal .account-info-row{padding:18px 0!important}
+  body[data-desktop-view="account"] #accountModal #trackerAdminSection{margin-top:22px!important}
+
+  /* Les destinations principales ne sont jamais des backdrops cliquables sur PC. */
+  #pveModal,.lovys-collection-modal,#progressionModal,#shopModal,#accountModal{cursor:default}
+}
+/* ===== /V117 ===== */
