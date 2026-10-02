@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LoVeRDoSe">
-<link rel="manifest" href="/manifest.webmanifest?v=104">
+<link rel="manifest" href="/manifest.webmanifest?v=105">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=104">
+<link rel="stylesheet" href="/styles.css?v=105">
 
 
 </head>
@@ -795,7 +795,20 @@
   </div>
 </div>
 
-<div id="pveBattleOverlay" class="pve-battle-overlay hidden" role="dialog" aria-modal="true" aria-label="Combat en cours"><div class="pve-battle-stage"><div class="pve-battle-head"><div><div id="pveBattleTitle" class="pve-battle-title">⚔️ Combat</div><div id="pveBattleRound" class="pve-battle-round">Préparation…</div></div><button id="pveBattleSkip" class="pve-battle-skip" type="button">Passer l’animation</button></div><div class="pve-battle-arena"><div id="pveBattlePlayer" class="pve-combatant player"><div id="pveBattlePlayerSprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattlePlayerName">Lovys</strong><span id="pveBattlePlayerStats"></span></div><div class="pve-hp-track"><div id="pveBattlePlayerHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattlePlayerHpText"></span><span>PV</span></div></div><div id="pveBattlePlayerDamage" class="pve-damage"></div></div><div class="pve-battle-vs">VS</div><div id="pveBattleEnemy" class="pve-combatant enemy"><div id="pveBattleEnemySprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattleEnemyName">Ennemi</strong><span id="pveBattleEnemyStats"></span></div><div class="pve-hp-track"><div id="pveBattleEnemyHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattleEnemyHpText"></span><span>PV</span></div></div><div id="pveBattleEnemyDamage" class="pve-damage enemy-hit"></div></div></div><div id="pveBattleLog" class="pve-battle-log">Le combat va commencer…</div><div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div></div></div>
+<div id="pveBattleOverlay" class="pve-battle-overlay hidden" role="dialog" aria-modal="true" aria-label="Combat en cours">
+  <div class="pve-battle-stage">
+    <div class="pve-battle-head"><div><div id="pveBattleTitle" class="pve-battle-title">⚔️ Combat tactique</div><div id="pveBattleRound" class="pve-battle-round">Tour 1</div></div><button id="pveBattleAbandon" class="pve-battle-skip" type="button">Abandonner</button></div>
+    <div class="pve-battle-arena">
+      <div id="pveBattlePlayer" class="pve-combatant player"><div id="pveBattlePlayerSprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattlePlayerName">Lovys</strong><span id="pveBattlePlayerStats"></span></div><div class="pve-hp-track"><div id="pveBattlePlayerHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattlePlayerHpText"></span><span>PV</span></div></div><div id="pveBattlePlayerDamage" class="pve-damage"></div></div>
+      <div class="pve-battle-vs">VS</div>
+      <div id="pveBattleEnemy" class="pve-combatant enemy"><div id="pveBattleEnemySprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattleEnemyName">Ennemi</strong><span id="pveBattleEnemyStats"></span></div><div class="pve-hp-track"><div id="pveBattleEnemyHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattleEnemyHpText"></span><span>PV</span></div></div><div id="pveBattleEnemyDamage" class="pve-damage enemy-hit"></div></div>
+    </div>
+    <div id="pveBattleEffects" class="pve-battle-effects"></div>
+    <div id="pveBattleLog" class="pve-battle-log">Choisis ton action.</div>
+    <div id="pveBattleActions" class="pve-battle-actions"><button class="pve-action-btn basic" type="button" data-battle-action="basic"><span>⚔️</span><strong>Attaque</strong><small>Attaque normale</small></button><button id="pveSkill1" class="pve-action-btn" type="button"></button><button id="pveSkill2" class="pve-action-btn" type="button"></button></div>
+    <div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div>
+  </div>
+</div>
 <div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
 
 <div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
@@ -909,5 +922,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=104"></script>
-<script src="/auth-fallback.js?v=104"></script></body></html>
+<script src="/app.js?v=105"></script>
+<script src="/auth-fallback.js?v=105"></script></body></html>
