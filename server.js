@@ -2206,7 +2206,19 @@ async function runTrackerTick() {
     }
 
     const chatters = await getAllChatters();
-    const chatterIds = [...new Set(chatters.map(item => String(item.user_id || '')).filter(Boolean))];
+    // La liste /chat/chatters contient aussi le diffuseur et des bots de chat.
+    // Ils ne doivent pas recevoir de récompenses de visionnage.
+    const ignoredTrackerLogins = new Set([
+      'nightbot', 'streamelements', 'streamlabs', 'moobot', 'fossabot',
+      'wizebot', 'sery_bot', 'soundalerts', 'streamstickers'
+    ]);
+    const eligibleChatters = chatters.filter(item => {
+      const id = String(item.user_id || '').trim();
+      const login = String(item.user_login || item.user_name || '').trim().toLowerCase();
+      return id && id !== broadcasterId && !ignoredTrackerLogins.has(login);
+    });
+    const chatterIds = [...new Set(eligibleChatters.map(item => String(item.user_id || '')).filter(Boolean))];
+    const rawChatterCount = [...new Set(chatters.map(item => String(item.user_id || '')).filter(Boolean))].length;
 
     let matched = 0;
 
@@ -2513,7 +2525,7 @@ async function runTrackerTick() {
           updated_at = CURRENT_TIMESTAMP
       WHERE id = 1
       `,
-      [chatterIds.length, matched]
+      [rawChatterCount, matched]
     );
 
     if (deltaSeconds > 0 && matched > 0) {
@@ -2530,7 +2542,7 @@ async function runTrackerTick() {
       ok: true,
       live: true,
       creditedSeconds: deltaSeconds,
-      chatters: chatterIds.length,
+      chatters: rawChatterCount,
       matched,
       gameId: currentGameId,
       gameName: currentGameName,
@@ -3620,10 +3632,20 @@ app.get('/api/tracker/status', async (req, res) => {
       });
     }
 
+    let viewerCount = 0;
+    if (row.last_live) {
+      try {
+        const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+        const streamData = await trackerTwitchFetch(`/streams?user_id=${encodeURIComponent(broadcasterId)}`);
+        viewerCount = Number(streamData.data?.[0]?.viewer_count || 0);
+      } catch {}
+    }
+
     res.json({
       ok: true,
       authorized: true,
       live: Boolean(row.last_live),
+      viewerCount,
       lastPollAt: row.last_poll_at,
       lastSuccessAt: row.last_success_at,
       lastSubSyncAt: row.last_sub_sync_at,
@@ -3636,6 +3658,61 @@ app.get('/api/tracker/status', async (req, res) => {
   } catch (error) {
     console.error('Erreur statut tracker :', error);
     res.status(500).json({ error: 'Impossible de charger le statut du tracker.' });
+  }
+});
+
+app.get('/api/tracker/detected-accounts', async (req, res) => {
+  try {
+    const account = await getBroadcasterAccount(req);
+    if (!account) return res.status(403).json({ error: 'Accès réservé au diffuseur.' });
+
+    const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+    const streamData = await trackerTwitchFetch(`/streams?user_id=${encodeURIComponent(broadcasterId)}`);
+    const stream = streamData.data?.[0] || null;
+    if (!stream) return res.json({ ok: true, live: false, viewerCount: 0, chatters: [], matched: [] });
+
+    const chatters = await getAllChatters();
+    const ignored = new Set(['nightbot','streamelements','streamlabs','moobot','fossabot','wizebot','sery_bot','soundalerts','streamstickers']);
+    const clean = chatters.filter(item => {
+      const id = String(item.user_id || '').trim();
+      const login = String(item.user_login || item.user_name || '').trim().toLowerCase();
+      return id && id !== broadcasterId && !ignored.has(login);
+    });
+    const ids = [...new Set(clean.map(x => String(x.user_id || '')).filter(Boolean))];
+    let linked = [];
+    if (ids.length) {
+      const q = await pool.query(`
+        SELECT u.twitch_id, u.display_name AS watch_game_name, COALESCE(a.username, '') AS account_name
+        FROM users u
+        LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
+        WHERE u.twitch_id = ANY($1::text[])
+      `, [ids]);
+      linked = q.rows;
+    }
+    const byId = new Map(linked.map(x => [String(x.twitch_id), x]));
+    const list = clean.map(x => {
+      const m = byId.get(String(x.user_id || ''));
+      return {
+        twitchId: String(x.user_id || ''),
+        twitchLogin: String(x.user_login || x.user_name || ''),
+        twitchName: String(x.user_name || x.user_login || ''),
+        linked: Boolean(m),
+        watchGameName: m?.watch_game_name || m?.account_name || null
+      };
+    });
+    res.json({
+      ok: true,
+      live: true,
+      viewerCount: Number(stream.viewer_count || 0),
+      chatterCount: chatters.length,
+      eligibleChatterCount: list.length,
+      matchedCount: list.filter(x => x.linked).length,
+      chatters: list,
+      matched: list.filter(x => x.linked)
+    });
+  } catch (error) {
+    console.error('Erreur comptes détectés tracker :', error);
+    res.status(500).json({ error: String(error?.message || 'Impossible de charger les comptes détectés.') });
   }
 });
 
