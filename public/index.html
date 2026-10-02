@@ -1,9 +1,17 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>LoVeRDoSe — Watch Game</title>
-<link rel="stylesheet" href="/styles.css?v=101">
+<meta name="theme-color" content="#0f1020">
+<meta name="application-name" content="LoVeRDoSe Watch Game">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LoVeRDoSe">
+<link rel="manifest" href="/manifest.webmanifest?v=104">
+<link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
+<link rel="apple-touch-icon" href="/pwa-icon-192.webp">
+<link rel="stylesheet" href="/styles.css?v=104">
 
 
 </head>
@@ -286,6 +294,13 @@
   <button id="mobileNavInventory" class="mobile-game-nav-btn" type="button"><span>🎒</span><b>Inventaire</b></button>
   <button id="mobileNavProfile" class="mobile-game-nav-btn" type="button"><span>👤</span><b>Profil</b></button>
 </nav>
+<section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
+  <div class="next-actions-bar-copy">
+    <span class="next-actions-bar-icon" aria-hidden="true">🎯</span>
+    <div><strong>Que faire maintenant ?</strong><span id="nextActionsSummary">On regarde ton compte…</span></div>
+  </div>
+  <button id="nextActionsOpen" class="next-actions-open" type="button">Voir mes actions <span id="nextActionsCount" class="next-actions-count">0</span></button>
+</section>
 <div class="dashboard-head-grid">
   <div class="dashboard-left-stack">
   <section class="player-visit-card" aria-label="Carte de visite du joueur">
@@ -517,20 +532,44 @@
   </div>
 </div>
 
-<!-- BIENVENUE DANS LE JEU -->
-<div id="gameIntroModal" class="game-intro-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
-  <div class="game-intro-panel">
-    <div class="game-intro-icon"><span class="egg-inline-icon egg-inline-icon-lg" aria-hidden="true"></span></div>
+<!-- TUTORIEL GUIDE -->
+<div id="gameIntroModal" class="game-intro-modal tutorial-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
+  <div class="game-intro-panel tutorial-panel">
+    <div class="tutorial-progress"><span id="tutorialProgressBar"></span></div>
+    <div id="tutorialStepLabel" class="tutorial-step-label">Étape 1 / 7</div>
+    <div id="tutorialIcon" class="game-intro-icon tutorial-icon">👋</div>
     <h2 id="gameIntroTitle">Bienvenue dans le Watch Game !</h2>
-    <p>Ton aventure commence avec un œuf mystérieux. Voici comment fonctionne ton départ.</p>
-    <div class="game-intro-steps">
-      <div class="game-intro-step"><span class="egg-inline-icon title-inline-icon" aria-hidden="true"></span><b>1.</b> Ton œuf a besoin de <b>6 heures de présence cumulée</b> pendant les lives pour être prêt à éclore.</div>
-      <div class="game-intro-step">✨ <b>2.</b> Une fois prêt, clique sur <b>Faire éclore l'œuf</b> : ton compagnon sera tiré selon sa rareté.</div>
-      <div class="game-intro-step">🏅 <b>3.</b> Débloque des <b>badges</b> grâce au visionnage, aux réseaux sociaux, au soutien de la chaîne et aux défis spéciaux. Certains badges donnent de l'<b>XP</b> et peuvent être affichés sur ta <b>carte de visite</b>.</div>
-      <div class="game-intro-step">⭐ <b>4.</b> Après l'éclosion, <b>1 h regardée = 100 XP + 10 LoVeR'Cash</b>. Si tu es abonné à la chaîne : <b>120 XP/h + 12 LoVeR'Cash/h</b>. Ton compagnon montera de niveau et pourra évoluer.</div>
+    <p id="tutorialText">On va te montrer l’essentiel en quelques étapes.</p>
+    <div id="tutorialTip" class="tutorial-tip"></div>
+    <div class="tutorial-actions">
+      <button id="tutorialSkip" class="tutorial-skip" type="button">Passer le tutoriel</button>
+      <div class="tutorial-nav-actions">
+        <button id="tutorialPrev" class="tutorial-nav secondary" type="button">← Retour</button>
+        <button id="gameIntroClose" class="tutorial-nav" type="button">Suivant →</button>
+      </div>
     </div>
-    <div class="game-intro-rates">Commun 70 % · Rare 22 % · Épique 7 % · Mythique 1 %</div>
-    <button id="gameIntroClose" class="btn" type="button">J'ai compris</button>
+  </div>
+</div>
+
+<!-- QUE FAIRE MAINTENANT -->
+<div id="nextActionsModal" class="next-actions-modal hidden" role="dialog" aria-modal="true" aria-labelledby="nextActionsTitle">
+  <div class="next-actions-panel">
+    <div class="next-actions-head">
+      <div><div class="next-actions-kicker">🎯 Assistant de progression</div><h2 id="nextActionsTitle">Que faire maintenant ?</h2><p>Les actions utiles sont calculées selon ton compte et se mettent à jour automatiquement.</p></div>
+      <button id="nextActionsClose" class="next-actions-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="nextActionsList" class="next-actions-list"></div>
+    <div class="next-actions-install">
+      <div><strong>📱 Installer le jeu</strong><span id="pwaInstallStatus">Tu peux aussi ajouter LoVeRDoSe à ton écran d’accueil.</span></div>
+      <button id="pwaInstallButton" class="next-action-button secondary" type="button">Installer</button>
+    </div>
+  </div>
+</div>
+
+<div id="pwaHelpModal" class="next-actions-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pwaHelpTitle">
+  <div class="next-actions-panel pwa-help-panel">
+    <div class="next-actions-head"><div><div class="next-actions-kicker">📱 Installation mobile</div><h2 id="pwaHelpTitle">Installer LoVeRDoSe</h2></div><button id="pwaHelpClose" class="next-actions-close" type="button" aria-label="Fermer">×</button></div>
+    <div id="pwaHelpContent" class="pwa-help-content"></div>
   </div>
 </div>
 
@@ -870,5 +909,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=101"></script>
-<script src="/auth-fallback.js?v=101"></script></body></html>
+<script src="/app.js?v=104"></script>
+<script src="/auth-fallback.js?v=104"></script></body></html>

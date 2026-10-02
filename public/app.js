@@ -9,6 +9,9 @@ let rewardWheelSpinning = false;
 let rewardWheelRotation = 0;
 let rewardWheelCountdownTimer = null;
 let shouldShowGameIntro = false;
+let latestPveData = null;
+let tutorialStepIndex = 0;
+let deferredPwaInstallPrompt = null;
 
 const $ = id => document.getElementById(id);
 
@@ -359,7 +362,9 @@ async function syncDesktopLovysHub() {
     const response = await fetch('/api/pve', { cache: 'no-store' });
     const data = await response.json();
     if (!response.ok) return;
+    latestPveData = data;
     renderDesktopLovysHub(data);
+    renderNextActions();
   } catch (error) {
     console.warn('Impossible de synchroniser le panneau Lovys PC :', error);
   }
@@ -711,6 +716,7 @@ async function loadDailyChallenges() {
     if (!response.ok) throw new Error(data.error || 'Impossible de charger les défis.');
     dailyChallengesData = data;
     renderDailyChallenges();
+    renderNextActions();
   } catch (error) {
     console.error('Erreur défis journaliers :', error);
     if ($('dailyChallengesSummary')) $('dailyChallengesSummary').textContent = 'Impossible de charger les défis du jour.';
@@ -801,6 +807,7 @@ async function loadRewardWheels() {
     const response=await fetch('/api/reward-wheels',{cache:'no-store'}); const data=await response.json();
     if(!response.ok) throw new Error(data.error||'Impossible de charger les roues.');
     rewardWheelData=data;
+    renderNextActions();
     if (data.weekly?.available) rewardWheelType='weekly';
     renderRewardWheel();
     if (rewardWheelCountdownTimer) clearInterval(rewardWheelCountdownTimer);
@@ -885,6 +892,8 @@ async function loadGame() {
     await loadBadges();
     await loadDailyChallenges();
     await loadRewardWheels();
+    renderNextActions();
+    updatePwaInstallUi();
     setupTopDashboardSync();
     scheduleTopDashboardSync();
   } catch (error) {
@@ -967,6 +976,7 @@ async function loadIncubatorSlots() {
     if (!response.ok) return;
     incubatorData = data;
     renderIncubatorSlots();
+    renderNextActions();
   } catch (error) {
     console.warn('Impossible de charger les emplacements d’incubation :', error);
   }
@@ -1064,38 +1074,228 @@ function updateEgg(egg) {
   }
 }
 
-function maybeShowGameIntro() {
-  // L'introduction s'affiche uniquement pour un nouveau compte,
-  // après sa toute première liaison Twitch. Elle ne se réaffiche pas
-  // lors des connexions suivantes ni après une réinitialisation du jeu.
-  if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
+const tutorialSteps = [
+  {
+    icon:'👋', title:'Bienvenue dans LoVeRDoSe !',
+    text:'Ton temps de présence sur les lives fait progresser ton compte et alimente plusieurs systèmes du jeu.',
+    tip:'Le tutoriel reste accessible à tout moment avec le bouton ⓘ en haut de la page.'
+  },
+  {
+    icon:'🪪', title:'Ta carte joueur', target:'.player-visit-card',
+    text:'Ici tu retrouves ton niveau global, ton grade, tes badges, ton profil et l’accès à ton inventaire.',
+    tip:'Ton niveau global continue de progresser même pendant l’incubation d’un œuf.'
+  },
+  {
+    icon:'🥚', title:'Œufs et incubateur', target:'.incubator-topbar',
+    text:'Place tes œufs dans l’incubateur. Leur progression avance grâce à ta présence cumulée pendant les lives.',
+    tip:'Les XP Lovys gagnés sans compagnon actif sont conservés dans ta réserve et seront utilisés lors de l’éclosion.'
+  },
+  {
+    icon:'🎯', title:'Défis du jour', target:'#dailyChallengesCard',
+    text:'Trois défis se renouvellent chaque jour. Quand un défi est terminé, pense à réclamer sa récompense.',
+    tip:'Les défis peuvent donner du LoVeR’Cash, de l’XP globale et de l’XP Lovys.'
+  },
+  {
+    icon:'🎡', title:'Roues de récompenses', target:'#rewardWheelCard',
+    text:'La roue quotidienne offre un bonus régulier. Une seconde roue premium se débloque après 7 lives différents assistés.',
+    tip:'Le panneau « Que faire maintenant ? » te préviendra lorsqu’une roue est disponible.'
+  },
+  {
+    icon:'🐉', title:'Lovys et aventure PvE', target:'.desktop-lovys-hub', mobileTarget:'#mobileNavCreatures',
+    text:'Après l’éclosion, ton Lovys gagne de l’XP et peut partir en PvE. Les combats débloquent des récompenses et de nouvelles étapes.',
+    tip:'Les fragments, talents signature et rangs de doublons seront intégrés progressivement à cette progression.'
+  },
+  {
+    icon:'⭐', title:'Progression à long terme',
+    text:'Badges, titres, collection, niveaux globaux et Prestige donnent des objectifs sur la durée. Tu n’as pas besoin de tout apprendre dès le premier jour.',
+    tip:'Utilise « Que faire maintenant ? » : le jeu te proposera seulement les actions utiles à ton compte.'
+  }
+];
 
-  $('gameIntroModal')?.classList.remove('hidden');
+function clearTutorialFocus() {
+  document.querySelectorAll('.tutorial-focus').forEach(element => element.classList.remove('tutorial-focus'));
 }
 
-async function closeGameIntro() {
+function tutorialTargetForStep(step) {
+  const selector = isMobileGameUi() && step.mobileTarget ? step.mobileTarget : step.target;
+  if (!selector) return null;
+  const element = document.querySelector(selector);
+  if (!element || element.offsetParent === null) return null;
+  return element;
+}
+
+function renderTutorialStep() {
+  const step = tutorialSteps[Math.max(0, Math.min(tutorialSteps.length - 1, tutorialStepIndex))];
+  clearTutorialFocus();
+  if ($('tutorialStepLabel')) $('tutorialStepLabel').textContent = `Étape ${tutorialStepIndex + 1} / ${tutorialSteps.length}`;
+  if ($('tutorialProgressBar')) $('tutorialProgressBar').style.width = `${((tutorialStepIndex + 1) / tutorialSteps.length) * 100}%`;
+  if ($('tutorialIcon')) $('tutorialIcon').textContent = step.icon || '✨';
+  if ($('gameIntroTitle')) $('gameIntroTitle').textContent = step.title || 'Tutoriel';
+  if ($('tutorialText')) $('tutorialText').textContent = step.text || '';
+  if ($('tutorialTip')) $('tutorialTip').textContent = step.tip || '';
+  if ($('tutorialPrev')) $('tutorialPrev').disabled = tutorialStepIndex === 0;
+  if ($('gameIntroClose')) $('gameIntroClose').textContent = tutorialStepIndex === tutorialSteps.length - 1 ? 'Terminer ✓' : 'Suivant →';
+  const target = tutorialTargetForStep(step);
+  if (target) {
+    target.classList.add('tutorial-focus');
+    setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 60);
+  }
+}
+
+function openGameTutorial({ restart = true } = {}) {
+  if (restart) tutorialStepIndex = 0;
+  $('gameIntroModal')?.classList.remove('hidden');
+  renderTutorialStep();
+}
+
+function maybeShowGameIntro() {
+  if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
+  openGameTutorial({ restart:true });
+}
+
+async function closeGameIntro({ markSeen = true } = {}) {
+  clearTutorialFocus();
   $('gameIntroModal')?.classList.add('hidden');
-
-  if (!shouldShowGameIntro) return;
+  if (!markSeen || !shouldShowGameIntro) return;
   shouldShowGameIntro = false;
-
   try {
-    await fetch('/api/account/intro-seen', { method: 'POST' });
+    await fetch('/api/account/intro-seen', { method:'POST' });
   } catch (error) {
     console.error('Erreur sauvegarde introduction :', error);
   }
 }
 
-$('infoButton')?.addEventListener('click', () => {
-  // Aide ouverte manuellement pour tous les joueurs.
-  // Cela ne modifie pas le statut de nouveau joueur.
-  $('gameIntroModal')?.classList.remove('hidden');
+$('infoButton')?.addEventListener('click', () => openGameTutorial({ restart:true }));
+$('tutorialPrev')?.addEventListener('click', () => { if (tutorialStepIndex > 0) { tutorialStepIndex -= 1; renderTutorialStep(); } });
+$('gameIntroClose')?.addEventListener('click', () => {
+  if (tutorialStepIndex < tutorialSteps.length - 1) { tutorialStepIndex += 1; renderTutorialStep(); return; }
+  closeGameIntro({ markSeen:true });
+});
+$('tutorialSkip')?.addEventListener('click', () => closeGameIntro({ markSeen:true }));
+$('gameIntroModal')?.addEventListener('click', event => {
+  if (event.target.id === 'gameIntroModal') closeGameIntro({ markSeen:true });
 });
 
-$('gameIntroClose')?.addEventListener('click', closeGameIntro);
-$('gameIntroModal')?.addEventListener('click', event => {
-  if (event.target.id === 'gameIntroModal') closeGameIntro();
+// V104 — assistant contextuel « Que faire maintenant ? ».
+function firstPveAction() {
+  const zones = latestPveData?.zones || [];
+  for (const zone of zones) {
+    const fight = (zone.fights || []).find(item => item.unlocked && !item.won);
+    if (fight) return { zone, fight };
+  }
+  return null;
+}
+
+function buildNextActions() {
+  if (!me?.user) return [];
+  const actions = [];
+  const claimable = (dailyChallengesData?.challenges || []).find(item => item.completed && !item.claimed);
+  if (claimable) actions.push({ id:'claim-challenge', key:claimable.key, icon:'🎁', title:'Réclame ton défi terminé', desc:`${claimable.title} est terminé : sa récompense t’attend.`, button:'Réclamer', priority:true });
+
+  const slots = incubatorData?.slots || [];
+  const readySlot = slots.find(slot => !slot.empty && slot.ready);
+  if (readySlot) actions.push({ id:readySlot.source === 'starter' ? 'hatch-starter' : 'hatch-extra', slot:Number(readySlot.slot), icon:'✨', title:'Un œuf est prêt à éclore', desc:'L’incubation est terminée. Découvre le Lovys qui se cache à l’intérieur.', button:'Faire éclore', priority:true });
+
+  const emptySlot = slots.find(slot => slot.empty);
+  if (emptySlot && Number(incubatorData?.availableEggs || 0) > 0) actions.push({ id:'place-egg', slot:Number(emptySlot.slot), icon:'🥚', title:'Un emplacement d’incubateur est libre', desc:`Tu as ${Number(incubatorData.availableEggs)} œuf${Number(incubatorData.availableEggs) > 1 ? 's' : ''} disponible${Number(incubatorData.availableEggs) > 1 ? 's' : ''}.`, button:'Placer un œuf' });
+
+  if (rewardWheelData?.weekly?.available) actions.push({ id:'wheel-weekly', icon:'👑', title:'Ta roue des 7 lives est prête', desc:'Ta récompense premium est disponible maintenant.', button:'Lancer', priority:true });
+  else if (rewardWheelData?.daily?.available) actions.push({ id:'wheel-daily', icon:'🎡', title:'Ta roue quotidienne est disponible', desc:'Tu peux récupérer ton bonus du jour.', button:'Lancer', priority:true });
+
+  const pve = firstPveAction();
+  if (me.user.creature_id && pve) actions.push({ id:'pve', icon:pve.fight.boss ? '👑' : '⚔️', title:pve.fight.boss ? `Boss débloqué : ${pve.fight.name}` : `Combat débloqué : ${pve.fight.name}`, desc:`${pve.zone.name} · niveau conseillé ${pve.fight.level}.`, button:'Combattre' });
+
+  if (!me.user.creature_id && !readySlot) {
+    const starter = slots.find(slot => slot.source === 'starter');
+    if (starter && !starter.ready) actions.push({ id:'incubator-view', icon:'⏱️', title:'Continue l’incubation', desc:`Il reste ${formatEggTime(Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(starter.watchedSeconds || 0)))} avant ton premier Lovys.`, button:'Voir' });
+  }
+
+  const pendingXp = Math.max(0, Number(me.user.pending_xp || 0));
+  if (!me.user.creature_id && pendingXp > 0) actions.push({ id:'incubator-view', icon:'⚡', title:`${pendingXp.toLocaleString('fr-FR')} XP en réserve`, desc:'Cette XP est conservée et sera attribuée à ton Lovys lors de l’éclosion.', button:'Voir la réserve' });
+  return actions.slice(0, 6);
+}
+
+function renderNextActions() {
+  const list = $('nextActionsList');
+  const summary = $('nextActionsSummary');
+  const count = $('nextActionsCount');
+  if (!summary || !count) return;
+  const actions = buildNextActions();
+  count.textContent = String(actions.length);
+  summary.textContent = actions.length ? `${actions.length} action${actions.length > 1 ? 's' : ''} utile${actions.length > 1 ? 's' : ''} pour ton compte` : 'Tout est à jour pour le moment';
+  if (!list) return;
+  if (!actions.length) {
+    list.innerHTML = `<div class="next-action-empty"><b>✓ Rien d’urgent</b>Continue à profiter du live et à faire progresser ton compte. Les prochaines actions apparaîtront ici automatiquement.</div>`;
+    return;
+  }
+  list.innerHTML = actions.map(action => `<article class="next-action-card${action.priority ? ' priority' : ''}"><div class="next-action-icon">${escapeHtml(action.icon)}</div><div class="next-action-copy"><div class="next-action-title">${escapeHtml(action.title)}</div><div class="next-action-desc">${escapeHtml(action.desc)}</div></div><button class="next-action-button" type="button" data-next-action="${escapeHtml(action.id)}"${action.key ? ` data-key="${escapeHtml(action.key)}"` : ''}${action.slot ? ` data-slot="${Number(action.slot)}"` : ''}>${escapeHtml(action.button)}</button></article>`).join('');
+}
+
+function closeNextActions() { $('nextActionsModal')?.classList.add('hidden'); }
+function openStarterEggDetails() {
+  if (isMobileGameUi()) { toggleMobilePanel('creatures'); return; }
+  const pick = $('pick');
+  if (!pick) return;
+  pick.classList.add('egg-details-open');
+  document.body.style.overflow = 'hidden';
+}
+function scrollToGameElement(selector) {
+  closeNextActions();
+  setTimeout(() => document.querySelector(selector)?.scrollIntoView({ behavior:'smooth', block:'center' }), 60);
+}
+function runNextAction(button) {
+  const action = button.dataset.nextAction;
+  if (action === 'claim-challenge') { closeNextActions(); renderDailyChallengeDetail(button.dataset.key); return; }
+  if (action === 'hatch-starter') { closeNextActions(); openStarterEggDetails(); return; }
+  if (action === 'hatch-extra') { closeNextActions(); const slot=incubatorData?.slots?.find(item=>Number(item.slot)===Number(button.dataset.slot)); if(slot) openExtraEggInfo(slot); return; }
+  if (action === 'place-egg') { closeNextActions(); openIncubatorAddModal(Number(button.dataset.slot)); return; }
+  if (action === 'wheel-daily' || action === 'wheel-weekly') { rewardWheelType = action === 'wheel-weekly' ? 'weekly' : 'daily'; renderRewardWheel(); scrollToGameElement('#rewardWheelCard'); return; }
+  if (action === 'pve') { closeNextActions(); $('pveModal')?.classList.remove('hidden'); loadPve(); syncMobileNavState?.(); return; }
+  if (action === 'incubator-view') { closeNextActions(); if (isMobileGameUi()) openMobileEggDetails(); else scrollToGameElement('.incubator-topbar'); }
+}
+
+$('nextActionsOpen')?.addEventListener('click', () => { renderNextActions(); $('nextActionsModal')?.classList.remove('hidden'); });
+$('nextActionsClose')?.addEventListener('click', closeNextActions);
+$('nextActionsModal')?.addEventListener('click', event => { if (event.target.id === 'nextActionsModal') closeNextActions(); });
+$('nextActionsList')?.addEventListener('click', event => { const button=event.target.closest('[data-next-action]'); if(button) runNextAction(button); });
+
+// V104 — installation PWA. Le jeu reste connecté : le service worker n’intercepte pas les API.
+function isStandalonePwa() { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function isIosDevice() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+function updatePwaInstallUi() {
+  const button = $('pwaInstallButton');
+  const status = $('pwaInstallStatus');
+  const wrap = button?.closest('.next-actions-install');
+  if (!button || !status) return;
+  if (isStandalonePwa()) {
+    button.disabled = true; button.textContent = 'Installé ✓'; status.textContent = 'LoVeRDoSe est déjà lancé comme une application.'; wrap?.classList.add('is-installed'); return;
+  }
+  button.disabled = false; wrap?.classList.remove('is-installed');
+  if (deferredPwaInstallPrompt) { button.textContent = 'Installer'; status.textContent = 'Installation disponible sur cet appareil.'; }
+  else if (isIosDevice()) { button.textContent = 'Voir comment'; status.textContent = 'Sur iPhone/iPad, l’installation se fait depuis le menu Partager de Safari.'; }
+  else { button.textContent = 'Voir comment'; status.textContent = 'L’installation dépend du navigateur utilisé.'; }
+}
+function openPwaHelp() {
+  const content = $('pwaHelpContent');
+  if (!content) return;
+  if (isIosDevice()) content.innerHTML = `<div class="pwa-help-step"><b>1.</b> Ouvre le jeu dans <b>Safari</b>.</div><div class="pwa-help-step"><b>2.</b> Appuie sur le bouton <b>Partager</b>.</div><div class="pwa-help-step"><b>3.</b> Choisis <b>Sur l’écran d’accueil</b>, puis confirme avec <b>Ajouter</b>.</div><div class="pwa-help-note">L’icône LoVeRDoSe apparaîtra avec tes applications et le jeu s’ouvrira dans une fenêtre dédiée.</div>`;
+  else content.innerHTML = `<div class="pwa-help-step"><b>1.</b> Ouvre le menu de ton navigateur.</div><div class="pwa-help-step"><b>2.</b> Cherche <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.</div><div class="pwa-help-step"><b>3.</b> Confirme l’installation.</div><div class="pwa-help-note">Sur Chrome/Edge compatibles, le bouton Installer peut aussi apparaître automatiquement ici.</div>`;
+  $('pwaHelpModal')?.classList.remove('hidden');
+}
+$('pwaInstallButton')?.addEventListener('click', async () => {
+  if (deferredPwaInstallPrompt) {
+    deferredPwaInstallPrompt.prompt();
+    try { await deferredPwaInstallPrompt.userChoice; } catch {}
+    deferredPwaInstallPrompt = null;
+    updatePwaInstallUi();
+    return;
+  }
+  openPwaHelp();
 });
+$('pwaHelpClose')?.addEventListener('click', () => $('pwaHelpModal')?.classList.add('hidden'));
+$('pwaHelpModal')?.addEventListener('click', event => { if (event.target.id === 'pwaHelpModal') $('pwaHelpModal')?.classList.add('hidden'); });
+window.addEventListener('beforeinstallprompt', event => { event.preventDefault(); deferredPwaInstallPrompt = event; updatePwaInstallUi(); });
+window.addEventListener('appinstalled', () => { deferredPwaInstallPrompt = null; updatePwaInstallUi(); });
 
 
 let badgeData = { gameWatch: [], challenges: [], badges: [], showcaseSettings: { isPublic: true, theme: 'classic' } };
@@ -4333,6 +4533,12 @@ window.addEventListener('resize', scheduleTopDashboardSync);
 window.addEventListener('keydown', event => {
   if (event.key === 'Escape' && badgeCelebrationActive) closeBadgeCelebration();
 });
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js?v=104').catch(error => console.warn('Service worker non disponible :', error));
+  });
+}
 
 startLiveUpdates();
 
