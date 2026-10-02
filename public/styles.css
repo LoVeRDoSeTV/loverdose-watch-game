@@ -4924,20 +4924,25 @@ body:has(#pveModal:not(.hidden)){
 
 /* ===== V114 — PC : les vraies fenêtres passent toujours au-dessus de la navigation ===== */
 @media (min-width:901px){
+  /* La navigation reste au-dessus des pages, mais jamais au-dessus d'une popup. */
+  .desktop-game-nav{z-index:1000040!important;}
+
   .account-modal,
   .inventory-modal,
+  .player-profile-modal,
   .badge-collection-modal,
   .sub-benefits-modal,
-  .player-profile-modal,
   .admin-players-modal,
   .events-modal,
+  .confirm-modal,
   .next-actions-modal,
-  .tutorial-modal,
-  .reward-wheel-win-popup,
-  .reward-wheel-odds-popup,
-  .badge-unlock-celebration,
-  .trade-composer{
-    z-index:1000100!important;
+  .incubator-add-modal,
+  .fragment-shop-modal,
+  .daily-challenge-detail-modal{
+    z-index:1001000!important;
   }
+
+  /* Les dialogues ouverts depuis une popup doivent encore passer devant celle-ci. */
+  .confirm-modal{z-index:1001100!important;}
 }
 /* ===== /V114 ===== */
