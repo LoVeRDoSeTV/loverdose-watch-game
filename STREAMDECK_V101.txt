@@ -1,0 +1,13 @@
+V101 — IMPORTANT : commandes Stream Deck
+
+Les anciennes URLs GET avec ?token=... ont été supprimées pour éviter que le secret apparaisse dans les logs et l'historique.
+
+Configurer les actions HTTP ainsi :
+- Activer Zombie : POST /api/streamdeck/zombie/on
+- Désactiver Zombie : POST /api/streamdeck/zombie/off
+- Statut : GET /api/streamdeck/zombie/status
+
+Ajouter le header HTTP :
+X-Stream-Deck-Token: <valeur de STREAM_DECK_TOKEN>
+
+Ne plus placer STREAM_DECK_TOKEN dans l'URL.

@@ -6,15 +6,21 @@ import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
+import { getSessionSecret, isProduction } from './src/config.js';
+import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit } from './src/middleware/security.js';
+import { createStreamDeckRouter } from './src/routes/streamdeck.js';
+import { createPveRouter } from './src/routes/pve.js';
 
 const { Pool } = pg;
 
 const app = express();
+const SESSION_SECRET = getSessionSecret();
 
 app.set('trust proxy', 1);
 
 // V99 — Compresse HTML/CSS/JS/JSON avant envoi pour réduire la bande passante Render.
 app.use(compression());
+app.use(createHelmetMiddleware({ production: isProduction }));
 
 const PORT = Number(process.env.PORT || 3000);
 
@@ -1594,8 +1600,7 @@ function trackerAuthUrl(state) {
 }
 
 function trackerCryptoKey() {
-  const secret = process.env.SESSION_SECRET || 'dev-secret-change-me';
-  return crypto.createHash('sha256').update(secret).digest();
+  return crypto.createHash('sha256').update(SESSION_SECRET).digest();
 }
 
 function encryptTrackerSecret(value) {
@@ -2414,7 +2419,8 @@ async function getBroadcasterAccount(req) {
    EXPRESS
 ========================================= */
 
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
+app.use(createOriginGuard({ baseUrl: BASE_URL }));
 
 
 /* =========================================
@@ -2442,8 +2448,7 @@ app.use(
       }),
 
     secret:
-      process.env.SESSION_SECRET ||
-      'dev-secret-change-me',
+      SESSION_SECRET,
 
     resave:
       false,
@@ -2623,7 +2628,7 @@ async function restoreGameSession(req, twitchId) {
    COMPTE - INSCRIPTION
 ========================================= */
 
-app.post('/api/register', async (req, res) => {
+app.post('/api/register', registerRateLimit, async (req, res) => {
   try {
     let { email, username, password } = req.body;
 
@@ -2725,7 +2730,7 @@ app.post('/api/register', async (req, res) => {
    COMPTE - CONNEXION
 ========================================= */
 
-app.post('/api/account/login', async (req, res) => {
+app.post('/api/account/login', loginRateLimit, async (req, res) => {
   try {
     let { email, password } = req.body;
 
@@ -3318,96 +3323,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-function streamDeckTokenIsValid(req) {
-  const configured = String(process.env.STREAM_DECK_TOKEN || '').trim();
-  const provided = String(req.query?.token || '').trim();
-
-  if (!configured || !provided) return false;
-
-  const configuredBuffer = Buffer.from(configured);
-  const providedBuffer = Buffer.from(provided);
-
-  if (configuredBuffer.length !== providedBuffer.length) return false;
-  return crypto.timingSafeEqual(configuredBuffer, providedBuffer);
-}
-
-app.get('/api/streamdeck/zombie/on', async (req, res) => {
-  try {
-    if (!streamDeckTokenIsValid(req)) {
-      return res.status(403).send('Accès refusé.');
-    }
-
-    const row = await getTrackerAuthRow();
-    if (!row) {
-      return res.status(409).send('Tracker Twitch non configuré.');
-    }
-
-    // Compte d'abord le temps écoulé avec l'ancien mode, puis active Zombie.
-    await runTrackerTick();
-
-    await pool.query(
-      `
-      UPDATE twitch_tracker_auth
-      SET special_mode = 'zombie',
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
-      `
-    );
-
-    res.send('🧟 Mode Zombie activé');
-  } catch (error) {
-    console.error('Erreur Stream Deck Zombie ON :', error);
-    res.status(500).send('Impossible d’activer le mode Zombie.');
-  }
-});
-
-app.get('/api/streamdeck/zombie/off', async (req, res) => {
-  try {
-    if (!streamDeckTokenIsValid(req)) {
-      return res.status(403).send('Accès refusé.');
-    }
-
-    const row = await getTrackerAuthRow();
-    if (!row) {
-      return res.status(409).send('Tracker Twitch non configuré.');
-    }
-
-    // Compte le dernier intervalle Zombie avant de couper le mode spécial.
-    await runTrackerTick();
-
-    await pool.query(
-      `
-      UPDATE twitch_tracker_auth
-      SET special_mode = NULL,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
-      `
-    );
-
-    res.send('✅ Mode Zombie désactivé');
-  } catch (error) {
-    console.error('Erreur Stream Deck Zombie OFF :', error);
-    res.status(500).send('Impossible de désactiver le mode Zombie.');
-  }
-});
-
-app.get('/api/streamdeck/zombie/status', async (req, res) => {
-  try {
-    if (!streamDeckTokenIsValid(req)) {
-      return res.status(403).json({ error: 'Accès refusé.' });
-    }
-
-    const row = await getTrackerAuthRow();
-    res.json({
-      ok: true,
-      active: String(row?.special_mode || '').toLowerCase() === 'zombie',
-      specialMode: row?.special_mode || null
-    });
-  } catch (error) {
-    console.error('Erreur Stream Deck Zombie STATUS :', error);
-    res.status(500).json({ error: 'Impossible de charger le mode Zombie.' });
-  }
-});
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -4654,61 +4570,15 @@ app.post('/api/fragments/buy-egg', async (req,res)=>{
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur achat œuf par fragments :',error);res.status(500).json({error:'Impossible d’acheter cet œuf.'});}finally{client.release();}
 });
 
-app.get('/api/pve', async (req,res)=>{
- try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); const r=await pool.query(`SELECT id,creature_id,xp,egg_fragments FROM users WHERE twitch_id=$1`,[req.session.user.twitchId]);const u=r.rows[0];if(!u)return res.status(404).json({error:'Joueur introuvable.'});const pr=await pool.query(`SELECT fight_key,wins,attempts FROM user_pve_progress WHERE user_id=$1`,[u.id]);const map=new Map(pr.rows.map(x=>[x.fight_key,x]));const zones=PVE_ZONES.map(z=>({...z,fights:z.fights.map(f=>{const prev=pvePreviousFight(f.key);return {...f,won:Number(map.get(f.key)?.wins||0)>0,unlocked:!prev||Number(map.get(prev.key)?.wins||0)>0};})}));res.json({ok:true,hasCreature:Boolean(u.creature_id),creature:u.creature_id?creatureBattleStats(u):null,eggFragments:Number(u.egg_fragments||0),zones});}catch(e){res.status(500).json({error:'Impossible de charger l’aventure.'});}
-});
-
-app.post('/api/pve/fight', async (req,res)=>{
- const c=await pool.connect();
- try{
-  if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
-  const fight=pveFightByKey(String(req.body?.fightKey||''));
-  if(!fight)return res.status(400).json({error:'Combat introuvable.'});
-  await c.query('BEGIN');
-  const r=await c.query(`SELECT id,creature_id,xp,global_xp FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
-  const u=r.rows[0];
-  if(!u?.creature_id){await c.query('ROLLBACK');return res.status(400).json({error:'Il te faut un Lovys éclos pour combattre.'});}
-  const prev=pvePreviousFight(fight.key);
-  if(prev){const pr=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,prev.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await c.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}
-  const st=creatureBattleStats(u),mult=typeMultiplier(st.type,fight.type);
-  const playerMaxHp=Number(st.hp||1),enemyMaxHp=Number(fight.hp||1);
-  let ph=playerMaxHp,eh=enemyMaxHp,rounds=0;
-  const combatLog=[];
-  while(ph>0&&eh>0&&rounds<20){
-    rounds++;
-    const playerDamage=Math.max(8,Math.round(st.power*mult*(.9+crypto.randomInt(0,21)/100)));
-    eh-=playerDamage;
-    const step={round:rounds,playerDamage,enemyDamage:0,enemyHpAfter:Math.max(0,eh),playerHpAfter:Math.max(0,ph)};
-    if(eh<=0){combatLog.push(step);break;}
-    const enemyDamage=Math.max(6,Math.round(fight.power*(.9+crypto.randomInt(0,21)/100)));
-    ph-=enemyDamage;
-    step.enemyDamage=enemyDamage;
-    step.playerHpAfter=Math.max(0,ph);
-    combatLog.push(step);
-  }
-  const victory=eh<=0;
-  const old=await c.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[u.id,fight.key]);
-  const firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;
-  await c.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP) ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[u.id,fight.key,victory?1:0,firstWin?new Date():null]);
-  const rw=firstWin?fight.rewards:{creatureXp:0,globalXp:0,fragments:0};
-  if(firstWin)await c.query(`UPDATE users SET xp=xp+$2,global_xp=LEAST(global_xp+$3,$5),egg_fragments=egg_fragments+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[u.id,rw.creatureXp,rw.globalXp,rw.fragments,globalThresholdForLevel(56)]);
-  const battle={
-    typeMultiplier:mult,
-    player:{name:st.name||'Lovys',level:st.level,type:st.type,power:st.power,hp:playerMaxHp,maxHp:playerMaxHp},
-    enemy:{name:fight.name,level:fight.level,type:fight.type,power:fight.power,hp:enemyMaxHp,maxHp:enemyMaxHp,boss:Boolean(fight.boss)},
-    log:combatLog,
-    playerRemainingHp:Math.max(0,ph),
-    enemyRemainingHp:Math.max(0,eh)
-  };
-  await c.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[u.id,fight.key,victory?'victory':'defeat',st.level,fight.level,st.power,fight.power,rw.creatureXp,rw.globalXp,rw.fragments,JSON.stringify({rounds,playerRemainingHp:Math.max(0,ph),enemyRemainingHp:Math.max(0,eh),typeMultiplier:mult,combatLog})]);
-  await c.query('COMMIT');
-  res.json({ok:true,victory,firstWin,reward:rw,rounds,battle});
- }catch(e){
-  try{await c.query('ROLLBACK')}catch{}
-  console.error(e);
-  res.status(500).json({error:'Combat impossible.'});
- }finally{c.release();}
-});
+app.use('/api/pve', createPveRouter({
+  pool,
+  zones: PVE_ZONES,
+  previousFight: pvePreviousFight,
+  fightByKey: pveFightByKey,
+  creatureBattleStats,
+  typeMultiplier,
+  globalThresholdForLevel
+}));
 
 app.get('/api/badges', async (req, res) => {
   try {
