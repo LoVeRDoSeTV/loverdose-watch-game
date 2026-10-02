@@ -2224,28 +2224,28 @@ async function runTrackerTick() {
         SET
           xp = xp + (CASE
             WHEN creature_id IS NULL THEN 0
-            WHEN is_sub THEN $2
-            ELSE $1
+            WHEN is_sub THEN $2::double precision
+            ELSE $1::double precision
           END) * (CASE WHEN EXISTS (
             SELECT 1 FROM user_active_boosts b
             WHERE b.user_id = users.id AND b.boost_key = 'boost_xp_x2' AND b.expires_at > CURRENT_TIMESTAMP
           ) THEN 2 ELSE 1 END),
           points = points + (CASE
-            WHEN is_sub THEN $4
-            ELSE $3
+            WHEN is_sub THEN $4::double precision
+            ELSE $3::double precision
           END) * (CASE WHEN EXISTS (
             SELECT 1 FROM user_active_boosts b
             WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
           ) THEN 2 ELSE 1 END),
           lifetime_lovercash_earned = lifetime_lovercash_earned + (CASE
-            WHEN is_sub THEN $4
-            ELSE $3
+            WHEN is_sub THEN $4::double precision
+            ELSE $3::double precision
           END) * (CASE WHEN EXISTS (
             SELECT 1 FROM user_active_boosts b
             WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
           ) THEN 2 ELSE 1 END),
-          global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8 ELSE $7 END), $9),
-          watch_seconds = watch_seconds + $5,
+          global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END), $9::double precision),
+          watch_seconds = watch_seconds + $5::bigint,
           last_live_seen_at = CURRENT_TIMESTAMP,
           updated_at = CURRENT_TIMESTAMP
         WHERE twitch_id = ANY($6::text[])
