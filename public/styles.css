@@ -4921,3 +4921,23 @@ body:has(#pveModal:not(.hidden)){
   .player-card-account-action{display:none!important}
 }
 /* ===== /V113 ===== */
+
+/* ===== V114 — PC : les vraies fenêtres passent toujours au-dessus de la navigation ===== */
+@media (min-width:901px){
+  .account-modal,
+  .inventory-modal,
+  .badge-collection-modal,
+  .sub-benefits-modal,
+  .player-profile-modal,
+  .admin-players-modal,
+  .events-modal,
+  .next-actions-modal,
+  .tutorial-modal,
+  .reward-wheel-win-popup,
+  .reward-wheel-odds-popup,
+  .badge-unlock-celebration,
+  .trade-composer{
+    z-index:1000100!important;
+  }
+}
+/* ===== /V114 ===== */
