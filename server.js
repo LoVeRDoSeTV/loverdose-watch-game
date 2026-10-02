@@ -2516,11 +2516,14 @@ app.use(
     etag: true,
     lastModified: true,
     setHeaders(res, filePath) {
-      if (/\.(?:webp|svg|ico|woff2?)$/i.test(filePath)) {
-        // V100 — Assets versionnés : cache navigateur 1 an.
+      if (/service-worker\.js$/i.test(filePath) || /manifest\.webmanifest$/i.test(filePath)) {
+        // V104 — le navigateur doit toujours vérifier les métadonnées PWA et le service worker.
+        res.setHeader('Cache-Control', 'no-cache');
+      } else if (/\.(?:webp|svg|ico|woff2?)$/i.test(filePath)) {
+        // Assets statiques : cache navigateur 1 an.
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (/\.(?:css|js)$/i.test(filePath)) {
-        // V100 — CSS/JS utilisent ?v=100 : une nouvelle version casse immédiatement le cache.
+        // CSS/JS sont versionnés dans index.html (?v=104).
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
       } else if (/\.html$/i.test(filePath)) {
         // Toujours vérifier l'HTML afin qu'un nouveau déploiement soit visible immédiatement.
