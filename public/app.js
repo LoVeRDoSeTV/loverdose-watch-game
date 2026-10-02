@@ -4374,3 +4374,6 @@ $('playerCardCollection')?.addEventListener('click', () => {
   renderBadgeCollection();
 });
 $('playerCardShop')?.addEventListener('click', openShop);
+
+// V101 — remplace l'ancien onclick inline pour permettre une CSP stricte.
+$('playerCardAccount')?.addEventListener('click', () => openAccountModal());
