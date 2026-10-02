@@ -2206,8 +2206,9 @@ async function runTrackerTick() {
     }
 
     const chatters = await getAllChatters();
-    // La liste /chat/chatters contient aussi le diffuseur et des bots de chat.
-    // Ils ne doivent pas recevoir de récompenses de visionnage.
+    // La liste /chat/chatters contient aussi des bots de chat.
+    // Les bots sont exclus. Le diffuseur reste éligible s'il possède lui-même
+    // un compte Watch Game lié (comportement voulu pour le compte principal).
     const ignoredTrackerLogins = new Set([
       'nightbot', 'streamelements', 'streamlabs', 'moobot', 'fossabot',
       'wizebot', 'sery_bot', 'soundalerts', 'streamstickers'
@@ -2215,9 +2216,6 @@ async function runTrackerTick() {
     const eligibleChatters = chatters.filter(item => {
       const id = String(item.user_id || '').trim();
       const login = String(item.user_login || item.user_name || '').trim().toLowerCase();
-      // Le diffuseur peut aussi avoir un compte Watch Game lié : sa présence
-      // dans le chat doit alors faire progresser son compte comme les autres.
-      // Il reste distinct du compteur public de spectateurs Twitch.
       return id && !ignoredTrackerLogins.has(login);
     });
     const chatterIds = [...new Set(eligibleChatters.map(item => String(item.user_id || '')).filter(Boolean))];
@@ -3679,7 +3677,7 @@ app.get('/api/tracker/detected-accounts', async (req, res) => {
     const clean = chatters.filter(item => {
       const id = String(item.user_id || '').trim();
       const login = String(item.user_login || item.user_name || '').trim().toLowerCase();
-      return id && id !== broadcasterId && !ignored.has(login);
+      return id && !ignored.has(login);
     });
     const ids = [...new Set(clean.map(x => String(x.user_id || '')).filter(Boolean))];
     let linked = [];
