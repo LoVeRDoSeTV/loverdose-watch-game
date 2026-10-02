@@ -4901,10 +4901,47 @@ body:has(#pveModal:not(.hidden)){
 /* ===== PC : navigation sans panneau de fond ===== */
 @media (min-width:901px){
   .desktop-game-nav{
-    background:none!important;
-    border:0!important;
+    background:transparent!important;
+    border-color:transparent!important;
     box-shadow:none!important;
     backdrop-filter:none!important;
     -webkit-backdrop-filter:none!important;
   }
 }
+
+
+/* ===== V112 — PC : compte dans l'en-tête + thème jour/nuit ===== */
+.desktop-account-button,.desktop-theme-toggle{display:none}
+@media (min-width:901px){
+  .top{position:relative}
+  .account-access{gap:8px}
+  .desktop-account-button{display:flex;align-items:center;justify-content:center;gap:7px;min-height:40px;padding:0 13px;border:1px solid rgba(255,255,255,.13);border-radius:12px;background:rgba(26,31,53,.88);color:#eef0fa;font:inherit;font-size:11px;font-weight:900;cursor:pointer;transition:.18s}
+  .desktop-account-button:hover{background:rgba(145,71,255,.18);border-color:rgba(145,71,255,.45);transform:translateY(-1px)}
+  .desktop-account-button span{font-size:14px}.desktop-account-button b{font:inherit}
+  .desktop-theme-toggle{display:flex}
+  .player-card-account-action{display:none!important}
+
+  body.desktop-light-theme{background:radial-gradient(circle at 50% -10%,#56617a 0,#30394c 42%,#222a39 100%)!important;color:#f7f8fc}
+  body.desktop-light-theme .top,
+  body.desktop-light-theme .desktop-game-nav{color:#f7f8fc}
+  body.desktop-light-theme .next-actions-bar,
+  body.desktop-light-theme .player-visit-card,
+  body.desktop-light-theme .incubator,
+  body.desktop-light-theme .daily-challenges-panel,
+  body.desktop-light-theme .desktop-lobby-shell,
+  body.desktop-light-theme .global-leaderboard,
+  body.desktop-light-theme .pve-panel,
+  body.desktop-light-theme .shop-panel,
+  body.desktop-light-theme .progression-panel{
+    background-color:rgba(29,37,54,.92)!important;
+    border-color:rgba(184,158,255,.34)!important;
+  }
+  body.desktop-light-theme .player-card-action,
+  body.desktop-light-theme .desktop-account-button,
+  body.desktop-light-theme .account-icon-button,
+  body.desktop-light-theme .desktop-game-nav-btn:not(.active){background:rgba(24,31,47,.70);color:#eef1fa;border-color:rgba(255,255,255,.10)}
+  body.desktop-light-theme .desktop-game-nav-btn:not(.active):hover{background:rgba(145,71,255,.20)}
+  body.desktop-light-theme .next-actions-bar-copy span,
+  body.desktop-light-theme .desktop-page-head p{color:#d4d9e7}
+}
+/* ===== /V112 ===== */

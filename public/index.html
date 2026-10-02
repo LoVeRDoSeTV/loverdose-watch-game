@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=111">
+<link rel="stylesheet" href="/styles.css?v=112">
 
 
 </head>
@@ -282,6 +282,8 @@
 <div class="top">
   <div class="logo">🐾 LoVeRDoSeTV Watch Game</div>
   <div class="account-access">
+    <button id="desktopAccountButton" class="desktop-account-button" type="button" aria-label="Ouvrir mon compte" title="Mon compte"><span>👤</span><b>Mon compte</b></button>
+    <button id="themeToggleButton" class="account-icon-button desktop-theme-toggle" type="button" aria-label="Activer le mode clair" title="Mode clair">☀</button>
     <button id="infoButton" class="account-icon-button" type="button" aria-label="Voir les informations du jeu" title="Comment jouer">ⓘ</button>
   </div>
 </div>
@@ -357,7 +359,7 @@
     <div class="player-card-actions">
       <button id="playerCardCollection" class="player-card-action" type="button">🏆 Mes badges</button>
       <button id="playerCardInventory" class="player-card-action" type="button" aria-haspopup="dialog">🎒 Inventaire</button>
-      <button id="playerCardAccount" class="player-card-action" type="button" aria-haspopup="dialog">👤 Mon compte</button>
+      <button id="playerCardAccount" class="player-card-action player-card-account-action" type="button" aria-haspopup="dialog">👤 Mon compte</button>
     </div>
   </section>
   <aside class="card wallet-card" aria-label="Portefeuille LoVeR'Cash">
@@ -1018,5 +1020,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=110"></script>
+<script src="/app.js?v=112"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
