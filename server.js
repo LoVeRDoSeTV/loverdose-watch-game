@@ -1465,6 +1465,35 @@ async function initDatabase() {
     `
   );
 
+  // V103 — Les images ont été converties de PNG vers WebP en V98.
+  // Certains badges déjà débloqués avant cette migration conservaient encore
+  // l'ancien chemin .png en base, ce qui affichait une image cassée.
+  // On réconcilie uniquement les anciens chemins connus avec leurs WebP actuels.
+  await pool.query(`
+    UPDATE user_badges
+    SET badge_image = CASE badge_image
+      WHEN '/DofusEmeraude.png' THEN '/DofusEmeraude.webp'
+      WHEN '/SpherePalworld.png' THEN '/SpherePalworld.webp'
+      WHEN '/MW4.png' THEN '/MW4.webp'
+      WHEN '/Zombie.png' THEN '/Zombie.webp'
+      WHEN '/Discord.png' THEN '/Discord.webp'
+      WHEN '/Instagram.png' THEN '/Instagram.webp'
+      WHEN '/Tiktok.png' THEN '/Tiktok.webp'
+      WHEN '/Loverhi.png' THEN '/Loverhi.webp'
+      WHEN '/Watch1.png' THEN '/Watch1.webp'
+      WHEN '/Watch2.png' THEN '/Watch2.webp'
+      WHEN '/Watch3.png' THEN '/Watch3.webp'
+      WHEN '/Watch4.png' THEN '/Watch4.webp'
+      WHEN '/Watch5.png' THEN '/Watch5.webp'
+      ELSE badge_image
+    END
+    WHERE badge_image IN (
+      '/DofusEmeraude.png', '/SpherePalworld.png', '/MW4.png', '/Zombie.png',
+      '/Discord.png', '/Instagram.png', '/Tiktok.png', '/Loverhi.png',
+      '/Watch1.png', '/Watch2.png', '/Watch3.png', '/Watch4.png', '/Watch5.png'
+    )
+  `);
+
 
   console.log(
     'PostgreSQL connecté ✅'
