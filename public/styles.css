@@ -5105,3 +5105,118 @@ body:has(#pveModal:not(.hidden)){
   #pveModal,.lovys-collection-modal,#progressionModal,#shopModal,#accountModal{cursor:default}
 }
 /* ===== /V117 ===== */
+
+/* =========================================================
+   V118 — PC : PAGES SANS GROS BLOC EXTERIEUR
+   Même philosophie visuelle que la Boutique V115.
+   Accueil et mobile inchangés.
+========================================================= */
+@media (min-width:901px){
+  /* Lovys */
+  body[data-desktop-view="lovys"] .lovys-collection-panel{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-head{
+    padding:8px 0 22px!important;
+    margin-bottom:22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+
+  /* PvE */
+  body[data-desktop-view="pve"] #pveModal .game-panel{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head{
+    padding:8px 0 22px!important;
+    margin-bottom:22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+
+  /* Progression */
+  body[data-desktop-view="progression"] #progressionModal .game-panel{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head{
+    padding:8px 0 22px!important;
+    margin-bottom:22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+
+  /* Lobby */
+  body[data-desktop-view="lobby"] .desktop-lobby-shell{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="lobby"] .desktop-page-head{
+    padding:8px 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+
+  /* Classement */
+  body.desktop-leaderboard-open .global-leaderboard{
+    width:min(1500px,calc(100vw - 84px))!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  /* Incubateur : on retire le grand panneau, les emplacements restent des cartes. */
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    margin:28px auto 0!important;
+  }
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{
+    min-height:0!important;
+    padding:28px 0 60px!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-slots{margin-top:28px!important}
+
+  /* Mon compte : même largeur/rythme que les autres vraies pages. */
+  body[data-desktop-view="account"] #accountModal .account-panel{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    padding:28px 0 60px!important;
+  }
+}
+/* ===== /V118 ===== */
