@@ -10,6 +10,7 @@ import { getSessionSecret, isProduction } from './src/config.js';
 import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit } from './src/middleware/security.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
+import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
 
@@ -746,11 +747,11 @@ const PVE_ZONES = [
     {key:'forest_3',name:'Sentinelle des racines',level:3,type:'Verdance',hp:150,power:54,rewards:{creatureXp:6,globalXp:3,fragments:1}},
     {key:'forest_4',name:'Lucibulle sylvestre',level:4,type:'Verdance',hp:175,power:60,rewards:{creatureXp:7,globalXp:3,fragments:1}},
     {key:'forest_5',name:'Mycélium vif',level:5,type:'Verdance',hp:205,power:66,rewards:{creatureXp:8,globalXp:4,fragments:1}},
-    {key:'forest_6',name:'Gardien des Racines',level:6,type:'Verdance',hp:250,power:74,boss:true,miniBoss:true,rewards:{creatureXp:12,globalXp:5,fragments:3}},
+    {key:'forest_6',name:'Gardien des Racines',level:6,type:'Verdance',hp:250,power:74,boss:true,miniBoss:true,mechanic:{key:'root_guard',name:'Écorce ancienne',description:'Le premier échange est fortement amorti. Toutes les 3 attaques, le Gardien utilise un écrasement racinaire.'},rewards:{creatureXp:12,globalXp:5,fragments:3}},
     {key:'forest_7',name:'Esprit du sous-bois',level:7,type:'Mirage',hp:275,power:78,rewards:{creatureXp:9,globalXp:4,fragments:1}},
     {key:'forest_8',name:'Sylve fractale',level:8,type:'Verdance',hp:305,power:84,rewards:{creatureXp:10,globalXp:5,fragments:1}},
     {key:'forest_9',name:'Grand mycéliarque',level:9,type:'Verdance',hp:340,power:90,rewards:{creatureXp:12,globalXp:5,fragments:2}},
-    {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,rewards:{creatureXp:20,globalXp:8,fragments:5}}
+    {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,mechanic:{key:'monarch_phases',name:'Règne des racines',description:'Change de phase à 60 % puis 30 % de PV : défense, régénération puis offensive finale.'},rewards:{creatureXp:20,globalXp:8,fragments:5}}
   ]},
   { key:'ember', name:'Forges du Cœur Ardent', icon:'🔥', fights:[
     {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:10,globalXp:4,fragments:1}},
@@ -758,26 +759,26 @@ const PVE_ZONES = [
     {key:'ember_3',name:'Salamandre de braise',level:7,type:'Cendre',hp:305,power:92,rewards:{creatureXp:12,globalXp:5,fragments:1}},
     {key:'ember_4',name:'Scarabraise',level:8,type:'Forge',hp:345,power:100,rewards:{creatureXp:13,globalXp:5,fragments:1}},
     {key:'ember_5',name:'Fumarok',level:9,type:'Cendre',hp:385,power:108,rewards:{creatureXp:14,globalXp:6,fragments:1}},
-    {key:'ember_6',name:'Colosse des scories',level:10,type:'Forge',hp:450,power:120,boss:true,miniBoss:true,rewards:{creatureXp:20,globalXp:8,fragments:3}},
+    {key:'ember_6',name:'Colosse des scories',level:10,type:'Forge',hp:450,power:120,boss:true,miniBoss:true,mechanic:{key:'colossus_armor',name:'Armure de scories',description:'Sa carapace absorbe fortement le premier coup reçu.'},rewards:{creatureXp:20,globalXp:8,fragments:3}},
     {key:'ember_7',name:'Vipère magmatique',level:11,type:'Cendre',hp:480,power:126,rewards:{creatureXp:16,globalXp:7,fragments:1}},
     {key:'ember_8',name:'Obsidrake',level:12,type:'Forge',hp:525,power:134,rewards:{creatureXp:18,globalXp:8,fragments:2}},
     {key:'ember_9',name:'Titan de la Forge',level:13,type:'Forge',hp:580,power:144,rewards:{creatureXp:20,globalXp:9,fragments:2}},
-    {key:'ember_boss',name:'Cœur de Magma',level:15,type:'Cendre',hp:700,power:160,boss:true,finalBoss:true,rewards:{creatureXp:32,globalXp:14,fragments:6}}
+    {key:'ember_boss',name:'Cœur de Magma',level:15,type:'Cendre',hp:700,power:160,boss:true,finalBoss:true,mechanic:{key:'magma_core',name:'Cœur en fusion',description:'Prend toujours l’initiative. Surchauffe toutes les 3 attaques et entre en éruption sous 25 % de PV.',alwaysFirst:true},rewards:{creatureXp:32,globalXp:14,fragments:6}}
   ]},
   { key:'night', name:'Ruines Nocturnes', icon:'🌙', fights:[
     {key:'night_1',name:'Ombre errante',level:10,type:'Néant',hp:420,power:116,rewards:{creatureXp:10,globalXp:4,fragments:1}},
     {key:'night_2',name:'Veilleur brisé',level:11,type:'Cristal',hp:455,power:124,rewards:{creatureXp:11,globalXp:4,fragments:1}},
     {key:'night_3',name:'Spectre du miroir',level:12,type:'Mirage',hp:495,power:132,rewards:{creatureXp:12,globalXp:5,fragments:2}},
     {key:'night_4',name:'Chevalier du Néant',level:13,type:'Néant',hp:540,power:142,rewards:{creatureXp:13,globalXp:5,fragments:2}},
-    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,rewards:{creatureXp:18,globalXp:7,fragments:4}},
-    {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,rewards:{creatureXp:28,globalXp:10,fragments:7}}
+    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,mechanic:{key:'oracle_dodge',name:'Mirage prophétique',description:'Esquive automatiquement la première attaque du combat.'},rewards:{creatureXp:18,globalXp:7,fragments:4}},
+    {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,mechanic:{key:'eclipse_phases',name:'Éclipse totale',description:'Peut esquiver au maximum deux attaques. Sous 50 % de PV, gagne ATQ/VIT et perce périodiquement la DEF.',dodgeChance:10,maxDodges:2},rewards:{creatureXp:28,globalXp:10,fragments:7}}
   ]}
 ];
 const PVE_FIGHTS=PVE_ZONES.flatMap(z=>z.fights.map((f,i)=>({...f,zoneKey:z.key,zoneName:z.name,zoneIcon:z.icon,index:i})));
 function pveFightByKey(key){return PVE_FIGHTS.find(f=>f.key===key)||null;}
 function pvePreviousFight(key){const i=PVE_FIGHTS.findIndex(f=>f.key===key);return i>0?PVE_FIGHTS[i-1]:null;}
-function typeMultiplier(attacker,defender){const beats={Verdance:'Abyssal',Abyssal:'Cendre',Cendre:'Verdance',Foudre:'Abyssal',Néant:'Mirage',Mirage:'Néant',Solaire:'Néant',Forge:'Cristal',Cristal:'Foudre'};if(beats[attacker]===defender)return 1.15;if(beats[defender]===attacker)return .9;return 1;}
-function creatureBattleStats(user){const prog=progressionFromXp(Number(user.xp||0));const creature=creatures.find(c=>c.id===user.creature_id);const rarityBonus={Commun:0,Rare:8,'Épique':16,Mythique:26}[creature?.rarity]||0;return {level:prog.level,hp:120+prog.level*22,power:45+prog.level*11+rarityBonus+creatureMilestonePower(prog.level),type:creature?.type||'Neutre',name:creature?.name||'Lovys'};}
+function typeMultiplier(attacker,defender){const beats={Verdance:'Abyssal',Abyssal:'Cendre',Cendre:'Verdance',Foudre:'Abyssal',Néant:'Mirage',Mirage:'Néant',Solaire:'Néant',Forge:'Cristal',Cristal:'Foudre'};if(beats[attacker]===defender)return 1.25;if(beats[defender]===attacker)return .8;return 1;}
+function creatureBattleStats(user){const prog=progressionFromXp(Number(user.xp||0));const creature=creatures.find(c=>c.id===user.creature_id)||creatures[0];return buildLovysBattleStats({creature,level:prog.level,rank:Number(user.rank||1)});}
 
 function eggState(user) {
   const watched = Math.max(0, Number(user?.watch_seconds) || 0);
@@ -978,6 +979,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_spent DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS prestige INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS universal_lovys_fragments INTEGER NOT NULL DEFAULT 0`);
 
   // Migration douce pour les joueurs déjà présents : le niveau global reprend
   // leur ancien temps de visionnage au taux de base de 50 XP globale / heure.
@@ -1121,6 +1123,45 @@ async function initDatabase() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS user_lovys_user_idx ON user_lovys (user_id)`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS user_lovys_one_active_idx ON user_lovys (user_id) WHERE is_active = TRUE`);
+
+  // V105 — rangs et fragments propres à chaque Lovys.
+  await pool.query(`ALTER TABLE user_lovys ADD COLUMN IF NOT EXISTS fragments INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE user_lovys ADD COLUMN IF NOT EXISTS rank INTEGER NOT NULL DEFAULT 1`);
+  await pool.query(`UPDATE user_lovys SET rank=GREATEST(1,LEAST(5,rank)), fragments=GREATEST(0,fragments)`);
+
+  // Les anciennes collections pouvaient contenir plusieurs fois le même Lovys.
+  // On garde l'exemplaire le plus pertinent et on convertit chaque doublon historique en fragments.
+  await pool.query(`
+    WITH grouped AS (
+      SELECT user_id, creature_id,
+             (ARRAY_AGG(id ORDER BY is_active DESC, xp DESC, id ASC))[1] AS keep_id,
+             MAX(xp) AS max_xp,
+             BOOL_OR(is_active) AS any_active,
+             COUNT(*)::int AS copies
+      FROM user_lovys
+      GROUP BY user_id, creature_id
+      HAVING COUNT(*) > 1
+    )
+    UPDATE user_lovys l
+    SET xp=g.max_xp,
+        is_active=g.any_active,
+        fragments=l.fragments + (g.copies-1) * CASE l.creature_id
+          WHEN 'fire' THEN 15 WHEN 'crysal' THEN 15 WHEN 'ferox' THEN 15
+          WHEN 'dark' THEN 25 WHEN 'solka' THEN 25 WHEN 'dream' THEN 40
+          ELSE 10 END,
+        updated_at=CURRENT_TIMESTAMP
+    FROM grouped g
+    WHERE l.id=g.keep_id
+  `);
+  await pool.query(`
+    WITH ranked AS (
+      SELECT id, ROW_NUMBER() OVER(PARTITION BY user_id,creature_id ORDER BY is_active DESC,xp DESC,id ASC) AS rn
+      FROM user_lovys
+    )
+    DELETE FROM user_lovys l USING ranked r WHERE l.id=r.id AND r.rn>1
+  `);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS user_lovys_unique_creature_idx ON user_lovys(user_id,creature_id)`);
+  await pool.query(`UPDATE users u SET creature_id=l.creature_id,xp=l.xp,updated_at=CURRENT_TIMESTAMP FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE AND (u.creature_id IS DISTINCT FROM l.creature_id OR u.xp IS DISTINCT FROM l.xp)`);
 
   // Migration douce : le Lovys actif historique rejoint la collection.
   await pool.query(`
@@ -1398,6 +1439,13 @@ async function initDatabase() {
     fight_key TEXT NOT NULL, wins INTEGER NOT NULL DEFAULT 0, attempts INTEGER NOT NULL DEFAULT 0,
     first_won_at TIMESTAMPTZ, last_fought_at TIMESTAMPTZ, PRIMARY KEY (user_id,fight_key)
   )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_pve_battles (
+    user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    fight_key TEXT NOT NULL,
+    state_json JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS user_combat_reports (
     id BIGSERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     fight_key TEXT NOT NULL, result TEXT NOT NULL, creature_level INTEGER NOT NULL, enemy_level INTEGER NOT NULL,
@@ -5925,7 +5973,7 @@ app.post('/api/incubator/hatch', async (req,res)=>{
     const slot=Number(req.body?.slot);
     if(![1,2,3].includes(slot)) return res.status(400).json({error:'Emplacement invalide.'});
     await client.query('BEGIN');
-    const ur=await client.query(`SELECT id,creature_id FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+    const ur=await client.query(`SELECT id,creature_id,universal_lovys_fragments FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
     const user=ur.rows[0];
     if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
     if(!user.creature_id){await client.query('ROLLBACK');return res.status(400).json({error:'Fais d’abord éclore ton œuf de départ.'});}
@@ -5934,27 +5982,63 @@ app.post('/api/incubator/hatch', async (req,res)=>{
     if(!egg){await client.query('ROLLBACK');return res.status(404).json({error:'Aucun œuf dans cet emplacement.'});}
     if(Number(egg.watched_seconds||0)<EGG_HATCH_SECONDS && egg.status!=='ready'){await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf n’est pas encore prêt à éclore.'});}
     const creature=rollStandardEgg();
-    const created=await client.query(`INSERT INTO user_lovys (user_id,creature_id,xp,is_active,origin) VALUES($1,$2,0,FALSE,'incubator') RETURNING id`,[user.id,creature.id]);
+    const existing=(await client.query(`SELECT id,rank,fragments FROM user_lovys WHERE user_id=$1 AND creature_id=$2 FOR UPDATE`,[user.id,creature.id])).rows[0];
+    let lovysId,duplicate=false,fragmentsGained=0,universalFragmentsGained=0,currentFragments=0,currentRank=1,currentUniversalFragments=Number(user.universal_lovys_fragments||0);
+    if(existing){
+      duplicate=true;
+      const normalReward=duplicateFragmentsForRarity(creature.rarity);
+      currentRank=Number(existing.rank||1);
+      if(currentRank>=LOVYS_MAX_RANK){
+        universalFragmentsGained=Math.max(1,Math.ceil(normalReward/2));
+        const universal=await client.query(`UPDATE users SET universal_lovys_fragments=universal_lovys_fragments+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING universal_lovys_fragments`,[user.id,universalFragmentsGained]);
+        currentUniversalFragments=Number(universal.rows[0].universal_lovys_fragments||0);lovysId=Number(existing.id);currentFragments=Number(existing.fragments||0);
+      }else{
+        fragmentsGained=normalReward;
+        const upgraded=await client.query(`UPDATE user_lovys SET fragments=fragments+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING id,rank,fragments`,[existing.id,fragmentsGained]);
+        lovysId=Number(upgraded.rows[0].id);currentFragments=Number(upgraded.rows[0].fragments||0);currentRank=Number(upgraded.rows[0].rank||1);
+      }
+    }else{
+      const created=await client.query(`INSERT INTO user_lovys (user_id,creature_id,xp,is_active,origin,rank,fragments) VALUES($1,$2,0,FALSE,'incubator',1,0) RETURNING id`,[user.id,creature.id]);
+      lovysId=Number(created.rows[0].id);
+    }
     await client.query(`DELETE FROM user_incubator_eggs WHERE id=$1`,[egg.id]);
     await client.query('COMMIT');
     pushLiveUpdate('incubator-update',{twitchId:req.session.user.twitchId});
-    res.json({ok:true,lovysId:Number(created.rows[0].id),creature:{id:creature.id,name:creature.name,type:creature.type,rarity:creature.rarity,dropRate:creature.dropRate}});
+    res.json({ok:true,lovysId,duplicate,fragmentsGained,universalFragmentsGained,currentFragments,currentRank,currentUniversalFragments,creature:{id:creature.id,name:creature.name,type:creature.type,rarity:creature.rarity,dropRate:creature.dropRate,duplicate,fragmentsGained,universalFragmentsGained,currentFragments,currentRank,currentUniversalFragments}});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur éclosion œuf incubateur :',error);res.status(500).json({error:'Impossible de faire éclore cet œuf.'});}finally{client.release();}
 });
 
 app.get('/api/lovys', async (req,res)=>{
   try{
     if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
-    const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
+    const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp,universal_lovys_fragments FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
     const user=ur.rows[0];
     if(!user) return res.status(404).json({error:'Joueur introuvable.'});
     if(user.creature_id){
       await pool.query(`UPDATE user_lovys SET xp=$2, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
     }
-    const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
-    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at};});
-    res.json({ok:true,lovys,pendingXp:Number(user.pending_xp||0)});
+    const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at,rank,fragments FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
+    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills};});
+    res.json({ok:true,lovys,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
   }catch(error){console.error('Erreur collection Lovys :',error);res.status(500).json({error:'Impossible de charger tes Lovys.'});}
+});
+
+app.post('/api/lovys/rank-up', async (req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
+    const lovysId=Number(req.body?.lovysId);if(!Number.isInteger(lovysId)||lovysId<=0)return res.status(400).json({error:'Lovys invalide.'});
+    await client.query('BEGIN');
+    const ur=await client.query(`SELECT id,universal_lovys_fragments FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);const user=ur.rows[0];if(!user){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    const lr=await client.query(`SELECT id,creature_id,rank,fragments,is_active,xp FROM user_lovys WHERE id=$1 AND user_id=$2 FOR UPDATE`,[lovysId,user.id]);const lovys=lr.rows[0];if(!lovys){await client.query('ROLLBACK');return res.status(404).json({error:'Lovys introuvable.'});}
+    const rank=Math.max(1,Number(lovys.rank||1));if(rank>=LOVYS_MAX_RANK){await client.query('ROLLBACK');return res.status(400).json({error:'Ce Lovys est déjà au rang maximum.'});}
+    const cost=nextRankCost(rank);const specific=Math.max(0,Number(lovys.fragments||0));const useSpecific=Math.min(specific,cost);const missing=cost-useSpecific;const universalAvailable=Math.max(0,Number(user.universal_lovys_fragments||0));const universalCap=Math.floor(cost/2);
+    if(missing>universalCap||missing>universalAvailable){await client.query('ROLLBACK');return res.status(400).json({error:`Il faut ${cost} fragments. Les fragments universels peuvent couvrir au maximum 50 % du coût.`});}
+    const up=await client.query(`UPDATE user_lovys SET rank=rank+1,fragments=fragments-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING rank,fragments`,[lovys.id,useSpecific]);
+    if(missing>0)await client.query(`UPDATE users SET universal_lovys_fragments=universal_lovys_fragments-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,missing]);
+    await client.query('COMMIT');pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
+    res.json({ok:true,rank:Number(up.rows[0].rank),fragments:Number(up.rows[0].fragments),spent:cost,specificSpent:useSpecific,universalSpent:missing,message:`${creatures.find(c=>c.id===lovys.creature_id)?.name||'Ton Lovys'} passe rang ${'⭐'.repeat(Number(up.rows[0].rank))} !`});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur rang Lovys :',error);res.status(500).json({error:'Impossible d’améliorer ce Lovys.'});}finally{client.release();}
 });
 
 app.post('/api/lovys/activate', async (req,res)=>{
