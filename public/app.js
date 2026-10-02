@@ -4063,6 +4063,20 @@ function renderEventsState(data) {
     ? '🟢 Chaîne en live · le mode actif peut comptabiliser du temps'
     : '⚪ Chaîne hors ligne · aucun temps n’est comptabilisé';
 
+  const boosts = data?.liveBoosts || {};
+  const boostActive = boosts.expiresAt && new Date(boosts.expiresAt).getTime() > Date.now();
+  const remaining = boostActive ? Math.max(1, Math.ceil((new Date(boosts.expiresAt).getTime() - Date.now()) / 60000)) : 0;
+  const boostStates = [
+    ['eventXpBoostState', Number(boosts.xp || 1) > 1],
+    ['eventCashBoostState', Number(boosts.cash || 1) > 1],
+    ['eventGlobalXpBoostState', Number(boosts.globalXp || 1) > 1],
+    ['eventAllBoostState', Number(boosts.xp || 1) > 1 && Number(boosts.cash || 1) > 1 && Number(boosts.globalXp || 1) > 1]
+  ];
+  boostStates.forEach(([id, active]) => {
+    const el=$(id); if(!el) return;
+    el.textContent = active && boostActive ? `🟢 ACTIF · ${remaining} min` : 'INACTIF';
+  });
+
   updated.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
 }
 
@@ -4130,6 +4144,23 @@ $('eventZombieToggle')?.addEventListener('click', async () => {
   }
 });
 
+
+$('eventsGrid')?.addEventListener('click', async event => {
+  const button=event.target.closest('[data-live-boost]');
+  if(!button) return;
+  const kind=button.getAttribute('data-live-boost') || 'off';
+  button.disabled=true;
+  const old=button.textContent;
+  button.textContent='Modification…';
+  try{
+    const response=await fetch('/api/admin/events/live-boost',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,minutes:60})});
+    const data=await response.json();
+    if(!response.ok) throw new Error(data.error||'Modification impossible.');
+    await refreshEventsState();
+  }catch(error){window.alert(error.message||'Modification impossible.');}
+  finally{button.disabled=false;button.textContent=old;}
+});
+
 let adminPlayersSearchTimer = null;
 
 function formatAdminDate(value) {
@@ -4185,14 +4216,124 @@ function renderAdminPlayers(data) {
           <div class="admin-player-meta">${twitchText}</div>
           <div class="admin-player-meta">${discordText}</div>
         </div>
-        <div>
+        <div class="admin-player-card-actions">
+          <button class="admin-player-manage" type="button" data-admin-open-player="${player.accountId}">⚙️ Gérer</button>
           ${player.isBroadcaster
-            ? '<button class="admin-player-delete" type="button" disabled>Compte admin</button>'
+            ? '<span class="admin-player-protected">Compte admin protégé</span>'
             : `<button class="admin-player-delete" type="button" data-delete-account="${player.accountId}" data-delete-username="${escapeHtml(player.username || 'ce joueur')}">🗑 Supprimer</button>`}
         </div>
       </div>`;
   }).join('');
 }
+
+
+function formatAdminNumber(value, digits=0){
+  return Number(value||0).toLocaleString('fr-FR',{maximumFractionDigits:digits});
+}
+function adminStatCard(icon,label,value,sub=''){
+  return `<div class="admin-stat-card"><div class="admin-stat-icon">${icon}</div><div><div class="admin-stat-label">${escapeHtml(label)}</div><div class="admin-stat-value">${escapeHtml(String(value))}</div>${sub?`<div class="admin-stat-sub">${escapeHtml(sub)}</div>`:''}</div></div>`;
+}
+async function adminFetch(url, options={}){
+  const response=await fetch(url,{cache:'no-store',...options});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok) throw new Error(data.error||'Action impossible.');
+  return data;
+}
+
+async function openAdminPlayerEditor(accountId){
+  const editor=$('adminPlayerEditor'); if(!editor)return;
+  editor.dataset.accountId=String(accountId);
+  document.querySelectorAll('.admin-player-card.editor-selected').forEach(el=>el.classList.remove('editor-selected'));
+  document.querySelector(`.admin-player-card[data-account-id="${CSS.escape(String(accountId))}"]`)?.classList.add('editor-selected');
+  editor.classList.remove('hidden');
+  editor.innerHTML='<div class="admin-players-empty">Chargement du compte…</div>';
+  editor.scrollIntoView({behavior:'smooth',block:'start'});
+  try{
+    const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/detail`);
+    renderAdminPlayerEditor(data.player);
+  }catch(error){editor.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(error.message)}</div>`;}
+}
+function renderAdminPlayerEditor(player){
+  const editor=$('adminPlayerEditor');if(!editor)return;
+  const lovys=Array.isArray(player.lovys)?player.lovys:[];
+  const badges=Array.isArray(player.badges)?player.badges:[];
+  const incubator=Array.isArray(player.incubator)?player.incubator:[];
+  const pve=Array.isArray(player.pve)?player.pve:[];
+  const eggs=Array.isArray(player.inventory)?player.inventory.find(x=>x.item_key==='mystery_egg')?.quantity||0:0;
+  const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
+  editor.innerHTML=`
+    <div class="admin-editor-head"><div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-player-summary">
+      ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
+      ${adminStatCard('💰',"LoVeR'Cash",formatAdminNumber(player.points))}
+      ${adminStatCard('⏱️','Visionnage',formatAdminHours(player.watchSeconds))}
+      ${adminStatCard('⚡','Réserve XP',formatAdminNumber(player.pendingXp))}
+      ${adminStatCard('🐉','Lovys',lovys.length)}
+      ${adminStatCard('⚔️','Victoires PvE',pveWins)}
+      ${adminStatCard('🥚','Œufs inventaire',eggs)}
+      ${adminStatCard('🏅','Badges',badges.length)}
+    </div>
+    <div class="admin-editor-reason"><label>Motif de la correction <span>(facultatif mais conseillé)</span></label><input id="adminPlayerActionReason" maxlength="180" placeholder="Ex. récompense événement, correction support…"></div>
+    <div class="admin-editor-section"><h3>🛠 Corrections du compte</h3><div class="admin-adjust-grid">
+      ${adminAdjustRow('💰',"LoVeR'Cash",'cash','+ / −')}
+      ${adminAdjustRow('⭐','XP globale','global_xp','+ / −')}
+      ${adminAdjustRow('⚡','XP Lovys en réserve','pending_xp','+ / −')}
+      ${adminAdjustRow('🧩',"Fragments d'œuf",'egg_fragments','+ / −')}
+      ${adminAdjustRow('✨','Fragments universels','universal_fragments','+ / −')}
+      ${adminAdjustRow('🥚','Donner des œufs','grant_egg','quantité',true)}
+      ${adminAdjustRow('👑','Régler le Prestige','prestige','valeur',true)}
+    </div></div>
+    <div class="admin-editor-section"><h3>🐉 Lovys & fragments</h3><div class="admin-lovys-admin-list">${lovys.length?lovys.map(l=>`<div class="admin-lovys-row"><div><strong>${l.is_active?'⭐ ':''}${escapeHtml(l.name)}</strong><div class="admin-player-meta">Niv. ${l.level} · Rang ${l.rank}/5 · ${escapeHtml(l.rarity)} · ${formatAdminNumber(l.xp)} XP</div></div><div class="admin-lovys-fragments"><span>🧩 ${formatAdminNumber(l.fragments)}</span><input type="number" value="10" step="1" data-lovys-fragment-input="${l.id}"><button class="btn secondary" data-admin-action="lovys_fragments" data-lovys-id="${l.id}">Appliquer</button></div></div>`).join(''):'<div class="admin-player-meta">Aucun Lovys.</div>'}</div></div>
+    <div class="admin-editor-columns">
+      <div class="admin-editor-section"><h3>🥚 Incubateur</h3>${incubator.length?incubator.map(e=>`<div class="admin-mini-row"><span>Slot ${e.slot}</span><strong>${e.status==='ready'?'✅ Prêt':'⏳ En cours'}</strong></div>`).join(''):'<div class="admin-player-meta">Aucun œuf placé.</div>'}</div>
+      <div class="admin-editor-section"><h3>🏅 Badges</h3><div class="admin-badge-admin-list">${badges.length?badges.slice(0,12).map(b=>`<span class="admin-player-pill">${escapeHtml(b.badge_name||b.badge_key)}</span>`).join(''):'<span class="admin-player-meta">Aucun badge.</span>'}</div></div>
+    </div>
+    <div class="admin-editor-section admin-danger-section"><h3>⚔️ Réparation PvE</h3><p class="admin-player-meta">Ces outils servent à débloquer un joueur en cas de problème. Ils ne modifient pas les réglages des boss.</p><div class="admin-editor-actions"><button class="btn secondary" data-admin-action="reset_battle">↻ Annuler le combat actif</button><button class="btn warning" data-admin-action="reset_pve">⚠️ Réinitialiser la progression PvE</button></div></div>
+    <div id="adminPlayerActionMessage" class="admin-action-message"></div>`;
+}
+function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
+  return `<div class="admin-adjust-row"><div><strong>${icon} ${escapeHtml(label)}</strong><div class="admin-player-meta">${positiveOnly?'Valeur ou quantité':'Montant positif ou négatif'}</div></div><input type="number" step="1" value="${action==='prestige'?0:10}" ${positiveOnly&&action!=='prestige'?'min="1"':''} data-admin-amount="${action}" placeholder="${escapeHtml(placeholder)}"><button class="btn secondary" data-admin-action="${action}">Appliquer</button></div>`;
+}
+async function runAdminPlayerAction(button){
+  const editor=$('adminPlayerEditor');if(!editor)return;
+  const accountId=editor.closest('.admin-players-panel')?.querySelector('.admin-player-card.editor-selected')?.dataset.accountId || editor.dataset.accountId;
+  if(!accountId)return;
+  const action=button.getAttribute('data-admin-action');
+  const reason=$('adminPlayerActionReason')?.value?.trim()||'';
+  let amount;
+  if(action==='lovys_fragments') amount=editor.querySelector(`[data-lovys-fragment-input="${button.dataset.lovysId}"]`)?.value;
+  else amount=editor.querySelector(`[data-admin-amount="${action}"]`)?.value;
+  if(action==='reset_pve'&&!window.confirm('Réinitialiser toute la progression PvE de ce joueur ? Cette action est volontairement réservée aux corrections.'))return;
+  if(action==='reset_battle'&&!window.confirm('Annuler le combat PvE actuellement en cours pour ce joueur ?'))return;
+  button.disabled=true;const old=button.textContent;button.textContent='…';
+  try{
+    const body={action,reason,amount};if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+    const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const msg=$('adminPlayerActionMessage');if(msg){msg.textContent=`✅ ${data.summary}`;msg.className='admin-action-message success';}
+    await openAdminPlayerEditor(accountId);await loadAdminPlayers();
+  }catch(error){window.alert(error.message||'Correction impossible.');}
+  finally{button.disabled=false;button.textContent=old;}
+}
+
+async function loadAdminDashboard(){
+  const box=$('adminDashboardContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+  try{const d=await adminFetch('/api/admin/dashboard');const s=d.stats||{},t=d.tracker||{},b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👥','Joueurs inscrits',s.players,`${s.activeToday} actif(s) aujourd’hui`)}${adminStatCard('🟣','Twitch liés',s.twitchLinked)}${adminStatCard('🥚','Incubations',s.incubating,`${s.readyEggs} prêt(s)`)}${adminStatCard('🐉','Lovys possédés',s.lovys)}${adminStatCard('⚔️','Combats aujourd’hui',s.fightsToday,`${s.victoriesToday} victoire(s)`)}${adminStatCard('👑','Boss vaincus',s.bossWinsToday)}${adminStatCard('💰','Cash en circulation',formatAdminNumber(s.cashBalance))}${adminStatCard('🎡','Roues aujourd’hui',s.wheelSpinsToday)}</div><div class="admin-dashboard-section"><h3>📺 Tracker</h3><div class="admin-health ${t.error?'bad':t.live?'good':''}"><strong>${t.error?'⚠️ À vérifier':t.live?'🟢 Live détecté':'⚪ Chaîne hors ligne'}</strong><span>${t.chatters||0} dans le chat · ${t.matched||0} joueur(s) reconnu(s)</span></div></div><div class="admin-dashboard-section"><h3>🔥 Boost live</h3><div class="admin-player-meta">XP ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}${b.expiresAt?` · jusqu’à ${new Date(b.expiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</div></div><div class="admin-dashboard-section"><h3>📜 Activité admin récente</h3>${(d.recent||[]).length?(d.recent||[]).map(x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.summary)}</strong><div class="admin-player-meta">${new Date(x.created_at).toLocaleString('fr-FR')}</div></div></div>`).join(''):'<div class="admin-player-meta">Aucune action enregistrée.</div>'}</div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+}
+async function loadAdminEconomy(){
+  const box=$('adminEconomyContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+  try{const d=await adminFetch('/api/admin/economy');const t=d.totals||{},series=d.series||[];box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('💰','Cash possédé',formatAdminNumber(t.balance))}${adminStatCard('📥','Cash gagné historique',formatAdminNumber(t.earned))}${adminStatCard('📤','Cash dépensé historique',formatAdminNumber(t.spent))}${adminStatCard('⭐','XP globale totale',formatAdminNumber(t.global_xp))}${adminStatCard('⚡','XP Lovys en réserve',formatAdminNumber(t.pending_xp))}${adminStatCard('🥚','Œufs en inventaire',formatAdminNumber(t.inventory_eggs))}${adminStatCard('🧩',"Fragments d'œuf",formatAdminNumber(t.egg_fragments))}${adminStatCard('✨','Fragments universels',formatAdminNumber(t.universal_fragments))}</div><div class="admin-dashboard-section"><h3>7 derniers jours</h3><div class="admin-economy-days">${series.length?series.map(x=>`<div class="admin-economy-day"><strong>${new Date(`${x.date}T12:00:00`).toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit'})}</strong><span>💰 ${formatAdminNumber(x.cash,1)}</span><span>⭐ ${formatAdminNumber(x.global_xp,1)}</span><span>⏱️ ${formatAdminHours(x.watch_seconds)}</span></div>`).join(''):'<div class="admin-player-meta">Pas encore de données sur cette période.</div>'}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+}
+
+async function loadAdminTrackerPanel(){
+  const box=$('adminTrackerContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👥','Chatters',d.chatterCount||0)}${adminStatCard('🎮','Joueurs reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+}
+async function loadAdminHistory(){
+  const box=$('adminHistoryContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+  try{const d=await adminFetch('/api/admin/history');const items=d.items||[];box.innerHTML=items.length?items.map(x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.summary)}</strong><div class="admin-player-meta">${escapeHtml(x.target_username||'Action globale')} · ${new Date(x.created_at).toLocaleString('fr-FR')}</div>${x.details_json?.reason?`<div class="admin-history-reason">Motif : ${escapeHtml(x.details_json.reason)}</div>`:''}</div><span class="admin-player-pill">${escapeHtml(x.action_key)}</span></div>`).join(''):'<div class="admin-players-empty">Aucune action enregistrée.</div>';}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+}
+function openAdminModal(id,loader){$(id)?.classList.remove('hidden');loader?.();}
+function closeAdminModal(id){$(id)?.classList.add('hidden');}
 
 async function loadAdminPlayers() {
   const list = $('adminPlayersList');
@@ -4217,10 +4358,19 @@ function openAdminPlayersModal() {
 
 function closeAdminPlayersModal() {
   $('adminPlayersModal')?.classList.add('hidden');
+  $('adminPlayerEditor')?.classList.add('hidden');
 }
 
 $('adminPlayersButton')?.addEventListener('click', openAdminPlayersModal);
 $('adminPlayersClose')?.addEventListener('click', closeAdminPlayersModal);
+$('adminDashboardButton')?.addEventListener('click',()=>openAdminModal('adminDashboardModal',loadAdminDashboard));
+$('adminEconomyButton')?.addEventListener('click',()=>openAdminModal('adminEconomyModal',loadAdminEconomy));
+$('adminTrackerButton')?.addEventListener('click',()=>openAdminModal('adminTrackerModal',loadAdminTrackerPanel));
+$('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
+[['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
+  $(closeId)?.addEventListener('click',()=>closeAdminModal(modalId));
+  $(modalId)?.addEventListener('click',e=>{if(e.target.id===modalId)closeAdminModal(modalId);});
+});
 $('adminPlayersModal')?.addEventListener('click', event => {
   if (event.target.id === 'adminPlayersModal') closeAdminPlayersModal();
 });
@@ -4229,6 +4379,8 @@ $('adminPlayersSearch')?.addEventListener('input', () => {
   adminPlayersSearchTimer = setTimeout(loadAdminPlayers, 250);
 });
 $('adminPlayersList')?.addEventListener('click', async event => {
+  const manageButton=event.target.closest('[data-admin-open-player]');
+  if(manageButton){await openAdminPlayerEditor(manageButton.getAttribute('data-admin-open-player'));return;}
   const button = event.target.closest('[data-delete-account]');
   if (!button) return;
 
@@ -4254,6 +4406,11 @@ $('adminPlayersList')?.addEventListener('click', async event => {
     button.disabled = false;
     button.textContent = oldText;
   }
+});
+
+$('adminPlayerEditor')?.addEventListener('click', async event=>{
+  if(event.target.closest('[data-admin-close-editor]')){$('adminPlayerEditor')?.classList.add('hidden');return;}
+  const button=event.target.closest('[data-admin-action]');if(button)await runAdminPlayerAction(button);
 });
 
 $('trackerTest')?.addEventListener('click', async () => {
@@ -4629,7 +4786,7 @@ window.addEventListener('keydown', event => {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js?v=106').catch(error => console.warn('Service worker non disponible :', error));
+    navigator.serviceWorker.register('/service-worker.js?v=107').catch(error => console.warn('Service worker non disponible :', error));
   });
 }
 

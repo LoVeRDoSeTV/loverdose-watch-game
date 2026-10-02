@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LoVeRDoSe">
-<link rel="manifest" href="/manifest.webmanifest?v=106">
+<link rel="manifest" href="/manifest.webmanifest?v=108">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=106">
+<link rel="stylesheet" href="/styles.css?v=108">
 
 
 </head>
@@ -649,11 +649,15 @@
       <span class="account-info-label">Tracker Twitch · diffuseur</span>
       <div id="trackerStatus" class="tracker-status">Non configuré</div>
       <p id="trackerDetail" class="tracker-help">Le tracker compte la présence des comptes liés dans le chat Twitch pendant les lives.</p>
-      <div class="tracker-actions">
+      <div class="tracker-actions admin-profile-actions">
         <a id="trackerConnect" class="btn" href="/auth/twitch/tracker">Configurer le tracker</a>
         <button id="trackerTest" class="btn secondary" type="button">Tester maintenant</button>
+        <button id="adminDashboardButton" class="btn secondary" type="button">📊 Dashboard</button>
+        <button id="adminPlayersButton" class="btn secondary" type="button">👥 Joueurs</button>
+        <button id="adminEconomyButton" class="btn secondary" type="button">💰 Économie</button>
         <button id="eventsButton" class="btn secondary" type="button">🗓 Événements</button>
-        <button id="adminPlayersButton" class="btn secondary" type="button">👥 Joueurs inscrits</button>
+        <button id="adminTrackerButton" class="btn secondary" type="button">📺 Twitch</button>
+        <button id="adminHistoryButton" class="btn secondary" type="button">📜 Historique</button>
       </div>
     </div>
 
@@ -690,6 +694,40 @@
     <div id="adminPlayersList" class="admin-player-list">
       <div class="admin-players-empty">Chargement…</div>
     </div>
+    <div id="adminPlayerEditor" class="admin-player-editor hidden"></div>
+  </div>
+</div>
+
+<!-- ADMIN - DASHBOARD -->
+<div id="adminDashboardModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminDashboardTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminDashboardTitle">📊 Dashboard admin</h2><div class="muted admin-subtitle">Vue d’ensemble du Watch Game sans quitter ton compte joueur.</div></div><button id="adminDashboardClose" class="account-close" type="button">×</button></div>
+    <div id="adminDashboardContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ADMIN - ECONOMIE -->
+<div id="adminEconomyModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminEconomyTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminEconomyTitle">💰 Économie du jeu</h2><div class="muted admin-subtitle">Soldes et flux globaux pour surveiller l’équilibre.</div></div><button id="adminEconomyClose" class="account-close" type="button">×</button></div>
+    <div id="adminEconomyContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+
+<!-- ADMIN - TWITCH -->
+<div id="adminTrackerModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminTrackerTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminTrackerTitle">📺 Tracker Twitch</h2><div class="muted admin-subtitle">État technique du suivi de présence.</div></div><button id="adminTrackerClose" class="account-close" type="button">×</button></div>
+    <div id="adminTrackerContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ADMIN - HISTORIQUE -->
+<div id="adminHistoryModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminHistoryTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminHistoryTitle">📜 Historique admin</h2><div class="muted admin-subtitle">Corrections et actions sensibles effectuées depuis le panel.</div></div><button id="adminHistoryClose" class="account-close" type="button">×</button></div>
+    <div id="adminHistoryContent" class="admin-history-list"><div class="admin-players-empty">Chargement…</div></div>
   </div>
 </div>
 
@@ -713,6 +751,32 @@
           <div id="eventZombieState" class="event-mode-state">🔴 OFF</div>
         </div>
         <button id="eventZombieToggle" class="event-toggle" type="button">Passer ON</button>
+      </div>
+
+      <div id="eventXpBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">⚡</div>
+        <div><div class="event-mode-name">XP Lovys ×2</div><div class="event-mode-sub">Gains de visionnage pendant 60 min.</div><div id="eventXpBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="xp">Activer 60 min</button>
+      </div>
+      <div id="eventCashBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">💰</div>
+        <div><div class="event-mode-name">LoVeR'Cash ×2</div><div class="event-mode-sub">Gains du tracker pendant 60 min.</div><div id="eventCashBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="cash">Activer 60 min</button>
+      </div>
+      <div id="eventGlobalXpBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">⭐</div>
+        <div><div class="event-mode-name">XP globale ×2</div><div class="event-mode-sub">Gains du tracker pendant 60 min.</div><div id="eventGlobalXpBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="global_xp">Activer 60 min</button>
+      </div>
+      <div id="eventAllBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">🔥</div>
+        <div><div class="event-mode-name">Boost live complet ×2</div><div class="event-mode-sub">XP Lovys + Cash + XP globale pendant 60 min.</div><div id="eventAllBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="all">Activer 60 min</button>
+      </div>
+      <div class="event-mode-card admin-live-boost-stop">
+        <div class="event-mode-icon">⏹️</div>
+        <div><div class="event-mode-name">Arrêter les boosts</div><div class="event-mode-sub">Coupe uniquement les multiplicateurs live du panel admin.</div><div class="event-mode-state">MANUEL</div></div>
+        <button class="event-toggle" type="button" data-live-boost="off">Désactiver</button>
       </div>
 
       <div class="event-mode-card disabled">
@@ -922,5 +986,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=106"></script>
-<script src="/auth-fallback.js?v=106"></script></body></html>
+<script src="/app.js?v=108"></script>
+<script src="/auth-fallback.js?v=108"></script></body></html>
