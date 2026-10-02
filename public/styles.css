@@ -4946,3 +4946,120 @@ body:has(#pveModal:not(.hidden)){
   .confirm-modal{z-index:1001100!important;}
 }
 /* ===== /V114 ===== */
+
+
+/* =========================================================
+   V115 — BOUTIQUE PC EN VRAIE PAGE SHOPPING
+   La boutique n'est plus présentée comme une grande modale/bloc.
+   Mobile inchangé.
+========================================================= */
+@media (min-width:901px){
+  body[data-desktop-view="shop"] #shopModal{
+    position:fixed!important;
+    top:126px!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    display:block!important;
+    padding:0 42px 64px!important;
+    overflow-y:auto!important;
+    background:#090c17!important;
+    backdrop-filter:none!important;
+  }
+  body[data-desktop-view="shop"] #shopModal.hidden{display:none!important}
+  body[data-desktop-view="shop"] #shopModal .shop-panel{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+    padding:28px 0 60px!important;
+    overflow:visible!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-head{
+    margin:0 0 22px!important;
+    padding:8px 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    align-items:center!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-head h2{
+    margin:0!important;
+    font-size:34px!important;
+    letter-spacing:-.02em!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-subtitle{
+    margin-top:7px!important;
+    font-size:13px!important;
+    color:#aeb6d0!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-close{display:none!important}
+  body[data-desktop-view="shop"] #shopModal .shop-balance{
+    width:max-content!important;
+    min-width:230px!important;
+    margin:0 0 20px auto!important;
+    padding:11px 15px!important;
+    border:1px solid rgba(145,71,255,.28)!important;
+    border-radius:12px!important;
+    background:rgba(18,23,44,.78)!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-tabs{
+    position:sticky!important;
+    top:0!important;
+    z-index:3!important;
+    display:flex!important;
+    gap:8px!important;
+    margin:0 0 16px!important;
+    padding:12px 0!important;
+    background:linear-gradient(180deg,#090c17 72%,rgba(9,12,23,0))!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-tab{
+    flex:0 0 auto!important;
+    min-width:135px!important;
+    padding:11px 15px!important;
+    border-radius:10px!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-subfilter{
+    margin:0 0 22px!important;
+    padding:0!important;
+    border:0!important;
+    background:transparent!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-subfilter-select{
+    min-width:230px!important;
+    background:#11162a!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-grid{
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:16px!important;
+    padding:0!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-item{
+    min-width:0!important;
+    padding:14px!important;
+    border:1px solid rgba(255,255,255,.085)!important;
+    border-radius:14px!important;
+    background:linear-gradient(180deg,rgba(18,23,44,.88),rgba(12,16,31,.94))!important;
+    box-shadow:none!important;
+    transition:transform .16s ease,border-color .16s ease,background .16s ease!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-item:hover{
+    transform:translateY(-2px)!important;
+    border-color:rgba(145,71,255,.42)!important;
+    background:linear-gradient(180deg,rgba(24,29,54,.96),rgba(13,17,33,.98))!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-item-preview{
+    height:112px!important;
+    border-radius:10px!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-item-name{font-size:15px!important}
+  body[data-desktop-view="shop"] #shopModal .shop-item-desc{min-height:48px!important}
+}
+@media (min-width:901px) and (max-width:1200px){
+  body[data-desktop-view="shop"] #shopModal .shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+}
+/* ===== /V115 ===== */
