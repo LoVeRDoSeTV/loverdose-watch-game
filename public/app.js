@@ -4018,6 +4018,7 @@ async function loadTrackerStatus() {
 
     const matched = Number(data.matchedCount || 0);
     const chatters = Number(data.chatterCount || 0);
+    const viewers = Number(data.viewerCount || 0);
     const specialModeLine = zombieMode
       ? '🧟 Mode spécial : Zombie ACTIVÉ'
       : '';
@@ -4025,7 +4026,7 @@ async function loadTrackerStatus() {
     const trackerDetailText = data.error
       ? `Dernière erreur : ${data.error}`
       : data.live
-        ? `${chatters} personne(s) dans le chat · ${matched} compte(s) Watch Game reconnu(s).`
+        ? `${viewers} spectateur(s) Twitch · ${chatters} compte(s) présent(s) dans le chat · ${matched} compte(s) Watch Game reconnu(s).`
         : 'Le temps sera compté automatiquement lorsque la chaîne sera en live.';
 
     detail.textContent = specialModeLine
@@ -4328,7 +4329,7 @@ async function loadAdminEconomy(){
 
 async function loadAdminTrackerPanel(){
   const box=$('adminTrackerContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👥','Chatters',d.chatterCount||0)}${adminStatCard('🎮','Joueurs reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','Watch Game reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
 }
 async function loadAdminHistory(){
   const box=$('adminHistoryContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
@@ -4367,6 +4368,24 @@ $('adminPlayersButton')?.addEventListener('click', openAdminPlayersModal);
 $('adminPlayersClose')?.addEventListener('click', closeAdminPlayersModal);
 $('adminDashboardButton')?.addEventListener('click',()=>openAdminModal('adminDashboardModal',loadAdminDashboard));
 $('adminEconomyButton')?.addEventListener('click',()=>openAdminModal('adminEconomyModal',loadAdminEconomy));
+async function loadTrackerDetectedAccounts(){
+  const box=$('trackerDetectedContent'); if(!box)return;
+  box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+  try{
+    const r=await fetch('/api/tracker/detected-accounts',{cache:'no-store'}); const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Chargement impossible.');
+    if(!d.live){box.innerHTML='<div class="admin-players-empty">⚪ La chaîne est hors ligne.</div>';return;}
+    const matched=Array.isArray(d.matched)?d.matched:[];
+    const others=(Array.isArray(d.chatters)?d.chatters:[]).filter(x=>!x.linked);
+    const row=x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.twitchName||x.twitchLogin||'Compte Twitch')}</strong><div class="admin-player-meta">@${escapeHtml(x.twitchLogin||'—')}${x.watchGameName?` · Watch Game : ${escapeHtml(x.watchGameName)}`:''}</div></div><div>${x.linked?'✅ Reconnu':'⚪ Non lié'}</div></div>`;
+    box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('💬','Comptes chat',d.chatterCount||0)}${adminStatCard('🎮','Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><h3>✅ Comptes Watch Game détectés</h3>${matched.length?matched.map(row).join(''):'<div class="admin-players-empty">Aucun compte Watch Game reconnu pour le moment.</div>'}</div><div class="admin-dashboard-section"><h3>Autres comptes présents dans le chat</h3><div class="admin-player-meta" style="margin-bottom:10px">Les bots connus et le compte diffuseur sont exclus des récompenses.</div>${others.length?others.map(row).join(''):'<div class="admin-players-empty">Aucun autre compte.</div>'}</div>`;
+  }catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message||'Chargement impossible.')}</div>`;}
+}
+
+$('trackerDetectedButton')?.addEventListener('click',()=>openAdminModal('trackerDetectedModal',loadTrackerDetectedAccounts));
+$('trackerDetectedClose')?.addEventListener('click',()=>$('trackerDetectedModal')?.classList.add('hidden'));
+$('trackerDetectedModal')?.addEventListener('click',e=>{if(e.target?.id==='trackerDetectedModal')$('trackerDetectedModal')?.classList.add('hidden');});
+
 $('adminTrackerButton')?.addEventListener('click',()=>openAdminModal('adminTrackerModal',loadAdminTrackerPanel));
 $('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
 [['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{

@@ -685,6 +685,7 @@
       <div class="tracker-actions admin-profile-actions">
         <a id="trackerConnect" class="btn" href="/auth/twitch/tracker">Configurer le tracker</a>
         <button id="trackerTest" class="btn secondary" type="button">Tester maintenant</button>
+        <button id="trackerDetectedButton" class="btn secondary" type="button">👥 Comptes détectés</button>
         <button id="adminDashboardButton" class="btn secondary" type="button">📊 Dashboard</button>
         <button id="adminPlayersButton" class="btn secondary" type="button">👥 Joueurs</button>
         <button id="adminEconomyButton" class="btn secondary" type="button">💰 Économie</button>
@@ -753,6 +754,15 @@
   <div class="admin-players-panel admin-overview-panel">
     <div class="admin-players-head"><div><h2 id="adminTrackerTitle">📺 Tracker Twitch</h2><div class="muted admin-subtitle">État technique du suivi de présence.</div></div><button id="adminTrackerClose" class="account-close" type="button">×</button></div>
     <div id="adminTrackerContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+
+<!-- TRACKER - COMPTES DETECTES -->
+<div id="trackerDetectedModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="trackerDetectedTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="trackerDetectedTitle">👥 Comptes détectés</h2><div class="muted admin-subtitle">Présence Twitch et comptes Watch Game reconnus.</div></div><button id="trackerDetectedClose" class="account-close" type="button">×</button></div>
+    <div id="trackerDetectedContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
   </div>
 </div>
 
@@ -1019,5 +1029,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=113"></script>
+<script src="/app.js?v=114"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
