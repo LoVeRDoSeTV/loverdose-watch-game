@@ -1,0 +1,20 @@
+LoVeRDoSe Watch Game — V101 sécurité / maintenance
+
+Avant déploiement :
+1. Définir NODE_ENV=production.
+2. Vérifier que SESSION_SECRET existe et contient au moins 32 caractères.
+3. Définir STREAM_DECK_TOKEN avec un secret long et aléatoire.
+4. Mettre BASE_URL sur l'URL HTTPS publique du jeu.
+5. Si plusieurs origines légitimes doivent appeler l'API, les ajouter dans ALLOWED_ORIGINS séparées par des virgules.
+
+Sécurité ajoutée :
+- rate limit inscription et connexion ;
+- Helmet + CSP et en-têtes de sécurité ;
+- contrôle Origin sur POST/PUT/PATCH/DELETE ;
+- corps JSON limité à 100 ko ;
+- SESSION_SECRET obligatoire en production ;
+- Stream Deck : token uniquement dans X-Stream-Deck-Token, commandes ON/OFF en POST ;
+- routes Stream Deck et PvE déplacées dans des modules dédiés.
+
+Nettoyage :
+- anciens SVG de secours public/pve/enemies supprimés après vérification qu'aucun code ne les référence.
