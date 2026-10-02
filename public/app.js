@@ -4977,31 +4977,9 @@ $('playerCardShop')?.addEventListener('click', openShop);
 $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
 
 
-// ===== V112 — contrôles PC de l'en-tête =====
-(function initDesktopHeaderControls(){
+// ===== V113 — contrôle PC Mon compte =====
+(function initDesktopAccountControl(){
   const accountButton = document.getElementById('desktopAccountButton');
-  const themeButton = document.getElementById('themeToggleButton');
-
   accountButton?.addEventListener('click', () => openAccountModal());
-
-  function applyDesktopTheme(theme){
-    const light = theme === 'light';
-    document.body.classList.toggle('desktop-light-theme', light);
-    if(themeButton){
-      themeButton.textContent = light ? '☾' : '☀';
-      themeButton.setAttribute('aria-label', light ? 'Activer le mode nuit' : 'Activer le mode clair');
-      themeButton.title = light ? 'Mode nuit' : 'Mode clair';
-    }
-  }
-
-  let savedTheme = 'dark';
-  try { savedTheme = localStorage.getItem('loverdose-desktop-theme') || 'dark'; } catch (_) {}
-  applyDesktopTheme(savedTheme);
-
-  themeButton?.addEventListener('click', () => {
-    const nextTheme = document.body.classList.contains('desktop-light-theme') ? 'dark' : 'light';
-    applyDesktopTheme(nextTheme);
-    try { localStorage.setItem('loverdose-desktop-theme', nextTheme); } catch (_) {}
-  });
 })();
-// ===== /V112 =====
+// ===== /V113 =====
