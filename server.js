@@ -2215,7 +2215,10 @@ async function runTrackerTick() {
     const eligibleChatters = chatters.filter(item => {
       const id = String(item.user_id || '').trim();
       const login = String(item.user_login || item.user_name || '').trim().toLowerCase();
-      return id && id !== broadcasterId && !ignoredTrackerLogins.has(login);
+      // Le diffuseur peut aussi avoir un compte Watch Game lié : sa présence
+      // dans le chat doit alors faire progresser son compte comme les autres.
+      // Il reste distinct du compteur public de spectateurs Twitch.
+      return id && !ignoredTrackerLogins.has(login);
     });
     const chatterIds = [...new Set(eligibleChatters.map(item => String(item.user_id || '')).filter(Boolean))];
     const rawChatterCount = [...new Set(chatters.map(item => String(item.user_id || '')).filter(Boolean))].length;
