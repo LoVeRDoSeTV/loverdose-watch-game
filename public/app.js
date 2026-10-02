@@ -3565,17 +3565,7 @@ function renderShop() {
   if (backgroundFilterWrap) backgroundFilterWrap.classList.toggle('hidden', shopCategory !== 'background');
   if (frameFilterWrap) frameFilterWrap.classList.toggle('hidden', shopCategory !== 'frame');
   if (avatarFrameFilterWrap) avatarFrameFilterWrap.classList.toggle('hidden', shopCategory !== 'avatar_frame');
-  // La boutique ne doit jamais afficher les titres gagnés via la progression globale.
-  // Ils restent disponibles dans la Progression / l'Inventaire une fois débloqués.
-  const isGlobalLevelTitle = item => item?.category === 'title' && (
-    /^reward_title_(recrue|eclaireur|veilleur|gardien|veteran|elite|commandant|maitre_terrain|champion|legende_grade|mythique)$/.test(String(item.key || '')) ||
-    /niveau global/i.test(String(item.description || ''))
-  );
-  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
-    item.category === shopCategory &&
-    !isGlobalLevelTitle(item) &&
-    !(item.category === 'title' && item.rewardOnly)
-  ), shopCategory);
+  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item => item.category === shopCategory && !item.rewardOnly), shopCategory);
   let items = allCategoryItems;
   if (shopCategory === 'title' && shopTitleFilter !== 'all') {
     items = allCategoryItems.filter(item => getTitleColorGroup(item) === shopTitleFilter);
