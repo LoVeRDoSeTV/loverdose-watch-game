@@ -3565,7 +3565,19 @@ function renderShop() {
   if (backgroundFilterWrap) backgroundFilterWrap.classList.toggle('hidden', shopCategory !== 'background');
   if (frameFilterWrap) frameFilterWrap.classList.toggle('hidden', shopCategory !== 'frame');
   if (avatarFrameFilterWrap) avatarFrameFilterWrap.classList.toggle('hidden', shopCategory !== 'avatar_frame');
-  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item => item.category === shopCategory && !item.rewardOnly), shopCategory);
+  // La boutique affiche uniquement les articles réellement achetables.
+  // Toute récompense de progression (titres, fonds, encadrements, cadres de profil, etc.)
+  // reste dans Progression / Inventaire et ne doit jamais apparaître ici.
+  const isProgressionReward = item => {
+    if (!item) return false;
+    if (item.rewardOnly) return true;
+    const key = String(item.key || '');
+    const description = String(item.description || '');
+    return /^reward_/.test(key) || /(?:niveau|level)\s+(?:global|général)/i.test(description);
+  };
+  const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
+    item.category === shopCategory && !isProgressionReward(item)
+  ), shopCategory);
   let items = allCategoryItems;
   if (shopCategory === 'title' && shopTitleFilter !== 'all') {
     items = allCategoryItems.filter(item => getTitleColorGroup(item) === shopTitleFilter);
