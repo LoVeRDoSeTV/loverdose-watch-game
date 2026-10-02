@@ -1,4 +1,4 @@
-const VERSION = 'loverdosetv-v108';
+const VERSION = 'loverdosetv-v109';
 const SHELL_CACHE = `${VERSION}-shell`;
 const SHELL = [
   '/pwa-icon-192.webp',

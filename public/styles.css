@@ -4680,3 +4680,86 @@ body:has(#pveModal:not(.hidden)){
   .admin-lovys-fragments{width:100%;grid-template-columns:1fr 72px auto}
   .admin-player-card-actions{width:100%;grid-template-columns:1fr 1fr}
 }
+
+/* =========================================================
+   V109 — REFONTE PC UNIQUEMENT
+   Mobile <= 900px volontairement inchangé.
+========================================================= */
+@media (min-width:901px){
+  body{padding-left:0!important;background:radial-gradient(circle at 50% -10%,#1a1530 0,#0b0d18 42%,#080a13 100%)}
+  .wrap{max-width:1500px;padding:18px 30px 46px}
+  .top{min-height:54px;padding:0 4px}.logo{font-size:24px;letter-spacing:-.02em}
+  .global-leaderboard{display:none!important}
+  body.desktop-leaderboard-open .global-leaderboard{display:block!important;position:fixed;z-index:1000025;top:126px;left:50%;transform:translateX(-50%);width:min(1180px,calc(100vw - 64px));height:calc(100vh - 146px);padding:28px 30px;border:1px solid rgba(145,71,255,.24);border-radius:24px;background:linear-gradient(180deg,#12172c,#0d1122);box-shadow:0 30px 90px rgba(0,0,0,.42)}
+  body.desktop-leaderboard-open .global-leaderboard h2{font-size:28px;margin-bottom:18px}
+  body.desktop-leaderboard-open #leaderboard{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  body.desktop-leaderboard-open .leaderboard-player-card{margin:0}
+
+  .desktop-game-nav{position:sticky;top:10px;z-index:1000040;display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0 18px;padding:7px;border:1px solid rgba(145,71,255,.20);border-radius:17px;background:rgba(10,13,27,.88);box-shadow:0 14px 42px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035);backdrop-filter:blur(18px)}
+  .desktop-game-nav-btn{min-height:42px;padding:8px 13px;border:1px solid transparent;border-radius:11px;background:transparent;color:#9fa8c6;font:inherit;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;transition:.16s}
+  .desktop-game-nav-btn span{margin-right:5px}.desktop-game-nav-btn:hover{color:#fff;background:rgba(255,255,255,.045)}
+  .desktop-game-nav-btn.active{color:#fff;border-color:rgba(145,71,255,.30);background:linear-gradient(145deg,rgba(111,54,199,.34),rgba(145,71,255,.20));box-shadow:inset 0 0 18px rgba(145,71,255,.08)}
+
+  body[data-desktop-view="home"] .desktop-lovys-hub,
+  body[data-desktop-view="home"] #pick,
+  body[data-desktop-view="home"] #game{display:none!important}
+  body[data-desktop-view="home"] .dashboard-head-grid{grid-template-columns:minmax(390px,470px) minmax(0,1fr);grid-template-areas:"left side" "incubator incubator";gap:16px}
+  body[data-desktop-view="home"] .dashboard-left-stack{padding-top:0;gap:12px}
+  body[data-desktop-view="home"] .dashboard-side-stack{padding-top:0;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px}
+  body[data-desktop-view="home"] .player-visit-card{min-height:278px}
+  body[data-desktop-view="home"] .wallet-card{grid-template-columns:minmax(0,1fr) 150px}.wallet-card .wallet-shop-button{width:150px}
+  body[data-desktop-view="home"] .dashboard-head-grid .incubator-topbar{padding:14px 18px;border-radius:17px}
+  body[data-desktop-view="home"] .incubator-slot{min-height:116px}.dashboard-head-grid{margin-top:12px}
+
+  body[data-desktop-view="incubator"] #nextActionsBar,
+  body[data-desktop-view="incubator"] .dashboard-left-stack,
+  body[data-desktop-view="incubator"] .dashboard-side-stack,
+  body[data-desktop-view="incubator"] .desktop-lovys-hub,
+  body[data-desktop-view="incubator"] #pick,
+  body[data-desktop-view="incubator"] #game{display:none!important}
+  body[data-desktop-view="incubator"] .dashboard-head-grid{display:block;margin:34px auto 0;max-width:1180px}
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{display:block!important;width:100%;padding:30px;border-radius:24px;min-height:520px;background:radial-gradient(circle at 50% 30%,rgba(145,71,255,.13),transparent 34%),linear-gradient(165deg,rgba(21,25,43,.99),rgba(9,13,28,.99))}
+  body[data-desktop-view="incubator"] .incubator-topbar-title{font-size:30px}body[data-desktop-view="incubator"] .incubator-topbar-subtitle{font-size:13px;margin-top:7px}
+  body[data-desktop-view="incubator"] .incubator-slots{gap:20px;margin-top:42px}body[data-desktop-view="incubator"] .incubator-slot{min-height:330px;padding:26px;border-radius:22px}
+  body[data-desktop-view="incubator"] .incubator-slot-egg{height:126px}body[data-desktop-view="incubator"] .incubator-egg-mini{transform:scale(1.55)}body[data-desktop-view="incubator"] .incubator-slot-title{font-size:18px}body[data-desktop-view="incubator"] .incubator-time{font-size:13px}body[data-desktop-view="incubator"] .incubator-status{font-size:11px}
+
+  /* Les grandes fonctions deviennent de vrais écrans PC et non des popups. */
+  #pveModal,.lovys-collection-modal,#progressionModal,.shop-modal{top:126px!important;bottom:0!important;left:0!important;right:0!important;inset:auto 0 0!important;z-index:1000020!important;align-items:flex-start!important;justify-content:center!important;padding:20px 30px 44px!important;background:#090c17!important;backdrop-filter:none!important;overflow:auto!important}
+  #pveModal .game-panel,.lovys-collection-panel,#progressionModal .game-panel,.shop-panel{width:min(1420px,100%)!important;max-width:1420px!important;max-height:none!important;min-height:calc(100vh - 190px);overflow:visible!important;border-radius:24px!important;padding:24px 26px!important;background:linear-gradient(180deg,#12172c,#0d1122)!important;box-shadow:0 22px 70px rgba(0,0,0,.24)!important}
+  #pveModal .game-close,.lovys-collection-panel>.lovys-collection-head .game-close,#progressionModal .game-close,.shop-panel>.shop-head .shop-close{display:none!important}
+  .lovys-collection-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.lovys-collection-card{border-radius:18px}.lovys-collection-art{height:180px}.lovys-collection-art img{height:175px;max-width:180px}
+  .lovys-fragments-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+
+  /* PvE : carte large + fiche latérale intégrée. */
+  #pveModal .game-panel{max-width:1480px!important}#pveModal #pveContent{min-height:700px}
+  #pveModal .pve-desktop-layout{grid-template-columns:235px minmax(0,1fr)!important;gap:16px!important}
+  #pveModal .pve-adventure-map{padding-right:330px!important;min-height:760px!important}
+  #pveModal .pve-desktop-main #pveMapDetail{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;width:315px!important;inset:auto 0 0 auto!important;margin:0!important;pointer-events:auto!important;z-index:30!important;border-left:1px solid rgba(145,71,255,.16);background:linear-gradient(180deg,rgba(11,15,30,.96),rgba(8,12,24,.98))}
+  #pveModal #pveMapDetail .pve-map-detail-backdrop{position:static!important;display:block!important;padding:18px!important;background:none!important;backdrop-filter:none!important;opacity:1!important;pointer-events:auto!important}
+  #pveModal #pveMapDetail .pve-map-detail.pve-monster-popup{position:static!important;width:100%!important;max-width:none!important;display:block!important;padding:8px!important;border:0!important;background:transparent!important;box-shadow:none!important;transform:none!important;opacity:1!important;pointer-events:auto!important;overflow:visible!important}
+  #pveModal .pve-monster-popup-close{display:none!important}#pveModal .pve-monster-popup-visual{min-height:235px}#pveModal .pve-monster-popup-visual .pve-enemy-art.real-art{width:215px;height:215px}#pveModal .pve-monster-popup-visual .pve-enemy-art.real-art.boss{width:230px;height:230px}
+  #pveModal .pve-monster-popup-info{padding:8px 2px}#pveModal .pve-monster-popup .pve-map-detail-title{font-size:22px!important}
+
+  /* Combat PC : arène intégrée dans l'écran PvE, aucun fond de popup. */
+  #pveModal.desktop-battle-mode #pveContent{display:none!important}
+  #pveModal.desktop-battle-mode>.game-panel>.game-head{display:none!important}
+  #pveModal.desktop-battle-mode .pve-battle-overlay{position:relative!important;inset:auto!important;z-index:1!important;display:block!important;width:100%!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;opacity:1!important}
+  #pveModal.desktop-battle-mode .pve-battle-stage{width:100%!important;max-width:none!important;min-height:calc(100vh - 190px);border-radius:24px!important;box-shadow:none!important}
+  #pveModal.desktop-battle-mode .pve-battle-arena{min-height:520px}
+
+  /* Lobby */
+  .desktop-lobby-page{position:fixed;z-index:1000020;top:126px;left:0;right:0;bottom:0;padding:20px 30px 44px;overflow:auto;background:#090c17}.desktop-lobby-page.hidden{display:none}
+  .desktop-lobby-shell{width:min(1420px,100%);min-height:calc(100vh - 190px);margin:auto;padding:26px;border:1px solid rgba(145,71,255,.22);border-radius:24px;background:linear-gradient(180deg,#12172c,#0d1122);box-shadow:0 22px 70px rgba(0,0,0,.24)}
+  .desktop-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}.desktop-page-head h2,.trade-composer-head h2{margin:4px 0 0;font-size:30px}.desktop-page-head p,.trade-composer-head p{max-width:720px;margin:7px 0 0;color:#9ea7c6;font-size:12px;line-height:1.55}.desktop-page-kicker{font-size:9px;font-weight:1000;letter-spacing:.14em;color:#a98cff}.lobby-presence-summary{padding:9px 12px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:11px;font-weight:900}
+  .lobby-tabs{display:flex;gap:6px;margin-top:24px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}.lobby-tab{padding:10px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.lobby-tab.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
+  .lobby-panel{margin-top:18px}.lobby-panel.hidden{display:none}.lobby-toolbar{display:flex;gap:10px;align-items:center}.lobby-toolbar input{flex:1;min-height:42px;padding:10px 13px;border:1px solid #303754;border-radius:11px;background:#0b1020;color:#fff;font:inherit}.lobby-secondary-btn,.lobby-primary-btn{min-height:40px;padding:9px 13px;border-radius:10px;border:1px solid rgba(145,71,255,.28);background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}.lobby-primary-btn{background:linear-gradient(145deg,#6f36c7,#9147ff);border-color:rgba(190,145,255,.34)}
+  .lobby-player-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.lobby-player-card{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:#101427}.lobby-player-card.present{border-color:rgba(91,214,164,.20)}.lobby-player-avatar{position:relative;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:#0b1020;overflow:visible;font-size:25px}.lobby-player-avatar img{width:100%;height:100%;object-fit:cover;border-radius:14px}.lobby-presence-dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border:3px solid #101427;border-radius:50%;background:#5c657f}.lobby-player-card.present .lobby-presence-dot{background:#5bd6a4}.lobby-player-name{font-size:15px;font-weight:950}.lobby-player-meta,.lobby-player-lovys{margin-top:4px;color:#8f99b8;font-size:10px;font-weight:800}.lobby-player-lovys{color:#c9d1e8}
+  .lobby-trade-toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px}.lobby-trade-toolbar strong{display:block;font-size:17px}.lobby-trade-toolbar span{display:block;margin-top:4px;color:#8f99b8;font-size:10px}.lobby-trade-filters{display:flex;gap:6px;margin-top:14px}.lobby-trade-filters button{padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:10px;font-weight:900;cursor:pointer}.lobby-trade-filters button.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
+  .lobby-trades-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.trade-offer-card{padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:linear-gradient(180deg,#11162b,#0e1326)}.trade-offer-card.status-completed{border-color:rgba(91,214,164,.22)}.trade-offer-card.status-cancelled,.trade-offer-card.status-expired{opacity:.66}.trade-offer-head,.trade-owner{display:flex;align-items:center}.trade-offer-head{justify-content:space-between;gap:10px}.trade-owner{gap:9px}.trade-owner>span{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#0a0f20;overflow:hidden}.trade-owner img{width:100%;height:100%;object-fit:cover}.trade-owner strong{display:block;font-size:12px}.trade-owner small{display:block;margin-top:3px;color:#818baa;font-size:8.5px}.trade-cancel-btn{border:1px solid rgba(255,105,125,.20);border-radius:9px;background:rgba(255,80,105,.07);color:#ff9dad;padding:7px 9px;font:inherit;font-size:9px;font-weight:900;cursor:pointer}.trade-give{margin-top:14px;padding:13px;border:1px solid rgba(145,71,255,.18);border-radius:13px;background:rgba(145,71,255,.07)}.trade-label{margin-bottom:8px;color:#9f8acb;font-size:8px;font-weight:1000;letter-spacing:.13em}.trade-asset-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(145,71,255,.09);font-size:18px}.trade-give,.trade-option{display:flex;align-items:center;gap:10px}.trade-give>span:last-child,.trade-option>span:last-of-type{min-width:0}.trade-give strong,.trade-option strong{display:block;font-size:11px}.trade-give small,.trade-option small{display:block;margin-top:2px;color:#8f99b8;font-size:9px}.trade-arrow{margin:10px 0 7px;text-align:center;color:#717c9e;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}.trade-options{display:grid;gap:6px}.trade-option{min-height:54px;padding:8px 9px;border:1px solid rgba(255,255,255,.065);border-radius:11px;background:#0d1224}.trade-option.possible{border-color:rgba(91,214,164,.18)}.trade-option button{margin-left:auto;padding:7px 9px;border:1px solid rgba(91,214,164,.24);border-radius:8px;background:rgba(91,214,164,.09);color:#c5f4e1;font:inherit;font-size:8.5px;font-weight:900;cursor:pointer}.trade-option button:disabled{opacity:.4;cursor:not-allowed}.trade-completed-note{margin-top:10px;color:#9fe5c9;font-size:10px;font-weight:900}.lobby-empty{grid-column:1/-1;padding:32px;border:1px dashed rgba(145,71,255,.18);border-radius:15px;text-align:center;color:#8993b2;font-size:12px}
+
+  .trade-composer{position:fixed;z-index:1000080;inset:0;display:flex;align-items:center;justify-content:center;padding:30px;background:rgba(3,5,15,.76);backdrop-filter:blur(10px)}.trade-composer.hidden{display:none}.trade-composer-card{width:min(850px,100%);max-height:90vh;overflow:auto;padding:24px;border:1px solid rgba(145,71,255,.34);border-radius:22px;background:linear-gradient(180deg,#151a30,#0e1325);box-shadow:0 30px 100px rgba(0,0,0,.55)}.trade-composer-head{display:flex;justify-content:space-between;gap:20px}.trade-composer-head>button{width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px;cursor:pointer}.trade-composer-section{margin-top:18px;padding:15px;border:1px solid rgba(255,255,255,.07);border-radius:15px;background:#101427}.trade-composer-section h3{margin:0 0 12px;font-size:14px}.trade-asset-row,.trade-option-edit{display:grid;grid-template-columns:170px minmax(0,1fr) 110px;gap:8px}.trade-asset-row select,.trade-asset-row input,.trade-option-edit select,.trade-option-edit input,.trade-composer-footer select{min-height:40px;padding:8px 10px;border:1px solid #303754;border-radius:9px;background:#0b1020;color:#fff;font:inherit;font-size:11px;font-weight:800}.trade-balance{margin-top:8px;color:#8f99b8;font-size:10px}.trade-section-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.trade-options-list{display:grid;gap:8px}.trade-option-edit{grid-template-columns:28px 150px minmax(0,1fr) 100px 34px;align-items:center}.trade-option-number{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(145,71,255,.10);font-size:10px;font-weight:950}.trade-option-edit>button{height:34px;border:1px solid rgba(255,100,120,.18);border-radius:8px;background:rgba(255,80,100,.06);color:#ff9bad;font-size:18px;cursor:pointer}.trade-composer-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-top:18px}.trade-composer-footer label{display:grid;gap:5px;color:#9da7c5;font-size:9px;font-weight:900}.trade-composer-message{min-height:18px;margin-top:10px;color:#aab3cf;font-size:11px;font-weight:800}.trade-composer-message.error{color:#ff91a4}
+}
+
+@media (max-width:900px){
+  .desktop-game-nav,.desktop-lobby-page,.trade-composer{display:none!important}
+}

@@ -8,10 +8,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="LoVeRDoSe">
-<link rel="manifest" href="/manifest.webmanifest?v=108">
+<link rel="manifest" href="/manifest.webmanifest?v=109">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=108">
+<link rel="stylesheet" href="/styles.css?v=109">
 
 
 </head>
@@ -294,6 +294,38 @@
   <button id="mobileNavInventory" class="mobile-game-nav-btn" type="button"><span>🎒</span><b>Inventaire</b></button>
   <button id="mobileNavProfile" class="mobile-game-nav-btn" type="button"><span>👤</span><b>Profil</b></button>
 </nav>
+<nav id="desktopGameNav" class="desktop-game-nav" aria-label="Navigation principale PC">
+  <button class="desktop-game-nav-btn active" type="button" data-desktop-view="home"><span>🏠</span>Accueil</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="lovys"><span>🐉</span>Lovys</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="incubator"><span>🥚</span>Incubateur</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="pve"><span>⚔️</span>PvE</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="lobby"><span>🤝</span>Lobby</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="leaderboard"><span>🏆</span>Classement</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="progression"><span>📈</span>Progression</button>
+  <button class="desktop-game-nav-btn" type="button" data-desktop-view="shop"><span>🛒</span>Boutique</button>
+</nav>
+<section id="desktopLobbyPage" class="desktop-lobby-page hidden" aria-label="Lobby communautaire">
+  <div class="desktop-lobby-shell">
+    <div class="desktop-page-head"><div><div class="desktop-page-kicker">COMMUNAUTÉ</div><h2>🤝 Lobby</h2><p>Retrouve les joueurs et échange tes fragments ou tes œufs sans créer un second chat.</p></div><div id="lobbyPresenceSummary" class="lobby-presence-summary">Chargement…</div></div>
+    <div class="lobby-tabs" role="tablist">
+      <button class="lobby-tab active" type="button" data-lobby-tab="players">👥 Joueurs</button>
+      <button class="lobby-tab" type="button" data-lobby-tab="trades">🔄 Échanges</button>
+      <button class="lobby-tab" type="button" data-lobby-tab="mine">📜 Mes offres</button>
+    </div>
+    <div id="lobbyPlayersPanel" class="lobby-panel"><div class="lobby-toolbar"><input id="lobbyPlayerSearch" type="search" maxlength="32" placeholder="🔎 Rechercher un joueur…"><button id="lobbyRefreshPlayers" class="lobby-secondary-btn" type="button">Actualiser</button></div><div id="lobbyPlayersGrid" class="lobby-player-grid"></div></div>
+    <div id="lobbyTradesPanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Bourse d'échanges</strong><span>Une offre peut proposer jusqu'à 3 contreparties possibles. Une seule sera utilisée.</span></div><button id="tradeCreateOpen" class="lobby-primary-btn" type="button">＋ Créer une offre</button></div><div class="lobby-trade-filters"><button class="active" type="button" data-trade-filter="all">Toutes</button><button type="button" data-trade-filter="possible">Je peux accepter</button><button type="button" data-trade-filter="fragment">Fragments</button><button type="button" data-trade-filter="egg">Œufs</button></div><div id="lobbyTradesGrid" class="lobby-trades-grid"></div></div>
+    <div id="lobbyMinePanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Mes offres</strong><span>Suis tes annonces, les échanges acceptés et les objets réservés.</span></div><button id="tradeCreateOpenMine" class="lobby-primary-btn" type="button">＋ Nouvelle offre</button></div><div id="lobbyMineGrid" class="lobby-trades-grid"></div></div>
+  </div>
+</section>
+<section id="tradeComposer" class="trade-composer hidden" aria-label="Créer une offre d'échange">
+  <div class="trade-composer-card">
+    <div class="trade-composer-head"><div><div class="desktop-page-kicker">NOUVELLE ANNONCE</div><h2>🔄 Créer une offre</h2><p>Les objets proposés sont réservés immédiatement. Ils te sont rendus si tu annules ou si l'annonce expire.</p></div><button id="tradeComposerClose" type="button" aria-label="Fermer">×</button></div>
+    <div id="tradeComposerMessage" class="trade-composer-message"></div>
+    <div class="trade-composer-section"><h3>Je propose</h3><div class="trade-asset-row"><select id="tradeOfferType"><option value="fragment">🧩 Fragments d'un Lovys</option><option value="egg">🥚 Œuf mystère</option></select><select id="tradeOfferCreature"></select><input id="tradeOfferQuantity" type="number" min="1" max="999" value="10" inputmode="numeric"></div><div id="tradeOfferBalance" class="trade-balance"></div></div>
+    <div class="trade-composer-section"><div class="trade-section-title-row"><h3>J'accepte l'une de ces propositions</h3><button id="tradeOptionAdd" class="lobby-secondary-btn" type="button">＋ Ajouter</button></div><div id="tradeOptionsList" class="trade-options-list"></div></div>
+    <div class="trade-composer-footer"><label>Durée <select id="tradeDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="tradePublish" class="lobby-primary-btn" type="button">Publier l'offre</button></div>
+  </div>
+</section>
 <section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
   <div class="next-actions-bar-copy">
     <span class="next-actions-bar-icon" aria-hidden="true">🎯</span>
@@ -986,5 +1018,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=108"></script>
+<script src="/app.js?v=109"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
