@@ -4796,9 +4796,21 @@ async function openDesktopView(view='home'){
   if(view==='lobby'){$('desktopLobbyPage')?.classList.remove('hidden');await openLobbyTab(lobbyTab);}
 }
 
-document.querySelectorAll('[data-desktop-view]').forEach(btn=>btn.addEventListener('click',()=>openDesktopView(btn.dataset.desktopView)));
-window.addEventListener('resize',()=>{syncDesktopLeaderboardPlacement();});
-if(isDesktopGameUi())syncDesktopLeaderboardPlacement();
+const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique'};
+const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
+function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
+function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
+document.querySelectorAll('[data-desktop-view]').forEach(link=>link.addEventListener('click',event=>{
+  if(!isDesktopGameUi())return;
+  event.preventDefault();
+  const view=link.dataset.desktopView||'home';
+  const nextHash='#'+(desktopViewHashes[view]||'accueil');
+  if(location.hash===nextHash)openDesktopView(view);
+  else location.hash=nextHash;
+}));
+window.addEventListener('hashchange',syncDesktopViewFromUrl);
+window.addEventListener('resize',()=>{syncDesktopLeaderboardPlacement();if(isDesktopGameUi())syncDesktopViewFromUrl();});
+if(isDesktopGameUi()){syncDesktopLeaderboardPlacement();syncDesktopViewFromUrl();}
 
 function lobbyPlayerMarkup(player){
   const active=player.lovys;const avatar=player.profileImageUrl?`<img loading="lazy" decoding="async" src="${escapeHtml(player.profileImageUrl)}" alt="">`:'👤';

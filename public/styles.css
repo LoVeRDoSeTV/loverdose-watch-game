@@ -4696,7 +4696,7 @@ body:has(#pveModal:not(.hidden)){
   body.desktop-leaderboard-open .leaderboard-player-card{margin:0}
 
   .desktop-game-nav{position:sticky;top:10px;z-index:1000040;display:flex;align-items:center;justify-content:center;gap:5px;margin:4px 0 18px;padding:7px;border:1px solid rgba(145,71,255,.20);border-radius:17px;background:rgba(10,13,27,.88);box-shadow:0 14px 42px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.035);backdrop-filter:blur(18px)}
-  .desktop-game-nav-btn{min-height:42px;padding:8px 13px;border:1px solid transparent;border-radius:11px;background:transparent;color:#9fa8c6;font:inherit;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;transition:.16s}
+  .desktop-game-nav-btn{min-height:42px;padding:8px 13px;border:1px solid transparent;border-radius:11px;background:transparent;color:#9fa8c6;font:inherit;font-size:11px;font-weight:900;cursor:pointer;white-space:nowrap;transition:.16s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
   .desktop-game-nav-btn span{margin-right:5px}.desktop-game-nav-btn:hover{color:#fff;background:rgba(255,255,255,.045)}
   .desktop-game-nav-btn.active{color:#fff;border-color:rgba(145,71,255,.30);background:linear-gradient(145deg,rgba(111,54,199,.34),rgba(145,71,255,.20));box-shadow:inset 0 0 18px rgba(145,71,255,.08)}
 
