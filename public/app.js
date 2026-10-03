@@ -959,14 +959,44 @@ function renderIncubatorSlot(slotData) {
   el.classList.add(isStarter ? 'active' : 'extra-egg');
   if (slotData.ready) el.classList.add('ready');
   const title = slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation';
-  const status = slotData.ready ? 'Incubation terminée.' : `Encore ${formatEggTime(Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0)))} avant l’éclosion.`;
+  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
+  const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans ${formatEggTime(remaining)}`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
-  el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div></div><div class="incubator-time">${watched} / 6 h 00</div><div class="incubator-status">${status}</div>${pending}`;
+  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">ℹ️ Chances</button>';
+  el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}${action}`;
+}
+
+function renderIncubatorOverview() {
+  const box = $('incubatorOverview');
+  if (!box || !incubatorData?.slots) return;
+  const active = incubatorData.slots.filter(slot => slot && !slot.empty);
+  const next = active.filter(slot => !slot.ready).sort((a,b)=>Number(b.watchedSeconds||0)-Number(a.watchedSeconds||0))[0];
+  const ready = active.find(slot => slot.ready);
+  const remaining = next ? Math.max(0, Number(incubatorData?.hatchSeconds || 21600)-Number(next.watchedSeconds||0)) : 0;
+  const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
+  box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Ouvre un œuf en incubation puis « Chances » pour voir les Lovys possibles.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
+}
+
+async function refreshIncubatorLiveState() {
+  try {
+    const response = await fetch('/api/lobby', { cache:'no-store' });
+    const data = await response.json();
+    if (!response.ok) return;
+    const live = Boolean(data.live);
+    document.querySelectorAll('[data-incubator-live]').forEach(el => {
+      el.textContent = live ? '🟢 En progression · Live en cours' : '⏸️ En pause · Reprendra au prochain live';
+      el.classList.toggle('is-live', live);
+    });
+    const global = $('incubatorGlobalLiveState');
+    if (global) { global.textContent = live ? '🟢 Live en cours · tes incubations peuvent progresser' : '⏸️ Live hors ligne · reprise au prochain live'; global.classList.toggle('is-live', live); }
+  } catch {}
 }
 
 function renderIncubatorSlots() {
   if (!incubatorData?.slots) return;
   incubatorData.slots.forEach(renderIncubatorSlot);
+  renderIncubatorOverview();
+  refreshIncubatorLiveState();
 }
 
 async function loadIncubatorSlots() {
