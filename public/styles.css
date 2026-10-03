@@ -5721,3 +5721,60 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V137 ===== */
+
+/* ===== V138 — PC : micro-textes 16/17 px ===== */
+@media (min-width:901px){
+  /* Les petites phrases explicatives deviennent réellement lisibles sur grand écran. */
+  body :where(
+    .dashboard-head-grid p,
+    .desktop-lobby-shell p,
+    .lovys-collection-panel p,
+    .game-panel p,
+    .shop-panel p,
+    .account-panel p,
+    .global-leaderboard p,
+    [class*="-desc"], [class*="-description"], [class*="-subtitle"],
+    [class*="-subtext"], [class*="-helper"], [class*="-help"],
+    [class*="-note"], [class*="-meta"], [class*="-time"],
+    [class*="-hours"], [class*="-progress-text"], [class*="-state-text"]
+  ){
+    font-size:16px!important;
+    line-height:1.5!important;
+    color:#d2d9ee!important;
+  }
+
+  /* Infos courtes mais importantes : niveau, Lovys, temps, progression, etc. */
+  body :where(
+    .lobby-player-meta,.lobby-player-lovys,
+    .leaderboard-player-state-text,
+    .incubator-slot-note,.incubator-time,.incubator-status,.incubator-pending,
+    .challenge-description,.challenge-progress,
+    .lovys-home-note,.lovys-home-desc,.lovys-home-track-top,
+    .lovys-card-head .hub-sub,
+    .pve-hp-text,.pve-battle-log,
+    .badge-hours,.badge-card-sub,.account-edit-help
+  ){
+    font-size:16px!important;
+    line-height:1.5!important;
+    color:#d2d9ee!important;
+  }
+
+  /* Les informations de progression les plus utiles ressortent légèrement davantage. */
+  body :where(
+    .leaderboard-player-state-text,
+    .incubator-time,
+    .challenge-progress,
+    .lobby-player-lovys,
+    .pve-hp-text
+  ){
+    font-size:17px!important;
+  }
+
+  /* Sous-titres juste sous les titres de section. */
+  body :where(h1,h2,h3) + :where(p,.muted,[class*="-subtitle"],[class*="-desc"]){
+    font-size:16px!important;
+    line-height:1.5!important;
+    color:#d2d9ee!important;
+  }
+}
+/* ===== /V138 ===== */
