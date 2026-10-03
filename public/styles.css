@@ -5220,3 +5220,138 @@ body:has(#pveModal:not(.hidden)){
   }
 }
 /* ===== /V118 ===== */
+
+/* =========================================================
+   V119 — PC : MES LOVYS, COLLECTION COMPACTE PREMIUM
+   Boutique-like centered layout. Mobile untouched.
+========================================================= */
+@media (min-width:901px){
+  body[data-desktop-view="lovys"] .lovys-collection-panel{
+    width:min(1380px,calc(100% - 56px))!important;
+    max-width:1380px!important;
+    padding:22px 0 64px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-head{
+    padding:4px 0 18px!important;
+    margin-bottom:14px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-head h2{
+    font-size:28px!important;
+    letter-spacing:-.02em;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-head p{
+    max-width:650px;
+    margin-top:5px!important;
+    color:#9da8c5!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-reserve{
+    display:inline-flex!important;
+    align-items:center!important;
+    width:auto!important;
+    max-width:100%!important;
+    margin:0 0 14px!important;
+    padding:9px 13px!important;
+    border-radius:11px!important;
+    font-size:11px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-tabs{
+    display:flex!important;
+    width:max-content!important;
+    max-width:100%!important;
+    gap:6px!important;
+    margin:0 0 18px!important;
+    padding:4px!important;
+    border-radius:12px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-tab{
+    min-width:170px!important;
+    min-height:38px!important;
+    padding:8px 18px!important;
+    font-size:11px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr))!important;
+    gap:14px!important;
+    margin-top:0!important;
+    align-items:start!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-card{
+    padding:12px!important;
+    border-radius:16px!important;
+    background:linear-gradient(180deg,rgba(17,22,42,.98),rgba(12,16,31,.98))!important;
+    box-shadow:0 10px 28px rgba(0,0,0,.12)!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-card.active{
+    box-shadow:inset 0 0 24px rgba(145,71,255,.055),0 10px 28px rgba(0,0,0,.14)!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-art{
+    height:128px!important;
+    margin:-2px 0 4px!important;
+    border-radius:13px!important;
+    background:radial-gradient(circle at 50% 54%,rgba(145,71,255,.10),transparent 66%)!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-art img{
+    width:auto!important;
+    height:124px!important;
+    max-width:138px!important;
+    object-fit:contain!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-name{
+    font-size:17px!important;
+    line-height:1.15!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-rank{margin-top:4px!important;font-size:11px!important}
+  body[data-desktop-view="lovys"] .lovys-rank span{font-size:8px!important}
+  body[data-desktop-view="lovys"] .lovys-collection-meta{
+    margin-top:4px!important;
+    font-size:10px!important;
+    line-height:1.4!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-combat-stats{
+    gap:4px!important;
+    margin:8px 0!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-combat-stats span{
+    padding:5px 3px!important;
+    border-radius:8px!important;
+    font-size:8px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-talent-box{
+    gap:3px!important;
+    margin:7px 0!important;
+    padding:8px 9px!important;
+    border-radius:10px!important;
+    background:linear-gradient(145deg,rgba(116,71,190,.10),rgba(116,71,190,.045))!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-talent-box strong{font-size:9px!important}
+  body[data-desktop-view="lovys"] .lovys-talent-box span{font-size:8px!important;line-height:1.4!important}
+  body[data-desktop-view="lovys"] .lovys-fragment-line{
+    margin:6px 0!important;
+    font-size:8px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-active{
+    margin-top:5px!important;
+    padding:4px 8px!important;
+    font-size:8px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-actions{
+    gap:6px!important;
+    margin-top:8px!important;
+    flex-wrap:wrap!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-actions .hub-btn{
+    min-height:34px!important;
+    padding:7px 8px!important;
+    font-size:9px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-fragments-panel{margin-top:0!important}
+  body[data-desktop-view="lovys"] .lovys-fragments-grid{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:12px!important;
+  }
+}
+@media (min-width:901px) and (max-width:1220px){
+  body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  body[data-desktop-view="lovys"] .lovys-fragments-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+/* ===== /V119 ===== */
