@@ -5355,3 +5355,23 @@ body:has(#pveModal:not(.hidden)){
   body[data-desktop-view="lovys"] .lovys-fragments-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 }
 /* ===== /V119 ===== */
+
+/* =========================================================
+   V120 — PC LOVYS : largeur de page restauree / centree
+   Garde les cartes compactes V119, corrige uniquement le canevas.
+========================================================= */
+@media (min-width:901px){
+  body[data-desktop-view="lovys"] .lovys-collection-modal{
+    width:100%!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-panel{
+    box-sizing:border-box!important;
+    width:calc(100% - 84px)!important;
+    max-width:1500px!important;
+    margin:0 auto!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-grid{
+    width:100%!important;
+  }
+}
+/* ===== /V120 ===== */
