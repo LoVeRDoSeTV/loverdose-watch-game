@@ -5915,3 +5915,11 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   body[data-desktop-view="incubator"] .incubator-slot-plus{width:52px!important;height:52px!important;font-size:28px!important;margin-bottom:10px!important}
 }
 /* ===== /V140 ===== */
+
+/* ===== V141 — PC : 3 emplacements d'incubation sur une seule ligne ===== */
+@media (min-width:901px){
+  body[data-desktop-view="incubator"] .incubator-slots{
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  }
+}
+/* ===== /V141 ===== */
