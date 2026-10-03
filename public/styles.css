@@ -2052,7 +2052,7 @@ html, body{
 .progression-hub .progression-card{display:none}
 #topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
 #topIncubatorEgg:hover{transform:translateY(-2px);border-color:rgba(145,71,255,.58);background:linear-gradient(160deg,rgba(145,71,255,.14),rgba(9,13,28,.72))}
-#topIncubatorEgg::after{content:'Cliquer pour voir les chances';margin-top:7px;color:#bfa4e9;font-size:9px;font-weight:850}
+#topIncubatorEgg::after{content:none!important;display:none!important}
 #pick{display:none}
 #pick.egg-details-open{display:block!important;position:fixed;inset:0;z-index:1000045;margin:0;padding:72px max(24px,calc((100vw - 820px)/2)) 46px;border:0;border-radius:0;background:rgba(7,10,22,.97);overflow-y:auto;overscroll-behavior:contain;box-shadow:none}
 #pick.egg-details-open .egg-visual{margin-left:auto;margin-right:auto}

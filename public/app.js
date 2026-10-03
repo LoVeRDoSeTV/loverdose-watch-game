@@ -974,7 +974,7 @@ function renderIncubatorOverview() {
   const ready = active.find(slot => slot.ready);
   const remaining = next ? Math.max(0, Number(incubatorData?.hatchSeconds || 21600)-Number(next.watchedSeconds||0)) : 0;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
-  box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Ouvre un œuf en incubation puis « Chances » pour voir les Lovys possibles.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
+  box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Clique sur un œuf en incubation pour voir les Lovys possibles avec leurs pourcentages d’obtention.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
 }
 
 async function refreshIncubatorLiveState() {
@@ -1027,13 +1027,58 @@ function openIncubatorAddModal(slot) {
     content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">${eggIconMarkup()} ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
     $('incubatorPlaceEgg')?.addEventListener('click', placeEggInSelectedSlot);
   } else {
+    // Aucun œuf : on reste dans une popup dédiée à l’incubateur au lieu d’envoyer
+    // le joueur vers la Boutique complète.
     incubatorShopTargetSlot = selectedIncubatorSlot;
-    selectedIncubatorSlot = null;
-    $('incubatorAddModal')?.classList.add('hidden');
-    openShopForIncubatorEgg(incubatorShopTargetSlot);
+    content.innerHTML = `<div class="incubator-add-card incubator-empty-buy"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Aucun œuf disponible</div><div class="incubator-add-copy">Tu n’as aucun œuf en stock. Tu peux acheter un Œuf mystère ici puis le placer directement dans cet emplacement.</div><div id="incubatorEggBuyPrice" class="incubator-add-count">Chargement du prix…</div></div></div><div class="incubator-add-actions"><button id="incubatorBuyEggHere" class="hub-btn" type="button" disabled>🥚 Acheter un œuf</button></div><div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+    $('incubatorAddModal')?.classList.remove('hidden');
+    prepareIncubatorEggPurchase();
     return;
   }
   $('incubatorAddModal')?.classList.remove('hidden');
+}
+
+
+async function prepareIncubatorEggPurchase() {
+  const button = $('incubatorBuyEggHere');
+  const priceBox = $('incubatorEggBuyPrice');
+  const message = $('incubatorAddMessage');
+  try {
+    if (!shopData?.catalog) await loadShop();
+    const item = getShopItemByKey('mystery_egg');
+    if (!item) throw new Error('Œuf mystère indisponible pour le moment.');
+    const price = Number(item.price ?? item.cost ?? 0);
+    if (priceBox) priceBox.textContent = price > 0 ? `Prix : ${price.toLocaleString('fr-FR')} LoVeR’Cash` : 'Œuf mystère';
+    if (button) {
+      button.disabled = false;
+      button.textContent = price > 0 ? `🥚 Acheter · ${price.toLocaleString('fr-FR')} LoVeR’Cash` : '🥚 Acheter un œuf';
+      button.onclick = buyIncubatorEggHere;
+    }
+  } catch (error) {
+    if (priceBox) priceBox.textContent = 'Achat indisponible';
+    if (message) { message.className='incubator-add-message error'; message.textContent=error.message || 'Impossible de charger l’œuf.'; }
+  }
+}
+
+async function buyIncubatorEggHere() {
+  const button = $('incubatorBuyEggHere');
+  const message = $('incubatorAddMessage');
+  const slot = Number(incubatorShopTargetSlot || selectedIncubatorSlot || 0);
+  if (button) { button.disabled = true; button.textContent = 'Achat en cours…'; }
+  if (message) { message.className='incubator-add-message'; message.textContent=''; }
+  try {
+    const response = await fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey:'mystery_egg' }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Achat impossible.');
+    await loadGame();
+    await loadIncubatorSlots();
+    // Après l’achat, la même popup affiche immédiatement l’œuf disponible
+    // et permet de l’incuber sans changer de page.
+    openIncubatorAddModal(slot);
+  } catch (error) {
+    if (message) { message.className='incubator-add-message error'; message.textContent=error.message || 'Achat impossible.'; }
+    if (button) { button.disabled=false; button.textContent='🥚 Acheter un œuf'; }
+  }
 }
 
 async function placeEggInSelectedSlot() {
