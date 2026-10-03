@@ -1048,10 +1048,17 @@ async function prepareIncubatorEggPurchase() {
     const item = getShopItemByKey('mystery_egg');
     if (!item) throw new Error('Œuf mystère indisponible pour le moment.');
     const price = Number(item.price ?? item.cost ?? 0);
-    if (priceBox) priceBox.textContent = price > 0 ? `Prix : ${price.toLocaleString('fr-FR')} LoVeR’Cash` : 'Œuf mystère';
+    const balance = Math.max(0, Math.floor(Number(shopData?.balance ?? me?.user?.points ?? 0)));
+    const missing = Math.max(0, price - balance);
+    if (priceBox) {
+      priceBox.innerHTML = price > 0
+        ? `<div>🥚 Prix : <strong>${price.toLocaleString('fr-FR')} LoVeR’Cash</strong></div><div style="margin-top:6px">💰 Ton solde : <strong>${balance.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>${missing > 0 ? `<div style="margin-top:6px;color:#f0b4c2">Il te manque <strong>${missing.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>` : ''}`
+        : `<div>💰 Ton solde : <strong>${balance.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>`;
+    }
     if (button) {
-      button.disabled = false;
+      button.disabled = price > 0 && balance < price;
       button.textContent = price > 0 ? `🥚 Acheter · ${price.toLocaleString('fr-FR')} LoVeR’Cash` : '🥚 Acheter un œuf';
+      button.title = missing > 0 ? `Il te manque ${missing.toLocaleString('fr-FR')} LoVeR’Cash` : '';
       button.onclick = buyIncubatorEggHere;
     }
   } catch (error) {
