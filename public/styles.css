@@ -6054,3 +6054,26 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
     color:#b9c2df;
   }
 }
+
+/* ===== V149 — Classement : fond violet global sans bande noire ===== */
+@media (min-width:901px){
+  body[data-desktop-view="leaderboard"]{
+    background:
+      radial-gradient(circle at 50% 0%,rgba(92,50,154,.16),transparent 42%),
+      linear-gradient(180deg,#101023 0%,#0d0f1d 54%,#101023 100%)!important;
+    background-attachment:fixed!important;
+  }
+  body[data-desktop-view="leaderboard"] #app,
+  body[data-desktop-view="leaderboard"] .wrap,
+  body[data-desktop-view="leaderboard"] .global-leaderboard{
+    background:transparent!important;
+    background-image:none!important;
+  }
+  body[data-desktop-view="leaderboard"] .wrap{
+    min-height:100vh!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard{
+    min-height:calc(100vh - 150px)!important;
+  }
+}
+/* ===== /V149 ===== */
