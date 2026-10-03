@@ -6807,6 +6807,15 @@ app.get(
   async (req, res) => {
     try {
       const search = String(req.query.search || '').trim().slice(0, 32);
+      const requestedMetric = String(req.query.metric || 'watch').trim().toLowerCase();
+      const metric = ['watch', 'level', 'pve', 'collection', 'prestige'].includes(requestedMetric) ? requestedMetric : 'watch';
+      const orderByMetric = {
+        watch: 'COALESCE(u.watch_seconds, 0) DESC, u.id ASC',
+        level: 'COALESCE(u.global_xp, 0) DESC, u.id ASC',
+        pve: 'pve_wins DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC',
+        collection: 'collection_count DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC',
+        prestige: 'COALESCE(u.prestige, 0) DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC'
+      }[metric];
 
       // Requête volontairement simple et robuste : on récupère d'abord les joueurs,
       // puis leurs 2 badges de classement dans une seconde requête. Cela évite qu'une
@@ -6832,6 +6841,8 @@ app.get(
           u.lifetime_lovercash_spent,
           u.watch_seconds,
           u.created_at,
+          (SELECT COUNT(*)::int FROM user_lovys ul WHERE ul.user_id = u.id) AS collection_count,
+          (SELECT COALESCE(SUM(upp.wins), 0)::int FROM user_pve_progress upp WHERE upp.user_id = u.id) AS pve_wins,
           a.equipped_title_key,
           a.equipped_background_key,
           a.equipped_frame_key,
@@ -6845,9 +6856,7 @@ app.get(
             OR COALESCE(u.display_name, '') ILIKE '%' || $1::text || '%'
             OR COALESCE(u.login, '') ILIKE '%' || $1::text || '%'
           )
-        ORDER BY
-          COALESCE(u.watch_seconds, 0) DESC,
-          u.id ASC
+        ORDER BY ${orderByMetric}
         LIMIT 50
         `,
         [search]
@@ -6933,6 +6942,8 @@ app.get(
           lifetime_lovercash_earned: Number(player.lifetime_lovercash_earned || 0),
           lifetime_lovercash_spent: Number(player.lifetime_lovercash_spent || 0),
           watch_seconds: watched,
+          collection_count: Number(player.collection_count || 0),
+          pve_wins: Number(player.pve_wins || 0),
           created_at: player.created_at || null,
           badge_count: badgeCountsByUser.get(Number(player.id)) || 0,
           creature_count: player.creature_id ? 1 : 0,
@@ -6949,7 +6960,7 @@ app.get(
         };
       });
 
-      res.json({ ok: true, leaderboard });
+      res.json({ ok: true, metric, leaderboard });
     } catch (error) {
       console.error('Erreur classement :', error);
       res.status(500).json({ error: 'Impossible de charger le classement' });
