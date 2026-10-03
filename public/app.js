@@ -1124,9 +1124,44 @@ function tutorialTargetForStep(step) {
   return element;
 }
 
+function resetTutorialPanelPosition() {
+  const panel = document.querySelector('.tutorial-panel');
+  if (!panel) return;
+  panel.style.position = '';
+  panel.style.left = '';
+  panel.style.right = '';
+  panel.style.top = '';
+  panel.style.transform = '';
+}
+
+function positionTutorialPanel(target) {
+  const panel = document.querySelector('.tutorial-panel');
+  if (!panel || !target || isMobileGameUi()) { resetTutorialPanelPosition(); return; }
+  const rect = target.getBoundingClientRect();
+  const gap = 34;
+  const panelWidth = Math.min(560, window.innerWidth - 40);
+  const roomRight = window.innerWidth - rect.right;
+  const roomLeft = rect.left;
+  panel.style.position = 'fixed';
+  panel.style.top = '50%';
+  panel.style.transform = 'translateY(-50%)';
+  if (roomRight >= panelWidth + gap) {
+    panel.style.left = `${Math.min(window.innerWidth - panelWidth - 20, rect.right + gap)}px`;
+    panel.style.right = 'auto';
+  } else if (roomLeft >= panelWidth + gap) {
+    panel.style.right = `${Math.min(window.innerWidth - panelWidth - 20, window.innerWidth - rect.left + gap)}px`;
+    panel.style.left = 'auto';
+  } else {
+    panel.style.left = '50%';
+    panel.style.right = 'auto';
+    panel.style.transform = 'translate(-50%,-50%)';
+  }
+}
+
 function renderTutorialStep() {
   const step = tutorialSteps[Math.max(0, Math.min(tutorialSteps.length - 1, tutorialStepIndex))];
   clearTutorialFocus();
+  resetTutorialPanelPosition();
   if ($('tutorialStepLabel')) $('tutorialStepLabel').textContent = `Étape ${tutorialStepIndex + 1} / ${tutorialSteps.length}`;
   if ($('tutorialProgressBar')) $('tutorialProgressBar').style.width = `${((tutorialStepIndex + 1) / tutorialSteps.length) * 100}%`;
   if ($('tutorialIcon')) $('tutorialIcon').textContent = step.icon || '✨';
@@ -1138,7 +1173,7 @@ function renderTutorialStep() {
   const target = tutorialTargetForStep(step);
   if (target) {
     target.classList.add('tutorial-focus');
-    setTimeout(() => target.scrollIntoView({ behavior:'smooth', block:'center' }), 60);
+    setTimeout(() => { target.scrollIntoView({ behavior:'smooth', block:'center' }); setTimeout(() => positionTutorialPanel(target), 260); }, 60);
   }
 }
 
@@ -1155,6 +1190,7 @@ function maybeShowGameIntro() {
 
 async function closeGameIntro({ markSeen = true } = {}) {
   clearTutorialFocus();
+  resetTutorialPanelPosition();
   $('gameIntroModal')?.classList.add('hidden');
   if (!markSeen || !shouldShowGameIntro) return;
   shouldShowGameIntro = false;
