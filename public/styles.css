@@ -5497,3 +5497,23 @@ body[data-desktop-view="lovys"] .lovys-moment-tip-copy>p{margin:4px 0 0;color:#a
 body[data-desktop-view="lovys"] .lovys-moment-tip>button{flex:0 0 auto;border:1px solid rgba(145,71,255,.55);border-radius:9px;background:#2a1750;color:#fff;font-size:11px;font-weight:900;padding:9px 12px;cursor:pointer}
 body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:translateY(-1px);background:#392069}
 }
+
+/* ===== V128 — PC : navigation +15 % ===== */
+@media (min-width:901px){
+  .desktop-game-nav{
+    gap:5.75px;
+    margin-bottom:20.7px;
+    padding:8.05px;
+  }
+  .desktop-game-nav-btn{
+    min-height:48.3px;
+    padding:9.2px 15px;
+    border-radius:12.65px;
+    font-size:12.65px;
+  }
+  .desktop-game-nav-btn span{
+    margin-right:5.75px;
+    font-size:1.15em;
+  }
+}
+/* ===== /V128 ===== */
