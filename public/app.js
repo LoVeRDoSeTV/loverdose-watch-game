@@ -2507,7 +2507,6 @@ async function loadLeaderboard(searchTerm = null) {
     const url = query
       ? `/api/leaderboard?search=${encodeURIComponent(query)}`
       : '/api/leaderboard';
-
     const response = await fetch(url, { cache: 'no-store' });
     const data = await response.json();
 
@@ -2519,83 +2518,90 @@ async function loadLeaderboard(searchTerm = null) {
     }
 
     leaderboardPlayers = data.leaderboard;
+    const players = data.leaderboard;
+    const selfTwitchId = String(me?.user?.twitch_id || '');
+    const selfIndex = players.findIndex(player => String(player.twitch_id || '') === selfTwitchId);
+    const self = selfIndex >= 0 ? players[selfIndex] : null;
+    const previous = selfIndex > 0 ? players[selfIndex - 1] : null;
 
-    container.innerHTML = data.leaderboard.map((playerData, visibleIndex) => {
-      let rank = '#' + playerData.rank;
-      if (playerData.rank === 1) rank = '🥇';
-      if (playerData.rank === 2) rank = '🥈';
-      if (playerData.rank === 3) rank = '🥉';
+    const creatureMeta = player => player.creature_id ? creatureById(player.creature_id) : null;
+    const playerTitle = player => player.cosmetic_title
+      ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>`
+      : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
+    const avatarHtml = (player, cls='') => {
+      const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
+      return player.profile_image_url
+        ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '')}" src="${escapeHtml(player.profile_image_url)}" alt="">`
+        : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
+    };
+    const lovysHtml = (player, large=false) => {
+      const creature = creatureMeta(player);
+      if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`;
+      const level = Number(player.progression?.level || 1);
+      return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(creature.image)}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`;
+    };
+    const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
 
-      const selectedBadges = Array.isArray(playerData.leaderboard_badges)
-        ? playerData.leaderboard_badges.slice(0, 2)
-        : [];
+    const podiumCard = player => {
+      const rank = Number(player.rank || 0);
+      const globalLevel = Number(player.global_progression?.level || 1);
+      const isSelf = String(player.twitch_id || '') === selfTwitchId;
+      return `<button type="button" class="leaderboard-v150-podium-card rank-${rank}${isSelf ? ' is-self' : ''}" data-player-index="${players.indexOf(player)}">
+        <div class="leaderboard-v150-medal">${rankLabel(rank)}</div>
+        ${avatarHtml(player, 'podium-avatar')}
+        <div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>
+        ${playerTitle(player)}
+        ${lovysHtml(player, true)}
+        <div class="leaderboard-v150-global">Niveau global ${globalLevel}</div>
+        <div class="leaderboard-v150-score">👁️ ${escapeHtml(formatLeaderboardDuration(player.watch_seconds))}</div>
+      </button>`;
+    };
 
-      const badgesHtml = selectedBadges.length
-        ? `<span class="leaderboard-badges">${selectedBadges.map(badge => {
-            if (badge.badgeImage) {
-              return `<img loading="lazy" decoding="async" class="leaderboard-badge-img" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}" title="${escapeHtml(badge.badgeName || 'Badge')}">`;
-            }
-            return `<span class="leaderboard-badge-placeholder" title="${escapeHtml(badge.badgeName || 'Badge')}">🏅</span>`;
-          }).join('')}</span>`
-        : '';
+    const listRow = player => {
+      const idx = players.indexOf(player);
+      const rank = Number(player.rank || idx + 1);
+      const globalLevel = Number(player.global_progression?.level || 1);
+      const isSelf = String(player.twitch_id || '') === selfTwitchId;
+      return `<button type="button" class="leaderboard-v150-row${isSelf ? ' is-self' : ''}" data-player-index="${idx}">
+        <div class="leaderboard-v150-row-rank">${rankLabel(rank)}</div>
+        ${avatarHtml(player)}
+        <div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${playerTitle(player)}</div>
+        <div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>
+        ${lovysHtml(player)}
+        <div class="leaderboard-v150-row-score"><small>Visionnage</small><strong>${escapeHtml(formatLeaderboardDuration(player.watch_seconds))}</strong></div>
+      </button>`;
+    };
 
-      let progressionHtml = '';
-
-      if (playerData.state === 'egg' && playerData.egg) {
-        const egg = playerData.egg;
-        const readyText = egg.ready
-          ? '<strong>Prêt à éclore</strong>'
-          : `<strong>${formatLeaderboardDuration(egg.watchedSeconds)}</strong> / 6 h · reste ${formatLeaderboardDuration(egg.remainingSeconds)}`;
-
-        progressionHtml = `
-          <div class="leaderboard-player-state">
-            <span class="leaderboard-egg-mini" aria-hidden="true"></span>
-            <div class="leaderboard-player-state-text">
-              ${readyText}
-              <div class="leaderboard-egg-progress"><span style="width:${Math.max(0, Math.min(100, Number(egg.progress) || 0))}%"></span></div>
-            </div>
-          </div>`;
-      } else {
-        const leaderboardCreature = playerData.creature_id ? creatureById(playerData.creature_id) : null;
-        const leaderboardCreatureName = leaderboardCreature?.name || 'Lovys';
-        const globalLevel = playerData.global_progression?.level || 1;
-        const lovysLevel = playerData.progression?.level || 1;
-        progressionHtml = `<div class="leaderboard-player-level">Niveau : ${globalLevel} · ${escapeHtml(leaderboardCreatureName)} · Niv. ${lovysLevel}</div>`;
+    let myPositionHtml = '';
+    if (self) {
+      let objective = 'Tu es actuellement en tête du classement.';
+      if (previous) {
+        const gap = Math.max(0, Number(previous.watch_seconds || 0) - Number(self.watch_seconds || 0));
+        objective = `Encore ${escapeHtml(formatLeaderboardDuration(gap + 60))} environ pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
       }
+      myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position</span><strong>#${Number(self.rank)} · ${escapeHtml(formatLeaderboardDuration(self.watch_seconds))}</strong></div><p>${objective}</p></div>`;
+    }
 
-      const topClass = Number(playerData.rank) === 1 && !query ? ' top-one' : '';
+    if (query) {
+      container.innerHTML = `<div class="leaderboard-v150-head"><div><strong>👁️ Classé par temps de visionnage</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div>`;
+      return;
+    }
 
-      const leaderboardAvatarFrame = profileAvatarFrameStyle(playerData.cosmetic_avatar_frame);
-      const twitchAvatarHtml = playerData.profile_image_url
-        ? `<img loading="lazy" decoding="async" class="leaderboard-twitch-avatar" style="${escapeHtml(leaderboardAvatarFrame ? `border-color:${leaderboardAvatarFrame.border};box-shadow:${leaderboardAvatarFrame.shadow};` : '')}" src="${escapeHtml(playerData.profile_image_url)}" alt="">`
-        : '';
+    const top3 = players.filter(p => Number(p.rank) <= 3);
+    const orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean);
+    const rest = players.filter(p => Number(p.rank) >= 4);
 
-      const leaderboardBg = profileBackgroundValue(playerData.cosmetic_background);
-      const leaderboardFrame = profileFrameStyle(playerData.cosmetic_frame);
-      const leaderboardCardStyle = `--profile-card-image:${leaderboardBg};${leaderboardFrame ? `border-color:${leaderboardFrame.border};box-shadow:${leaderboardFrame.shadow};` : ''}`;
-
-      return `
-        <div class="leaderboard-player-card${topClass}" role="button" tabindex="0" data-player-index="${visibleIndex}" aria-label="Voir le profil de ${escapeHtml(playerData.display_name)}" style="${escapeHtml(leaderboardCardStyle)}">
-          <div class="leaderboard-player-card-inner">
-            <div class="leaderboard-player-rank">${rank}</div>
-            ${twitchAvatarHtml}
-            <div class="leaderboard-player-info">
-              <div class="leaderboard-player-name">${escapeHtml(playerData.display_name)}</div>
-              ${playerData.cosmetic_title ? `<div class="leaderboard-player-title" style="color:${escapeHtml(playerData.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(playerData.cosmetic_title)}&quot;</div>` : ''}
-              ${progressionHtml}
-            </div>
-            ${badgesHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
-
+    container.innerHTML = `
+      <div class="leaderboard-v150-head"><div><strong>👁️ Classé par temps de visionnage</strong><span>Le temps total enregistré par le Watch Game détermine ta position.</span></div></div>
+      ${myPositionHtml}
+      <section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>
+      ${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}
+    `;
   } catch (error) {
     console.error('Erreur classement :', error);
     container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>';
   }
 }
-
 function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(current/total)*100:0));}
 async function loadProgression(){
   const box=$('progressionContent');
