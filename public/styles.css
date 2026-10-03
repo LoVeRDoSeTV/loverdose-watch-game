@@ -5675,3 +5675,49 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .desktop-game-nav-btn{font-size:15px!important}
 }
 /* ===== /V136 ===== */
+
+/* ===== V137 — PC : micro-textes / phrases secondaires vraiment lisibles ===== */
+@media (min-width:901px){
+  /* Phrases descriptives et informations secondaires dans toutes les pages. */
+  body :where(
+    .dashboard-head-grid p,
+    .desktop-lobby-shell p,
+    .lovys-collection-panel p,
+    .game-panel p,
+    .shop-panel p,
+    .account-panel p,
+    .global-leaderboard p,
+    [class*="-desc"], [class*="-description"], [class*="-subtitle"],
+    [class*="-subtext"], [class*="-helper"], [class*="-help"],
+    [class*="-note"], [class*="-meta"], [class*="-time"],
+    [class*="-hours"], [class*="-progress-text"], [class*="-state-text"]
+  ){
+    font-size:14px!important;
+    line-height:1.5!important;
+    color:#c5cee8!important;
+  }
+
+  /* Informations compactes des cartes/joueurs : niveau, Lovys, incubation, etc. */
+  body :where(
+    .lobby-player-meta,.lobby-player-lovys,
+    .leaderboard-player-state-text,
+    .incubator-slot-note,.incubator-time,.incubator-status,.incubator-pending,
+    .challenge-description,.challenge-progress,
+    .lovys-home-note,.lovys-home-desc,.lovys-home-track-top,
+    .lovys-card-head .hub-sub,
+    .pve-hp-text,.pve-battle-log,
+    .badge-hours,.badge-card-sub,.account-edit-help
+  ){
+    font-size:14px!important;
+    line-height:1.5!important;
+    color:#c5cee8!important;
+  }
+
+  /* Sous-titres directement placés sous les grands titres de section. */
+  body :where(h1,h2,h3) + :where(p,.muted,[class*="-subtitle"],[class*="-desc"]){
+    font-size:14px!important;
+    line-height:1.5!important;
+    color:#c5cee8!important;
+  }
+}
+/* ===== /V137 ===== */
