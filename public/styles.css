@@ -5567,3 +5567,51 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V130 ===== */
+
+/* ===== V135 — PC : largeur globale + lisibilité ===== */
+@media (min-width:901px){
+  /* Plus d'espace utile sur les grands écrans, sans toucher au mobile. */
+  .wrap{max-width:1700px!important;padding-left:24px!important;padding-right:24px!important}
+
+  body[data-desktop-view="home"] .dashboard-head-grid,
+  body[data-desktop-view="lovys"] .lovys-collection-panel,
+  body[data-desktop-view="incubator"] .dashboard-head-grid,
+  body[data-desktop-view="pve"] #pveModal .game-panel,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="progression"] #progressionModal .game-panel,
+  body[data-desktop-view="shop"] #shopModal .shop-panel,
+  body[data-desktop-view="account"] #accountModal .account-panel{
+    width:min(1700px,100%)!important;
+    max-width:1700px!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard{
+    width:min(1700px,calc(100vw - 48px))!important;
+    max-width:1700px!important;
+  }
+
+  /* Textes secondaires : minimum visuel confortable sur PC. */
+  .muted, small,
+  .dashboard-head-grid .muted,
+  .desktop-lobby-shell .muted,
+  .desktop-lobby-shell small,
+  .lovys-collection-panel .muted,
+  .lovys-collection-panel small,
+  .game-panel .muted,
+  .game-panel small{
+    font-size:12.5px!important;
+    line-height:1.45!important;
+  }
+  .desktop-lobby-shell p,
+  .desktop-lobby-shell .lobby-player-meta,
+  .desktop-lobby-shell .lobby-player-lovys,
+  .desktop-lobby-shell .lobby-subtitle,
+  .dashboard-head-grid p,
+  .dashboard-head-grid .challenge-description,
+  .dashboard-head-grid .challenge-progress,
+  .dashboard-head-grid .wheel-subtitle{
+    font-size:max(12.5px,1em);
+    line-height:1.45;
+  }
+  .btn,.hub-btn,.desktop-lobby-shell button{font-size:13px}
+}
+/* ===== /V135 ===== */
