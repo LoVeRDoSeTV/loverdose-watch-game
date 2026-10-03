@@ -2494,8 +2494,7 @@ const LEADERBOARD_METRICS = {
   watch: { label: 'Visionnage', icon: '👁️', heading: 'Classé par temps de visionnage', description: 'Le temps total enregistré par le Watch Game détermine ta position.' },
   level: { label: 'Niveau global', icon: '⭐', heading: 'Classé par progression globale', description: 'Le classement suit ton XP globale et ton niveau général.' },
   pve: { label: 'PvE', icon: '⚔️', heading: 'Classé par victoires PvE', description: 'Chaque victoire enregistrée dans les combats PvE compte.' },
-  collection: { label: 'Collection', icon: '🧬', heading: 'Classé par collection', description: 'Plus tu as de Lovys différents dans ta collection, plus tu montes.' },
-  prestige: { label: 'Prestige', icon: '👑', heading: 'Classé par Prestige', description: 'Le Prestige est prioritaire, puis l’XP globale départage les égalités.' }
+  collection: { label: 'Collection', icon: '🧬', heading: 'Classé par Lovys éclos', description: 'Chaque éclosion compte, y compris lorsqu’un doublon est converti en fragments.' }
 };
 
 function formatLeaderboardDuration(totalSeconds) {
@@ -2507,15 +2506,13 @@ function formatLeaderboardDuration(totalSeconds) {
 function leaderboardScoreValue(player, metric=leaderboardMetric) {
   if (metric === 'level') return Math.max(0, Number(player.global_xp || 0));
   if (metric === 'pve') return Math.max(0, Number(player.pve_wins || 0));
-  if (metric === 'collection') return Math.max(0, Number(player.collection_count || 0));
-  if (metric === 'prestige') return Math.max(0, Number(player.prestige || 0));
+  if (metric === 'collection') return Math.max(0, Number(player.hatched_count || 0));
   return Math.max(0, Number(player.watch_seconds || 0));
 }
 function leaderboardScoreText(player, metric=leaderboardMetric) {
   if (metric === 'level') return `Niv. ${Number(player.global_progression?.level || 1)} · ${Math.floor(Number(player.global_xp || 0)).toLocaleString('fr-FR')} XP`;
   if (metric === 'pve') return `${Number(player.pve_wins || 0)} victoire${Number(player.pve_wins || 0) > 1 ? 's' : ''}`;
-  if (metric === 'collection') return `${Number(player.collection_count || 0)} Lovys`;
-  if (metric === 'prestige') return `Prestige ${Number(player.prestige || 0)}`;
+  if (metric === 'collection') { const n = Number(player.hatched_count || 0); return `${n} Lovys éclos`; }
   return formatLeaderboardDuration(player.watch_seconds);
 }
 function leaderboardGapText(self, previous, metric=leaderboardMetric) {
@@ -2524,8 +2521,8 @@ function leaderboardGapText(self, previous, metric=leaderboardMetric) {
   if (metric === 'watch') return `Encore ${formatLeaderboardDuration(gap + 60)} environ pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
   if (metric === 'level') return `Encore ${(gap + 1).toLocaleString('fr-FR')} XP globale pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
   if (metric === 'pve') return `Encore ${gap + 1} victoire${gap + 1 > 1 ? 's' : ''} PvE pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
-  if (metric === 'collection') return `Encore ${gap + 1} Lovys pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
-  return `Atteins le Prestige suivant pour viser la place #${Number(previous.rank || self.rank - 1)}.`;
+  if (metric === 'collection') return `Encore ${gap + 1} éclosion${gap + 1 > 1 ? 's' : ''} pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
+  return '';
 }
 
 async function loadLeaderboard(searchTerm = null, metric = null) {
@@ -2551,7 +2548,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const self = selfIndex >= 0 ? players[selfIndex] : null;
     const previous = selfIndex > 0 ? players[selfIndex - 1] : null;
     const creatureMeta = player => player.creature_id ? resolveLovysEntry(player.creature_id) : null;
-    const leaderboardLovysImage = player => { const id = String(player.creature_id || '').toLowerCase(); const aliases = {lightning:'voltis',mist:'brumee',crystal:'crysal',forge:'ferox',solar:'solka'}; const canonical = aliases[id] || id; const catalog = homeMonsters.find(c => c.id === canonical || c.id === id); return catalog?.image || creatureMeta(player)?.image || ''; };
+    const leaderboardLovysImage = player => { const id = String(player.creature_id || '').toLowerCase(); const images = {water:'/Nymea.webp',plant:'/Mossy.webp',lightning:'/Voltis.webp',mist:'/Brumee.webp',fire:'/Flamby.webp',crystal:'/Crysal.webp',forge:'/Ferox.webp',dark:'/Nocty.webp',solar:'/Solka.webp',dream:'/Mimo.webp',nyméa:'/Nymea.webp',nymea:'/Nymea.webp',mossy:'/Mossy.webp',voltis:'/Voltis.webp',brumee:'/Brumee.webp',flamby:'/Flamby.webp',crysal:'/Crysal.webp',ferox:'/Ferox.webp',nocty:'/Nocty.webp',solka:'/Solka.webp',mimo:'/Mimo.webp'}; return images[id] || creatureMeta(player)?.image || ''; };
     const playerTitle = player => player.cosmetic_title ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>` : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
     const avatarHtml = (player, cls='') => { const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame); return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '')}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`; };
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
