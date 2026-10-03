@@ -2633,7 +2633,7 @@ function lovysZoneAdvantage(l){const enemyType=lovysPveData?.fight?.type||lovysP
 function lovysSkillMarkup(skill,index=1){if(!skill)return '';const cd=Math.max(0,Number(skill.cooldown||0));return `<div class="lovys-skill combat-skill"><div class="lovys-skill-top"><strong><small>COMPÉTENCE ${index}</small>${escapeHtml(skill.icon||'⚔️')} ${escapeHtml(skill.name||'Compétence')}</strong><span class="lovys-cooldown">⏱ Recharge : ${cd} tour${cd>1?'s':''}</span></div><p>${escapeHtml(skill.description||'')}</p></div>`;}
 function lovysRankTimeline(l){
   const previews=l?.rankPreviews||[];
-  return `<div class="lovys-rank-timeline">${previews.map(r=>{const current=Number(r.rank)===Number(l.rank||1),done=Number(r.rank)<Number(l.rank||1);return `<div class="lovys-rank-step ${current?'current':''} ${done?'done':''}"><span>R${r.rank}</span><strong>${r.rank===1?'Départ':`${Number(r.cost||0)} 🧩`}</strong></div>`}).join('')}</div>`;
+  return `<div class="lovys-rank-timeline">${previews.map(r=>{const current=Number(r.rank)===Number(l.rank||1),done=Number(r.rank)<Number(l.rank||1);return `<div class="lovys-rank-step ${current?'current':''} ${done?'done':''}"><span class="lovys-rank-stars">${'⭐'.repeat(Number(r.rank||1))}</span><strong>${r.rank===1?'Départ':`${Number(r.cost||0)} 🧩`}</strong></div>`}).join('')}</div>`;
 }
 function lovysTalentEvolution(l){
   const previews=l?.rankPreviews||[];
@@ -2773,7 +2773,19 @@ function openLovysFragmentTrades(){
   }
   document.querySelector('[data-lobby-tab="trades"]')?.click();
 }
-$('lovysActiveHero')?.addEventListener('click',e=>{const trade=e.target.closest('[data-find-lovys-fragments]');if(trade){openLovysFragmentTrades();return;}const pve=e.target.closest('[data-lovys-pve]');if(pve){$('openPve')?.click();return;}const transfer=e.target.closest('[data-transfer-lovys]');if(transfer)openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));});
+function openLovysKitHelp(){
+  let modal=document.getElementById('lovysKitHelpModal');
+  if(!modal){
+    modal=document.createElement('div'); modal.id='lovysKitHelpModal'; modal.className='lovys-help-modal';
+    modal.innerHTML=`<div class="lovys-help-card" role="dialog" aria-modal="true" aria-labelledby="lovysHelpTitle"><button class="lovys-help-close" type="button" aria-label="Fermer">×</button><div class="lovys-help-kicker">GUIDE RAPIDE</div><h3 id="lovysHelpTitle">Comment fonctionnent les Lovys ?</h3><div class="lovys-help-steps"><div><b>🧩 Doublons → fragments</b><span>Obtenir un Lovys déjà découvert te donne des fragments liés à sa rareté.</span></div><div><b>⭐ Fragments → rang</b><span>Accumule les fragments nécessaires pour faire évoluer ton Lovys jusqu’à 5 étoiles.</span></div><div><b>✨ Rang → talent renforcé</b><span>Chaque nouveau rang améliore le talent passif de ton Lovys.</span></div><div><b>⚔️ Compétences de combat</b><span>Elles sont utilisées pendant les combats puis doivent attendre leur nombre de tours de recharge.</span></div><div><b>⚡ XP → niveau</b><span>L’XP augmente le niveau du Lovys. Le niveau et le rang sont deux progressions différentes.</span></div></div></div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('.lovys-help-close')?.addEventListener('click',()=>modal.classList.remove('open'));
+    modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
+  }
+  modal.classList.add('open');
+}
+
+$('lovysActiveHero')?.addEventListener('click',e=>{const help=e.target.closest('.lovys-kit-info');if(help){openLovysKitHelp();return;}const trade=e.target.closest('[data-find-lovys-fragments]');if(trade){openLovysFragmentTrades();return;}const pve=e.target.closest('[data-lovys-pve]');if(pve){$('openPve')?.click();return;}const transfer=e.target.closest('[data-transfer-lovys]');if(transfer)openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));});
 $('lovysNowStrip')?.addEventListener('click',e=>{const transfer=e.target.closest('[data-transfer-lovys]');if(transfer){openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));return;}if(e.target.closest('[data-lovys-incubator]'))$('openIncubator')?.click();});
 $('lovysDetailPanel')?.addEventListener('click',e=>{if(e.target.closest('[data-close-lovys-detail]'))$('lovysDetailPanel')?.classList.add('hidden');});
 
