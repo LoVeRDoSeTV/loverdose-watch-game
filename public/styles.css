@@ -5449,3 +5449,11 @@ body[data-desktop-view="lovys"] .lovys-fragment-rule strong{font-size:12px}body[
 body[data-desktop-view="lovys"] .lovys-detail-grid h4{font-size:13px}body[data-desktop-view="lovys"] .lovys-detail-types span{font-size:10px}body[data-desktop-view="lovys"] .lovys-rank-road strong{font-size:11px}body[data-desktop-view="lovys"] .lovys-rank-road span,body[data-desktop-view="lovys"] .lovys-rank-road small{font-size:9px}body[data-desktop-view="lovys"] .lovys-level-stages span{font-size:10px}
 }
 /* ===== /V123 ===== */
+
+/* ===== V124 · Raccourci fragments vers Lobby > Échanges ===== */
+@media (min-width:901px){
+body[data-desktop-view="lovys"] .lovys-trade-fragments-btn{width:100%;margin-top:10px;padding:9px 12px;border:1px solid rgba(145,71,255,.42);border-radius:9px;background:linear-gradient(135deg,rgba(111,53,217,.34),rgba(57,31,105,.48));color:#fff;font-size:11px;font-weight:950;cursor:pointer;transition:.16s ease}
+body[data-desktop-view="lovys"] .lovys-trade-fragments-btn:hover{transform:translateY(-1px);border-color:rgba(181,129,255,.72);background:linear-gradient(135deg,rgba(126,62,235,.48),rgba(72,38,128,.58))}
+body[data-desktop-view="lovys"] .lovys-now-item.rank{padding-bottom:44px}
+}
+/* ===== /V124 ===== */
