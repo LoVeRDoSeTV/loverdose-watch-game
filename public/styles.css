@@ -5484,3 +5484,16 @@ body[data-desktop-view="lovys"] .lovys-missing-hints{display:flex;justify-conten
 body[data-desktop-view="lovys"] .lovys-collection-meta,body[data-desktop-view="lovys"] .lovys-rank,body[data-desktop-view="lovys"] .lovys-card-level,body[data-desktop-view="lovys"] .lovys-skill p,body[data-desktop-view="lovys"] .lovys-skill-top strong,body[data-desktop-view="lovys"] .lovys-skill-top span,body[data-desktop-view="lovys"] .lovys-rank-explainer p,body[data-desktop-view="lovys"] .lovys-rank-reward,body[data-desktop-view="lovys"] .lovys-rank-progress-head{font-size:12px!important;line-height:1.5}
 }
 @media (prefers-reduced-motion:reduce){.lovys-active-art img,.lovys-active-xp span::after,.lovys-collection-card.rarity-mythique::after{animation:none!important}.lovys-collection-card{transition:none!important}}
+
+/* V127 — Conseil du moment Lovys */
+@media (min-width: 901px){
+body[data-desktop-view="lovys"] .lovys-now-strip{display:block;width:100%;margin:10px 0 18px}
+body[data-desktop-view="lovys"] .lovys-moment-tip{min-height:82px;width:100%;display:flex;align-items:center;gap:14px;padding:14px 16px;border:1px solid rgba(145,71,255,.30);border-radius:14px;background:linear-gradient(110deg,rgba(145,71,255,.16),#0e1325 42%,#0e1325);box-sizing:border-box}
+body[data-desktop-view="lovys"] .lovys-moment-tip-icon{width:42px;height:42px;display:grid;place-items:center;flex:0 0 42px;border-radius:12px;background:rgba(145,71,255,.15);font-size:20px}
+body[data-desktop-view="lovys"] .lovys-moment-tip-copy{min-width:0;flex:1}
+body[data-desktop-view="lovys"] .lovys-moment-tip-copy>span{display:block;color:#b37cff;font-size:12px;font-weight:950;letter-spacing:.08em}
+body[data-desktop-view="lovys"] .lovys-moment-tip-copy>strong{display:block;margin-top:3px;color:#fff;font-size:15px;line-height:1.3}
+body[data-desktop-view="lovys"] .lovys-moment-tip-copy>p{margin:4px 0 0;color:#aeb8d5;font-size:12px;line-height:1.45}
+body[data-desktop-view="lovys"] .lovys-moment-tip>button{flex:0 0 auto;border:1px solid rgba(145,71,255,.55);border-radius:9px;background:#2a1750;color:#fff;font-size:11px;font-weight:900;padding:9px 12px;cursor:pointer}
+body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:translateY(-1px);background:#392069}
+}
