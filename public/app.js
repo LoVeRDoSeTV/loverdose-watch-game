@@ -1022,6 +1022,9 @@ function openIncubatorAddModal(slot) {
   const content = $('incubatorAddContent');
   if (!content) return;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
+  const popupBalance = $('incubatorPopupBalance');
+  const knownBalance = Math.max(0, Math.floor(Number(shopData?.balance ?? me?.user?.points ?? 0)));
+  if (popupBalance) popupBalance.innerHTML = `💰 <strong>${knownBalance.toLocaleString('fr-FR')}</strong> LoVeR’Cash`;
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · choisis un œuf disponible.`;
   if (available > 0) {
     content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">${eggIconMarkup()} ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
@@ -1050,10 +1053,12 @@ async function prepareIncubatorEggPurchase() {
     const price = Number(item.price ?? item.cost ?? 0);
     const balance = Math.max(0, Math.floor(Number(shopData?.balance ?? me?.user?.points ?? 0)));
     const missing = Math.max(0, price - balance);
+    const popupBalance = $('incubatorPopupBalance');
+    if (popupBalance) popupBalance.innerHTML = `💰 <strong>${balance.toLocaleString('fr-FR')}</strong> LoVeR’Cash`;
     if (priceBox) {
       priceBox.innerHTML = price > 0
-        ? `<div>🥚 Prix : <strong>${price.toLocaleString('fr-FR')} LoVeR’Cash</strong></div><div style="margin-top:6px">💰 Ton solde : <strong>${balance.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>${missing > 0 ? `<div style="margin-top:6px;color:#f0b4c2">Il te manque <strong>${missing.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>` : ''}`
-        : `<div>💰 Ton solde : <strong>${balance.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>`;
+        ? `<div>🥚 Prix : <strong>${price.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>${missing > 0 ? `<div class="incubator-missing-cash">Il te manque <strong>${missing.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>` : ''}`
+        : `<div>🥚 Œuf disponible</div>`;
     }
     if (button) {
       button.disabled = price > 0 && balance < price;

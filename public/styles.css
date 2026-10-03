@@ -6001,3 +6001,12 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V144 ===== */
+\n\n/* V146 — solde en en-tête de la popup incubateur + achat centré */
+.incubator-add-head-actions{display:flex;align-items:center;gap:10px;margin-left:auto}
+.incubator-popup-balance{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:8px 13px;border:1px solid rgba(145,71,255,.34);border-radius:999px;background:rgba(145,71,255,.10);color:#e8ddff;font-size:13px;font-weight:800;white-space:nowrap}
+.incubator-popup-balance strong{color:#fff;font-size:14px}
+.incubator-empty-buy .incubator-add-count{display:flex;width:max-content;max-width:100%;flex-direction:column;align-items:flex-start;border-radius:13px}
+.incubator-missing-cash{margin-top:5px;color:#f0b4c2}
+.incubator-empty-buy .incubator-add-actions{justify-content:center;width:100%}
+.incubator-empty-buy .incubator-add-actions .hub-btn{min-width:250px;justify-content:center;text-align:center}
+@media(max-width:900px){.incubator-add-head-actions{gap:7px}.incubator-popup-balance{padding:7px 9px;font-size:11px}.incubator-popup-balance strong{font-size:12px}.incubator-empty-buy .incubator-add-actions .hub-btn{min-width:0;width:100%}}
