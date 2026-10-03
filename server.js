@@ -979,6 +979,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_earned DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_spent DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS prestige INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS total_lovys_hatched INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS universal_lovys_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_live_seen_at TIMESTAMPTZ`);
@@ -1125,6 +1126,9 @@ async function initDatabase() {
   `);
   await pool.query(`CREATE INDEX IF NOT EXISTS user_lovys_user_idx ON user_lovys (user_id)`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS user_lovys_one_active_idx ON user_lovys (user_id) WHERE is_active = TRUE`);
+  // V153 — compteur total d'éclosions. On initialise les anciens comptes avec
+  // le nombre de Lovys actuellement connus, puis chaque nouvelle éclosion l'incrémente.
+  await pool.query(`UPDATE users u SET total_lovys_hatched = GREATEST(COALESCE(u.total_lovys_hatched,0), (SELECT COUNT(*)::int FROM user_lovys ul WHERE ul.user_id=u.id))`);
 
   // V105 — rangs et fragments propres à chaque Lovys.
   await pool.query(`ALTER TABLE user_lovys ADD COLUMN IF NOT EXISTS fragments INTEGER NOT NULL DEFAULT 0`);
@@ -4449,6 +4453,7 @@ app.post(
         UPDATE users
         SET
           creature_id = $1,
+          total_lovys_hatched = COALESCE(total_lovys_hatched, 0) + 1,
           updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
         `,
@@ -6302,6 +6307,7 @@ app.post('/api/incubator/hatch', async (req,res)=>{
       const created=await client.query(`INSERT INTO user_lovys (user_id,creature_id,xp,is_active,origin,rank,fragments) VALUES($1,$2,0,FALSE,'incubator',1,0) RETURNING id`,[user.id,creature.id]);
       lovysId=Number(created.rows[0].id);
     }
+    await client.query(`UPDATE users SET total_lovys_hatched=COALESCE(total_lovys_hatched,0)+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id]);
     await client.query(`DELETE FROM user_incubator_eggs WHERE id=$1`,[egg.id]);
     await client.query('COMMIT');
     pushLiveUpdate('incubator-update',{twitchId:req.session.user.twitchId});
@@ -6808,13 +6814,12 @@ app.get(
     try {
       const search = String(req.query.search || '').trim().slice(0, 32);
       const requestedMetric = String(req.query.metric || 'watch').trim().toLowerCase();
-      const metric = ['watch', 'level', 'pve', 'collection', 'prestige'].includes(requestedMetric) ? requestedMetric : 'watch';
+      const metric = ['watch', 'level', 'pve', 'collection'].includes(requestedMetric) ? requestedMetric : 'watch';
       const orderByMetric = {
         watch: 'COALESCE(u.watch_seconds, 0) DESC, u.id ASC',
         level: 'COALESCE(u.global_xp, 0) DESC, u.id ASC',
         pve: 'pve_wins DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC',
-        collection: 'collection_count DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC',
-        prestige: 'COALESCE(u.prestige, 0) DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC'
+        collection: 'COALESCE(u.total_lovys_hatched, 0) DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC'
       }[metric];
 
       // Requête volontairement simple et robuste : on récupère d'abord les joueurs,
@@ -6835,6 +6840,7 @@ app.get(
           u.pending_xp,
           u.global_xp,
           u.prestige,
+          u.total_lovys_hatched,
           u.egg_fragments,
           u.points,
           u.lifetime_lovercash_earned,
@@ -6943,6 +6949,7 @@ app.get(
           lifetime_lovercash_spent: Number(player.lifetime_lovercash_spent || 0),
           watch_seconds: watched,
           collection_count: Number(player.collection_count || 0),
+          hatched_count: Number(player.total_lovys_hatched || 0),
           pve_wins: Number(player.pve_wins || 0),
           created_at: player.created_at || null,
           badge_count: badgeCountsByUser.get(Number(player.id)) || 0,
