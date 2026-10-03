@@ -5979,3 +5979,25 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   body[data-desktop-view="incubator"] .incubator-global-live.is-live{color:#9ff0c7;background:rgba(48,185,125,.08)}
 }
 /* ===== /V142 ===== */
+
+/* ===== V144 — Incubateur : fond violet global + continuité de page ===== */
+@media (min-width:901px){
+  body[data-desktop-view="incubator"]{
+    background:
+      radial-gradient(circle at 50% 0%,rgba(92,50,154,.16),transparent 42%),
+      linear-gradient(180deg,#101023 0%,#0d0f1d 54%,#101023 100%)!important;
+    background-attachment:fixed!important;
+  }
+  body[data-desktop-view="incubator"] #app,
+  body[data-desktop-view="incubator"] .wrap{
+    background:transparent!important;
+    background-image:none!important;
+  }
+  body[data-desktop-view="incubator"] .wrap{min-height:100vh!important;}
+  body[data-desktop-view="incubator"] .dashboard-head-grid,
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{
+    background:transparent!important;
+    background-image:none!important;
+  }
+}
+/* ===== /V144 ===== */

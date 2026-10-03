@@ -5146,7 +5146,7 @@ $('lobbyTradesGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[
 $('lobbyMineGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[data-trade-cancel]');if(btn)cancelTrade(Number(btn.dataset.tradeCancel));});
 
 window.addEventListener('resize',()=>{if(!isDesktopGameUi()){document.body.dataset.desktopView='';document.body.classList.remove('desktop-leaderboard-open');$('desktopLobbyPage')?.classList.add('hidden');}else if(!document.body.dataset.desktopView){openDesktopView('home');}});
-if(isDesktopGameUi())document.body.dataset.desktopView='home';
+if(isDesktopGameUi())syncDesktopViewFromUrl();
 
 loadLeaderboard();
 refreshAccountState();
