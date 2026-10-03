@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=130">
+<link rel="stylesheet" href="/styles.css?v=131">
 
 
 </head>
@@ -912,7 +912,7 @@
     </div>
     <div id="pveBattleEffects" class="pve-battle-effects"></div>
     <div id="pveBattleLog" class="pve-battle-log">Choisis ton action.</div>
-    <div id="pveBattleActions" class="pve-battle-actions"><button class="pve-action-btn basic" type="button" data-battle-action="basic"><span>⚔️</span><strong>Attaque</strong><small>Attaque normale</small></button><button id="pveSkill1" class="pve-action-btn" type="button"></button><button id="pveSkill2" class="pve-action-btn" type="button"></button></div>
+    <div class="pve-battle-auto-row"><button id="pveAutoBattle" class="pve-auto-btn" type="button" aria-pressed="false">▶️ <strong>Combat auto</strong></button><span>Utilise automatiquement la meilleure compétence disponible.</span></div><div id="pveBattleActions" class="pve-battle-actions"><button id="pveBasicAttack" class="pve-action-btn basic" type="button" data-battle-action="basic" data-cooldown="0"><span>⚔️</span><strong>Attaque</strong><small>Attaque normale</small></button><button id="pveSkill1" class="pve-action-btn" type="button"></button><button id="pveSkill2" class="pve-action-btn" type="button"></button></div>
     <div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div>
   </div>
 </div>
@@ -1029,5 +1029,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=129"></script>
+<script src="/app.js?v=131"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

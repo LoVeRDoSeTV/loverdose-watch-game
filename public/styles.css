@@ -5567,3 +5567,8 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V130 ===== */
+
+/* V131 — combat PvE fiable + mode automatique */
+.pve-battle-auto-row{position:relative;z-index:5;display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:8px 14px;background:rgba(7,10,21,.82);border-top:1px solid rgba(255,255,255,.055)}
+.pve-battle-auto-row>span{font-size:11px;color:#9fa9c3}.pve-auto-btn{border:1px solid rgba(145,71,255,.38);border-radius:999px;background:rgba(31,24,52,.92);color:#f4f1ff;padding:7px 12px;cursor:pointer;transition:.18s ease}.pve-auto-btn:hover{border-color:rgba(174,130,255,.68);transform:translateY(-1px)}.pve-auto-btn.active{background:linear-gradient(135deg,rgba(93,45,164,.95),rgba(53,31,94,.95));box-shadow:0 0 18px rgba(145,71,255,.16)}
+@media(max-width:900px){.pve-battle-auto-row{justify-content:space-between;padding:7px 8px}.pve-battle-auto-row>span{font-size:9px}.pve-auto-btn{padding:6px 9px;font-size:10px}}
