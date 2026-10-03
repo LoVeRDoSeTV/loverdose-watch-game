@@ -5615,3 +5615,63 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .btn,.hub-btn,.desktop-lobby-shell button{font-size:13px}
 }
 /* ===== /V135 ===== */
+
+/* ===== V136 — PC : passe typographique complète ===== */
+@media (min-width:901px){
+  /* Base lisible dans toutes les catégories/pages PC. */
+  body{font-size:14px}
+
+  /* Corps de texte, aides et métadonnées : jamais microscopiques sur PC. */
+  body :where(
+    .muted, small,
+    [class*="-meta"], [class*="-sub"], [class*="-subtitle"],
+    [class*="-desc"], [class*="-description"], [class*="-copy"],
+    [class*="-help"], [class*="-note"], [class*="-status"],
+    [class*="-progress"], [class*="-reward"], [class*="-hours"],
+    [class*="-time"], [class*="-state-text"], [class*="-lore"]
+  ){
+    font-size:max(12.5px,1em)!important;
+    line-height:1.45!important;
+  }
+
+  /* Libellés courts / badges informatifs : un peu plus compacts mais lisibles. */
+  body :where(
+    [class*="-label"], [class*="-kicker"], [class*="-badge"],
+    [class*="-pill"], [class*="-count"], [class*="-tag"]
+  ){
+    font-size:max(12px,1em)!important;
+    line-height:1.25!important;
+  }
+
+  /* Contenus interactifs et formulaires. */
+  body :where(button,.btn,.hub-btn,input,select,textarea){
+    font-size:max(13.5px,1em)!important;
+  }
+  body :where(table,th,td){font-size:max(13px,1em)!important}
+
+  /* Zones particulièrement denses vues dans les différentes catégories. */
+  .incubator-slot-note,.incubator-time,.incubator-status,.incubator-pending,
+  .incubator-topbar-subtitle,.incubator-drop-total,.incubator-drop-panel .egg-drop-row,
+  .pve-combatant-name,.pve-combatant-name span:last-child,.pve-hp-text,.pve-battle-log,
+  .pve-map-zone-kicker,.pve-map-zone-lore,.pve-map-zone-progress,
+  .pve-map-node-name,.pve-map-node-meta,.pve-map-node-badge,
+  .pve-map-start,.pve-map-goal,
+  .leaderboard-player-state-text,
+  .badge-hours,.badge-card-sub,.badge-card-equipped,.badge-challenge-bottom,
+  .badge-challenge-game,.badge-xp-reward,.badge-reward-reserve,
+  .badge-category-count,.badge-social-cta,.badge-instant-complete,
+  .account-edit-help,.admin-player-meta,.tracker-help,
+  .lovys-card-head .hub-sub,.lovys-home-desc,.lovys-home-track-top,
+  .lovys-home-note,.lovys-home-stat-label,.lovys-home-stat-sub,
+  .pc-pve-zone-label,.pc-pve-zone-meta{
+    font-size:12.5px!important;
+    line-height:1.4!important;
+  }
+
+  /* Les valeurs principales restent visuellement au-dessus des libellés. */
+  .lovys-home-stat-value{font-size:16px!important}
+
+  /* Conserve la navigation supérieure plus grande que le contenu. */
+  .desktop-game-nav-btn{font-size:15px!important}
+}
+/* ===== /V136 ===== */
