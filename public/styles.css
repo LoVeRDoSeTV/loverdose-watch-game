@@ -6010,3 +6010,12 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .incubator-empty-buy .incubator-add-actions{justify-content:center;width:100%}
 .incubator-empty-buy .incubator-add-actions .hub-btn{min-width:250px;justify-content:center;text-align:center}
 @media(max-width:900px){.incubator-add-head-actions{gap:7px}.incubator-popup-balance{padding:7px 9px;font-size:11px}.incubator-popup-balance strong{font-size:12px}.incubator-empty-buy .incubator-add-actions .hub-btn{min-width:0;width:100%}}
+
+
+/* V147 — popup incubateur épurée */
+@media (min-width:901px){
+  .incubator-add-head-actions{gap:18px!important}
+  .incubator-popup-balance{margin-right:10px!important}
+}
+.incubator-empty-buy .incubator-add-actions{display:flex!important;justify-content:center!important;width:100%!important}
+.incubator-empty-buy .incubator-add-actions .hub-btn{margin-inline:auto!important}

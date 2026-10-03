@@ -1033,7 +1033,7 @@ function openIncubatorAddModal(slot) {
     // Aucun œuf : on reste dans une popup dédiée à l’incubateur au lieu d’envoyer
     // le joueur vers la Boutique complète.
     incubatorShopTargetSlot = selectedIncubatorSlot;
-    content.innerHTML = `<div class="incubator-add-card incubator-empty-buy"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Aucun œuf disponible</div><div class="incubator-add-copy">Tu n’as aucun œuf en stock. Tu peux acheter un Œuf mystère ici puis le placer directement dans cet emplacement.</div><div id="incubatorEggBuyPrice" class="incubator-add-count">Chargement du prix…</div></div></div><div class="incubator-add-actions"><button id="incubatorBuyEggHere" class="hub-btn" type="button" disabled>🥚 Acheter un œuf</button></div><div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+    content.innerHTML = `<div class="incubator-add-card incubator-empty-buy"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Aucun œuf disponible</div><div class="incubator-add-copy">Tu n’as aucun œuf en stock. Tu peux acheter un Œuf mystère ici puis le placer directement dans cet emplacement.</div></div></div><div class="incubator-add-actions"><button id="incubatorBuyEggHere" class="hub-btn" type="button" disabled>🥚 Acheter un œuf</button></div><div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
     $('incubatorAddModal')?.classList.remove('hidden');
     prepareIncubatorEggPurchase();
     return;
@@ -1044,7 +1044,6 @@ function openIncubatorAddModal(slot) {
 
 async function prepareIncubatorEggPurchase() {
   const button = $('incubatorBuyEggHere');
-  const priceBox = $('incubatorEggBuyPrice');
   const message = $('incubatorAddMessage');
   try {
     if (!shopData?.catalog) await loadShop();
@@ -1055,11 +1054,6 @@ async function prepareIncubatorEggPurchase() {
     const missing = Math.max(0, price - balance);
     const popupBalance = $('incubatorPopupBalance');
     if (popupBalance) popupBalance.innerHTML = `💰 <strong>${balance.toLocaleString('fr-FR')}</strong> LoVeR’Cash`;
-    if (priceBox) {
-      priceBox.innerHTML = price > 0
-        ? `<div>🥚 Prix : <strong>${price.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>${missing > 0 ? `<div class="incubator-missing-cash">Il te manque <strong>${missing.toLocaleString('fr-FR')} LoVeR’Cash</strong></div>` : ''}`
-        : `<div>🥚 Œuf disponible</div>`;
-    }
     if (button) {
       button.disabled = price > 0 && balance < price;
       button.textContent = price > 0 ? `🥚 Acheter · ${price.toLocaleString('fr-FR')} LoVeR’Cash` : '🥚 Acheter un œuf';
@@ -1067,7 +1061,6 @@ async function prepareIncubatorEggPurchase() {
       button.onclick = buyIncubatorEggHere;
     }
   } catch (error) {
-    if (priceBox) priceBox.textContent = 'Achat indisponible';
     if (message) { message.className='incubator-add-message error'; message.textContent=error.message || 'Impossible de charger l’œuf.'; }
   }
 }
