@@ -5870,3 +5870,48 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V139 ===== */
+
+/* ===== V140 — PC : Incubateur harmonisé avec le Lobby ===== */
+@media (min-width:901px){
+  /* Même largeur et respiration générale que le Lobby. */
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    width:min(1700px,calc(100vw - 48px))!important;
+    max-width:1700px!important;
+    margin:24px auto 0!important;
+  }
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{
+    width:100%!important;
+    padding:26px 0 48px!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-topbar-title{font-size:30px!important;line-height:1.15!important}
+  body[data-desktop-view="incubator"] .incubator-topbar-subtitle{font-size:16px!important;line-height:1.55!important;color:#b9c3df!important}
+
+  /* Même logique de grille que les joueurs du Lobby : deux grandes cartes par ligne. */
+  body[data-desktop-view="incubator"] .incubator-slots{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:12px!important;
+    margin-top:24px!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-slot{
+    min-height:150px!important;
+    padding:18px 20px!important;
+    border-radius:15px!important;
+    border-color:rgba(255,255,255,.075)!important;
+    background:#101427!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-slot.active{
+    border-color:rgba(145,71,255,.28)!important;
+    background:linear-gradient(145deg,rgba(145,71,255,.12),#101427 58%)!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-slot-egg{height:78px!important;margin-bottom:8px!important}
+  body[data-desktop-view="incubator"] .incubator-egg-mini{transform:scale(1.15)!important}
+  body[data-desktop-view="incubator"] .incubator-slot-title{font-size:17px!important;line-height:1.3!important}
+  body[data-desktop-view="incubator"] .incubator-time,
+  body[data-desktop-view="incubator"] .incubator-status,
+  body[data-desktop-view="incubator"] .incubator-slot-note,
+  body[data-desktop-view="incubator"] .incubator-pending{font-size:16px!important;line-height:1.45!important}
+  body[data-desktop-view="incubator"] .incubator-slot-progress{height:8px!important;margin-top:10px!important}
+  body[data-desktop-view="incubator"] .incubator-slot-plus{width:52px!important;height:52px!important;font-size:28px!important;margin-bottom:10px!important}
+}
+/* ===== /V140 ===== */
