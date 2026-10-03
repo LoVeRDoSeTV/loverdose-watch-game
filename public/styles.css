@@ -6019,3 +6019,38 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 }
 .incubator-empty-buy .incubator-add-actions{display:flex!important;justify-content:center!important;width:100%!important}
 .incubator-empty-buy .incubator-add-actions .hub-btn{margin-inline:auto!important}
+
+/* V148 — Lobby : micro-textes Échanges / Mes offres plus lisibles (PC) */
+@media (min-width: 901px){
+  .lobby-trade-toolbar span{
+    font-size:14px;
+    line-height:1.5;
+    color:#b9c2df;
+  }
+  .lobby-empty{
+    font-size:14px;
+    line-height:1.5;
+    color:#aeb8d7;
+  }
+  .trade-owner small,
+  .trade-give small,
+  .trade-option small{
+    font-size:12px;
+    line-height:1.4;
+    color:#aab4d1;
+  }
+  .trade-arrow,.trade-label{
+    font-size:11px;
+  }
+  .trade-completed-note,
+  .trade-balance,
+  .trade-composer-message{
+    font-size:12px;
+    line-height:1.45;
+  }
+  .trade-composer-head p{
+    font-size:14px;
+    line-height:1.55;
+    color:#b9c2df;
+  }
+}
