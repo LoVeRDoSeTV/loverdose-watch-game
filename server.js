@@ -6846,9 +6846,6 @@ app.get(
             OR COALESCE(u.login, '') ILIKE '%' || $1::text || '%'
           )
         ORDER BY
-          CASE WHEN u.creature_id IS NOT NULL THEN 1 ELSE 0 END DESC,
-          CASE WHEN u.creature_id IS NOT NULL THEN COALESCE(u.xp, 0) ELSE NULL END DESC NULLS LAST,
-          CASE WHEN u.creature_id IS NULL THEN COALESCE(u.watch_seconds, 0) ELSE NULL END DESC NULLS LAST,
           COALESCE(u.watch_seconds, 0) DESC,
           u.id ASC
         LIMIT 50
