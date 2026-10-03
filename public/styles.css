@@ -5375,3 +5375,37 @@ body:has(#pveModal:not(.hidden)){
   }
 }
 /* ===== /V120 ===== */
+
+/* =========================================================
+   V121 — PC : Lovys + Classement alignes sur le canevas Lobby
+   Corrige uniquement largeur/centrage, contenu interne inchange.
+========================================================= */
+@media (min-width:901px){
+  /* Mes Lovys : meme canevas centre que Lobby. */
+  body[data-desktop-view="lovys"] .lovys-collection-modal{
+    box-sizing:border-box!important;
+    display:block!important;
+    width:100%!important;
+    max-width:none!important;
+    margin:12px 0 0!important;
+    padding:0 24px 44px!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-panel{
+    box-sizing:border-box!important;
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:0 auto!important;
+  }
+
+  /* Classement : meme largeur et meme centrage que Lobby. */
+  body.desktop-leaderboard-open .global-leaderboard{
+    box-sizing:border-box!important;
+    width:min(1500px,calc(100% - 48px))!important;
+    max-width:1500px!important;
+    min-height:0!important;
+    margin:12px auto 0!important;
+    padding:28px 0 60px!important;
+  }
+}
+/* ===== /V121 ===== */
