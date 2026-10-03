@@ -2488,6 +2488,15 @@ function updateStats(u) {
 
 let leaderboardSearchTimer = null;
 let leaderboardPlayers = [];
+let leaderboardMetric = 'watch';
+
+const LEADERBOARD_METRICS = {
+  watch: { label: 'Visionnage', icon: '👁️', heading: 'Classé par temps de visionnage', description: 'Le temps total enregistré par le Watch Game détermine ta position.' },
+  level: { label: 'Niveau global', icon: '⭐', heading: 'Classé par progression globale', description: 'Le classement suit ton XP globale et ton niveau général.' },
+  pve: { label: 'PvE', icon: '⚔️', heading: 'Classé par victoires PvE', description: 'Chaque victoire enregistrée dans les combats PvE compte.' },
+  collection: { label: 'Collection', icon: '🧬', heading: 'Classé par collection', description: 'Plus tu as de Lovys différents dans ta collection, plus tu montes.' },
+  prestige: { label: 'Prestige', icon: '👑', heading: 'Classé par Prestige', description: 'Le Prestige est prioritaire, puis l’XP globale départage les égalités.' }
+};
 
 function formatLeaderboardDuration(totalSeconds) {
   const seconds = Math.max(0, Number(totalSeconds) || 0);
@@ -2495,112 +2504,66 @@ function formatLeaderboardDuration(totalSeconds) {
   const minutes = Math.floor((seconds % 3600) / 60);
   return `${hours} h ${String(minutes).padStart(2, '0')}`;
 }
+function leaderboardScoreValue(player, metric=leaderboardMetric) {
+  if (metric === 'level') return Math.max(0, Number(player.global_xp || 0));
+  if (metric === 'pve') return Math.max(0, Number(player.pve_wins || 0));
+  if (metric === 'collection') return Math.max(0, Number(player.collection_count || 0));
+  if (metric === 'prestige') return Math.max(0, Number(player.prestige || 0));
+  return Math.max(0, Number(player.watch_seconds || 0));
+}
+function leaderboardScoreText(player, metric=leaderboardMetric) {
+  if (metric === 'level') return `Niv. ${Number(player.global_progression?.level || 1)} · ${Math.floor(Number(player.global_xp || 0)).toLocaleString('fr-FR')} XP`;
+  if (metric === 'pve') return `${Number(player.pve_wins || 0)} victoire${Number(player.pve_wins || 0) > 1 ? 's' : ''}`;
+  if (metric === 'collection') return `${Number(player.collection_count || 0)} Lovys`;
+  if (metric === 'prestige') return `Prestige ${Number(player.prestige || 0)}`;
+  return formatLeaderboardDuration(player.watch_seconds);
+}
+function leaderboardGapText(self, previous, metric=leaderboardMetric) {
+  if (!previous) return 'Tu es actuellement en tête de ce classement.';
+  const gap = Math.max(0, leaderboardScoreValue(previous, metric) - leaderboardScoreValue(self, metric));
+  if (metric === 'watch') return `Encore ${formatLeaderboardDuration(gap + 60)} environ pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
+  if (metric === 'level') return `Encore ${(gap + 1).toLocaleString('fr-FR')} XP globale pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
+  if (metric === 'pve') return `Encore ${gap + 1} victoire${gap + 1 > 1 ? 's' : ''} PvE pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
+  if (metric === 'collection') return `Encore ${gap + 1} Lovys pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
+  return `Atteins le Prestige suivant pour viser la place #${Number(previous.rank || self.rank - 1)}.`;
+}
 
-async function loadLeaderboard(searchTerm = null) {
+async function loadLeaderboard(searchTerm = null, metric = null) {
   const container = $('leaderboard');
   const searchInput = $('leaderboardSearch');
-  const query = searchTerm === null
-    ? String(searchInput?.value || '').trim()
-    : String(searchTerm || '').trim();
-
+  if (metric && LEADERBOARD_METRICS[metric]) leaderboardMetric = metric;
+  const activeMetric = leaderboardMetric;
+  const meta = LEADERBOARD_METRICS[activeMetric];
+  const query = searchTerm === null ? String(searchInput?.value || '').trim() : String(searchTerm || '').trim();
   try {
-    const url = query
-      ? `/api/leaderboard?search=${encodeURIComponent(query)}`
-      : '/api/leaderboard';
-    const response = await fetch(url, { cache: 'no-store' });
+    const params = new URLSearchParams({ metric: activeMetric });
+    if (query) params.set('search', query);
+    const response = await fetch(`/api/leaderboard?${params.toString()}`, { cache: 'no-store' });
     const data = await response.json();
-
     if (!data.leaderboard || data.leaderboard.length === 0) {
-      container.innerHTML = query
-        ? '<div class="leaderboard-empty-search">Aucun joueur trouvé.</div>'
-        : '<p class="muted">Aucun joueur pour le moment.</p>';
+      container.innerHTML = query ? '<div class="leaderboard-empty-search">Aucun joueur trouvé.</div>' : '<p class="muted">Aucun joueur pour le moment.</p>';
       return;
     }
-
     leaderboardPlayers = data.leaderboard;
     const players = data.leaderboard;
     const selfTwitchId = String(me?.user?.twitch_id || '');
     const selfIndex = players.findIndex(player => String(player.twitch_id || '') === selfTwitchId);
     const self = selfIndex >= 0 ? players[selfIndex] : null;
     const previous = selfIndex > 0 ? players[selfIndex - 1] : null;
-
     const creatureMeta = player => player.creature_id ? creatureById(player.creature_id) : null;
-    const playerTitle = player => player.cosmetic_title
-      ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>`
-      : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
-    const avatarHtml = (player, cls='') => {
-      const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
-      return player.profile_image_url
-        ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '')}" src="${escapeHtml(player.profile_image_url)}" alt="">`
-        : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
-    };
-    const lovysHtml = (player, large=false) => {
-      const creature = creatureMeta(player);
-      if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`;
-      const level = Number(player.progression?.level || 1);
-      return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(creature.image)}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`;
-    };
+    const playerTitle = player => player.cosmetic_title ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>` : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
+    const avatarHtml = (player, cls='') => { const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame); return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '')}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`; };
+    const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(creature.image)}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-
-    const podiumCard = player => {
-      const rank = Number(player.rank || 0);
-      const globalLevel = Number(player.global_progression?.level || 1);
-      const isSelf = String(player.twitch_id || '') === selfTwitchId;
-      return `<button type="button" class="leaderboard-v150-podium-card rank-${rank}${isSelf ? ' is-self' : ''}" data-player-index="${players.indexOf(player)}">
-        <div class="leaderboard-v150-medal">${rankLabel(rank)}</div>
-        ${avatarHtml(player, 'podium-avatar')}
-        <div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>
-        ${playerTitle(player)}
-        ${lovysHtml(player, true)}
-        <div class="leaderboard-v150-global">Niveau global ${globalLevel}</div>
-        <div class="leaderboard-v150-score">👁️ ${escapeHtml(formatLeaderboardDuration(player.watch_seconds))}</div>
-      </button>`;
-    };
-
-    const listRow = player => {
-      const idx = players.indexOf(player);
-      const rank = Number(player.rank || idx + 1);
-      const globalLevel = Number(player.global_progression?.level || 1);
-      const isSelf = String(player.twitch_id || '') === selfTwitchId;
-      return `<button type="button" class="leaderboard-v150-row${isSelf ? ' is-self' : ''}" data-player-index="${idx}">
-        <div class="leaderboard-v150-row-rank">${rankLabel(rank)}</div>
-        ${avatarHtml(player)}
-        <div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${playerTitle(player)}</div>
-        <div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>
-        ${lovysHtml(player)}
-        <div class="leaderboard-v150-row-score"><small>Visionnage</small><strong>${escapeHtml(formatLeaderboardDuration(player.watch_seconds))}</strong></div>
-      </button>`;
-    };
-
+    const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card rank-${rank}${isSelf ? ' is-self' : ''}" data-player-index="${players.indexOf(player)}"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></button>`; };
+    const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row${isSelf ? ' is-self' : ''}" data-player-index="${idx}"><div class="leaderboard-v150-row-rank">${rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${playerTitle(player)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></button>`; };
+    const tabs = `<div class="leaderboard-v151-tabs">${Object.entries(LEADERBOARD_METRICS).map(([key,item])=>`<button type="button" class="${key===activeMetric?'active':''}" data-leaderboard-metric="${key}">${item.icon} ${escapeHtml(item.label)}</button>`).join('')}</div>`;
     let myPositionHtml = '';
-    if (self) {
-      let objective = 'Tu es actuellement en tête du classement.';
-      if (previous) {
-        const gap = Math.max(0, Number(previous.watch_seconds || 0) - Number(self.watch_seconds || 0));
-        objective = `Encore ${escapeHtml(formatLeaderboardDuration(gap + 60))} environ pour dépasser #${Number(previous.rank || self.rank - 1)}.`;
-      }
-      myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position</span><strong>#${Number(self.rank)} · ${escapeHtml(formatLeaderboardDuration(self.watch_seconds))}</strong></div><p>${objective}</p></div>`;
-    }
-
-    if (query) {
-      container.innerHTML = `<div class="leaderboard-v150-head"><div><strong>👁️ Classé par temps de visionnage</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div>`;
-      return;
-    }
-
-    const top3 = players.filter(p => Number(p.rank) <= 3);
-    const orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean);
-    const rest = players.filter(p => Number(p.rank) >= 4);
-
-    container.innerHTML = `
-      <div class="leaderboard-v150-head"><div><strong>👁️ Classé par temps de visionnage</strong><span>Le temps total enregistré par le Watch Game détermine ta position.</span></div></div>
-      ${myPositionHtml}
-      <section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>
-      ${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}
-    `;
-  } catch (error) {
-    console.error('Erreur classement :', error);
-    container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>';
-  }
+    if (self) myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position · ${escapeHtml(meta.label)}</span><strong>#${Number(self.rank)} · ${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>${leaderboardGapText(self, previous, activeMetric)}</p></div>`;
+    if (query) { container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div>`; return; }
+    const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
+    container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
+  } catch (error) { console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
 }
 function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(current/total)*100:0));}
 async function loadProgression(){
@@ -3563,6 +3526,12 @@ function closePlayerProfile() {
 }
 
 $('leaderboard')?.addEventListener('click', event => {
+  const metricButton = event.target.closest('[data-leaderboard-metric]');
+  if (metricButton) {
+    leaderboardMetric = metricButton.dataset.leaderboardMetric || 'watch';
+    loadLeaderboard(null, leaderboardMetric);
+    return;
+  }
   const card = event.target.closest('[data-player-index]');
   if (!card) return;
   const player = leaderboardPlayers[Number(card.dataset.playerIndex)];
