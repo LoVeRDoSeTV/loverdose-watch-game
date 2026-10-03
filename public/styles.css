@@ -5530,3 +5530,40 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .lovys-help-close{position:absolute;right:14px;top:14px;width:32px;height:32px;border-radius:50%;border:1px solid #39415f;background:#171d34;color:#fff;font-size:20px;cursor:pointer}
 .lovys-help-kicker{color:#b982ff;font-size:12px;font-weight:950;letter-spacing:.12em}.lovys-help-card h3{margin:6px 42px 16px 0;font-size:22px}.lovys-help-steps{display:grid;gap:9px}.lovys-help-steps>div{padding:11px 12px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035)}.lovys-help-steps b{display:block;font-size:13px}.lovys-help-steps span{display:block;margin-top:4px;color:#b8c1dc;font-size:12.5px;line-height:1.45}
 /* ===== /V129 ===== */
+
+/* ===== V130 — Incubateur : même fond de page que Mes Lovys ===== */
+@media (min-width:901px){
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    width:min(1500px,calc(100vw - 84px))!important;
+    max-width:1500px!important;
+    margin:28px auto 0!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar{
+    width:100%!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:28px 0 60px!important;
+    background:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    overflow:visible!important;
+  }
+  body[data-desktop-view="incubator"] .dashboard-head-grid .incubator-topbar::after{
+    content:none!important;
+    display:none!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-topbar-head{
+    padding:0 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+  }
+  body[data-desktop-view="incubator"] .incubator-slots{
+    margin-top:28px!important;
+  }
+}
+/* ===== /V130 ===== */
