@@ -6527,3 +6527,10 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V172 ===== */
+
+/* ===== V173 — Incubateur : retirer les boutons Chances des emplacements ===== */
+@media (min-width: 769px){
+  body[data-desktop-view="incubator"] .incubator-card-action.chances{
+    display:none !important;
+  }
+}
