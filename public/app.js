@@ -2533,6 +2533,10 @@ function applyLeaderboardCanonicalLayout(isSearch = false) {
   if (board) {
     ['background','background-image','box-shadow','border','backdrop-filter','-webkit-backdrop-filter'].forEach(prop => important(board, prop, prop === 'border' ? '0' : prop.includes('filter') ? 'none' : prop.includes('shadow') ? 'none' : 'transparent'));
     important(board, 'height', 'auto'); important(board, 'min-height', '0'); important(board, 'max-height', 'none');
+    // En mode recherche, l'aside historique ne génère plus aucune boîte visuelle.
+    // display:contents conserve h2, recherche et résultats dans le flux mais supprime
+    // complètement la surface rectangulaire de .global-leaderboard.
+    important(board, 'display', isSearch ? 'contents' : 'block');
   }
   if (container) {
     important(container, 'background', 'transparent'); important(container, 'background-image', 'none');
