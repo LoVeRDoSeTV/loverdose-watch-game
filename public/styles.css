@@ -6370,3 +6370,32 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V167 ===== */
+
+/* ===== V168 — Boutique intégrée au fond global + Portefeuille sans background illustré ===== */
+@media (min-width:901px){
+  /* Boutique : même fond violet global que les autres pages, sans grand aplat noir. */
+  body[data-desktop-view="shop"]{
+    background:
+      radial-gradient(circle at 50% 0%,rgba(92,50,154,.16),transparent 42%),
+      linear-gradient(180deg,#101023 0%,#0d0f1d 54%,#101023 100%)!important;
+    background-attachment:fixed!important;
+  }
+  body[data-desktop-view="shop"] #app,
+  body[data-desktop-view="shop"] .wrap,
+  body[data-desktop-view="shop"] #shopModal{
+    background:transparent!important;
+    background-image:none!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-tabs{
+    background:linear-gradient(180deg,rgba(16,16,35,.96) 72%,rgba(16,16,35,0))!important;
+  }
+
+  /* Accueil : le portefeuille n'utilise plus l'illustration reward-wallet-bg. */
+  body[data-desktop-view="home"] .wallet-card{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+    border-color:rgba(145,71,255,.26)!important;
+  }
+}
+/* ===== /V168 ===== */
