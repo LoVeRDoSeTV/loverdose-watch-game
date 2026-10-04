@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=239">
+<link rel="stylesheet" href="/styles.css?v=241">
 
 
 </head>
@@ -963,14 +963,16 @@
       <div><h2 id="shopTitle">🛒 Boutique</h2><div class="shop-subtitle">Personnalise ton profil et utilise ton LoVeR'Cash.</div></div>
       <button id="shopClose" class="shop-close" type="button" aria-label="Fermer">×</button>
     </div>
-    <div class="shop-balance"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
     <div id="shopMessage" class="shop-message"></div>
-    <div class="shop-tabs" role="tablist" aria-label="Catégories de la boutique">
-      <button class="shop-tab active" type="button" data-shop-category="title">🏷️ Titres</button>
-      <button class="shop-tab" type="button" data-shop-category="background">🖼️ Fonds</button>
-      <button class="shop-tab" type="button" data-shop-category="frame">✨ Encadrements</button>
-      <button class="shop-tab" type="button" data-shop-category="avatar_frame">🪞 Cadres de profil</button>
-      <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
+    <div class="shop-toolbar">
+      <div class="shop-tabs" role="tablist" aria-label="Catégories de la boutique">
+        <button class="shop-tab active" type="button" data-shop-category="title">🏷️ Titres</button>
+        <button class="shop-tab" type="button" data-shop-category="background">🖼️ Fonds</button>
+        <button class="shop-tab" type="button" data-shop-category="frame">✨ Encadrements</button>
+        <button class="shop-tab" type="button" data-shop-category="avatar_frame">🪞 Cadres de profil</button>
+        <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
+      </div>
+      <div class="shop-balance"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
     </div>
     <div id="shopTitleFilterWrap" class="shop-subfilter hidden">
       <span class="shop-subfilter-label">Couleur du titre</span>

@@ -7031,3 +7031,32 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V233 ===== */
+
+
+/* ===== V241 — BOUTIQUE : CATEGORIES + SOLDE SUR LA MEME LIGNE ===== */
+@media (min-width:901px){
+  body[data-desktop-view="shop"] #shopModal .shop-toolbar{
+    display:flex!important;
+    align-items:center!important;
+    justify-content:space-between!important;
+    gap:24px!important;
+    margin:0 0 18px!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-toolbar .shop-tabs{
+    flex:1 1 auto!important;
+    min-width:0!important;
+    margin:0!important;
+    padding:0!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-toolbar .shop-balance{
+    flex:0 0 auto!important;
+    width:max-content!important;
+    min-width:230px!important;
+    margin:0!important;
+    padding:11px 15px!important;
+  }
+}
+@media (max-width:900px){
+  .shop-toolbar{display:block}
+}
+/* ===== /V241 ===== */
