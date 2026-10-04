@@ -1072,30 +1072,13 @@
 <script src="/auth-fallback.js?v=108"></script>
 <script id="desktopGlobalPageHeaderController">
 (function(){
-  const pages={
-    lovys:["🐉 Mes Lovys","Retrouve et gère ta collection de Lovys."],
-    incubator:["🥚 Incubateur","Fais éclore tes œufs et découvre de nouveaux Lovys."],
-    pve:["⚔️ Aventure PvE","Progresse dans les zones et affronte les créatures."],
-    lobby:["🤝 Communauté","La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
-    leaderboard:["🏆 Classement","Découvre ta position et celle de la communauté."],
-    classement:["🏆 Classement","Découvre ta position et celle de la communauté."],
-    progression:["📈 Ma progression","Suis ta progression globale dans l'univers LoVeRDoSe."],
-    shop:["🛒 Boutique","Utilise ton LoVeR’Cash pour obtenir des récompenses."]
-  };
-  const title=document.getElementById("desktopGlobalPageTitle");
-  const sub=document.getElementById("desktopGlobalPageSubtitle");
-  const header=document.getElementById("desktopGlobalPageHeader");
-  function sync(){
-    if(!header||!title||!sub)return;
-    let key=document.body.dataset.desktopView||"";
-    if(document.body.classList.contains("desktop-leaderboard-open")) key="leaderboard";
-    const data=pages[key];
-    header.style.display=data?"":"none";
-    if(data){title.textContent=data[0];sub.textContent=data[1]||"";}
-  }
-  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["data-desktop-view","class"]});
-  document.addEventListener("click",()=>requestAnimationFrame(sync),true);
-  sync();
+ const pages={lovys:["🐉 Mes Lovys","Retrouve et gère ta collection de Lovys."],incubateur:["🥚 Incubateur","Fais éclore tes œufs et découvre de nouveaux Lovys."],pve:["⚔️ Aventure PvE","Progresse dans les zones et affronte les créatures."],communaute:["🤝 Communauté","La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],classement:["🏆 Classement","Découvre ta position et celle de la communauté."],progression:["📈 Ma progression","Suis ta progression globale dans l'univers LoVeRDoSe."],boutique:["🛒 Boutique","Personnalise ton profil et utilise ton LoVeR’Cash."]};
+ const aliases={shop:"boutique",lobby:"communaute",leaderboard:"classement",incubator:"incubateur"};
+ const H=document.getElementById("desktopGlobalPageHeader"),T=document.getElementById("desktopGlobalPageTitle"),S=document.getElementById("desktopGlobalPageSubtitle");
+ function norm(s){return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z]/g,"");}
+ function key(){if(document.body.classList.contains("desktop-leaderboard-open"))return "classement";let k=norm(document.body.dataset.desktopView);k=aliases[k]||k;if(pages[k])return k;const a=[...document.querySelectorAll("nav .active,nav [aria-current='page'],.top-nav .active,.desktop-nav .active")].find(x=>x.offsetParent!==null),n=norm(a&&a.textContent);for(const p of Object.keys(pages))if(n.includes(norm(p)))return p;return "";}
+ function sync(){const d=pages[key()];H.style.display=d?"":"none";if(d){T.textContent=d[0];S.textContent=d[1];}}
+ new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","data-desktop-view","aria-current"]});document.addEventListener("click",()=>requestAnimationFrame(sync),true);sync();
 })();
 </script>
 

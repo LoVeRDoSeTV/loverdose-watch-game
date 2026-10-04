@@ -6975,3 +6975,19 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V218 ===== */
 
+
+/* ===== V219 — TOUTES LES PAGES COMME BOUTIQUE ===== */
+@media (min-width:901px){
+ #desktopGlobalPageHeader{width:min(1500px,calc(100vw - 84px))!important;max-width:1500px!important;margin:12px auto 22px!important;}
+ body[data-desktop-view="lovys"] .lovys-collection-panel,
+ body[data-desktop-view="incubator"] .dashboard-head-grid,
+ body[data-desktop-view="pve"] .game-panel,
+ body[data-desktop-view="lobby"] .desktop-lobby-shell,
+ body[data-desktop-view="progression"] .game-panel,
+ body[data-desktop-view="shop"] .shop-panel,
+ body.desktop-leaderboard-open .global-leaderboard{box-sizing:border-box!important;width:min(1500px,calc(100vw - 84px))!important;max-width:1500px!important;margin-left:auto!important;margin-right:auto!important;left:auto!important;right:auto!important;transform:none!important;}
+ .shop-head,.lovys-collection-head,.desktop-page-head,.incubator-topbar-head,
+ body[data-desktop-view="pve"] .game-head,body[data-desktop-view="progression"] .game-head,
+ body.desktop-leaderboard-open .global-leaderboard>h2{display:none!important;}
+}
+/* ===== /V219 ===== */
