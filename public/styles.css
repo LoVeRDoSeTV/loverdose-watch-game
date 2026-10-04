@@ -7031,3 +7031,36 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V233 ===== */
+
+
+/* ===== V234 — PROGRESSION : BARRE VIOLETTE + GLISSER-DEPLACER ===== */
+@media (min-width:901px){
+ #globalLevelRoad{
+   scrollbar-width:auto!important;
+   scrollbar-color:#8b46e8 #241a42!important;
+   scroll-behavior:auto!important;
+   cursor:grab!important;
+ }
+ #globalLevelRoad.is-drag-scrolling{
+   cursor:grabbing!important;
+   user-select:none!important;
+   scroll-snap-type:none!important;
+ }
+ #globalLevelRoad::-webkit-scrollbar{height:12px!important}
+ #globalLevelRoad::-webkit-scrollbar-track{
+   background:#241a42!important;
+   border-radius:999px!important;
+   box-shadow:inset 0 0 0 1px rgba(151,83,236,.28)!important;
+ }
+ #globalLevelRoad::-webkit-scrollbar-thumb{
+   background:linear-gradient(90deg,#7334c8,#a25cf3)!important;
+   border:2px solid #241a42!important;
+   border-radius:999px!important;
+   box-shadow:0 0 9px rgba(145,70,235,.38)!important;
+ }
+ #globalLevelRoad::-webkit-scrollbar-thumb:hover{
+   background:linear-gradient(90deg,#8645dc,#b06cff)!important;
+ }
+}
+/* ===== /V234 ===== */
+

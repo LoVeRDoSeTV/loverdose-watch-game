@@ -5222,24 +5222,6 @@ $('subBenefitsModal')?.addEventListener('mouseup', event => {
    V109 — NAVIGATION PC + LOBBY / ÉCHANGES
    La version mobile conserve son agencement actuel.
 ========================================= */
-
-/* V229 — single shared desktop page header */
-const STANDARD_PAGE_HEADER_DATA={
- lovys:['🐉 Mes Lovys','Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.'],
- incubator:['🥚 Incubateur',"Tes emplacements d’incubation."],
- lobby:['🤝 Communauté',"La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
- leaderboard:['🏆 Classement','Compare ta progression avec les autres joueurs.'],
- progression:['📈 Ma progression','Suis ton niveau global, Prestige et progression du Lovys.'],
- shop:['🛒 Boutique',"Personnalise ton profil et utilise ton LoVeR’Cash."]
-};
-function updateStandardPageHeader(view){
- const el=document.getElementById('standardPageHeader'),t=document.getElementById('standardPageHeaderTitle'),s=document.getElementById('standardPageHeaderSubtitle');
- if(!el||!t||!s)return;
- const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d&&view!=='pve';
- el.classList.toggle('is-visible',show);el.setAttribute('aria-hidden',show?'false':'true');
- if(show){t.textContent=d[0];s.textContent=d[1]||'';s.hidden=!d[1];}
-}
-
 let desktopView='home';
 let lobbyTab='trades';
 let lobbyAutoRefreshTimer=null;
@@ -5282,7 +5264,6 @@ async function openDesktopView(view='home'){
   syncDesktopLeaderboardPlacement();
   desktopView=view;setDesktopNavActive(view);
   document.body.dataset.desktopView=view;
-   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
   const leaderboardBoard=document.querySelector('.global-leaderboard');
   if(view!=='leaderboard'){
@@ -5572,3 +5553,49 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
   accountButton?.addEventListener('click', () => { if(isDesktopGameUi()){ location.hash='#compte'; } else openAccountModal(); });
 })();
 // ===== /V113 =====
+
+
+/* V234 — drag horizontal de la progression : maintenir, glisser, relâcher */
+(function(){
+  let road=null,startX=0,startScroll=0,dragging=false,pointerId=null;
+
+  function bindProgressionRoad(){
+    const next=document.getElementById('globalLevelRoad');
+    if(!next || next.dataset.dragScrollBound==='1') return;
+    road=next;
+    road.dataset.dragScrollBound='1';
+
+    road.addEventListener('pointerdown',function(e){
+      if(e.pointerType==='mouse' && e.button!==0) return;
+      pointerId=e.pointerId;
+      startX=e.clientX;
+      startScroll=road.scrollLeft;
+      dragging=true;
+      road.classList.add('is-drag-scrolling');
+      try{road.setPointerCapture(pointerId)}catch(_){}
+    });
+
+    road.addEventListener('pointermove',function(e){
+      if(!dragging || e.pointerId!==pointerId) return;
+      const dx=e.clientX-startX;
+      if(Math.abs(dx)>3) e.preventDefault();
+      road.scrollLeft=startScroll-dx;
+    },{passive:false});
+
+    function stop(e){
+      if(!dragging || (e && e.pointerId!==pointerId)) return;
+      dragging=false;
+      road.classList.remove('is-drag-scrolling');
+      try{ if(pointerId!==null) road.releasePointerCapture(pointerId) }catch(_){}
+      pointerId=null;
+    }
+    road.addEventListener('pointerup',stop);
+    road.addEventListener('pointercancel',stop);
+    road.addEventListener('lostpointercapture',stop);
+  }
+
+  const obs=new MutationObserver(bindProgressionRoad);
+  obs.observe(document.documentElement,{childList:true,subtree:true});
+  bindProgressionRoad();
+})();
+
