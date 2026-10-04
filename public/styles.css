@@ -6999,3 +6999,62 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     margin-left:calc(50% - 50vw + 24px)!important;
   }
 }
+
+/* =========================================================
+   V208 — TYPOGRAPHIE D'EN-TETE PC UNIFIEE SUR LA BOUTIQUE
+   Boutique = reference. Classement volontairement exclu.
+   Aucun contenu/fonctionnement de page n'est modifie.
+========================================================= */
+@media (min-width:901px){
+  /* Titres : exactement le gabarit PC de Boutique. */
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
+  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head h2,
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head h2,
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="incubator"] .incubator-topbar-title{
+    margin:0!important;
+    font-size:34px!important;
+    line-height:1.15!important;
+    font-weight:800!important;
+    letter-spacing:-.02em!important;
+    color:#fff!important;
+  }
+
+  /* Sous-titres : même taille, couleur et rythme que Boutique. */
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
+  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head .hub-sub,
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head .hub-sub,
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
+    margin-top:7px!important;
+    font-size:13px!important;
+    line-height:1.5!important;
+    font-weight:400!important;
+    color:#aeb6d0!important;
+  }
+
+  /* Même largeur de référence que la page Boutique, sans toucher au contenu interne. */
+  body[data-desktop-view="lovys"] .lovys-collection-panel,
+  body[data-desktop-view="pve"] #pveModal .game-panel,
+  body[data-desktop-view="progression"] #progressionModal .game-panel,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    width:min(1500px,100%)!important;
+    max-width:1500px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  /* Neutralise les anciens décalages V207 qui étiraient seulement certains en-têtes. */
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
+  body[data-desktop-view="pve"] .game-head.unified-page-head{
+    width:100%!important;
+    max-width:none!important;
+    margin-left:0!important;
+    margin-right:0!important;
+    box-sizing:border-box!important;
+  }
+}
+/* ===== /V208 ===== */
