@@ -7001,90 +7001,23 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V228 — 3 COUCHES DESKTOP : NAV / ENTETE / CONTENU =====
-   Aucun nouveau DOM, aucun JS : on réutilise la nav et les vrais headers existants.
-   Boutique est la référence visuelle. PvE garde sa liberté de mise en page. */
+/* ===== V229 — NAV NATIVE / HEADER UNIQUE / CONTENU ===== */
 @media (min-width:901px){
- :root{
-   --global-nav-h:126px;
-   --page-frame:min(1500px,calc(100vw - 84px));
-   --page-head-gap:28px;
-   --page-head-title:34px;
-   --page-head-sub:13px;
- }
+ /* NAV volontairement intacte : elle défile exactement comme avant. */
+ .standard-page-header{display:none;box-sizing:border-box;width:min(1500px,calc(100vw - 84px));max-width:1500px;margin:28px auto 0;padding:0;background:transparent}
+ .standard-page-header.is-visible{display:block}
+ .standard-page-header-inner{box-sizing:border-box;width:100%;margin:0;padding:8px 0 22px;border-bottom:1px solid rgba(145,71,255,.22)}
+ #standardPageHeaderTitle{margin:0;padding:0;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;text-align:left}
+ #standardPageHeaderSubtitle{margin:7px 0 0;padding:0;font-size:13px;line-height:1.5;color:#aeb6d0;text-align:left}
 
- /* 1 — NAVIGATION : couche globale, toujours au-dessus et indépendante du contenu. */
- .desktop-game-nav{
-   position:fixed!important;
-   top:0!important;
-   left:50%!important;
-   transform:translateX(-50%)!important;
-   z-index:1000!important;
- }
- body{padding-top:var(--global-nav-h)!important;}
-
- /* 2 — EN-TETE : même boîte réelle sur toutes les pages standard.
-        Pas de header artificiel : chaque page garde son texte natif. */
  body[data-desktop-view="shop"] .shop-head,
  body[data-desktop-view="lovys"] .lovys-collection-head,
  body[data-desktop-view="lobby"] .desktop-page-head,
  body[data-desktop-view="progression"] #progressionModal .game-head,
- body[data-desktop-view="incubator"] .incubator-topbar-head{
-   display:block!important;visibility:visible!important;
-   box-sizing:border-box!important;position:relative!important;
-   width:var(--page-frame)!important;max-width:1500px!important;min-width:0!important;
-   left:50%!important;right:auto!important;transform:translateX(-50%)!important;
-   margin:var(--page-head-gap) 0 22px!important;
-   padding:8px 0 22px!important;
-   background:transparent!important;
-   border:0!important;border-bottom:1px solid rgba(145,71,255,.22)!important;
-   text-align:left!important;
- }
- body[data-desktop-view="shop"] .shop-head h2,
- body[data-desktop-view="lovys"] .lovys-collection-head h2,
- body[data-desktop-view="lobby"] .desktop-page-head h2,
- body[data-desktop-view="progression"] #progressionModal .game-head h2,
- body[data-desktop-view="incubator"] .incubator-topbar-title{
-   display:block!important;visibility:visible!important;
-   margin:0!important;padding:0!important;
-   font-size:var(--page-head-title)!important;line-height:1.15!important;
-   font-weight:800!important;letter-spacing:-.02em!important;text-align:left!important;
- }
- body[data-desktop-view="shop"] .shop-head p,
- body[data-desktop-view="lovys"] .lovys-collection-head p,
- body[data-desktop-view="lobby"] .desktop-page-head p,
- body[data-desktop-view="progression"] #progressionModal .game-head p,
- body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
-   display:block!important;visibility:visible!important;
-   margin:7px 0 0!important;padding:0!important;
-   font-size:var(--page-head-sub)!important;line-height:1.5!important;text-align:left!important;
- }
+ body[data-desktop-view="incubator"] .incubator-topbar-head,
+ body.desktop-leaderboard-open .global-leaderboard>h2{display:none!important}
 
- /* Classement : son contenu/podium reste intact ; seul le vrai titre devient la couche 2. */
- body.desktop-leaderboard-open .global-leaderboard>h2{
-   display:block!important;visibility:visible!important;
-   box-sizing:border-box!important;position:relative!important;
-   width:var(--page-frame)!important;max-width:1500px!important;min-width:0!important;
-   left:50%!important;right:auto!important;transform:translateX(-50%)!important;
-   margin:var(--page-head-gap) 0 22px!important;padding:8px 0 22px!important;
-   background:transparent!important;border:0!important;
-   border-bottom:1px solid rgba(145,71,255,.22)!important;
-   font-size:var(--page-head-title)!important;line-height:1.15!important;
-   font-weight:800!important;letter-spacing:-.02em!important;text-align:left!important;
- }
-
- /* 3 — CONTENU : ne contrôle plus la position de la nav.
-        On annule seulement les anciens décalages verticaux qui tentaient de compenser la nav. */
- body[data-desktop-view="shop"] #shopModal,
- body[data-desktop-view="lovys"] #lovysCollectionModal,
- body[data-desktop-view="progression"] #progressionModal{
-   top:var(--global-nav-h)!important;
- }
- body[data-desktop-view="lobby"] #desktopLobbyPage{
-   padding-top:0!important;
- }
-
- /* PvE volontairement non ciblé ici. */
+ /* PvE n'est pas ciblé. */
 }
-/* ===== /V228 ===== */
+/* ===== /V229 ===== */
 
