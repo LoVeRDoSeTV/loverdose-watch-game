@@ -7022,11 +7022,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 /* ===== /V229 ===== */
 
 
-/* ===== V230 — CLASSEMENT : ESPACE SOUS L'EN-TETE GLOBAL ===== */
+
+/* ===== V232 — CLASSEMENT : DEGAGEMENT COMPLET SOUS L'EN-TETE ===== */
 @media (min-width:901px){
   body.desktop-leaderboard-open .global-leaderboard{
-    margin-top:34px!important;
+    margin-top:145px!important;
   }
 }
-/* ===== /V230 ===== */
-
+/* ===== /V232 ===== */
