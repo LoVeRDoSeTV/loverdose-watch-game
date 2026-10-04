@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=205">
+<link rel="stylesheet" href="/styles.css?v=204">
 
 
 </head>
@@ -300,7 +300,7 @@
   <a class="desktop-game-nav-btn" href="#lovys" data-desktop-view="lovys"><span>🐉</span>Lovys</a>
   <a class="desktop-game-nav-btn" href="#incubateur" data-desktop-view="incubator"><span>🥚</span>Incubateur</a>
   <a class="desktop-game-nav-btn" href="#pve" data-desktop-view="pve"><span>⚔️</span>PvE</a>
-  <a class="desktop-game-nav-btn" href="#lobby" data-desktop-view="lobby"><span>🤝</span>Communauté <b id="lobbyNavBadge" class="lobby-nav-badge hidden">0</b></a>
+  <a class="desktop-game-nav-btn" href="#lobby" data-desktop-view="lobby"><span>🤝</span>Lobby <b id="lobbyNavBadge" class="lobby-nav-badge hidden">0</b></a>
   <a class="desktop-game-nav-btn" href="#classement" data-desktop-view="leaderboard"><span>🏆</span>Classement</a>
   <a class="desktop-game-nav-btn" href="#progression" data-desktop-view="progression"><span>📈</span>Progression</a>
   <a class="desktop-game-nav-btn" href="#boutique" data-desktop-view="shop"><span>🛒</span>Boutique</a>
@@ -643,7 +643,7 @@
 <!-- GESTION DU COMPTE -->
 <div id="accountModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
   <div class="account-panel">
-    <div class="account-panel-head page-head-standard">
+    <div class="account-panel-head unified-page-head">
       <h2 id="accountModalTitle">👤 Mon compte</h2>
       <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
     </div>
@@ -881,9 +881,9 @@
     <div id="incubatorAddContent"></div>
   </div>
 </div>
-<div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head page-head-standard"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
+<div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
 <div id="lovysXpTransferModal" class="lovys-xp-transfer-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysXpTransferTitle"><div class="lovys-xp-transfer-panel"><div class="lovys-xp-transfer-icon">⚡</div><div id="lovysXpTransferTitle" class="lovys-xp-transfer-title">Transférer l’XP Lovys</div><div id="lovysXpTransferCopy" class="lovys-xp-transfer-copy"></div><div id="lovysXpTransferAmount" class="lovys-xp-transfer-amount">0 XP en réserve</div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferTarget">Lovys destinataire</label><select id="lovysXpTransferTarget"></select></div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferValue">Quantité d’XP à transférer</label><input id="lovysXpTransferValue" type="number" min="1" step="1" inputmode="numeric"></div><div class="lovys-xp-transfer-actions"><button id="lovysXpTransferCancel" class="hub-btn" type="button">Annuler</button><button id="lovysXpTransferConfirm" class="hub-btn lovys-xp-transfer-confirm" type="button">⚡ Confirmer le transfert</button></div></div></div>
-<div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel"><div class="lovys-collection-head page-head-standard"><div><h2 id="lovysCollectionTitle">🐉 Mes Lovys</h2><div class="hub-sub">Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve · 🧩 0 fragments universels</div><section id="lovysActiveHero" class="lovys-active-hero"></section><section id="lovysNowStrip" class="lovys-now-strip"></section><div class="lovys-collection-summary"><div><span class="lovys-section-kicker">COLLECTION</span><strong id="lovysDiscoveredCount">0/10 découverts</strong></div><span>Choisis ton équipe et prépare le prochain combat.</span></div><div class="lovys-collection-tabs" role="tablist" aria-label="Gestion des Lovys"><button id="lovysCollectionTabCollection" class="lovys-collection-tab active" type="button" role="tab" aria-selected="true" data-lovys-tab="collection">🐉 Collection <span id="lovysCollectionCount" class="lovys-tab-count">0</span></button><button id="lovysCollectionTabFragments" class="lovys-collection-tab" type="button" role="tab" aria-selected="false" data-lovys-tab="fragments">🧩 Fragments <span id="lovysFragmentsCount" class="lovys-tab-count">0</span></button></div><div id="lovysCollectionGrid" class="lovys-collection-grid" role="tabpanel"></div><section id="lovysDetailPanel" class="lovys-detail-panel hidden"></section><div id="lovysFragmentsPanel" class="lovys-fragments-panel hidden" role="tabpanel"><div id="lovysUniversalFragments" class="lovys-universal-fragments"></div><div id="lovysFragmentsGrid" class="lovys-fragments-grid"></div></div></div></div>
+<div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel"><div class="lovys-collection-head unified-page-head"><div><h2 id="lovysCollectionTitle">🐉 Mes Lovys</h2><div class="hub-sub">Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve · 🧩 0 fragments universels</div><section id="lovysActiveHero" class="lovys-active-hero"></section><section id="lovysNowStrip" class="lovys-now-strip"></section><div class="lovys-collection-summary"><div><span class="lovys-section-kicker">COLLECTION</span><strong id="lovysDiscoveredCount">0/10 découverts</strong></div><span>Choisis ton équipe et prépare le prochain combat.</span></div><div class="lovys-collection-tabs" role="tablist" aria-label="Gestion des Lovys"><button id="lovysCollectionTabCollection" class="lovys-collection-tab active" type="button" role="tab" aria-selected="true" data-lovys-tab="collection">🐉 Collection <span id="lovysCollectionCount" class="lovys-tab-count">0</span></button><button id="lovysCollectionTabFragments" class="lovys-collection-tab" type="button" role="tab" aria-selected="false" data-lovys-tab="fragments">🧩 Fragments <span id="lovysFragmentsCount" class="lovys-tab-count">0</span></button></div><div id="lovysCollectionGrid" class="lovys-collection-grid" role="tabpanel"></div><section id="lovysDetailPanel" class="lovys-detail-panel hidden"></section><div id="lovysFragmentsPanel" class="lovys-fragments-panel hidden" role="tabpanel"><div id="lovysUniversalFragments" class="lovys-universal-fragments"></div><div id="lovysFragmentsGrid" class="lovys-fragments-grid"></div></div></div></div>
 
 
 <div id="fragmentShopModal" class="fragment-shop-modal hidden" role="dialog" aria-modal="true" aria-label="Boutique de fragments d’œuf">
@@ -917,7 +917,7 @@
     <div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div>
   </div>
 </div>
-<div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head page-head-standard"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
+<div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
 
 <div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
   <div class="inventory-panel">
@@ -1063,5 +1063,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=205"></script>
+<script src="/app.js?v=203"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
