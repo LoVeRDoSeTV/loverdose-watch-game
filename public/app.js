@@ -5222,6 +5222,23 @@ $('subBenefitsModal')?.addEventListener('mouseup', event => {
    V109 — NAVIGATION PC + LOBBY / ÉCHANGES
    La version mobile conserve son agencement actuel.
 ========================================= */
+
+/* V240 — restauration du contrôleur d'en-tête partagé V229 */
+const STANDARD_PAGE_HEADER_DATA={
+ lovys:['🐉 Mes Lovys','Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.'],
+ incubator:['🥚 Incubateur',"Tes emplacements d’incubation."],
+ lobby:['🤝 Communauté',"La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
+ leaderboard:['🏆 Classement','Compare ta progression avec les autres joueurs.'],
+ progression:['📈 Ma progression','Suis ton niveau global, Prestige et progression du Lovys.'],
+ shop:['🛒 Boutique',"Personnalise ton profil et utilise ton LoVeR’Cash."]
+};
+function updateStandardPageHeader(view){
+ const el=document.getElementById('standardPageHeader'),t=document.getElementById('standardPageHeaderTitle'),s=document.getElementById('standardPageHeaderSubtitle');
+ if(!el||!t||!s)return;
+ const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d&&view!=='pve';
+ el.classList.toggle('is-visible',show);el.setAttribute('aria-hidden',show?'false':'true');
+ if(show){t.textContent=d[0];s.textContent=d[1]||'';s.hidden=!d[1];}
+}
 let desktopView='home';
 let lobbyTab='trades';
 let lobbyAutoRefreshTimer=null;
@@ -5264,6 +5281,7 @@ async function openDesktopView(view='home'){
   syncDesktopLeaderboardPlacement();
   desktopView=view;setDesktopNavActive(view);
   document.body.dataset.desktopView=view;
+  updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
   const leaderboardBoard=document.querySelector('.global-leaderboard');
   if(view!=='leaderboard'){
