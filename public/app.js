@@ -5408,14 +5408,25 @@ document.addEventListener('click',e=>{
   document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
 });
 let pendingTradePublication=null;
-function hideTradePublishConfirmation(){const box=$('tradePublishConfirm');if(box)box.classList.add('hidden');pendingTradePublication=null;}
+function hideTradePublishConfirmation(){const box=$('tradePublishConfirm'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(box)box.classList.add('hidden');if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');pendingTradePublication=null;}
 $('tradePublish')?.addEventListener('click',()=>{
   const offerType=$('tradeOfferType').value;const offer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
-  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText');if(txt)txt.textContent=tradeComposerSummary();if(box){box.classList.remove('hidden');box.scrollIntoView({behavior:'smooth',block:'nearest'});}
+  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
 $('tradePublishCancel')?.addEventListener('click',hideTradePublishConfirmation);
+$('tradePublishConfirm')?.addEventListener('click',e=>{if(e.target===$('tradePublishConfirm'))hideTradePublishConfirmation();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('tradePublishConfirm')?.classList.contains('hidden'))hideTradePublishConfirmation();});
 $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
-  if(!pendingTradePublication)return;const btn=$('tradePublishConfirmBtn'),msg=$('tradeComposerMessage'),payload=pendingTradePublication;btn.disabled=true;msg.className='trade-composer-message';msg.textContent='Publication…';try{const r=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();if(!r.ok)throw new Error(d.error||'Publication impossible.');hideTradePublishConfirmation();closeTradeComposer();await openLobbyTab('mine');}catch(error){msg.textContent=error.message;msg.className='trade-composer-message error';}finally{btn.disabled=false;}
+  if(!pendingTradePublication)return;
+  const btn=$('tradePublishConfirmBtn'),msg=$('tradeComposerMessage'),payload=pendingTradePublication,normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');
+  btn.disabled=true;btn.textContent='Publication…';msg.className='trade-composer-message';msg.textContent='';
+  try{
+    const r=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Publication impossible.');
+    pendingTradePublication=null;if(normal)normal.classList.add('hidden');if(success)success.classList.remove('hidden');
+    await new Promise(resolve=>setTimeout(resolve,1500));hideTradePublishConfirmation();closeTradeComposer();await openLobbyTab('mine');
+  }catch(error){msg.textContent=error.message;msg.className='trade-composer-message error';hideTradePublishConfirmation();}
+  finally{btn.disabled=false;btn.textContent='Confirmer la publication';}
 });
 async function acceptTrade(offerId,optionId){const offer=tradeOffers.find(o=>Number(o.id)===Number(offerId)),option=offer?.options?.find(o=>Number(o.id)===Number(optionId));if(!offer||!option)return;if(!confirm(`Confirmer l’échange ?\n\nTu donnes : ${option.quantity} × ${option.name}\nTu reçois : ${offer.offer.quantity} × ${offer.offer.name}`))return;const r=await fetch(`/api/trades/${offerId}/accept`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({optionId})}),d=await r.json();if(!r.ok){alert(d.error||'Échange impossible.');return;}await loadGame();await loadLovysCollection();await loadTrades(false);}
 async function cancelTrade(offerId){if(!confirm('Annuler cette offre ? Les objets réservés seront rendus à ton inventaire.'))return;const r=await fetch(`/api/trades/${offerId}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),d=await r.json();if(!r.ok){alert(d.error||'Annulation impossible.');return;}await loadGame();await loadLovysCollection();await loadTrades(true);}
