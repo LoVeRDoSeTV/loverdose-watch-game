@@ -7023,10 +7023,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 
-/* ===== V232 — CLASSEMENT : DEGAGEMENT COMPLET SOUS L'EN-TETE ===== */
+
+/* ===== V233 — CLASSEMENT : AJUSTEMENT VERTICAL ===== */
 @media (min-width:901px){
   body.desktop-leaderboard-open .global-leaderboard{
-    margin-top:145px!important;
+    margin-top:170px!important;
   }
 }
-/* ===== /V232 ===== */
+/* ===== /V233 ===== */
