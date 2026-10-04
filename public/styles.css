@@ -6247,3 +6247,21 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 @keyframes shopStepOne{0%,31%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}32%,100%{color:#8ff0b6;text-shadow:none}}
 @keyframes shopStepTwo{0%,31%{color:rgba(232,225,250,.4)}32%,66%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}67%,100%{color:#8ff0b6;text-shadow:none}}
 @keyframes shopStepThree{0%,66%{color:rgba(232,225,250,.4)}67%,99%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}100%{color:#8ff0b6;text-shadow:none}}
+
+/* ===== V160 — Podium : retrouver les proportions visuelles de V154 ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    width:min(1160px,100%)!important;
+    max-width:1160px!important;
+    grid-template-columns:minmax(280px,1fr) minmax(310px,1.12fr) minmax(280px,1fr)!important;
+    column-gap:24px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-podium-card{
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+  }
+}
+/* ===== /V160 ===== */
