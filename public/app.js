@@ -2525,6 +2525,34 @@ function leaderboardGapText(self, previous, metric=leaderboardMetric) {
   return '';
 }
 
+function applyLeaderboardCanonicalLayout(isSearch = false) {
+  if (!isDesktopGameUi()) return;
+  const board = document.querySelector('.global-leaderboard');
+  const container = $('leaderboard');
+  const important = (el, prop, value) => el?.style.setProperty(prop, value, 'important');
+  if (board) {
+    ['background','background-image','box-shadow','border','backdrop-filter','-webkit-backdrop-filter'].forEach(prop => important(board, prop, prop === 'border' ? '0' : prop.includes('filter') ? 'none' : prop.includes('shadow') ? 'none' : 'transparent'));
+    important(board, 'height', 'auto'); important(board, 'min-height', '0'); important(board, 'max-height', 'none');
+  }
+  if (container) {
+    important(container, 'background', 'transparent'); important(container, 'background-image', 'none');
+    important(container, 'border', '0'); important(container, 'box-shadow', 'none'); important(container, 'min-height', '0');
+  }
+  if (isSearch) {
+    const results = container?.querySelector('.leaderboard-search-results');
+    const list = container?.querySelector('.leaderboard-v150-list');
+    [results, list].forEach(el => {
+      important(el, 'width', 'min(760px, 100%)'); important(el, 'max-width', '760px'); important(el, 'margin-left', 'auto'); important(el, 'margin-right', 'auto');
+      important(el, 'padding', '0'); important(el, 'background', 'transparent'); important(el, 'background-image', 'none'); important(el, 'border', '0'); important(el, 'box-shadow', 'none');
+    });
+  } else {
+    ['.leaderboard-v151-tabs','.leaderboard-v150-head','.leaderboard-v150-my-position'].forEach(sel => {
+      const el=container?.querySelector(sel); if(!el)return;
+      important(el, 'width', 'min(760px, 100%)'); important(el, 'max-width', '760px'); important(el, 'margin-left', 'auto'); important(el, 'margin-right', 'auto');
+    });
+  }
+}
+
 async function loadLeaderboard(searchTerm = null, metric = null) {
   const container = $('leaderboard');
   const searchInput = $('leaderboardSearch');
@@ -2563,11 +2591,13 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     if (query) {
       document.body.classList.add('leaderboard-search-active');
       container.innerHTML = `<div class="leaderboard-search-results"><div class="leaderboard-search-summary"><strong>${players.length} joueur${players.length > 1 ? 's' : ''} trouvé${players.length > 1 ? 's' : ''}</strong><span>Recherche : ${escapeHtml(query)}</span></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div></div>`;
+      applyLeaderboardCanonicalLayout(true);
       return;
     }
     document.body.classList.remove('leaderboard-search-active');
     const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
     container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
+    applyLeaderboardCanonicalLayout(false);
   } catch (error) { console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
 }
 function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(current/total)*100:0));}
