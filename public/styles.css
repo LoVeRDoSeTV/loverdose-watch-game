@@ -6534,3 +6534,11 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
     display:none !important;
   }
 }
+
+/* ===== V174 — suppression definitive des boutons Chances des cartes incubateur ===== */
+@media (min-width: 769px){
+  .incubator-card-action.chances{
+    display:none !important;
+  }
+}
+/* ===== /V174 ===== */
