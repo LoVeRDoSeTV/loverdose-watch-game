@@ -6936,25 +6936,40 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* V204 — harmonisation sûre des EN-TÊTES uniquement.
-   Aucun conteneur de page, contenu, Boutique, Incubateur ou Classement n'est redimensionné. */
+/* V205 — en-têtes PC alignés sur Boutique, sans modifier le contenu des pages.
+   Classement, Boutique et Incubateur restent intacts. */
 @media (min-width:901px){
-  .page-head-standard{
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .page-head-standard,
+  body[data-desktop-view="lovys"] .page-head-standard,
+  body[data-desktop-view="pve"] .page-head-standard{
+    width:min(1700px, calc(100vw - 224px))!important;
+    max-width:1700px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
     margin-bottom:22px!important;
-    padding-top:26px!important;
-    padding-bottom:22px!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    padding:26px 0 22px!important;
     box-sizing:border-box!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    background:transparent!important;
   }
-  .page-head-standard h2{
+
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="progression"] .page-head-standard h2,
+  body[data-desktop-view="lovys"] .page-head-standard h2,
+  body[data-desktop-view="pve"] .page-head-standard h2{
     margin:0!important;
     font-size:30px!important;
     line-height:1.15!important;
     font-weight:800!important;
     letter-spacing:-.02em!important;
   }
-  .page-head-standard .hub-sub{
-    margin-top:7px!important;
+
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="progression"] .page-head-standard .hub-sub,
+  body[data-desktop-view="lovys"] .page-head-standard .hub-sub,
+  body[data-desktop-view="pve"] .page-head-standard .hub-sub{
+    margin:7px 0 0!important;
     font-size:14px!important;
     line-height:1.5!important;
     font-weight:400!important;
