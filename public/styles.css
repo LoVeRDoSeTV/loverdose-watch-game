@@ -6935,126 +6935,68 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   50%{filter:brightness(1.13);box-shadow:0 0 0 2px rgba(218,184,255,.9),0 0 25px rgba(184,120,255,1),0 0 52px rgba(151,79,255,.76),0 0 86px rgba(126,53,246,.42)}
 }
 
-
-/* V207 — uniformisation finale des en-têtes PC.
-   Références : Boutique + Incubateur.
-   Ne cible PAS Boutique, Incubateur ni Classement et ne modifie pas les contenus. */
+/* ===== V209 — EN-TETES PC NETTOYES : Boutique = référence unique =====
+   Une seule règle finale pour Lovys / Incubateur / PvE / Communauté / Progression.
+   Classement volontairement exclu. Aucun fonctionnement n'est modifié. */
 @media (min-width:901px){
+  /* Même largeur de page que Boutique, sans décaler les contenus internes. */
+  body[data-desktop-view="lobby"] .desktop-lobby-shell{
+    width:min(1700px,calc(100vw - 84px))!important;
+    max-width:1700px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  /* Les en-têtes restent DANS leur conteneur : aucun calc(50vw), aucun décalage artificiel. */
   body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head,
   body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
-  body[data-desktop-view="pve"] .game-head.unified-page-head{
-    width:calc(100vw - 224px)!important;
+  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head,
+  body[data-desktop-view="incubator"] .incubator-topbar-head{
+    width:100%!important;
     max-width:none!important;
-    margin-left:calc(50% - 50vw + 112px)!important;
-    margin-right:0!important;
-    margin-top:0!important;
-    margin-bottom:20px!important;
-    padding:0 0 22px!important;
-    min-height:0!important;
+    margin:0 0 22px!important;
+    padding:8px 0 22px!important;
     box-sizing:border-box!important;
     border:0!important;
     border-bottom:1px solid rgba(145,71,255,.22)!important;
     background:transparent!important;
     box-shadow:none!important;
+    align-items:center!important;
   }
 
+  /* Typographie = Boutique exactement. */
   body[data-desktop-view="lobby"] .desktop-page-head h2,
-  body[data-desktop-view="progression"] .game-head.unified-page-head h2,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
-  body[data-desktop-view="pve"] .game-head.unified-page-head h2{
-    margin:0!important;
-    font-size:30px!important;
-    line-height:1.15!important;
-    font-weight:800!important;
-    letter-spacing:-.02em!important;
-  }
-
-  body[data-desktop-view="lobby"] .desktop-page-head p,
-  body[data-desktop-view="progression"] .game-head.unified-page-head .hub-sub,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
-  body[data-desktop-view="pve"] .game-head.unified-page-head .hub-sub{
-    margin:7px 0 0!important;
-    padding:0!important;
-    font-size:14px!important;
-    line-height:1.5!important;
-    font-weight:400!important;
-    color:#aeb8d4!important;
-  }
-
-  /* Les boutons X des anciennes modales ne participent pas à l'en-tête en mode page PC. */
-  body[data-desktop-view="progression"] .game-head.unified-page-head > .game-close,
-  body[data-desktop-view="pve"] .game-head.unified-page-head > .game-close,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head > .lovys-collection-close{
-    display:none!important;
-  }
-}
-
-@media (min-width:901px) and (max-width:1300px){
-  body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] .game-head.unified-page-head,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
-  body[data-desktop-view="pve"] .game-head.unified-page-head{
-    width:calc(100vw - 48px)!important;
-    margin-left:calc(50% - 50vw + 24px)!important;
-  }
-}
-
-/* =========================================================
-   V208 — TYPOGRAPHIE D'EN-TETE PC UNIFIEE SUR LA BOUTIQUE
-   Boutique = reference. Classement volontairement exclu.
-   Aucun contenu/fonctionnement de page n'est modifie.
-========================================================= */
-@media (min-width:901px){
-  /* Titres : exactement le gabarit PC de Boutique. */
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head h2,
   body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
   body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head h2,
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head h2,
-  body[data-desktop-view="lobby"] .desktop-page-head h2,
   body[data-desktop-view="incubator"] .incubator-topbar-title{
     margin:0!important;
+    padding:0!important;
     font-size:34px!important;
     line-height:1.15!important;
     font-weight:800!important;
     letter-spacing:-.02em!important;
-    color:#fff!important;
   }
 
-  /* Sous-titres : même taille, couleur et rythme que Boutique. */
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head .hub-sub,
   body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
   body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head .hub-sub,
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head .hub-sub,
-  body[data-desktop-view="lobby"] .desktop-page-head p,
   body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
-    margin-top:7px!important;
+    margin:7px 0 0!important;
+    padding:0!important;
     font-size:13px!important;
     line-height:1.5!important;
     font-weight:400!important;
     color:#aeb6d0!important;
   }
 
-  /* Même largeur de référence que la page Boutique, sans toucher au contenu interne. */
-  body[data-desktop-view="lovys"] .lovys-collection-panel,
-  body[data-desktop-view="pve"] #pveModal .game-panel,
-  body[data-desktop-view="progression"] #progressionModal .game-panel,
-  body[data-desktop-view="lobby"] .desktop-lobby-shell,
-  body[data-desktop-view="incubator"] .dashboard-head-grid{
-    width:min(1500px,100%)!important;
-    max-width:1500px!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
-  }
-
-  /* Neutralise les anciens décalages V207 qui étiraient seulement certains en-têtes. */
-  body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] .game-head.unified-page-head,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
-  body[data-desktop-view="pve"] .game-head.unified-page-head{
-    width:100%!important;
-    max-width:none!important;
-    margin-left:0!important;
-    margin-right:0!important;
-    box-sizing:border-box!important;
+  /* Les anciens boutons de fermeture de modales ne doivent pas modifier l'alignement en mode page PC. */
+  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head>.game-close,
+  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head>.game-close,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head>.lovys-collection-close{
+    display:none!important;
   }
 }
-/* ===== /V208 ===== */
+/* ===== /V209 ===== */
