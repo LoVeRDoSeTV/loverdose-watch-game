@@ -6399,3 +6399,40 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V168 ===== */
+
+/* ===== V169 — Navigation fixe + surfaces Boutique/Recherche sans aplat noir ===== */
+@media (min-width:901px){
+  /* Navigation principale : reste visible en haut pendant le défilement. */
+  .desktop-game-nav{
+    position:sticky!important;
+    top:10px!important;
+    z-index:1000040!important;
+  }
+
+  /* Boutique : les choix reposent directement sur le fond global violet. */
+  body[data-desktop-view="shop"] #shopModal .shop-tabs{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-subfilter{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+  }
+
+  /* Classement : aucun grand panneau sombre derrière les résultats de recherche. */
+  body[data-desktop-view="leaderboard"] .global-leaderboard,
+  body.desktop-leaderboard-open .global-leaderboard{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+    border-color:transparent!important;
+  }
+  body.desktop-leaderboard-open #leaderboard{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+  }
+}
+/* ===== /V169 ===== */
