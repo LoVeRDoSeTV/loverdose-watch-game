@@ -6800,3 +6800,21 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .lobby-share-card{position:relative;width:min(520px,calc(100vw - 32px));padding:24px;border:1px solid rgba(145,71,255,.45);border-radius:20px;background:linear-gradient(145deg,#17162c,#0c1020);box-shadow:0 28px 90px rgba(0,0,0,.5)}
 .lobby-share-card h3{margin:7px 0 5px;font-size:20px}.lobby-share-card p,.lobby-share-card>small{color:#aeb7d1;font-size:12px}.lobby-share-close{position:absolute;right:14px;top:14px;width:34px;height:34px;border:1px solid #343b5f;border-radius:50%;background:#151a2e;color:#fff;cursor:pointer}.lobby-share-url{margin:16px 0 12px;padding:11px 12px;border:1px solid #343b5f;border-radius:10px;background:#080b17;color:#d9dded;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.lobby-share-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}.lobby-share-actions button{padding:11px;border:1px solid rgba(145,71,255,.42);border-radius:10px;background:rgba(86,43,157,.28);color:#fff;font-weight:900;cursor:pointer}
 @media(max-width:900px){.trade-option-edit,.trade-asset-row{grid-template-columns:1fr!important}.trade-selected-preview{min-width:0}.lobby-share-actions{grid-template-columns:1fr}}
+
+
+/* V188 — Lobby : sélecteur Lovys fusionné + images fiables */
+@media (min-width:901px){
+  .trade-asset-row>[data-trade-creature],.trade-option-edit>[data-trade-creature]{display:none!important}
+  .trade-asset-row{grid-template-columns:170px minmax(280px,1fr) 110px!important;align-items:center}
+  .trade-option-edit{grid-template-columns:28px 150px minmax(280px,1fr) 100px 34px!important}
+  .trade-selected-preview{position:relative;min-width:0!important;min-height:54px;padding:7px 12px!important;cursor:default}
+  .trade-selected-preview.is-selectable{cursor:pointer;border-color:rgba(145,71,255,.34);background:#0b1020}
+  .trade-selected-preview.is-selectable:hover{border-color:rgba(174,116,255,.58)}
+  .trade-selected-preview img{width:42px!important;height:42px!important;flex:0 0 42px!important}
+  .trade-select-chevron{margin-left:auto;color:#bba5e8;font-size:18px}
+  .trade-creature-menu{position:absolute;z-index:1000095;top:calc(100% + 7px);left:0;right:0;max-height:300px;overflow:auto;padding:6px;border:1px solid rgba(145,71,255,.38);border-radius:12px;background:#0b1020;box-shadow:0 18px 55px rgba(0,0,0,.55)}
+  .trade-creature-menu button{display:flex;width:100%;align-items:center;gap:10px;padding:8px;border:0;border-radius:9px;background:transparent;color:#fff;text-align:left;cursor:pointer}
+  .trade-creature-menu button:hover{background:rgba(145,71,255,.12)}
+  .trade-creature-menu img{width:38px!important;height:38px!important;object-fit:contain;flex:0 0 38px!important}
+  .trade-creature-menu span{display:flex;min-width:0;flex-direction:column}.trade-creature-menu strong{font-size:11px}.trade-creature-menu small{margin-top:2px;color:#aeb7d1;font-size:9px}
+}
