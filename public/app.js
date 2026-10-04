@@ -5555,47 +5555,39 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
 // ===== /V113 =====
 
 
-/* V234 — drag horizontal de la progression : maintenir, glisser, relâcher */
+/* V235 — progression uniquement : maintenir + glisser, arrêt au relâchement */
 (function(){
-  let road=null,startX=0,startScroll=0,dragging=false,pointerId=null;
+  function bindDragScroller(el){
+    if(!el || el.dataset.v235Drag==='1') return;
+    el.dataset.v235Drag='1';
+    let down=false, startX=0, startScroll=0, pid=null;
 
-  function bindProgressionRoad(){
-    const next=document.getElementById('globalLevelRoad');
-    if(!next || next.dataset.dragScrollBound==='1') return;
-    road=next;
-    road.dataset.dragScrollBound='1';
-
-    road.addEventListener('pointerdown',function(e){
+    el.addEventListener('pointerdown',function(e){
       if(e.pointerType==='mouse' && e.button!==0) return;
-      pointerId=e.pointerId;
-      startX=e.clientX;
-      startScroll=road.scrollLeft;
-      dragging=true;
-      road.classList.add('is-drag-scrolling');
-      try{road.setPointerCapture(pointerId)}catch(_){}
+      down=true; pid=e.pointerId; startX=e.clientX; startScroll=el.scrollLeft;
+      el.classList.add('is-dragging');
+      try{el.setPointerCapture(pid)}catch(_){}
     });
-
-    road.addEventListener('pointermove',function(e){
-      if(!dragging || e.pointerId!==pointerId) return;
+    el.addEventListener('pointermove',function(e){
+      if(!down || e.pointerId!==pid) return;
       const dx=e.clientX-startX;
-      if(Math.abs(dx)>3) e.preventDefault();
-      road.scrollLeft=startScroll-dx;
+      if(Math.abs(dx)>2) e.preventDefault();
+      el.scrollLeft=startScroll-dx;
     },{passive:false});
-
-    function stop(e){
-      if(!dragging || (e && e.pointerId!==pointerId)) return;
-      dragging=false;
-      road.classList.remove('is-drag-scrolling');
-      try{ if(pointerId!==null) road.releasePointerCapture(pointerId) }catch(_){}
-      pointerId=null;
+    function end(e){
+      if(!down || (e && e.pointerId!==pid)) return;
+      down=false; el.classList.remove('is-dragging');
+      try{el.releasePointerCapture(pid)}catch(_){}
+      pid=null;
     }
-    road.addEventListener('pointerup',stop);
-    road.addEventListener('pointercancel',stop);
-    road.addEventListener('lostpointercapture',stop);
+    el.addEventListener('pointerup',end);
+    el.addEventListener('pointercancel',end);
+    el.addEventListener('lostpointercapture',end);
   }
-
-  const obs=new MutationObserver(bindProgressionRoad);
-  obs.observe(document.documentElement,{childList:true,subtree:true});
-  bindProgressionRoad();
+  function bindAll(){
+    document.querySelectorAll('#globalLevelRoad,.global-level-rank-scroll').forEach(bindDragScroller);
+  }
+  bindAll();
+  new MutationObserver(bindAll).observe(document.documentElement,{childList:true,subtree:true});
 })();
 
