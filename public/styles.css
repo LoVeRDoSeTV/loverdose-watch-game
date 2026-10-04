@@ -7228,3 +7228,74 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     color:#aeb8d4!important;
   }
 }
+
+/* V203 — cohérence stricte des en-têtes PC sur Boutique. Classement exclu. */
+@media (min-width:901px){
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel,
+  body[data-desktop-view="lovys"] .lovys-collection-panel,
+  body[data-desktop-view="pve"] #pveModal>.game-panel,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel,
+  body[data-desktop-view="account"] #accountModal>.account-panel{
+    width:min(1700px,calc(100vw - 48px))!important;
+    max-width:1700px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    box-sizing:border-box!important;
+  }
+
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .unified-page-head,
+  body[data-desktop-view="lovys"] .unified-page-head,
+  body[data-desktop-view="pve"] .unified-page-head,
+  body[data-desktop-view="shop"] .unified-page-head,
+  body[data-desktop-view="account"] .unified-page-head{
+    position:relative!important;
+    left:auto!important;
+    transform:none!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:0!important;
+    margin:0 0 22px!important;
+    padding:26px 0 22px!important;
+    box-sizing:border-box!important;
+    border:0!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="progression"] .unified-page-head h2,
+  body[data-desktop-view="lovys"] .unified-page-head h2,
+  body[data-desktop-view="pve"] .unified-page-head h2,
+  body[data-desktop-view="shop"] .unified-page-head h2,
+  body[data-desktop-view="account"] .unified-page-head h2{
+    margin:0!important;
+    font-size:30px!important;
+    line-height:1.15!important;
+    font-weight:800!important;
+    letter-spacing:-.02em!important;
+  }
+
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="progression"] .unified-page-head .hub-sub,
+  body[data-desktop-view="lovys"] .unified-page-head .hub-sub,
+  body[data-desktop-view="pve"] .unified-page-head .hub-sub,
+  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle,
+  body[data-desktop-view="account"] .unified-page-head .hub-sub{
+    margin:7px 0 0!important;
+    font-size:14px!important;
+    line-height:1.5!important;
+    font-weight:400!important;
+    color:#aeb8d4!important;
+  }
+
+  /* Lovys garde sa fiche à sa largeur actuelle, mais son en-tête sort visuellement
+     du panneau étroit et reprend exactement la largeur Boutique. */
+  body[data-desktop-view="lovys"] .unified-page-head{
+    width:min(1700px,calc(100vw - 48px))!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+  }
+}
