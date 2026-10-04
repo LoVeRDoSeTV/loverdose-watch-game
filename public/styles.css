@@ -7166,7 +7166,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 
-/* V200 — en-têtes PC réellement unifiés sur la géométrie Incubateur/Lobby */
+/* V201 — En-têtes PC propres et strictement uniformes (Classement exclu) */
 @media (min-width:901px){
   body[data-desktop-view="progression"] .unified-page-head,
   body[data-desktop-view="lovys"] .unified-page-head,
@@ -7178,7 +7178,6 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     transform:translateX(-50%)!important;
     width:min(1700px,calc(100vw - 48px))!important;
     max-width:1700px!important;
-    min-height:0!important;
     margin:0 0 22px!important;
     padding:26px 0 22px!important;
     box-sizing:border-box!important;
@@ -7187,19 +7186,45 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     background:transparent!important;
     box-shadow:none!important;
   }
+
+  /* Lovys vit dans un panneau étroit : on centre son header sur le viewport,
+     sans élargir la fiche du Lovys. */
+  body[data-desktop-view="lovys"] .unified-page-head{
+    left:calc(50% - 50vw + 50%)!important;
+    width:min(1700px,calc(100vw - 48px))!important;
+  }
+
   body[data-desktop-view="progression"] .unified-page-head,
   body[data-desktop-view="lovys"] .unified-page-head,
   body[data-desktop-view="pve"] .unified-page-head,
   body[data-desktop-view="shop"] .unified-page-head{
-    display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;
+    display:flex!important;
+    align-items:flex-start!important;
+    justify-content:space-between!important;
+    gap:14px!important;
   }
-  body[data-desktop-view] .unified-page-head h2{
-    margin:0!important;font-size:30px!important;line-height:1.15!important;letter-spacing:-.02em!important;
+
+  body[data-desktop-view="progression"] .unified-page-head h2,
+  body[data-desktop-view="lovys"] .unified-page-head h2,
+  body[data-desktop-view="pve"] .unified-page-head h2,
+  body[data-desktop-view="shop"] .unified-page-head h2,
+  body[data-desktop-view="account"] .unified-page-head h2{
+    margin:0!important;
+    font-size:30px!important;
+    line-height:1.15!important;
+    font-weight:800!important;
+    letter-spacing:-.02em!important;
   }
+
   body[data-desktop-view="progression"] .unified-page-head .hub-sub,
   body[data-desktop-view="lovys"] .unified-page-head .hub-sub,
   body[data-desktop-view="pve"] .unified-page-head .hub-sub,
-  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle{
-    margin-top:7px!important;font-size:16px!important;line-height:1.55!important;color:#b9c3df!important;
+  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle,
+  body[data-desktop-view="account"] .unified-page-head .hub-sub{
+    margin-top:7px!important;
+    font-size:14px!important;
+    line-height:1.5!important;
+    font-weight:400!important;
+    color:#aeb8d4!important;
   }
 }
