@@ -6867,3 +6867,35 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .progression-prestige-rules span{padding:9px 10px;border-radius:9px;background:rgba(255,255,255,.035)}
 .progression-prestige-rules b{color:#ddd0ff}
 @media(max-width:800px){.progression-prestige-info,.progression-prestige-rules{grid-template-columns:1fr}}
+
+/* V194 — Progression : aura niveau actuel + navigation de frise */
+#page-progression .level-step.current{
+  position:relative;
+  z-index:3;
+  box-shadow:
+    0 0 0 1px rgba(176,117,255,.48),
+    0 0 14px rgba(150,77,255,.72),
+    0 0 34px rgba(132,58,255,.46),
+    0 0 58px rgba(112,45,235,.22);
+  animation:progressionCurrentAura 2.4s ease-in-out infinite;
+}
+@keyframes progressionCurrentAura{
+  0%,100%{filter:brightness(1);box-shadow:0 0 0 1px rgba(176,117,255,.42),0 0 13px rgba(150,77,255,.62),0 0 31px rgba(132,58,255,.38),0 0 52px rgba(112,45,235,.18)}
+  50%{filter:brightness(1.08);box-shadow:0 0 0 1px rgba(202,160,255,.62),0 0 19px rgba(165,96,255,.84),0 0 42px rgba(143,68,255,.54),0 0 68px rgba(122,51,245,.27)}
+}
+.progression-grade-bands{margin-top:14px;margin-bottom:4px}
+.progression-grade-bands button{
+  flex:0 0 auto;border:1px solid color-mix(in srgb,var(--grade-color) 52%,transparent);
+  border-top:3px solid var(--grade-color);border-radius:9px;padding:8px 11px;
+  background:rgba(13,15,29,.78);color:#e5e8f8;font-size:12px;font-weight:850;
+  cursor:pointer;transition:transform .16s ease,background .16s ease,border-color .16s ease
+}
+.progression-grade-bands button:hover{transform:translateY(-1px);background:rgba(30,32,54,.92);border-color:var(--grade-color)}
+#page-progression .level-road-hint,#page-progression .level-road-goal{font-size:13px;color:#b8c0da}
+.progression-road-actions{margin-left:auto;display:flex;align-items:center;justify-content:flex-end;gap:9px;flex-wrap:wrap}
+.progression-go55{font-size:12px;padding:7px 11px}
+.progression-prestige-info span{font-size:12.5px;color:#bac3dc}
+.progression-prestige-rules span{font-size:12.5px;line-height:1.55}
+#page-progression .level-step:not(.major):not(.important){min-width:84px}
+#page-progression .level-step.major,#page-progression .level-step.important{min-width:112px}
+@media(max-width:800px){.progression-road-actions{margin-left:0;width:100%;justify-content:flex-start}}
