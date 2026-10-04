@@ -6343,3 +6343,30 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V166 ===== */
+
+/* ===== V167 — Classement : podium large et réellement centré ===== */
+@media (min-width:1200px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1180px,calc(100vw - 96px))!important;
+    max-width:none!important;
+    margin:34px 0 30px!important;
+    grid-template-columns:minmax(330px,1fr) minmax(380px,1.14fr) minmax(330px,1fr)!important;
+    column-gap:32px!important;
+  }
+}
+@media (min-width:901px) and (max-width:1199px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(980px,calc(100vw - 56px))!important;
+    max-width:none!important;
+    margin:34px 0 30px!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.12fr) minmax(0,1fr)!important;
+    column-gap:24px!important;
+  }
+}
+/* ===== /V167 ===== */
