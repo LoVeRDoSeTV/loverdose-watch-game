@@ -7095,3 +7095,21 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .game-intro-modal.tutorial-step-incubator{z-index:1000018!important}
 .game-intro-modal.tutorial-step-incubator .tutorial-panel{z-index:1000019!important}
 /* ===== /V244 ===== */
+
+/* ===== V245 — Tutoriel étape 3 : panneau plus haut + Incubateur bien visible ===== */
+@media (min-width:901px){
+  .game-intro-modal.tutorial-step-incubator{
+    background:rgba(3,5,15,.30)!important;
+  }
+  .game-intro-modal.tutorial-step-incubator .tutorial-panel{
+    top:34%!important;
+    transform:translate(-50%,-50%)!important;
+  }
+  body:has(.game-intro-modal.tutorial-step-incubator:not(.hidden)) .incubator-topbar.tutorial-focus{
+    outline:4px solid rgba(181,133,255,1)!important;
+    outline-offset:7px!important;
+    box-shadow:0 0 0 10px rgba(145,71,255,.30),0 0 60px rgba(145,71,255,.72)!important;
+    filter:brightness(1.32) saturate(1.12)!important;
+  }
+}
+/* ===== /V245 ===== */
