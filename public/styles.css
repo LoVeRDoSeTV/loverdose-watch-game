@@ -6991,3 +6991,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  body.desktop-leaderboard-open .global-leaderboard>h2{display:none!important;}
 }
 /* ===== /V219 ===== */
+
+/* ===== V220 — HEADER PILOTE PAR LA NAVIGATION ===== */
+@media (min-width:901px){
+ #desktopGlobalPageHeader{visibility:visible;}
+}
+/* ===== /V220 ===== */
