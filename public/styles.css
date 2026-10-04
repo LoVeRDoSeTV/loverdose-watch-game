@@ -6777,3 +6777,97 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V180 ===== */
+\n\n/* ===== V181 — Classement nettoyé : layout canonique + recherche sans panneau ===== */
+@media (min-width:901px){
+  /* Surface de page : jamais de grand panneau sombre. */
+  body.desktop-leaderboard-open .global-leaderboard,
+  body[data-desktop-view="leaderboard"] .global-leaderboard{
+    position:relative!important;
+    inset:auto!important;
+    transform:none!important;
+    width:min(1320px,calc(100vw - 72px))!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    margin:18px auto 0!important;
+    padding:0 0 42px!important;
+    overflow:visible!important;
+    background:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard::before,
+  body.desktop-leaderboard-open .global-leaderboard::after,
+  body[data-desktop-view="leaderboard"] .global-leaderboard::before,
+  body[data-desktop-view="leaderboard"] .global-leaderboard::after{content:none!important;display:none!important}
+
+  body.desktop-leaderboard-open .global-leaderboard>h2,
+  body[data-desktop-view="leaderboard"] .global-leaderboard>h2{text-align:center!important}
+  body.desktop-leaderboard-open .leaderboard-search-wrap,
+  body[data-desktop-view="leaderboard"] .leaderboard-search-wrap{width:min(560px,100%)!important;margin:0 auto 18px!important}
+  body.desktop-leaderboard-open #leaderboard,
+  body[data-desktop-view="leaderboard"] #leaderboard{width:100%!important;max-width:1320px!important;margin:0 auto!important;background:transparent!important;border:0!important;box-shadow:none!important;min-height:0!important}
+
+  /* Les trois bandeaux normaux restent compacts et centrés. */
+  body.desktop-leaderboard-open .leaderboard-v151-tabs,
+  body.desktop-leaderboard-open .leaderboard-v150-head,
+  body.desktop-leaderboard-open .leaderboard-v150-my-position,
+  body[data-desktop-view="leaderboard"] .leaderboard-v151-tabs,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-head,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-my-position{
+    width:min(760px,100%)!important;
+    max-width:760px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    box-sizing:border-box!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v151-tabs,
+  body[data-desktop-view="leaderboard"] .leaderboard-v151-tabs{justify-content:center!important;margin-bottom:12px!important}
+  body.desktop-leaderboard-open .leaderboard-v150-head,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-head{justify-content:center!important;text-align:center!important;margin-bottom:12px!important}
+  body.desktop-leaderboard-open .leaderboard-v150-my-position,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-my-position{justify-content:center!important;text-align:center!important;flex-direction:column!important;gap:5px!important;margin-bottom:22px!important}
+
+  /* Podium : proportions V167 validées. */
+  body.desktop-leaderboard-open .leaderboard-v150-podium,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-podium{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1180px,calc(100vw - 96px))!important;
+    max-width:none!important;
+    margin:34px 0 30px!important;
+    grid-template-columns:minmax(330px,1fr) minmax(380px,1.14fr) minmax(330px,1fr)!important;
+    column-gap:32px!important;
+  }
+
+  /* Recherche : uniquement un résumé + les cartes, aucun wrapper noir. */
+  body.leaderboard-search-active .global-leaderboard,
+  body.leaderboard-search-active #leaderboard,
+  body.leaderboard-search-active .leaderboard-search-results,
+  body.leaderboard-search-active .leaderboard-v150-list{
+    height:auto!important;min-height:0!important;max-height:none!important;
+    background:transparent!important;background-image:none!important;
+    border:0!important;border-radius:0!important;box-shadow:none!important;
+    backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  }
+  body.leaderboard-search-active .leaderboard-search-results{width:min(760px,100%)!important;margin:0 auto!important;padding:0!important}
+  body.leaderboard-search-active .leaderboard-search-summary{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 10px;padding:0 4px;color:#aeb7d1;font-size:12px}
+  body.leaderboard-search-active .leaderboard-search-summary strong{color:#f3efff;font-size:13px}
+  body.leaderboard-search-active .leaderboard-v150-list{width:100%!important;margin:0!important;padding:0!important}
+  body.leaderboard-search-active .leaderboard-v150-row{width:100%!important;min-height:68px!important;padding:9px 12px!important}
+  body.leaderboard-search-active .leaderboard-v154-row-content{grid-template-columns:38px 44px minmax(145px,1.2fr) 100px minmax(140px,1fr) 100px!important;gap:8px!important}
+}
+@media (min-width:901px) and (max-width:1199px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium,
+  body[data-desktop-view="leaderboard"] .leaderboard-v150-podium{
+    width:min(980px,calc(100vw - 56px))!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.12fr) minmax(0,1fr)!important;
+    column-gap:24px!important;
+  }
+}
+/* ===== /V181 ===== */

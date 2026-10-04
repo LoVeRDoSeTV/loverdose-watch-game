@@ -2562,7 +2562,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     if (self) myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position · ${escapeHtml(meta.label)}</span><strong>#${Number(self.rank)} · ${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>${leaderboardGapText(self, previous, activeMetric)}</p></div>`;
     if (query) {
       document.body.classList.add('leaderboard-search-active');
-      container.innerHTML = `<div class="leaderboard-search-panel">${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div></div>`;
+      container.innerHTML = `<div class="leaderboard-search-results"><div class="leaderboard-search-summary"><strong>${players.length} joueur${players.length > 1 ? 's' : ''} trouvé${players.length > 1 ? 's' : ''}</strong><span>Recherche : ${escapeHtml(query)}</span></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div></div>`;
       return;
     }
     document.body.classList.remove('leaderboard-search-active');
@@ -3462,7 +3462,7 @@ if (leaderboardSearchInput) {
   });
   document.addEventListener('mousedown', event => {
     if (!document.body.classList.contains('leaderboard-search-active')) return;
-    if (event.target.closest('.leaderboard-search-wrap, .leaderboard-search-panel')) return;
+    if (event.target.closest('.leaderboard-search-wrap, .leaderboard-search-results')) return;
     closeLeaderboardSearch();
   });
 }
