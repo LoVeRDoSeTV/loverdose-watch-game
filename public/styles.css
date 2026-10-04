@@ -7041,3 +7041,63 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 #progressionModal .progression-grade-bands::-webkit-scrollbar-thumb:hover{
   background:linear-gradient(90deg,#8349d3,#ae70fb)!important;
 }
+
+/* V198 — En-têtes PC harmonisés sur Lobby / Incubateur (Classement exclu) */
+@media (min-width:901px){
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
+  body[data-desktop-view="shop"] #shopModal .shop-head,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head{
+    width:100%!important;
+    margin:0 0 22px!important;
+    padding:8px 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    box-sizing:border-box!important;
+    align-items:flex-start!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head h2,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head h2,
+  body[data-desktop-view="shop"] #shopModal .shop-head h2,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head h2{
+    margin:0!important;
+    font-size:30px!important;
+    line-height:1.15!important;
+    letter-spacing:-.02em!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .hub-sub,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head .hub-sub,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .hub-sub,
+  body[data-desktop-view="shop"] #shopModal .shop-head .hub-sub,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head .hub-sub{
+    margin-top:7px!important;
+    font-size:13px!important;
+    line-height:1.45!important;
+    color:#9fa9c6!important;
+  }
+
+  /* Même retrait horizontal que les pages de référence. */
+  body[data-desktop-view="progression"] #progressionModal,
+  body[data-desktop-view="lovys"] .lovys-collection-modal,
+  body[data-desktop-view="pve"] #pveModal,
+  body[data-desktop-view="shop"] #shopModal,
+  body[data-desktop-view="account"] #accountModal{
+    padding-left:42px!important;
+    padding-right:42px!important;
+    box-sizing:border-box!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel,
+  body[data-desktop-view="lovys"] .lovys-collection-panel,
+  body[data-desktop-view="pve"] #pveModal>.game-panel,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel,
+  body[data-desktop-view="account"] #accountModal>.account-panel{
+    width:min(1700px,100%)!important;
+    max-width:1700px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+}
