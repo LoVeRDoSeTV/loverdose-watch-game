@@ -2537,13 +2537,36 @@ function applyLeaderboardCanonicalLayout(isSearch = false) {
   if (container) {
     important(container, 'background', 'transparent'); important(container, 'background-image', 'none');
     important(container, 'border', '0'); important(container, 'box-shadow', 'none'); important(container, 'min-height', '0');
+    // En recherche, #leaderboard ne doit plus avoir de boîte propre : cela neutralise
+    // définitivement les anciens fonds/panneaux hérités des versions précédentes.
+    important(container, 'display', isSearch ? 'contents' : 'block');
   }
   if (isSearch) {
     const results = container?.querySelector('.leaderboard-search-results');
+    const summary = container?.querySelector('.leaderboard-search-summary');
     const list = container?.querySelector('.leaderboard-v150-list');
-    [results, list].forEach(el => {
-      important(el, 'width', 'min(760px, 100%)'); important(el, 'max-width', '760px'); important(el, 'margin-left', 'auto'); important(el, 'margin-right', 'auto');
-      important(el, 'padding', '0'); important(el, 'background', 'transparent'); important(el, 'background-image', 'none'); important(el, 'border', '0'); important(el, 'box-shadow', 'none');
+    // Même principe pour le wrapper de recherche : aucun rectangle ne peut être peint.
+    if (results) {
+      important(results, 'display', 'contents');
+      important(results, 'background', 'transparent'); important(results, 'background-image', 'none');
+      important(results, 'border', '0'); important(results, 'box-shadow', 'none'); important(results, 'padding', '0');
+    }
+    [summary, list].forEach(el => {
+      important(el, 'width', 'min(1000px, calc(100vw - 96px))'); important(el, 'max-width', '1000px');
+      important(el, 'margin-left', 'auto'); important(el, 'margin-right', 'auto');
+      important(el, 'background', 'transparent'); important(el, 'background-image', 'none'); important(el, 'border', '0'); important(el, 'box-shadow', 'none');
+    });
+    if (summary) {
+      important(summary, 'display', 'flex'); important(summary, 'align-items', 'center'); important(summary, 'justify-content', 'center');
+      important(summary, 'gap', '16px'); important(summary, 'padding', '4px 0 14px');
+    }
+    if (list) { important(list, 'padding', '0'); important(list, 'gap', '8px'); }
+    container?.querySelectorAll('.leaderboard-v150-row').forEach(row => {
+      important(row, 'width', '100%'); important(row, 'min-height', '72px'); important(row, 'padding', '11px 14px');
+    });
+    container?.querySelectorAll('.leaderboard-v154-row-content').forEach(row => {
+      important(row, 'grid-template-columns', '56px 52px minmax(190px,1.35fr) 125px minmax(175px,1fr) 145px');
+      important(row, 'gap', '12px');
     });
   } else {
     ['.leaderboard-v151-tabs','.leaderboard-v150-head','.leaderboard-v150-my-position'].forEach(sel => {
