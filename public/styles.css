@@ -7031,37 +7031,3 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V233 ===== */
-
-
-/* ===== V236 — PROGRESSION : SCROLL DES GRADES VIOLET + DRAG ===== */
-@media (min-width:801px){
-  #page-progression .progression-grade-bands{
-    scrollbar-width:auto!important;
-    scrollbar-color:#9147ff rgba(36,27,66,.78)!important;
-    scroll-behavior:auto!important;
-    cursor:grab;
-  }
-  #page-progression .progression-grade-bands.dragging{
-    cursor:grabbing!important;
-    user-select:none!important;
-  }
-  #page-progression .progression-grade-bands::-webkit-scrollbar{
-    height:11px!important;
-  }
-  #page-progression .progression-grade-bands::-webkit-scrollbar-track{
-    background:rgba(35,26,63,.82)!important;
-    border-radius:999px!important;
-    box-shadow:inset 0 0 0 1px rgba(145,71,255,.20)!important;
-  }
-  #page-progression .progression-grade-bands::-webkit-scrollbar-thumb{
-    background:linear-gradient(90deg,#6f36bd,#9147ff,#a967ff)!important;
-    border-radius:999px!important;
-    border:2px solid rgba(24,18,42,.82)!important;
-    box-shadow:0 0 9px rgba(145,71,255,.42)!important;
-  }
-  #page-progression .progression-grade-bands::-webkit-scrollbar-thumb:hover{
-    background:linear-gradient(90deg,#7e42cf,#a15aff,#b67aff)!important;
-  }
-}
-/* ===== /V236 ===== */
-
