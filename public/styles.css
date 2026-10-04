@@ -6935,342 +6935,29 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   50%{filter:brightness(1.13);box-shadow:0 0 0 2px rgba(218,184,255,.9),0 0 25px rgba(184,120,255,1),0 0 52px rgba(151,79,255,.76),0 0 86px rgba(126,53,246,.42)}
 }
 
-/* V196 — Progression alignée sur Boutique + vraie scrollbar violette */
-@media (min-width:801px){
-  #page-progression > .page-header,
-  #page-progression .page-header:first-child,
-  #page-progression > .section-header,
-  #page-progression .progression-page-header{
-    width:calc(100% - 210px);
-    max-width:none;
-    margin-left:105px;
-    margin-right:105px;
-    padding-left:0;
-    padding-right:0;
-    box-sizing:border-box;
-  }
-  #page-progression > .page-header + *,
-  #page-progression .page-header:first-child + *{
-    margin-top:0;
-  }
-}
 
-/* La scrollbar visible appartient au wrapper horizontal de la frise, pas uniquement à #globalLevelRoad. */
-#page-progression .level-road-wrap,
-#page-progression #globalLevelRoad{
-  scrollbar-width:auto !important;
-  scrollbar-color:#8b49e6 #211838 !important;
-}
-#page-progression .level-road-wrap::-webkit-scrollbar,
-#page-progression #globalLevelRoad::-webkit-scrollbar{
-  height:11px !important;
-  background:#211838 !important;
-}
-#page-progression .level-road-wrap::-webkit-scrollbar-track,
-#page-progression #globalLevelRoad::-webkit-scrollbar-track{
-  background:#211838 !important;
-  border-radius:999px !important;
-  box-shadow:inset 0 0 0 1px rgba(149,82,232,.22) !important;
-}
-#page-progression .level-road-wrap::-webkit-scrollbar-thumb,
-#page-progression #globalLevelRoad::-webkit-scrollbar-thumb{
-  background:#8244d8 !important;
-  border-radius:999px !important;
-  border:2px solid #211838 !important;
-  box-shadow:0 0 8px rgba(141,70,230,.42) !important;
-}
-#page-progression .level-road-wrap::-webkit-scrollbar-thumb:hover,
-#page-progression #globalLevelRoad::-webkit-scrollbar-thumb:hover{
-  background:#a15df2 !important;
-}
-
-/* V197 — correctif ciblé sur la vraie structure Progression PC */
+/* V205 — en-têtes PC alignés sur Boutique, sans modifier le contenu des pages.
+   Classement, Boutique et Incubateur restent intacts. */
 @media (min-width:901px){
-  /* Même géométrie que la Boutique : le modal porte le padding latéral,
-     puis le panneau utilise exactement la largeur disponible. */
-  body[data-desktop-view="progression"] #progressionModal{
-    position:relative!important;
-    inset:auto!important;
-    width:100%!important;
-    height:auto!important;
-    min-height:0!important;
-    margin:12px 0 0!important;
-    padding:0 42px 64px!important;
-    overflow:visible!important;
-    background:transparent!important;
-  }
-  body[data-desktop-view="progression"] #progressionModal>.game-panel{
-    width:min(1700px,100%)!important;
-    max-width:1700px!important;
-    margin:0 auto!important;
-    padding:28px 0 60px!important;
-  }
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head{
-    width:100%!important;
-    margin:0 0 22px!important;
-    padding:8px 0 22px!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
-  }
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2{
-    margin:0!important;
-    font-size:34px!important;
-    letter-spacing:-.02em!important;
-  }
-}
-
-/* Le scroll blanc visible est celui de .progression-grade-bands.
-   On le garde au même endroit mais avec le thème violet. */
-#progressionModal .progression-grade-bands{
-  scrollbar-width:thin!important;
-  scrollbar-color:#8547db #211838!important;
-}
-#progressionModal .progression-grade-bands::-webkit-scrollbar{
-  height:10px!important;
-}
-#progressionModal .progression-grade-bands::-webkit-scrollbar-track{
-  background:#211838!important;
-  border-radius:999px!important;
-  box-shadow:inset 0 0 0 1px rgba(150,86,235,.24)!important;
-}
-#progressionModal .progression-grade-bands::-webkit-scrollbar-thumb{
-  background:linear-gradient(90deg,#7138bf,#9b5bed)!important;
-  border:2px solid #211838!important;
-  border-radius:999px!important;
-  box-shadow:0 0 8px rgba(145,76,235,.4)!important;
-}
-#progressionModal .progression-grade-bands::-webkit-scrollbar-thumb:hover{
-  background:linear-gradient(90deg,#8349d3,#ae70fb)!important;
-}
-
-/* V198 — En-têtes PC harmonisés sur Lobby / Incubateur (Classement exclu) */
-@media (min-width:901px){
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
-  body[data-desktop-view="shop"] #shopModal .shop-head,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head{
-    width:100%!important;
-    margin:0 0 22px!important;
-    padding:8px 0 22px!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
-    box-sizing:border-box!important;
-    align-items:flex-start!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head h2,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head h2,
-  body[data-desktop-view="shop"] #shopModal .shop-head h2,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head h2{
-    margin:0!important;
-    font-size:30px!important;
-    line-height:1.15!important;
-    letter-spacing:-.02em!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .hub-sub,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head .hub-sub,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .hub-sub,
-  body[data-desktop-view="shop"] #shopModal .shop-head .hub-sub,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head .hub-sub{
-    margin-top:7px!important;
-    font-size:13px!important;
-    line-height:1.45!important;
-    color:#9fa9c6!important;
-  }
-
-  /* Même retrait horizontal que les pages de référence. */
-  body[data-desktop-view="progression"] #progressionModal,
-  body[data-desktop-view="lovys"] .lovys-collection-modal,
-  body[data-desktop-view="pve"] #pveModal,
-  body[data-desktop-view="shop"] #shopModal,
-  body[data-desktop-view="account"] #accountModal{
-    padding-left:42px!important;
-    padding-right:42px!important;
-    box-sizing:border-box!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel,
-  body[data-desktop-view="lovys"] .lovys-collection-panel,
-  body[data-desktop-view="pve"] #pveModal>.game-panel,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel,
-  body[data-desktop-view="account"] #accountModal>.account-panel{
-    width:min(1700px,100%)!important;
-    max-width:1700px!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
-  }
-}
-
-/* V199 — géométrie exacte Incubateur pour les pages PC, Classement exclu */
-@media (min-width:901px){
-  body[data-desktop-view="progression"] #progressionModal,
-  body[data-desktop-view="lovys"] .lovys-collection-modal,
-  body[data-desktop-view="pve"] #pveModal,
-  body[data-desktop-view="shop"] #shopModal,
-  body[data-desktop-view="account"] #accountModal{
-    width:100%!important;
-    max-width:none!important;
-    margin:0!important;
-    padding:0!important;
-    box-sizing:border-box!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel,
-  body[data-desktop-view="lovys"] .lovys-collection-panel,
-  body[data-desktop-view="pve"] #pveModal>.game-panel,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel,
-  body[data-desktop-view="account"] #accountModal>.account-panel{
-    width:min(1700px,calc(100vw - 48px))!important;
-    max-width:1700px!important;
-    margin:24px auto 0!important;
-    box-sizing:border-box!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head{
-    width:100%!important;
-    margin:0!important;
-    padding:26px 0 22px!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
-    box-sizing:border-box!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head h2,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head h2,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head h2,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head h2{
-    margin:0!important;
-    font-size:30px!important;
-    line-height:1.15!important;
-  }
-
-  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .hub-sub,
-  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head .hub-sub,
-  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .hub-sub,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head .hub-sub,
-  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head .hub-sub{
-    margin-top:7px!important;
-    font-size:16px!important;
-    line-height:1.55!important;
-    color:#b9c3df!important;
-  }
-
-  /* Le contenu de Progression garde son centrage interne actuel. */
-  body[data-desktop-view="progression"] #progressionContent{
-    margin-top:24px!important;
-  }
-}
-
-/* V201 — En-têtes PC propres et strictement uniformes (Classement exclu) */
-@media (min-width:901px){
-  body[data-desktop-view="progression"] .unified-page-head,
-  body[data-desktop-view="lovys"] .unified-page-head,
-  body[data-desktop-view="pve"] .unified-page-head,
-  body[data-desktop-view="shop"] .unified-page-head,
-  body[data-desktop-view="account"] .unified-page-head{
-    position:relative!important;
-    left:50%!important;
-    transform:translateX(-50%)!important;
-    width:min(1700px,calc(100vw - 48px))!important;
-    max-width:1700px!important;
-    margin:0 0 22px!important;
-    padding:26px 0 22px!important;
-    box-sizing:border-box!important;
-    border:0!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
-    background:transparent!important;
-    box-shadow:none!important;
-  }
-
-  /* Lovys vit dans un panneau étroit : on centre son header sur le viewport,
-     sans élargir la fiche du Lovys. */
-  body[data-desktop-view="lovys"] .unified-page-head{
-    left:calc(50% - 50vw + 50%)!important;
-    width:min(1700px,calc(100vw - 48px))!important;
-  }
-
-  body[data-desktop-view="progression"] .unified-page-head,
-  body[data-desktop-view="lovys"] .unified-page-head,
-  body[data-desktop-view="pve"] .unified-page-head,
-  body[data-desktop-view="shop"] .unified-page-head{
-    display:flex!important;
-    align-items:flex-start!important;
-    justify-content:space-between!important;
-    gap:14px!important;
-  }
-
-  body[data-desktop-view="progression"] .unified-page-head h2,
-  body[data-desktop-view="lovys"] .unified-page-head h2,
-  body[data-desktop-view="pve"] .unified-page-head h2,
-  body[data-desktop-view="shop"] .unified-page-head h2,
-  body[data-desktop-view="account"] .unified-page-head h2{
-    margin:0!important;
-    font-size:30px!important;
-    line-height:1.15!important;
-    font-weight:800!important;
-    letter-spacing:-.02em!important;
-  }
-
-  body[data-desktop-view="progression"] .unified-page-head .hub-sub,
-  body[data-desktop-view="lovys"] .unified-page-head .hub-sub,
-  body[data-desktop-view="pve"] .unified-page-head .hub-sub,
-  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle,
-  body[data-desktop-view="account"] .unified-page-head .hub-sub{
-    margin-top:7px!important;
-    font-size:14px!important;
-    line-height:1.5!important;
-    font-weight:400!important;
-    color:#aeb8d4!important;
-  }
-}
-
-/* V203 — cohérence stricte des en-têtes PC sur Boutique. Classement exclu. */
-@media (min-width:901px){
-  body[data-desktop-view="lobby"] .desktop-lobby-shell,
-  body[data-desktop-view="progression"] #progressionModal>.game-panel,
-  body[data-desktop-view="lovys"] .lovys-collection-panel,
-  body[data-desktop-view="pve"] #pveModal>.game-panel,
-  body[data-desktop-view="shop"] #shopModal>.shop-panel,
-  body[data-desktop-view="account"] #accountModal>.account-panel{
-    width:min(1700px,calc(100vw - 48px))!important;
-    max-width:1700px!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
-    box-sizing:border-box!important;
-  }
-
   body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] .unified-page-head,
-  body[data-desktop-view="lovys"] .unified-page-head,
-  body[data-desktop-view="pve"] .unified-page-head,
-  body[data-desktop-view="shop"] .unified-page-head,
-  body[data-desktop-view="account"] .unified-page-head{
-    position:relative!important;
-    left:auto!important;
-    transform:none!important;
-    width:100%!important;
-    max-width:none!important;
-    min-height:0!important;
-    margin:0 0 22px!important;
+  body[data-desktop-view="progression"] .page-head-standard,
+  body[data-desktop-view="lovys"] .page-head-standard,
+  body[data-desktop-view="pve"] .page-head-standard{
+    width:min(1700px, calc(100vw - 224px))!important;
+    max-width:1700px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    margin-bottom:22px!important;
     padding:26px 0 22px!important;
     box-sizing:border-box!important;
-    border:0!important;
     border-bottom:1px solid rgba(145,71,255,.22)!important;
     background:transparent!important;
-    box-shadow:none!important;
   }
 
   body[data-desktop-view="lobby"] .desktop-page-head h2,
-  body[data-desktop-view="progression"] .unified-page-head h2,
-  body[data-desktop-view="lovys"] .unified-page-head h2,
-  body[data-desktop-view="pve"] .unified-page-head h2,
-  body[data-desktop-view="shop"] .unified-page-head h2,
-  body[data-desktop-view="account"] .unified-page-head h2{
+  body[data-desktop-view="progression"] .page-head-standard h2,
+  body[data-desktop-view="lovys"] .page-head-standard h2,
+  body[data-desktop-view="pve"] .page-head-standard h2{
     margin:0!important;
     font-size:30px!important;
     line-height:1.15!important;
@@ -7279,72 +6966,13 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 
   body[data-desktop-view="lobby"] .desktop-page-head p,
-  body[data-desktop-view="progression"] .unified-page-head .hub-sub,
-  body[data-desktop-view="lovys"] .unified-page-head .hub-sub,
-  body[data-desktop-view="pve"] .unified-page-head .hub-sub,
-  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle,
-  body[data-desktop-view="account"] .unified-page-head .hub-sub{
+  body[data-desktop-view="progression"] .page-head-standard .hub-sub,
+  body[data-desktop-view="lovys"] .page-head-standard .hub-sub,
+  body[data-desktop-view="pve"] .page-head-standard .hub-sub{
     margin:7px 0 0!important;
     font-size:14px!important;
     line-height:1.5!important;
     font-weight:400!important;
     color:#aeb8d4!important;
   }
-
-  /* Lovys garde sa fiche à sa largeur actuelle, mais son en-tête sort visuellement
-     du panneau étroit et reprend exactement la largeur Boutique. */
-  body[data-desktop-view="lovys"] .unified-page-head{
-    width:min(1700px,calc(100vw - 48px))!important;
-    left:50%!important;
-    transform:translateX(-50%)!important;
-  }
 }
-
-/* ===== V204 — Gabarit commun des pages PC (largeur, marge, titre, espacement) =====
-   Source de vérité unique. Ce bloc doit rester en DERNIER dans le fichier.
-   La spécificité est volontairement élevée pour passer devant les anciens correctifs V150–V203. */
-:root{--page-w:1320px;--page-side:32px;--page-title:30px;--page-head-gap:20px}
-@media (min-width:901px){
-
-  /* progression */
-  html body[data-desktop-view][data-desktop-view="progression"] #progressionModal{margin-top:0!important;padding-top:0px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="progression"] #progressionModal .game-panel{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="progression"] #progressionModal .game-panel .game-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="progression"] #progressionModal .game-panel .game-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  /* pve */
-  html body[data-desktop-view][data-desktop-view="pve"] #pveModal:not(.desktop-battle-mode){margin-top:0!important;padding-top:0px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="pve"] #pveModal:not(.desktop-battle-mode) .game-panel{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="pve"] #pveModal:not(.desktop-battle-mode) .game-panel .game-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="pve"] #pveModal:not(.desktop-battle-mode) .game-panel .game-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  /* lovys */
-  html body[data-desktop-view][data-desktop-view="lovys"] #lovysCollectionModal{margin-top:0!important;padding-top:0px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel .lovys-collection-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel .lovys-collection-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  /* shop */
-  html body[data-desktop-view][data-desktop-view="shop"] #shopModal{margin-top:0!important;padding-top:0px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="shop"] #shopModal .shop-panel{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="shop"] #shopModal .shop-panel .shop-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="shop"] #shopModal .shop-panel .shop-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  /* lobby */
-  html body[data-desktop-view][data-desktop-view="lobby"] #desktopLobbyPage{margin-top:0!important;padding-top:46px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="lobby"] #desktopLobbyPage .desktop-lobby-shell{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="lobby"] #desktopLobbyPage .desktop-lobby-shell .desktop-page-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="lobby"] #desktopLobbyPage .desktop-lobby-shell .desktop-page-head h1, html body[data-desktop-view][data-desktop-view="lobby"] #desktopLobbyPage .desktop-lobby-shell .desktop-page-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  /* account */
-  html body[data-desktop-view][data-desktop-view="account"] #accountModal{margin-top:0!important;padding-top:207px!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="account"] #accountModal .account-panel{border-width:0!important;box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;margin:0 auto!important;padding-top:0!important;padding-left:0!important;padding-right:0!important}
-  html body[data-desktop-view][data-desktop-view="account"] #accountModal .account-panel .account-panel-head{width:100%!important;box-sizing:border-box!important;padding:0 0 18px!important;margin:0 0 var(--page-head-gap)!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-  html body[data-desktop-view][data-desktop-view="account"] #accountModal .account-panel .account-panel-head h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0!important}
-
-  html body[data-desktop-view][data-desktop-view="account"] #accountModal{align-items:flex-start!important}
-  /* leaderboard */
-  html body.desktop-leaderboard-open[data-desktop-view][data-desktop-view="leaderboard"] .global-leaderboard{box-sizing:border-box!important;width:min(var(--page-w),calc(100vw - 2*var(--page-side)))!important;max-width:none!important;left:50%!important;transform:translateX(-50%)!important;padding-left:0!important;padding-right:0!important;padding-top:87px!important}
-  html body.desktop-leaderboard-open[data-desktop-view][data-desktop-view="leaderboard"] .global-leaderboard>h2{font-size:var(--page-title)!important;font-weight:800!important;line-height:1.15!important;letter-spacing:-.02em!important;text-align:left!important;margin:0 0 var(--page-head-gap)!important;padding:0 0 18px!important;border-bottom:1px solid rgba(145,71,255,.18)!important}
-}
-/* ===== /V204 ===== */
