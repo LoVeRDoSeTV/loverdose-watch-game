@@ -6935,68 +6935,69 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   50%{filter:brightness(1.13);box-shadow:0 0 0 2px rgba(218,184,255,.9),0 0 25px rgba(184,120,255,1),0 0 52px rgba(151,79,255,.76),0 0 86px rgba(126,53,246,.42)}
 }
 
-/* ===== V209 — EN-TETES PC NETTOYES : Boutique = référence unique =====
-   Une seule règle finale pour Lovys / Incubateur / PvE / Communauté / Progression.
-   Classement volontairement exclu. Aucun fonctionnement n'est modifié. */
+
+/* ===== V210 — COHERENCE DES EN-TETES PC : Boutique = référence ===== */
 @media (min-width:901px){
-  /* Même largeur de page que Boutique, sans décaler les contenus internes. */
-  body[data-desktop-view="lobby"] .desktop-lobby-shell{
-    width:min(1700px,calc(100vw - 84px))!important;
-    max-width:1700px!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
+  :root{--pc-page-max:1500px;--pc-page-side:42px;--pc-page-top:12px;--pc-head-title:34px;--pc-head-subtitle:13px;--pc-head-gap:7px;--pc-head-bottom:22px}
+
+  body[data-desktop-view="shop"] #shopModal,
+  body[data-desktop-view="lovys"] #lovysCollectionModal,
+  body[data-desktop-view="pve"] #pveModal,
+  body[data-desktop-view="progression"] #progressionModal{
+    margin-top:var(--pc-page-top)!important;padding-left:var(--pc-page-side)!important;padding-right:var(--pc-page-side)!important;box-sizing:border-box!important
   }
 
-  /* Les en-têtes restent DANS leur conteneur : aucun calc(50vw), aucun décalage artificiel. */
+  body[data-desktop-view="shop"] #shopModal .shop-panel,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel,
+  body[data-desktop-view="pve"] #pveModal .game-panel,
+  body[data-desktop-view="progression"] #progressionModal .game-panel,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    width:min(var(--pc-page-max),100%)!important;max-width:var(--pc-page-max)!important;margin-left:auto!important;margin-right:auto!important;box-sizing:border-box!important
+  }
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="incubator"] .dashboard-head-grid{margin-top:var(--pc-page-top)!important}
+
+  body[data-desktop-view="shop"] #shopModal .shop-head,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
   body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
-  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head,
   body[data-desktop-view="incubator"] .incubator-topbar-head{
-    width:100%!important;
-    max-width:none!important;
-    margin:0 0 22px!important;
-    padding:8px 0 22px!important;
-    box-sizing:border-box!important;
-    border:0!important;
-    border-bottom:1px solid rgba(145,71,255,.22)!important;
-    background:transparent!important;
-    box-shadow:none!important;
-    align-items:center!important;
+    width:100%!important;max-width:none!important;min-height:0!important;margin:0 0 var(--pc-head-bottom)!important;padding:8px 0 var(--pc-head-bottom)!important;
+    box-sizing:border-box!important;border:0!important;border-bottom:1px solid rgba(145,71,255,.22)!important;background:transparent!important;box-shadow:none!important;align-items:center!important
   }
 
-  /* Typographie = Boutique exactement. */
+  body[data-desktop-view="shop"] #shopModal .shop-head h2,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head h2,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head h2,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2,
   body[data-desktop-view="lobby"] .desktop-page-head h2,
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head h2,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
-  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head h2,
   body[data-desktop-view="incubator"] .incubator-topbar-title{
-    margin:0!important;
-    padding:0!important;
-    font-size:34px!important;
-    line-height:1.15!important;
-    font-weight:800!important;
-    letter-spacing:-.02em!important;
+    margin:0!important;padding:0!important;font-size:var(--pc-head-title)!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important
   }
 
+  body[data-desktop-view="shop"] #shopModal .shop-subtitle,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head .hub-sub,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .hub-sub,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .hub-sub,
   body[data-desktop-view="lobby"] .desktop-page-head p,
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head .hub-sub,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
-  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head .hub-sub,
   body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
-    margin:7px 0 0!important;
-    padding:0!important;
-    font-size:13px!important;
-    line-height:1.5!important;
-    font-weight:400!important;
-    color:#aeb6d0!important;
+    margin:var(--pc-head-gap) 0 0!important;padding:0!important;font-size:var(--pc-head-subtitle)!important;line-height:1.5!important;font-weight:400!important;color:#aeb6d0!important
   }
 
-  /* Les anciens boutons de fermeture de modales ne doivent pas modifier l'alignement en mode page PC. */
-  body[data-desktop-view="progression"] #progressionModal .game-head.unified-page-head>.game-close,
-  body[data-desktop-view="pve"] #pveModal .game-head.unified-page-head>.game-close,
-  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head>.lovys-collection-close{
-    display:none!important;
+  body[data-desktop-view="shop"] #shopModal .shop-close,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .game-close,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .game-close,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .game-close{display:none!important}
+
+  /* Classement : en-tête seulement. */
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    width:min(var(--pc-page-max),calc(100vw - 84px))!important;margin:0 auto!important;padding:8px 0 var(--pc-head-bottom)!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;box-sizing:border-box!important;text-align:left!important;
+    font-size:var(--pc-head-title)!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important
   }
+  body.desktop-leaderboard-open .leaderboard-search-wrap{margin-top:22px!important}
 }
-/* ===== /V209 ===== */
+/* ===== /V210 ===== */
+
