@@ -6834,3 +6834,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .trade-publish-success{min-height:170px;display:grid;place-items:center;align-content:center;gap:8px}.trade-publish-success.hidden{display:none!important}.trade-publish-success-check{display:grid;place-items:center;width:64px;height:64px;border-radius:50%;border:1px solid rgba(91,214,164,.5);background:rgba(91,214,164,.12);color:#d9f7eb;font-size:36px;font-weight:950;animation:tradeSuccessCheck .42s cubic-bezier(.2,.9,.25,1.25)}.trade-publish-success strong{font-size:21px}.trade-publish-success span{color:#aeb8d4;font-size:11px;font-weight:700}
 @keyframes tradeConfirmPop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}@keyframes tradeSuccessCheck{0%{opacity:0;transform:scale(.55)}70%{transform:scale(1.08)}100%{opacity:1;transform:scale(1)}}
 @media(max-width:600px){.trade-publish-confirm-actions{width:100%;flex-direction:column}.trade-publish-confirm-actions button{width:100%}}
+
+
+/* V192 — lecture directe des offres : TU PROPOSES / CONTRE */
+.trade-exchange-side{margin-top:12px}
+.trade-exchange-side>.trade-label{margin:0 0 7px 3px;color:#9f8acb;font-size:8px;font-weight:1000;letter-spacing:.13em}
+.trade-exchange-give .trade-give{margin-top:0}
+.trade-exchange-want{margin-top:10px}
+.trade-exchange-want>.trade-label{color:#8791b2}
