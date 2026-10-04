@@ -7044,3 +7044,39 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V211 ===== */
 
+
+/* ===== V212 — UNIQUEMENT LOVYS / COMMUNAUTE / CLASSEMENT ===== */
+@media (min-width:901px){
+  /* Même axe et même largeur visuelle que l'en-tête Boutique validé. */
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head,
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    box-sizing:border-box!important;
+    position:relative!important;
+    left:50%!important;
+    right:auto!important;
+    transform:translateX(-50%)!important;
+    width:min(1500px,calc(100vw - 84px))!important;
+    max-width:none!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+
+  /* Lovys et Communauté : neutralise les retraits historiques de leurs shells. */
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+  body[data-desktop-view="lobby"] .desktop-page-head{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+
+  /* Classement : seulement le titre / séparateur, aucun contenu du classement. */
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+}
+/* ===== /V212 ===== */
+
