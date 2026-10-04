@@ -6278,3 +6278,11 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V161 ===== */
+
+
+/* V162 — confirmation obligatoire des corrections admin */
+.admin-confirm-overlay{position:fixed;inset:0;z-index:10050;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(5,6,18,.76);backdrop-filter:blur(7px)}
+.admin-confirm-card{width:min(520px,calc(100vw - 32px));padding:26px;border:1px solid rgba(145,71,255,.5);border-radius:20px;background:linear-gradient(180deg,#17142d 0%,#0d1020 100%);box-shadow:0 24px 80px rgba(0,0,0,.55),0 0 35px rgba(145,71,255,.12);color:#fff;text-align:center}
+.admin-confirm-icon{font-size:30px;margin-bottom:6px}.admin-confirm-card h3{margin:0 0 18px;font-size:21px}.admin-confirm-card p{margin:18px 4px;color:#d9dcf3;line-height:1.5;font-size:14px}
+.admin-confirm-summary{display:grid;gap:8px;text-align:left}.admin-confirm-summary>div{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:11px 13px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035)}.admin-confirm-summary span{color:#969bb8;font-size:12px}.admin-confirm-summary strong{color:#fff;text-align:right}
+.admin-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}.admin-confirm-actions .btn{min-width:140px}.admin-confirm-actions [data-admin-confirm-approve]{background:linear-gradient(135deg,#7136d8,#9147ff);border-color:#a86dff}

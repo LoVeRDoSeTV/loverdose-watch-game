@@ -4592,7 +4592,7 @@ async function openAdminPlayerEditor(accountId){
 }
 function renderAdminPlayerEditor(player){
   const editor=$('adminPlayerEditor');if(!editor)return;
-  editor.dataset.username=String(player.username||'Joueur');
+  editor.dataset.playerUsername=String(player.username||'Joueur');
   const lovys=Array.isArray(player.lovys)?player.lovys:[];
   const badges=Array.isArray(player.badges)?player.badges:[];
   const incubator=Array.isArray(player.incubator)?player.incubator:[];
@@ -4632,30 +4632,41 @@ function renderAdminPlayerEditor(player){
 function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
   return `<div class="admin-adjust-row"><div><strong>${icon} ${escapeHtml(label)}</strong><div class="admin-player-meta">${positiveOnly?'Valeur ou quantité':'Montant positif ou négatif'}</div></div><input type="number" step="1" value="${action==='prestige'?0:10}" ${positiveOnly&&action!=='prestige'?'min="1"':''} data-admin-amount="${action}" placeholder="${escapeHtml(placeholder)}"><button class="btn secondary" data-admin-action="${action}">Appliquer</button></div>`;
 }
-
-function showAdminActionConfirmation({username,actionLabel,sentence}){
+function adminActionConfirmationDetails(action, amount, button, editor){
+  const username=editor?.dataset?.playerUsername||'ce joueur';
+  const numeric=Number(amount);
+  const signed=(Number.isFinite(numeric)&&numeric>0?'+':'')+(Number.isFinite(numeric)?numeric:amount);
+  const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d’œuf",universal_fragments:'fragments universels'};
+  if(labels[action]){
+    const verb=Number(numeric)<0?'Retirer':'Ajouter';
+    const qty=Math.abs(Number(numeric)||0);
+    return {username,actionText:`${verb} ${qty.toLocaleString('fr-FR')} ${labels[action]}`,question:`Êtes-vous sûr de vouloir ${verb.toLowerCase()} ${qty.toLocaleString('fr-FR')} ${labels[action]} ${Number(numeric)<0?'à':'à'} ${username} ?`};
+  }
+  if(action==='grant_egg') return {username,actionText:`Donner ${Number(numeric)||0} œuf(s)`,question:`Êtes-vous sûr de vouloir donner ${Number(numeric)||0} œuf(s) à ${username} ?`};
+  if(action==='prestige') return {username,actionText:`Régler le Prestige sur ${Number(numeric)||0}`,question:`Êtes-vous sûr de vouloir régler le Prestige de ${username} sur ${Number(numeric)||0} ?`};
+  if(action==='lovys_fragments'){
+    const row=button.closest('.admin-lovys-row');
+    const lovysName=row?.querySelector('strong')?.textContent?.replace(/^⭐\s*/,'').trim()||'ce Lovys';
+    const verb=Number(numeric)<0?'Retirer':'Ajouter'; const qty=Math.abs(Number(numeric)||0);
+    return {username,actionText:`${verb} ${qty} fragment(s) · ${lovysName}`,question:`Êtes-vous sûr de vouloir ${verb.toLowerCase()} ${qty} fragment(s) de ${lovysName} à ${username} ?`};
+  }
+  if(action==='reset_battle') return {username,actionText:'Annuler le combat PvE actif',question:`Êtes-vous sûr de vouloir annuler le combat PvE actif de ${username} ?`};
+  if(action==='reset_pve') return {username,actionText:'Réinitialiser la progression PvE',question:`Êtes-vous sûr de vouloir réinitialiser toute la progression PvE de ${username} ?`};
+  return {username,actionText:`Appliquer ${action} ${signed}`,question:`Êtes-vous sûr de vouloir appliquer cette modification à ${username} ?`};
+}
+function showAdminActionConfirmation(details){
   return new Promise(resolve=>{
-    document.querySelector('.admin-confirm-overlay')?.remove();
+    document.querySelector('[data-admin-confirm-overlay]')?.remove();
     const overlay=document.createElement('div');
-    overlay.className='admin-confirm-overlay';
-    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
-      <div class="admin-confirm-icon">⚠️</div>
-      <div class="admin-confirm-kicker">Confirmation administrateur</div>
-      <h3 id="adminConfirmTitle">Confirmer la modification</h3>
-      <div class="admin-confirm-details"><div><span>Joueur</span><strong>${escapeHtml(username)}</strong></div><div><span>Action</span><strong>${escapeHtml(actionLabel)}</strong></div></div>
-      <p>${escapeHtml(sentence)}</p>
-      <div class="admin-confirm-actions"><button type="button" class="btn secondary" data-admin-confirm-cancel>Annuler</button><button type="button" class="btn" data-admin-confirm-approve>✓ Approuver</button></div>
-    </div>`;
+    overlay.className='admin-confirm-overlay'; overlay.setAttribute('data-admin-confirm-overlay','');
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-label="Confirmer la modification"><div class="admin-confirm-icon">⚠️</div><h3>Confirmer la modification</h3><div class="admin-confirm-summary"><div><span>Joueur</span><strong>${escapeHtml(details.username)}</strong></div><div><span>Action</span><strong>${escapeHtml(details.actionText)}</strong></div></div><p>${escapeHtml(details.question)}</p><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-admin-confirm-cancel>Annuler</button><button type="button" class="btn" data-admin-confirm-approve>✓ Approuver</button></div></div>`;
     document.body.appendChild(overlay);
-    let done=false;
-    const finish=value=>{if(done)return;done=true;document.removeEventListener('keydown',onKey);overlay.remove();resolve(value)};
-    const onKey=e=>{if(e.key==='Escape')finish(false)};
-    document.addEventListener('keydown',onKey);
-    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-admin-confirm-cancel]'))finish(false);if(e.target.closest('[data-admin-confirm-approve]'))finish(true)});
+    const finish=value=>{overlay.remove();document.removeEventListener('keydown',onKey);resolve(value);};
+    const onKey=e=>{if(e.key==='Escape')finish(false);}; document.addEventListener('keydown',onKey);
+    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-admin-confirm-cancel]'))finish(false);if(e.target.closest('[data-admin-confirm-approve]'))finish(true);});
     overlay.querySelector('[data-admin-confirm-approve]')?.focus();
   });
 }
-
 async function runAdminPlayerAction(button){
   const editor=$('adminPlayerEditor');if(!editor)return;
   const accountId=editor.closest('.admin-players-panel')?.querySelector('.admin-player-card.editor-selected')?.dataset.accountId || editor.dataset.accountId;
@@ -4665,21 +4676,9 @@ async function runAdminPlayerAction(button){
   let amount;
   if(action==='lovys_fragments') amount=editor.querySelector(`[data-lovys-fragment-input="${button.dataset.lovysId}"]`)?.value;
   else amount=editor.querySelector(`[data-admin-amount="${action}"]`)?.value;
-  if(action==='reset_pve'&&!window.confirm('Réinitialiser toute la progression PvE de ce joueur ? Cette action est volontairement réservée aux corrections.'))return;
-  if(action==='reset_battle'&&!window.confirm('Annuler le combat PvE actuellement en cours pour ce joueur ?'))return;
-  if(!['reset_pve','reset_battle'].includes(action)){
-    const username=editor.dataset.username||'ce joueur';
-    const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d’œuf",universal_fragments:'fragments universels',grant_egg:'œuf(s)',prestige:'Prestige',lovys_fragments:'fragments de Lovys'};
-    const numeric=Number(amount);
-    const verb=action==='prestige'?'Régler':(numeric<0?'Retirer':'Ajouter');
-    const shown=action==='prestige'?String(amount):String(Math.abs(numeric));
-    const unit=labels[action]||action;
-    const sentence=action==='prestige'
-      ? `Êtes-vous sûr de vouloir régler le Prestige de ${username} sur ${shown} ?`
-      : `Êtes-vous sûr de vouloir ${verb.toLowerCase()} ${shown} ${unit} ${numeric<0?'à':'à'} ${username} ?`;
-    const approved=await showAdminActionConfirmation({username,actionLabel:`${verb} ${shown} ${unit}`,sentence});
-    if(!approved)return;
-  }
+  const details=adminActionConfirmationDetails(action,amount,button,editor);
+  const approved=await showAdminActionConfirmation(details);
+  if(!approved)return;
   button.disabled=true;const old=button.textContent;button.textContent='…';
   try{
     const body={action,reason,amount};if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
