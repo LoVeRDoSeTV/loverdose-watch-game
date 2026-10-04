@@ -6436,3 +6436,40 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V169 ===== */
+
+/* ===== V170 — Navigation normale + catégories Boutique sticky propres ===== */
+@media (min-width:901px){
+  /* La navigation principale retrouve son comportement normal. */
+  .desktop-game-nav{
+    position:relative!important;
+    top:auto!important;
+    z-index:auto!important;
+  }
+
+  /* Seules les catégories Boutique restent visibles pendant le scroll. */
+  body[data-desktop-view="shop"] #shopModal .shop-tabs{
+    position:sticky!important;
+    top:0!important;
+    z-index:40!important;
+    margin:0 0 18px!important;
+    padding:12px 0 14px!important;
+    background:linear-gradient(180deg,rgba(22,17,48,.98) 0%,rgba(20,17,43,.96) 78%,rgba(20,17,43,.88) 100%)!important;
+    background-image:none!important;
+    box-shadow:0 12px 22px rgba(7,7,20,.20)!important;
+    isolation:isolate!important;
+  }
+
+  /* Le filtre reste dans le flux : il ne passe jamais au-dessus des articles. */
+  body[data-desktop-view="shop"] #shopModal .shop-subfilter{
+    position:relative!important;
+    z-index:1!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  body[data-desktop-view="shop"] #shopModal .shop-grid{
+    position:relative!important;
+    z-index:1!important;
+  }
+}
+/* ===== /V170 ===== */
