@@ -6147,3 +6147,76 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .shop-purchase-success-message{margin:15px auto 5px;padding:13px 16px;border-radius:14px;background:rgba(115,232,161,.09);border:1px solid rgba(115,232,161,.22);color:#baf3cf;font-weight:850}.shop-purchase-balance-after{font-size:12px;color:rgba(235,229,255,.65);margin-top:10px}.shop-purchase-balance-after strong{color:#fff}
 @keyframes shopPayCoin{0%{transform:translateY(-8px) scale(.75);opacity:.25}55%{transform:translateY(3px) scale(1.2)}100%{transform:none;opacity:1}}@keyframes shopPaySpark{0%{transform:scale(.2);opacity:0}35%{opacity:1}100%{transform:translate(8px,-9px) scale(1.5);opacity:0}}
 @media(max-width:620px){.shop-purchase-card{padding:26px 18px}.shop-purchase-actions{flex-direction:column}.shop-purchase-actions .shop-action{width:100%}.shop-purchase-summary{grid-template-columns:1fr}}
+
+
+/* ===== V156 — Classement recentré + achat boutique fiable ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .global-leaderboard{
+    padding-left:max(28px,calc((100vw - 1480px)/2))!important;
+    padding-right:max(28px,calc((100vw - 1480px)/2))!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    text-align:center!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-search-wrap{
+    width:min(560px,100%)!important;
+    margin:0 auto 18px!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-search{
+    text-align:left!important;
+    font-size:14px!important;
+    padding:12px 15px!important;
+  }
+  body.desktop-leaderboard-open #leaderboard{
+    width:min(1320px,100%)!important;
+    margin:16px auto 0!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v151-tabs{
+    justify-content:center!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-head{
+    justify-content:center!important;
+    text-align:center!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-my-position{
+    justify-content:center!important;
+    text-align:center!important;
+    flex-direction:column!important;
+    gap:5px!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-my-position p{margin:0!important}
+  body.desktop-leaderboard-open .leaderboard-v150-list-title{text-align:center!important}
+
+  /* Les confirmations d'achat restent de vraies popups sur PC.
+     Les règles qui transforment .shop-modal en page ne doivent pas les absorber. */
+  body .shop-modal.shop-purchase-modal{
+    position:fixed!important;
+    inset:0!important;
+    top:0!important;
+    right:0!important;
+    bottom:0!important;
+    left:0!important;
+    width:100%!important;
+    max-width:none!important;
+    min-height:0!important;
+    margin:0!important;
+    padding:24px!important;
+    z-index:1000200!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:auto!important;
+    background:rgba(7,4,18,.78)!important;
+    backdrop-filter:blur(8px)!important;
+  }
+  body .shop-modal.shop-purchase-modal.hidden{display:none!important}
+  body .shop-modal.shop-purchase-modal .shop-purchase-card{
+    width:min(520px,calc(100vw - 40px))!important;
+    max-width:520px!important;
+    min-height:0!important;
+    margin:auto!important;
+  }
+}
+/* ===== /V156 ===== */

@@ -4109,7 +4109,7 @@ $('shopItemPreviewActions')?.addEventListener('click', event => {
   const buy = event.target.closest('[data-shop-buy]');
   const equip = event.target.closest('[data-shop-equip]');
   const use = event.target.closest('[data-shop-use]');
-  if (buy) shopAction('/api/shop/buy', buy.dataset.shopBuy);
+  if (buy) { closeShopItemPreview(); openShopPurchaseConfirm(buy.dataset.shopBuy); }
   else if (equip) shopAction('/api/shop/equip', equip.dataset.shopEquip);
   else if (use) shopAction('/api/shop/use', use.dataset.shopUse);
 });
