@@ -1009,6 +1009,33 @@
   </div>
 </div>
 
+
+<div id="shopPurchaseConfirmModal" class="shop-modal shop-purchase-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopPurchaseConfirmTitle">
+  <div class="shop-purchase-card">
+    <button id="shopPurchaseConfirmClose" class="shop-close shop-purchase-close" type="button" aria-label="Fermer">×</button>
+    <div class="shop-purchase-kicker">Confirmation d’achat</div>
+    <h2 id="shopPurchaseConfirmTitle">Confirmer ton achat</h2>
+    <div id="shopPurchaseConfirmVisual" class="shop-purchase-visual"></div>
+    <div id="shopPurchaseConfirmName" class="shop-purchase-name"></div>
+    <div id="shopPurchaseConfirmText" class="shop-purchase-copy"></div>
+    <div class="shop-purchase-summary"><span>Prix <strong id="shopPurchaseConfirmPrice"></strong></span><span>Ton solde <strong id="shopPurchaseConfirmBalance"></strong></span></div>
+    <div class="shop-purchase-actions"><button id="shopPurchaseConfirmCancel" class="shop-action secondary" type="button">Annuler</button><button id="shopPurchaseConfirmButton" class="shop-action" type="button">Confirmer l’achat</button></div>
+  </div>
+</div>
+
+<div id="shopPurchaseSuccessModal" class="shop-modal shop-purchase-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopPurchaseSuccessTitle">
+  <div id="shopPurchaseSuccessCard" class="shop-purchase-card shop-purchase-success">
+    <button id="shopPurchaseSuccessClose" class="shop-close shop-purchase-close" type="button" aria-label="Fermer">×</button>
+    <div class="shop-payment-orbit"><span>💰</span><i></i><i></i><i></i></div>
+    <div class="shop-purchase-kicker success">Paiement validé</div>
+    <h2 id="shopPurchaseSuccessTitle">Achat réussi !</h2>
+    <div id="shopPurchaseSuccessVisual" class="shop-purchase-visual"></div>
+    <div id="shopPurchaseSuccessName" class="shop-purchase-name"></div>
+    <div class="shop-purchase-success-message">🎒 Récupère ton objet dans ton inventaire !</div>
+    <div class="shop-purchase-balance-after">Nouveau solde : <strong id="shopPurchaseSuccessBalance"></strong></div>
+    <div class="shop-purchase-actions"><button id="shopPurchaseSuccessContinue" class="shop-action secondary" type="button">Continuer mes achats</button><button id="shopPurchaseSuccessInventory" class="shop-action" type="button">Voir mon inventaire</button></div>
+  </div>
+</div>
 <div id="shopItemPreviewModal" class="shop-modal shop-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopItemPreviewTitle">
   <div class="shop-preview-panel">
     <div class="shop-head">

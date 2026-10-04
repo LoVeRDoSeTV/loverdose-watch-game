@@ -3791,7 +3791,7 @@ function renderShop() {
     return /^reward_/.test(key) || /(?:niveau|level)\s+(?:global|général)/i.test(description);
   };
   const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
-    item.category === shopCategory && !isProgressionReward(item)
+    item.category === shopCategory && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
   ), shopCategory);
   let items = allCategoryItems;
   if (shopCategory === 'title' && shopTitleFilter !== 'all') {
@@ -3940,6 +3940,78 @@ async function openShop() {
   try { await loadShop(); } catch (error) { setShopMessage(error.message, 'error'); }
 }
 
+let pendingShopPurchaseKey = null;
+
+function openShopPurchaseConfirm(itemKey) {
+  const item = getShopItemByKey(itemKey);
+  if (!item) return;
+  pendingShopPurchaseKey = itemKey;
+  const balance = Number(shopData?.balance || 0);
+  const price = Math.max(0, Math.floor(Number(item.price || 0)));
+  const enough = balance >= price;
+  const visual = $('shopPurchaseConfirmVisual');
+  if (visual) visual.innerHTML = shopPreview(item);
+  if ($('shopPurchaseConfirmName')) $('shopPurchaseConfirmName').textContent = item.name || 'Article';
+  if ($('shopPurchaseConfirmPrice')) $('shopPurchaseConfirmPrice').textContent = `${price.toLocaleString('fr-FR')} LoVeR’Cash`;
+  if ($('shopPurchaseConfirmBalance')) $('shopPurchaseConfirmBalance').textContent = `${balance.toLocaleString('fr-FR')} LoVeR’Cash`;
+  if ($('shopPurchaseConfirmText')) $('shopPurchaseConfirmText').textContent = `Confirmer l’achat de ${item.name || 'cet article'} ?`;
+  const confirm = $('shopPurchaseConfirmButton');
+  if (confirm) { confirm.disabled = !enough; confirm.textContent = enough ? 'Confirmer l’achat' : 'LoVeR’Cash insuffisant'; }
+  $('shopPurchaseConfirmModal')?.classList.remove('hidden');
+}
+
+function closeShopPurchaseConfirm() {
+  $('shopPurchaseConfirmModal')?.classList.add('hidden');
+  pendingShopPurchaseKey = null;
+}
+
+function openShopPurchaseSuccess(item, balance) {
+  if ($('shopPurchaseSuccessVisual')) $('shopPurchaseSuccessVisual').innerHTML = shopPreview(item);
+  if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = item?.name || 'Ton objet';
+  if ($('shopPurchaseSuccessBalance')) $('shopPurchaseSuccessBalance').textContent = `${Number(balance || 0).toLocaleString('fr-FR')} LoVeR’Cash`;
+  $('shopPurchaseSuccessModal')?.classList.remove('hidden');
+  const card = $('shopPurchaseSuccessCard');
+  card?.classList.remove('is-paying');
+  void card?.offsetWidth;
+  card?.classList.add('is-paying');
+}
+
+function closeShopPurchaseSuccess() { $('shopPurchaseSuccessModal')?.classList.add('hidden'); }
+
+async function confirmShopPurchase() {
+  const itemKey = pendingShopPurchaseKey;
+  const item = getShopItemByKey(itemKey);
+  if (!itemKey || !item) return;
+  const button = $('shopPurchaseConfirmButton');
+  if (button) { button.disabled = true; button.textContent = 'Paiement…'; }
+  try {
+    const response = await fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Achat impossible.');
+    $('shopPurchaseConfirmModal')?.classList.add('hidden');
+    pendingShopPurchaseKey = null;
+    await loadShop();
+    await loadGame();
+    await loadLeaderboard();
+    if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+    closeShopItemPreview();
+    openShopPurchaseSuccess(item, data.balance);
+
+    if (itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
+      const targetSlot = Number(incubatorShopTargetSlot);
+      incubatorShopTargetSlot = null;
+      shopFocusItemKey = null;
+      await loadIncubatorSlots();
+      $('shopPurchaseSuccessInventory').dataset.incubatorSlot = String(targetSlot);
+    } else {
+      delete $('shopPurchaseSuccessInventory')?.dataset.incubatorSlot;
+    }
+  } catch (error) {
+    setShopMessage(error.message || 'Achat impossible.', 'error');
+    if (button) { button.disabled = false; button.textContent = 'Confirmer l’achat'; }
+  }
+}
+
 async function shopAction(url, itemKey) {
   setShopMessage();
   try {
@@ -4018,7 +4090,7 @@ $('shopGrid')?.addEventListener('click', event => {
   const equip = event.target.closest('[data-shop-equip]');
   const use = event.target.closest('[data-shop-use]');
   if (preview) openShopItemPreview(preview.dataset.shopPreview);
-  else if (buy) shopAction('/api/shop/buy', buy.dataset.shopBuy);
+  else if (buy) openShopPurchaseConfirm(buy.dataset.shopBuy);
   else if (equip) shopAction('/api/shop/equip', equip.dataset.shopEquip);
   else if (use) shopAction('/api/shop/use', use.dataset.shopUse);
 });
@@ -4044,6 +4116,20 @@ $('shopItemPreviewActions')?.addEventListener('click', event => {
 let shopBackdropMouseDown = false;
 $('shopModal')?.addEventListener('mousedown', event => { shopBackdropMouseDown = event.target.id === 'shopModal'; });
 $('shopModal')?.addEventListener('mouseup', event => { if (!isDesktopGameUi() && shopBackdropMouseDown && event.target.id === 'shopModal') { $('shopModal')?.classList.add('hidden'); closeShopItemPreview(); shopFocusItemKey=null; incubatorShopTargetSlot=null; } shopBackdropMouseDown = false; });
+$('shopPurchaseConfirmCancel')?.addEventListener('click', closeShopPurchaseConfirm);
+$('shopPurchaseConfirmClose')?.addEventListener('click', closeShopPurchaseConfirm);
+$('shopPurchaseConfirmButton')?.addEventListener('click', confirmShopPurchase);
+$('shopPurchaseSuccessContinue')?.addEventListener('click', closeShopPurchaseSuccess);
+$('shopPurchaseSuccessClose')?.addEventListener('click', closeShopPurchaseSuccess);
+$('shopPurchaseSuccessInventory')?.addEventListener('click', async event => {
+  const slot = Number(event.currentTarget.dataset.incubatorSlot || 0);
+  closeShopPurchaseSuccess();
+  if (slot) { $('shopModal')?.classList.add('hidden'); requestAnimationFrame(() => openIncubatorAddModal(slot)); return; }
+  await openInventory();
+});
+$('shopPurchaseConfirmModal')?.addEventListener('click', event => { if (event.target.id === 'shopPurchaseConfirmModal') closeShopPurchaseConfirm(); });
+$('shopPurchaseSuccessModal')?.addEventListener('click', event => { if (event.target.id === 'shopPurchaseSuccessModal') closeShopPurchaseSuccess(); });
+
 let shopPreviewBackdropMouseDown = false;
 $('shopItemPreviewModal')?.addEventListener('mousedown', event => { shopPreviewBackdropMouseDown = event.target.id === 'shopItemPreviewModal'; });
 $('shopItemPreviewModal')?.addEventListener('mouseup', event => { if (shopPreviewBackdropMouseDown && event.target.id === 'shopItemPreviewModal') closeShopItemPreview(); shopPreviewBackdropMouseDown = false; });
