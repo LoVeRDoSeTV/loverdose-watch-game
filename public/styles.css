@@ -6936,43 +6936,42 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* V205 — en-têtes PC alignés sur Boutique, sans modifier le contenu des pages.
-   Classement, Boutique et Incubateur restent intacts. */
+/* V206 — ALIGNEMENT EN-TÊTE SEUL, indépendant du parent.
+   Référence visuelle Boutique : marge latérale 112px sur desktop large.
+   Aucun contenu de page / carte / grille n'est redimensionné. */
 @media (min-width:901px){
   body[data-desktop-view="lobby"] .desktop-page-head,
-  body[data-desktop-view="progression"] .page-head-standard,
-  body[data-desktop-view="lovys"] .page-head-standard,
-  body[data-desktop-view="pve"] .page-head-standard{
-    width:min(1700px, calc(100vw - 224px))!important;
-    max-width:1700px!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
-    margin-bottom:22px!important;
-    padding:26px 0 22px!important;
-    box-sizing:border-box!important;
+  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
+  body[data-desktop-view="pve"] .game-head.unified-page-head{
+    width:calc(100vw - 224px)!important;
+    max-width:none!important;
+    margin-left:calc(50% - 50vw + 112px)!important;
+    margin-right:0!important;
+    padding:0 0 26px!important;
     border-bottom:1px solid rgba(145,71,255,.22)!important;
+    box-sizing:border-box!important;
     background:transparent!important;
   }
-
   body[data-desktop-view="lobby"] .desktop-page-head h2,
-  body[data-desktop-view="progression"] .page-head-standard h2,
-  body[data-desktop-view="lovys"] .page-head-standard h2,
-  body[data-desktop-view="pve"] .page-head-standard h2{
-    margin:0!important;
-    font-size:30px!important;
-    line-height:1.15!important;
-    font-weight:800!important;
-    letter-spacing:-.02em!important;
+  body[data-desktop-view="progression"] .game-head.unified-page-head h2,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
+  body[data-desktop-view="pve"] .game-head.unified-page-head h2{
+    margin:0!important;font-size:30px!important;line-height:1.15!important;font-weight:800!important;
   }
-
   body[data-desktop-view="lobby"] .desktop-page-head p,
-  body[data-desktop-view="progression"] .page-head-standard .hub-sub,
-  body[data-desktop-view="lovys"] .page-head-standard .hub-sub,
-  body[data-desktop-view="pve"] .page-head-standard .hub-sub{
-    margin:7px 0 0!important;
-    font-size:14px!important;
-    line-height:1.5!important;
-    font-weight:400!important;
-    color:#aeb8d4!important;
+  body[data-desktop-view="progression"] .game-head.unified-page-head .hub-sub,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
+  body[data-desktop-view="pve"] .game-head.unified-page-head .hub-sub{
+    margin:7px 0 0!important;font-size:14px!important;line-height:1.5!important;font-weight:400!important;
+  }
+}
+@media (min-width:901px) and (max-width:1300px){
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
+  body[data-desktop-view="pve"] .game-head.unified-page-head{
+    width:calc(100vw - 48px)!important;
+    margin-left:calc(50% - 50vw + 24px)!important;
   }
 }
