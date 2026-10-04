@@ -6899,3 +6899,38 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 #page-progression .level-step:not(.major):not(.important){min-width:84px}
 #page-progression .level-step.major,#page-progression .level-step.important{min-width:112px}
 @media(max-width:800px){.progression-road-actions{margin-left:0;width:100%;justify-content:flex-start}}
+
+/* V195 — scrollbar violette + drag strict + aura niveau courant */
+#globalLevelRoad{
+  scrollbar-width:auto;
+  scrollbar-color:#7c3fd6 rgba(36,27,66,.72);
+  scroll-behavior:auto;
+  cursor:grab;
+}
+#globalLevelRoad.dragging{cursor:grabbing;scroll-behavior:auto;user-select:none}
+#globalLevelRoad::-webkit-scrollbar{height:11px}
+#globalLevelRoad::-webkit-scrollbar-track{
+  background:rgba(35,26,63,.78);
+  border-radius:999px;
+  box-shadow:inset 0 0 0 1px rgba(139,82,214,.16);
+}
+#globalLevelRoad::-webkit-scrollbar-thumb{
+  background:linear-gradient(90deg,#6f36bd,#9858eb);
+  border-radius:999px;
+  border:2px solid rgba(24,18,42,.78);
+  box-shadow:0 0 8px rgba(139,73,225,.34);
+}
+#globalLevelRoad::-webkit-scrollbar-thumb:hover{
+  background:linear-gradient(90deg,#8147d2,#a86bfa);
+}
+#page-progression .level-step.current{
+  box-shadow:
+    0 0 0 2px rgba(196,151,255,.72),
+    0 0 18px rgba(169,96,255,.92),
+    0 0 42px rgba(135,62,255,.66),
+    0 0 74px rgba(113,44,239,.36)!important;
+}
+@keyframes progressionCurrentAura{
+  0%,100%{filter:brightness(1.03);box-shadow:0 0 0 2px rgba(190,142,255,.64),0 0 17px rgba(162,88,255,.82),0 0 39px rgba(132,58,255,.56),0 0 66px rgba(112,45,235,.29)}
+  50%{filter:brightness(1.13);box-shadow:0 0 0 2px rgba(218,184,255,.9),0 0 25px rgba(184,120,255,1),0 0 52px rgba(151,79,255,.76),0 0 86px rgba(126,53,246,.42)}
+}
