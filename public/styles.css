@@ -6818,3 +6818,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .trade-creature-menu img{width:38px!important;height:38px!important;object-fit:contain;flex:0 0 38px!important}
   .trade-creature-menu span{display:flex;min-width:0;flex-direction:column}.trade-creature-menu strong{font-size:11px}.trade-creature-menu small{margin-top:2px;color:#aeb7d1;font-size:9px}
 }
+
+
+/* V189 — Lobby : fusion complète du sélecteur + source d’images Lovys unifiée */
+@media (min-width:901px){
+  .trade-asset-row #tradeOfferCreature{display:none!important}
+  .trade-asset-row .trade-selected-preview{width:100%;box-sizing:border-box}
+}

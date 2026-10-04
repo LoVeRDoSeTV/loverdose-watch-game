@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=188">
+<link rel="stylesheet" href="/styles.css?v=189">
 
 
 </head>
@@ -322,7 +322,7 @@
   <div class="trade-composer-card">
     <div class="trade-composer-head"><div><div class="desktop-page-kicker">NOUVELLE ANNONCE</div><h2>🔄 Créer une offre</h2><p>Les objets proposés sont réservés immédiatement. Ils te sont rendus si tu annules ou si l'annonce expire.</p></div><button id="tradeComposerClose" type="button" aria-label="Fermer">×</button></div>
     <div class="trade-limit-line"><span id="tradeActiveLimit">Offres actives : — / 3</span><span>Niveau global 3 minimum · 20 échanges/jour max</span></div><div id="tradeComposerMessage" class="trade-composer-message"></div>
-    <div class="trade-composer-section"><h3>Je propose</h3><div class="trade-asset-row"><select id="tradeOfferType"><option value="fragment">🧩 Fragments d'un Lovys</option><option value="egg">🥚 Œuf mystère</option></select><select id="tradeOfferCreature"></select><div id="tradeOfferPreview" class="trade-selected-preview"></div><input id="tradeOfferQuantity" type="number" min="1" max="999" value="10" inputmode="numeric"></div><div id="tradeOfferBalance" class="trade-balance"></div></div>
+    <div class="trade-composer-section"><h3>Je propose</h3><div class="trade-asset-row"><select id="tradeOfferType"><option value="fragment">🧩 Fragments d'un Lovys</option><option value="egg">🥚 Œuf mystère</option></select><select id="tradeOfferCreature" data-trade-creature></select><div id="tradeOfferPreview" class="trade-selected-preview"></div><input id="tradeOfferQuantity" type="number" min="1" max="999" value="10" inputmode="numeric"></div><div id="tradeOfferBalance" class="trade-balance"></div></div>
     <div class="trade-composer-section"><div class="trade-section-title-row"><h3>J'accepte l'une de ces propositions</h3><button id="tradeOptionAdd" class="lobby-secondary-btn" type="button">＋ Ajouter</button></div><div id="tradeOptionsList" class="trade-options-list"></div></div>
     <div id="tradeComposerRecap" class="trade-composer-recap"></div><div class="trade-composer-footer"><label>Durée <select id="tradeDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="tradePublish" class="lobby-primary-btn" type="button">Publier l'offre</button></div>
   </div>
@@ -1063,5 +1063,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=188"></script>
+<script src="/app.js?v=189"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
