@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=213">
+<link rel="stylesheet" href="/styles.css?v=215">
 
 
 </head>
@@ -306,8 +306,8 @@
   <a class="desktop-game-nav-btn" href="#boutique" data-desktop-view="shop"><span>🛒</span>Boutique</a>
 </nav>
 <section id="desktopLobbyPage" class="desktop-lobby-page hidden" aria-label="Lobby communautaire">
-  <div class="desktop-lobby-shell">
-    <div class="desktop-page-head"><div><div class="desktop-page-kicker"></div><h2>🤝 Communauté</h2><p>La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs.</p></div><div id="lobbyPresenceSummary" class="lobby-presence-summary">Chargement…</div></div>
+  <div class="desktop-lobby-shell desktop-page-container">
+    <div class="desktop-page-head desktop-page-header"><div><div class="desktop-page-kicker"></div><h2>🤝 Communauté</h2><p>La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs.</p></div><div id="lobbyPresenceSummary" class="lobby-presence-summary">Chargement…</div></div>
     <div class="lobby-howto">1. Crée une offre <span>→</span> 2. Un joueur te répond <span>→</span> 3. L’échange est sécurisé</div><div class="lobby-tabs" role="tablist"><button class="lobby-tab active" type="button" data-lobby-tab="trades">🔄 Échanges <b>0</b></button><button class="lobby-tab" type="button" data-lobby-tab="mine">📜 Mes offres <b>0</b></button><button class="lobby-tab" type="button" data-lobby-tab="wishes">💜 Souhaits</button><button class="lobby-tab" type="button" data-lobby-tab="players">👥 Joueurs</button><button class="lobby-tab" type="button" data-lobby-tab="history">🕘 Historique</button></div>
     <div id="lobbyTradesPanel" class="lobby-panel"><div class="lobby-trade-toolbar"><div><strong>Bourse d'échanges</strong><span>Repère immédiatement ce qui est proposé, ce qui est demandé et le temps restant.</span></div><button id="tradeCreateOpen" class="lobby-primary-btn" type="button">＋ Créer une offre</button></div><div class="lobby-trade-filters"><button class="active" type="button" data-trade-filter="all">Toutes</button><button type="button" data-trade-filter="possible">Ce que je peux accepter</button><button type="button" data-trade-filter="fragment">Fragments</button><button type="button" data-trade-filter="egg">Œufs</button><select id="lobbyTradeCreatureFilter"><option value="all">Tous les Lovys</option><option value="plant">Mossy</option><option value="water">Nyméa</option><option value="voltis">Voltis</option><option value="brumee">Brumee</option><option value="flamby">Flamby</option><option value="nocty">Nocty</option></select></div><div id="lobbyTradesGrid" class="lobby-trades-grid"></div><div id="lobbyActivityBox" class="lobby-activity-box hidden"><strong>✨ Activité récente</strong><div id="lobbyActivityFeed"></div></div></div>
     <div id="lobbyMinePanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Mes offres</strong><span>Suis tes annonces actives et leurs expirations.</span></div><button id="tradeCreateOpenMine" class="lobby-primary-btn" type="button">＋ Nouvelle offre</button></div><div id="lobbyMineGrid" class="lobby-trades-grid"></div></div>
@@ -334,7 +334,7 @@
   </div>
   <button id="nextActionsOpen" class="next-actions-open" type="button">Voir mes actions <span id="nextActionsCount" class="next-actions-count">0</span></button>
 </section>
-<div class="dashboard-head-grid">
+<div class="dashboard-head-grid desktop-page-container">
   <div class="dashboard-left-stack">
   <section class="player-visit-card" aria-label="Carte de visite du joueur">
     <div class="player-card-kicker">🪪 Carte joueur</div>
@@ -422,7 +422,7 @@
 
 </div>
 <section class="card incubator-topbar" aria-label="Incubateur">
-  <div class="incubator-topbar-head">
+  <div class="incubator-topbar-head desktop-page-header">
     <div>
       <div class="incubator-topbar-title"><span class="egg-inline-icon title-inline-icon" aria-hidden="true"></span>Incubateur</div>
       <div id="topIncubatorSubtitle" class="muted incubator-topbar-subtitle">Tes emplacements d’incubation.</div>
@@ -881,9 +881,9 @@
     <div id="incubatorAddContent"></div>
   </div>
 </div>
-<div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
+<div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel desktop-page-container"><div class="game-head unified-page-head desktop-page-header"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
 <div id="lovysXpTransferModal" class="lovys-xp-transfer-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysXpTransferTitle"><div class="lovys-xp-transfer-panel"><div class="lovys-xp-transfer-icon">⚡</div><div id="lovysXpTransferTitle" class="lovys-xp-transfer-title">Transférer l’XP Lovys</div><div id="lovysXpTransferCopy" class="lovys-xp-transfer-copy"></div><div id="lovysXpTransferAmount" class="lovys-xp-transfer-amount">0 XP en réserve</div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferTarget">Lovys destinataire</label><select id="lovysXpTransferTarget"></select></div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferValue">Quantité d’XP à transférer</label><input id="lovysXpTransferValue" type="number" min="1" step="1" inputmode="numeric"></div><div class="lovys-xp-transfer-actions"><button id="lovysXpTransferCancel" class="hub-btn" type="button">Annuler</button><button id="lovysXpTransferConfirm" class="hub-btn lovys-xp-transfer-confirm" type="button">⚡ Confirmer le transfert</button></div></div></div>
-<div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel"><div class="lovys-collection-head unified-page-head"><div><h2 id="lovysCollectionTitle">🐉 Mes Lovys</h2><div class="hub-sub">Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve · 🧩 0 fragments universels</div><section id="lovysActiveHero" class="lovys-active-hero"></section><section id="lovysNowStrip" class="lovys-now-strip"></section><div class="lovys-collection-summary"><div><span class="lovys-section-kicker">COLLECTION</span><strong id="lovysDiscoveredCount">0/10 découverts</strong></div><span>Choisis ton équipe et prépare le prochain combat.</span></div><div class="lovys-collection-tabs" role="tablist" aria-label="Gestion des Lovys"><button id="lovysCollectionTabCollection" class="lovys-collection-tab active" type="button" role="tab" aria-selected="true" data-lovys-tab="collection">🐉 Collection <span id="lovysCollectionCount" class="lovys-tab-count">0</span></button><button id="lovysCollectionTabFragments" class="lovys-collection-tab" type="button" role="tab" aria-selected="false" data-lovys-tab="fragments">🧩 Fragments <span id="lovysFragmentsCount" class="lovys-tab-count">0</span></button></div><div id="lovysCollectionGrid" class="lovys-collection-grid" role="tabpanel"></div><section id="lovysDetailPanel" class="lovys-detail-panel hidden"></section><div id="lovysFragmentsPanel" class="lovys-fragments-panel hidden" role="tabpanel"><div id="lovysUniversalFragments" class="lovys-universal-fragments"></div><div id="lovysFragmentsGrid" class="lovys-fragments-grid"></div></div></div></div>
+<div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel desktop-page-container"><div class="lovys-collection-head unified-page-head desktop-page-header"><div><h2 id="lovysCollectionTitle">🐉 Mes Lovys</h2><div class="hub-sub">Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve · 🧩 0 fragments universels</div><section id="lovysActiveHero" class="lovys-active-hero"></section><section id="lovysNowStrip" class="lovys-now-strip"></section><div class="lovys-collection-summary"><div><span class="lovys-section-kicker">COLLECTION</span><strong id="lovysDiscoveredCount">0/10 découverts</strong></div><span>Choisis ton équipe et prépare le prochain combat.</span></div><div class="lovys-collection-tabs" role="tablist" aria-label="Gestion des Lovys"><button id="lovysCollectionTabCollection" class="lovys-collection-tab active" type="button" role="tab" aria-selected="true" data-lovys-tab="collection">🐉 Collection <span id="lovysCollectionCount" class="lovys-tab-count">0</span></button><button id="lovysCollectionTabFragments" class="lovys-collection-tab" type="button" role="tab" aria-selected="false" data-lovys-tab="fragments">🧩 Fragments <span id="lovysFragmentsCount" class="lovys-tab-count">0</span></button></div><div id="lovysCollectionGrid" class="lovys-collection-grid" role="tabpanel"></div><section id="lovysDetailPanel" class="lovys-detail-panel hidden"></section><div id="lovysFragmentsPanel" class="lovys-fragments-panel hidden" role="tabpanel"><div id="lovysUniversalFragments" class="lovys-universal-fragments"></div><div id="lovysFragmentsGrid" class="lovys-fragments-grid"></div></div></div></div>
 
 
 <div id="fragmentShopModal" class="fragment-shop-modal hidden" role="dialog" aria-modal="true" aria-label="Boutique de fragments d’œuf">
@@ -917,7 +917,7 @@
     <div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div>
   </div>
 </div>
-<div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
+<div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel desktop-page-container"><div class="game-head unified-page-head desktop-page-header"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
 
 <div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
   <div class="inventory-panel">
@@ -951,7 +951,7 @@
 </div>
 
 <div id="shopModal" class="shop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
-  <div class="shop-panel">
+  <div class="shop-panel desktop-page-container">
     <div class="shop-head unified-page-head">
       <div><h2 id="shopTitle">🛒 Boutique</h2><div class="shop-subtitle">Personnalise ton profil et utilise ton LoVeR'Cash.</div></div>
       <button id="shopClose" class="shop-close" type="button" aria-label="Fermer">×</button>
@@ -1044,7 +1044,7 @@
 </div>
 <div id="shopItemPreviewModal" class="shop-modal shop-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopItemPreviewTitle">
   <div class="shop-preview-panel">
-    <div class="shop-head">
+    <div class="shop-head desktop-page-header">
       <div><h2 id="shopItemPreviewTitle">👁 Prévisualisation</h2><div class="shop-subtitle">Découvre l’article avant de dépenser ton LoVeR'Cash.</div></div>
       <button id="shopItemPreviewClose" class="shop-close" type="button" aria-label="Fermer">×</button>
     </div>
@@ -1063,5 +1063,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=213"></script>
+<script src="/app.js?v=215"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
