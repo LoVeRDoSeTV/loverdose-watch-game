@@ -7089,3 +7089,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .prestige-info-rules{display:grid;gap:8px;margin:18px 0}.prestige-info-rules>div{display:grid;gap:3px;padding:11px 12px;border:1px solid rgba(145,71,255,.18);border-radius:11px;background:rgba(255,255,255,.035)}.prestige-info-rules b{font-size:12px;color:#eee7ff}.prestige-info-rules span{font-size:11px;color:#aeb8d2;line-height:1.45}
 .prestige-info-current{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid rgba(245,215,122,.25);border-radius:12px;background:rgba(245,215,122,.06)}.prestige-info-current span{font-size:12px;font-weight:850}.prestige-info-current strong{font-size:24px;color:#f5d77a}.prestige-info-note{margin-top:12px!important}.prestige-info-ok{width:100%;margin-top:18px;min-height:40px}
 /* ===== /V243 ===== */
+
+
+/* ===== V244 — Tutoriel étape 3 devant l'Incubateur uniquement ===== */
+.game-intro-modal.tutorial-step-incubator{z-index:1000018!important}
+.game-intro-modal.tutorial-step-incubator .tutorial-panel{z-index:1000019!important}
+/* ===== /V244 ===== */

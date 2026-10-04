@@ -1242,6 +1242,9 @@ function renderTutorialStep() {
   const step = tutorialSteps[Math.max(0, Math.min(tutorialSteps.length - 1, tutorialStepIndex))];
   clearTutorialFocus();
   resetTutorialPanelPosition();
+  // Étape 3 uniquement : le panneau du tutoriel doit rester devant l'Incubateur
+  // après le scroll automatique, sans modifier le comportement des autres étapes.
+  $('gameIntroModal')?.classList.toggle('tutorial-step-incubator', tutorialStepIndex === 2);
   if ($('tutorialStepLabel')) $('tutorialStepLabel').textContent = `Étape ${tutorialStepIndex + 1} / ${tutorialSteps.length}`;
   if ($('tutorialProgressBar')) $('tutorialProgressBar').style.width = `${((tutorialStepIndex + 1) / tutorialSteps.length) * 100}%`;
   if ($('tutorialIcon')) $('tutorialIcon').textContent = step.icon || '✨';
