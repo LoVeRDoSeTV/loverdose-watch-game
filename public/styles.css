@@ -6695,3 +6695,85 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V179 ===== */\n
+/* ===== V180 — Classement compact + recherche sans panneau sombre ===== */
+@media (min-width:901px){
+  /* La page Classement reste sur le fond global du jeu. */
+  body.desktop-leaderboard-open .global-leaderboard{
+    position:relative!important;
+    top:auto!important;
+    left:auto!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:none!important;
+    width:min(1180px,calc(100vw - 96px))!important;
+    height:auto!important;
+    min-height:0!important;
+    margin:18px auto 0!important;
+    padding:0 0 40px!important;
+    overflow:visible!important;
+    background:transparent!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+
+  /* Les grands rectangles d'information restent compacts et centrés. */
+  body.desktop-leaderboard-open .leaderboard-v151-tabs,
+  body.desktop-leaderboard-open .leaderboard-v150-head,
+  body.desktop-leaderboard-open .leaderboard-v150-my-position{
+    width:min(760px,100%)!important;
+    max-width:760px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    box-sizing:border-box!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v151-tabs{margin-bottom:12px!important}
+  body.desktop-leaderboard-open .leaderboard-v150-head{margin-bottom:12px!important}
+  body.desktop-leaderboard-open .leaderboard-v150-my-position{margin-bottom:22px!important}
+
+  /* Résultats : aucune grande surface derrière eux, seulement les cartes. */
+  body.leaderboard-search-active .global-leaderboard{
+    background:transparent!important;
+    background-image:none!important;
+    min-height:0!important;
+  }
+  body.leaderboard-search-active #leaderboard,
+  body.leaderboard-search-active .leaderboard-search-panel,
+  body.leaderboard-search-active .leaderboard-v150-list{
+    width:min(760px,100%)!important;
+    max-width:760px!important;
+    min-height:0!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+    padding:0!important;
+    background:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body.leaderboard-search-active .leaderboard-v150-row{
+    width:100%!important;
+    min-height:68px!important;
+    padding:10px 12px!important;
+  }
+  body.leaderboard-search-active .leaderboard-v154-row-content{
+    grid-template-columns:42px 46px minmax(150px,1.2fr) 105px minmax(145px,1fr) 105px!important;
+    gap:9px!important;
+  }
+
+  /* Le podium garde les proportions V167 validées. */
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1180px,calc(100vw - 96px))!important;
+    max-width:none!important;
+    margin:34px 0 30px!important;
+  }
+}
+/* ===== /V180 ===== */
