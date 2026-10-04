@@ -7101,3 +7101,67 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     margin-right:auto!important;
   }
 }
+
+/* V199 — géométrie exacte Incubateur pour les pages PC, Classement exclu */
+@media (min-width:901px){
+  body[data-desktop-view="progression"] #progressionModal,
+  body[data-desktop-view="lovys"] .lovys-collection-modal,
+  body[data-desktop-view="pve"] #pveModal,
+  body[data-desktop-view="shop"] #shopModal,
+  body[data-desktop-view="account"] #accountModal{
+    width:100%!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:0!important;
+    box-sizing:border-box!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel,
+  body[data-desktop-view="lovys"] .lovys-collection-panel,
+  body[data-desktop-view="pve"] #pveModal>.game-panel,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel,
+  body[data-desktop-view="account"] #accountModal>.account-panel{
+    width:min(1700px,calc(100vw - 48px))!important;
+    max-width:1700px!important;
+    margin:24px auto 0!important;
+    box-sizing:border-box!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head{
+    width:100%!important;
+    margin:0!important;
+    padding:26px 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    box-sizing:border-box!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head h2,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head h2,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head h2,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head h2,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head h2{
+    margin:0!important;
+    font-size:30px!important;
+    line-height:1.15!important;
+  }
+
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head .hub-sub,
+  body[data-desktop-view="lovys"] .lovys-collection-panel>.lovys-collection-head .hub-sub,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head .hub-sub,
+  body[data-desktop-view="shop"] #shopModal>.shop-panel>.shop-head .hub-sub,
+  body[data-desktop-view="account"] #accountModal>.account-panel>.game-head .hub-sub{
+    margin-top:7px!important;
+    font-size:16px!important;
+    line-height:1.55!important;
+    color:#b9c3df!important;
+  }
+
+  /* Le contenu de Progression garde son centrage interne actuel. */
+  body[data-desktop-view="progression"] #progressionContent{
+    margin-top:24px!important;
+  }
+}
