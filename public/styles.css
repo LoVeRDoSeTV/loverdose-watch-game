@@ -6842,3 +6842,28 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .trade-exchange-give .trade-give{margin-top:0}
 .trade-exchange-want{margin-top:10px}
 .trade-exchange-want>.trade-label{color:#8791b2}
+
+/* V193 — Progression PC : centrage, lisibilité et objectifs */
+@media (min-width:801px){
+  #page-progression .page-shell,#page-progression .page-content,#progressionContent{max-width:1320px;margin-left:auto;margin-right:auto}
+  #page-progression .page-shell,#page-progression .page-content{padding-left:24px;padding-right:24px}
+  #page-progression{padding-top:8px}
+}
+#page-progression .progression-report{margin-top:10px}
+#page-progression .progression-xp-values{font-size:13px}
+#page-progression .level-step{font-size:13px}
+#page-progression .level-step .level-step-reward,#page-progression .level-step small{font-size:11px}
+#page-progression .level-road-hint{font-size:12px}
+.progression-grade-bands{display:flex;gap:7px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:thin}
+.progression-grade-bands span{flex:0 0 auto;border:1px solid color-mix(in srgb,var(--grade-color) 52%,transparent);border-top:3px solid var(--grade-color);border-radius:9px;padding:7px 10px;background:rgba(13,15,29,.78);color:#dfe3f6;font-size:11px;font-weight:850}
+.progression-go55{border:1px solid rgba(154,94,255,.45);border-radius:9px;background:rgba(126,61,224,.13);color:#d8c6ff;padding:6px 10px;font-size:11px;font-weight:900;cursor:pointer}
+.progression-go55:hover{background:rgba(126,61,224,.24)}
+.progression-report-prestige{cursor:help}
+.progression-prestige-info{display:grid;grid-template-columns:minmax(220px,.8fr) 1.6fr;gap:14px;margin:14px 0 20px;padding:15px 17px;border:1px solid rgba(155,92,255,.28);border-radius:14px;background:linear-gradient(135deg,rgba(42,25,71,.72),rgba(12,15,29,.88))}
+.progression-prestige-info>div:first-child{display:grid;align-content:center;gap:4px}
+.progression-prestige-info strong{color:#f2eaff;font-size:14px}
+.progression-prestige-info span{color:#aeb7d1;font-size:11px;line-height:1.45}
+.progression-prestige-rules{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.progression-prestige-rules span{padding:9px 10px;border-radius:9px;background:rgba(255,255,255,.035)}
+.progression-prestige-rules b{color:#ddd0ff}
+@media(max-width:800px){.progression-prestige-info,.progression-prestige-rules{grid-template-columns:1fr}}
