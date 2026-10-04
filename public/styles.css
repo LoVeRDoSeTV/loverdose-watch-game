@@ -6286,3 +6286,27 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .admin-confirm-icon{font-size:30px;margin-bottom:6px}.admin-confirm-card h3{margin:0 0 18px;font-size:21px}.admin-confirm-card p{margin:18px 4px;color:#d9dcf3;line-height:1.5;font-size:14px}
 .admin-confirm-summary{display:grid;gap:8px;text-align:left}.admin-confirm-summary>div{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:11px 13px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035)}.admin-confirm-summary span{color:#969bb8;font-size:12px}.admin-confirm-summary strong{color:#fff;text-align:right}
 .admin-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}.admin-confirm-actions .btn{min-width:140px}.admin-confirm-actions [data-admin-confirm-approve]{background:linear-gradient(135deg,#7136d8,#9147ff);border-color:#a86dff}
+
+/* ===== V163 — Incubateur : animation des œufs + accueil sans bouton Chances ===== */
+@media (min-width: 901px){
+  /* Sur l'accueil, les chances restent accessibles depuis la vraie page Incubateur. */
+  body[data-desktop-view="home"] .incubator-card-action.chances{
+    display:none!important;
+  }
+
+  /* La page Incubateur utilise un scale !important sur l'œuf : on anime donc son conteneur
+     afin de conserver la taille tout en retrouvant le mouvement flottant de l'accueil. */
+  body[data-desktop-view="incubator"] .incubator-slot.active .incubator-slot-egg,
+  body[data-desktop-view="incubator"] .incubator-slot.extra-egg .incubator-slot-egg{
+    animation:incubatorPageEggFloat 3.3s ease-in-out infinite!important;
+    transform-origin:center center;
+    will-change:transform;
+  }
+  body[data-desktop-view="incubator"] .incubator-slot:nth-child(2) .incubator-slot-egg{animation-delay:-1.1s!important}
+  body[data-desktop-view="incubator"] .incubator-slot:nth-child(3) .incubator-slot-egg{animation-delay:-2.2s!important}
+}
+
+@keyframes incubatorPageEggFloat{
+  0%,100%{transform:translateY(0) rotate(-1deg)}
+  50%{transform:translateY(-9px) rotate(1deg)}
+}
