@@ -3957,6 +3957,10 @@ function openShopPurchaseConfirm(itemKey) {
   if ($('shopPurchaseConfirmText')) $('shopPurchaseConfirmText').textContent = `Confirmer l’achat de ${item.name || 'cet article'} ?`;
   const confirm = $('shopPurchaseConfirmButton');
   if (confirm) { confirm.disabled = !enough; confirm.textContent = enough ? 'Confirmer l’achat' : 'LoVeR’Cash insuffisant'; }
+  if ($('shopPurchaseConfirmCancel')) $('shopPurchaseConfirmCancel').disabled = false;
+  if ($('shopPurchaseConfirmClose')) $('shopPurchaseConfirmClose').disabled = false;
+  $('shopPaymentWaiting')?.classList.add('hidden');
+  $('shopPaymentWaiting')?.classList.remove('is-running');
   $('shopPurchaseConfirmModal')?.classList.remove('hidden');
 }
 
@@ -3983,11 +3987,24 @@ async function confirmShopPurchase() {
   const item = getShopItemByKey(itemKey);
   if (!itemKey || !item) return;
   const button = $('shopPurchaseConfirmButton');
-  if (button) { button.disabled = true; button.textContent = 'Paiement…'; }
+  const cancel = $('shopPurchaseConfirmCancel');
+  const close = $('shopPurchaseConfirmClose');
+  const waiting = $('shopPaymentWaiting');
+  if (button) { button.disabled = true; button.textContent = 'Paiement en cours…'; }
+  if (cancel) cancel.disabled = true;
+  if (close) close.disabled = true;
+  waiting?.classList.remove('hidden');
+  waiting?.classList.remove('is-running');
+  void waiting?.offsetWidth;
+  waiting?.classList.add('is-running');
   try {
-    const response = await fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    const paymentRequest = fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    const minimumAnimation = new Promise(resolve => setTimeout(resolve, 1500));
+    const [response] = await Promise.all([paymentRequest, minimumAnimation]);
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Achat impossible.');
+    waiting?.classList.add('hidden');
+    waiting?.classList.remove('is-running');
     $('shopPurchaseConfirmModal')?.classList.add('hidden');
     pendingShopPurchaseKey = null;
     await loadShop();
@@ -4007,8 +4024,12 @@ async function confirmShopPurchase() {
       delete $('shopPurchaseSuccessInventory')?.dataset.incubatorSlot;
     }
   } catch (error) {
+    waiting?.classList.add('hidden');
+    waiting?.classList.remove('is-running');
     setShopMessage(error.message || 'Achat impossible.', 'error');
     if (button) { button.disabled = false; button.textContent = 'Confirmer l’achat'; }
+    if (cancel) cancel.disabled = false;
+    if (close) close.disabled = false;
   }
 }
 

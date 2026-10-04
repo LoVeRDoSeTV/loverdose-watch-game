@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=156">
+<link rel="stylesheet" href="/styles.css?v=157">
 
 
 </head>
@@ -1020,6 +1020,12 @@
     <div id="shopPurchaseConfirmText" class="shop-purchase-copy"></div>
     <div class="shop-purchase-summary"><span>Prix <strong id="shopPurchaseConfirmPrice"></strong></span><span>Ton solde <strong id="shopPurchaseConfirmBalance"></strong></span></div>
     <div class="shop-purchase-actions"><button id="shopPurchaseConfirmCancel" class="shop-action secondary" type="button">Annuler</button><button id="shopPurchaseConfirmButton" class="shop-action" type="button">Confirmer l’achat</button></div>
+    <div id="shopPaymentWaiting" class="shop-payment-waiting hidden" aria-live="polite">
+      <div class="shop-payment-card-anim" aria-hidden="true"><div class="shop-payment-card-chip"></div><div class="shop-payment-card-mark">L♥</div></div>
+      <div class="shop-payment-wait-title">Paiement en cours…</div>
+      <div class="shop-payment-wait-steps"><span class="is-active">Vérification</span><span>Paiement</span><span>Validation</span></div>
+      <div class="shop-payment-wait-bar"><i></i></div>
+    </div>
   </div>
 </div>
 
@@ -1057,5 +1063,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=156"></script>
+<script src="/app.js?v=157"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

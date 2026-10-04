@@ -6220,3 +6220,30 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V156 ===== */
+
+
+/* ===== V157 — attente de paiement animée (3 s minimum) ===== */
+.shop-payment-waiting{position:absolute;inset:0;z-index:8;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:linear-gradient(155deg,rgba(31,18,57,.985),rgba(12,8,26,.995));backdrop-filter:blur(10px)}
+.shop-payment-waiting.hidden{display:none!important}
+.shop-payment-card-anim{position:relative;width:176px;height:106px;border-radius:18px;border:1px solid rgba(216,180,255,.5);background:linear-gradient(135deg,rgba(129,63,222,.95),rgba(48,24,94,.98) 58%,rgba(21,14,44,.98));box-shadow:0 18px 50px rgba(0,0,0,.42),0 0 34px rgba(151,83,255,.22);transform-style:preserve-3d;overflow:hidden}
+.shop-payment-card-anim:before{content:'';position:absolute;inset:-60% -30%;background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.24) 49%,transparent 60%);transform:translateX(-65%)}
+.shop-payment-card-chip{position:absolute;left:22px;top:25px;width:34px;height:25px;border-radius:6px;background:linear-gradient(135deg,#f3d58a,#b98636);box-shadow:inset 0 0 0 1px rgba(80,48,5,.25)}
+.shop-payment-card-mark{position:absolute;right:20px;bottom:17px;font-size:20px;font-weight:950;letter-spacing:.04em;color:#fff;text-shadow:0 0 14px rgba(255,255,255,.25)}
+.shop-payment-wait-title{margin-top:22px;font-size:21px;font-weight:950;color:#fff}
+.shop-payment-wait-steps{display:flex;gap:20px;margin-top:14px;font-size:12px;font-weight:800;color:rgba(232,225,250,.4)}
+.shop-payment-wait-steps span{position:relative;transition:.25s ease}
+.shop-payment-wait-bar{width:min(300px,80%);height:5px;margin-top:18px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden}
+.shop-payment-wait-bar i{display:block;width:0;height:100%;border-radius:inherit;background:linear-gradient(90deg,#a66cff,#e1bdff,#d8a84e)}
+.shop-payment-waiting.is-running .shop-payment-card-anim{animation:shopCardFloat 1.15s ease-in-out infinite alternate}
+.shop-payment-waiting.is-running .shop-payment-card-anim:before{animation:shopCardShine 1.35s ease-in-out infinite}
+.shop-payment-waiting.is-running .shop-payment-wait-bar i{animation:shopPaymentProgress 1.5s linear forwards}
+.shop-payment-waiting.is-running .shop-payment-wait-steps span:nth-child(1){animation:shopStepOne 1.5s linear forwards}
+.shop-payment-waiting.is-running .shop-payment-wait-steps span:nth-child(2){animation:shopStepTwo 1.5s linear forwards}
+.shop-payment-waiting.is-running .shop-payment-wait-steps span:nth-child(3){animation:shopStepThree 1.5s linear forwards}
+.shop-purchase-close:disabled,.shop-purchase-actions button:disabled{cursor:not-allowed;opacity:.55}
+@keyframes shopCardFloat{from{transform:translateY(3px) rotateX(1deg) rotateY(-3deg)}to{transform:translateY(-6px) rotateX(-2deg) rotateY(4deg)}}
+@keyframes shopCardShine{0%{transform:translateX(-65%)}100%{transform:translateX(75%)}}
+@keyframes shopPaymentProgress{from{width:3%}to{width:100%}}
+@keyframes shopStepOne{0%,31%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}32%,100%{color:#8ff0b6;text-shadow:none}}
+@keyframes shopStepTwo{0%,31%{color:rgba(232,225,250,.4)}32%,66%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}67%,100%{color:#8ff0b6;text-shadow:none}}
+@keyframes shopStepThree{0%,66%{color:rgba(232,225,250,.4)}67%,99%{color:#fff;text-shadow:0 0 12px rgba(190,139,255,.7)}100%{color:#8ff0b6;text-shadow:none}}
