@@ -6265,3 +6265,16 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V160 ===== */
+
+
+/* ===== V161 — Podium parfaitement centré sur la fenêtre ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    position:relative!important;
+    left:50vw!important;
+    transform:translateX(-50%)!important;
+    margin-left:0!important;
+    margin-right:0!important;
+  }
+}
+/* ===== /V161 ===== */
