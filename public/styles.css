@@ -6936,64 +6936,52 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V218 — HEADER GLOBAL UNIQUE PC =====
-   Toute nouvelle page doit utiliser ce même header; les anciens headers restent dans le DOM mais sont visuellement neutralisés. */
+/* ===== V221 — EN-TETES NATIFS, MEME CADRE BOUTIQUE ===== */
 @media (min-width:901px){
-  #desktopGlobalPageHeader{
-    box-sizing:border-box;
-    width:min(1500px,calc(100vw - 84px));
-    max-width:1500px;
-    margin:12px auto 22px;
-    padding:8px 0 22px;
-    border-bottom:1px solid rgba(145,71,255,.22);
-  }
-  #desktopGlobalPageTitle{
-    margin:0;padding:0;
-    font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;
-  }
-  #desktopGlobalPageSubtitle{
-    margin:7px 0 0;padding:0;
-    font-size:13px;line-height:1.5;font-weight:400;color:#aeb6d0;
-  }
+ :root{--page-ref-width:min(1500px,calc(100vw - 84px));}
 
-  /* anciens titres de page : conservés pour compatibilité, plus affichés */
-  .shop-head.desktop-page-header,
-  .lovys-collection-head.desktop-page-header,
-  .desktop-page-head.desktop-page-header,
-  .incubator-topbar-head.desktop-page-header,
-  .game-head.desktop-page-header,
-  body.desktop-leaderboard-open .global-leaderboard>h2{
-    display:none!important;
-  }
+ /* Chaque vrai header de page est affiché et placé dans le même cadre viewport. */
+ body[data-desktop-view="shop"] .shop-head,
+ body[data-desktop-view="lovys"] .lovys-collection-head,
+ body[data-desktop-view="incubator"] .incubator-topbar-head,
+ body[data-desktop-view="lobby"] .desktop-page-head,
+ body[data-desktop-view="pve"] .game-head,
+ body[data-desktop-view="progression"] .game-head,
+ body.desktop-leaderboard-open .global-leaderboard>h2{
+   display:block!important;
+   box-sizing:border-box!important;
+   position:relative!important;
+   width:var(--page-ref-width)!important;
+   max-width:1500px!important;
+   min-width:0!important;
+   left:50%!important;
+   right:auto!important;
+   transform:translateX(-50%)!important;
+   margin-left:0!important;
+   margin-right:0!important;
+   padding-left:0!important;
+   padding-right:0!important;
+   text-align:left!important;
+ }
 
-  /* Header global caché sur Accueil ou lorsqu'aucune page secondaire n'est active. */
-  body:not([data-desktop-view]) #desktopGlobalPageHeader,
-  body[data-desktop-view="home"] #desktopGlobalPageHeader,
-  body[data-desktop-view="accueil"] #desktopGlobalPageHeader{
-    display:none;
-  }
+ body[data-desktop-view="shop"] .shop-head h2,
+ body[data-desktop-view="lovys"] .lovys-collection-head h2,
+ body[data-desktop-view="lobby"] .desktop-page-head h2,
+ body[data-desktop-view="pve"] .game-head h2,
+ body[data-desktop-view="progression"] .game-head h2,
+ body[data-desktop-view="incubator"] .incubator-topbar-title,
+ body.desktop-leaderboard-open .global-leaderboard>h2{
+   font-size:34px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important;
+ }
+
+ body[data-desktop-view="shop"] .shop-head p,
+ body[data-desktop-view="lovys"] .lovys-collection-head p,
+ body[data-desktop-view="lobby"] .desktop-page-head p,
+ body[data-desktop-view="pve"] .game-head p,
+ body[data-desktop-view="progression"] .game-head p,
+ body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
+   font-size:13px!important;line-height:1.5!important;
+ }
 }
-/* ===== /V218 ===== */
+/* ===== /V221 ===== */
 
-
-/* ===== V219 — TOUTES LES PAGES COMME BOUTIQUE ===== */
-@media (min-width:901px){
- #desktopGlobalPageHeader{width:min(1500px,calc(100vw - 84px))!important;max-width:1500px!important;margin:12px auto 22px!important;}
- body[data-desktop-view="lovys"] .lovys-collection-panel,
- body[data-desktop-view="incubator"] .dashboard-head-grid,
- body[data-desktop-view="pve"] .game-panel,
- body[data-desktop-view="lobby"] .desktop-lobby-shell,
- body[data-desktop-view="progression"] .game-panel,
- body[data-desktop-view="shop"] .shop-panel,
- body.desktop-leaderboard-open .global-leaderboard{box-sizing:border-box!important;width:min(1500px,calc(100vw - 84px))!important;max-width:1500px!important;margin-left:auto!important;margin-right:auto!important;left:auto!important;right:auto!important;transform:none!important;}
- .shop-head,.lovys-collection-head,.desktop-page-head,.incubator-topbar-head,
- body[data-desktop-view="pve"] .game-head,body[data-desktop-view="progression"] .game-head,
- body.desktop-leaderboard-open .global-leaderboard>h2{display:none!important;}
-}
-/* ===== /V219 ===== */
-
-/* ===== V220 — HEADER PILOTE PAR LA NAVIGATION ===== */
-@media (min-width:901px){
- #desktopGlobalPageHeader{visibility:visible;}
-}
-/* ===== /V220 ===== */

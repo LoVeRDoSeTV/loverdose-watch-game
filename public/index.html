@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=218">
+<link rel="stylesheet" href="/styles.css?v=221">
 
 
 </head>
@@ -271,11 +271,6 @@
 </div>
  <aside class="global-leaderboard">
   <h2>🏆 Classement</h2>
-  
-<div id="desktopGlobalPageHeader" class="desktop-global-page-header" aria-live="polite">
-  <h1 id="desktopGlobalPageTitle"></h1>
-  <p id="desktopGlobalPageSubtitle"></p>
-</div>
 <div class="leaderboard-search-wrap">
     <input id="leaderboardSearch" class="leaderboard-search" type="search" maxlength="32" autocomplete="off" placeholder="🔎 Rechercher un joueur..." aria-label="Rechercher un joueur dans le classement">
   </div>
@@ -1068,58 +1063,6 @@
   </div>
 </div>
 
-<script src="/app.js?v=218"></script>
+<script src="/app.js?v=221"></script>
 <script src="/auth-fallback.js?v=108"></script>
-<script id="desktopGlobalPageHeaderController">
-(function(){
- const pages={
-  "lovys":["🐉 Mes Lovys","Retrouve et gère ta collection de Lovys."],
-  "incubateur":["🥚 Incubateur","Fais éclore tes œufs et découvre de nouveaux Lovys."],
-  "pve":["⚔️ Aventure PvE","Progresse dans les zones et affronte les créatures."],
-  "communaute":["🤝 Communauté","La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
-  "classement":["🏆 Classement","Découvre ta position et celle de la communauté."],
-  "progression":["📈 Ma progression","Suis ta progression globale dans l'univers LoVeRDoSe."],
-  "boutique":["🛒 Boutique","Personnalise ton profil et utilise ton LoVeR’Cash."]
- };
- const H=document.getElementById("desktopGlobalPageHeader"),T=document.getElementById("desktopGlobalPageTitle"),S=document.getElementById("desktopGlobalPageSubtitle");
- let current="";
- const norm=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z]/g,"");
- function fromText(txt){
-   const n=norm(txt);
-   if(n.includes("incubateur"))return"incubateur";
-   if(n.includes("communaute"))return"communaute";
-   if(n.includes("classement"))return"classement";
-   if(n.includes("progression"))return"progression";
-   if(n.includes("boutique"))return"boutique";
-   if(n.includes("lovys"))return"lovys";
-   if(n.includes("pve"))return"pve";
-   if(n.includes("accueil"))return"";
-   return null;
- }
- function render(k){
-   if(k===null)return;
-   current=k;
-   const d=pages[k];
-   H.style.display=d?"":"none";
-   if(d){T.textContent=d[0];S.textContent=d[1];}
- }
- document.addEventListener("click",function(e){
-   const el=e.target.closest("a,button,[role='button']");
-   if(!el)return;
-   const k=fromText(el.textContent);
-   if(k!==null) requestAnimationFrame(()=>render(k));
- },true);
- function syncExisting(){
-   if(document.body.classList.contains("desktop-leaderboard-open"))return render("classement");
-   const candidates=[...document.querySelectorAll("a,button,[role='button']")].filter(el=>el.matches(".active,[aria-current='page'],[data-active='true']"));
-   for(const el of candidates){const k=fromText(el.textContent);if(k!==null)return render(k);}
-   const dv=norm(document.body.dataset.desktopView);
-   const map={shop:"boutique",lobby:"communaute",leaderboard:"classement",incubator:"incubateur",lovys:"lovys",pve:"pve",progression:"progression"};
-   if(map[dv])render(map[dv]);
- }
- new MutationObserver(()=>requestAnimationFrame(syncExisting)).observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","aria-current","data-active","data-desktop-view"]});
- syncExisting();
-})();
-</script>
-
 </body></html>
