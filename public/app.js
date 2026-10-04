@@ -2560,7 +2560,12 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const tabs = `<div class="leaderboard-v151-tabs">${Object.entries(LEADERBOARD_METRICS).map(([key,item])=>`<button type="button" class="${key===activeMetric?'active':''}" data-leaderboard-metric="${key}">${item.icon} ${escapeHtml(item.label)}</button>`).join('')}</div>`;
     let myPositionHtml = '';
     if (self) myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position · ${escapeHtml(meta.label)}</span><strong>#${Number(self.rank)} · ${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>${leaderboardGapText(self, previous, activeMetric)}</p></div>`;
-    if (query) { container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div>`; return; }
+    if (query) {
+      document.body.classList.add('leaderboard-search-active');
+      container.innerHTML = `<div class="leaderboard-search-panel">${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>Résultat de recherche</span></div></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div></div>`;
+      return;
+    }
+    document.body.classList.remove('leaderboard-search-active');
     const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
     container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
   } catch (error) { console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
@@ -3439,9 +3444,26 @@ document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('pick')?.cla
 
 const leaderboardSearchInput = $('leaderboardSearch');
 if (leaderboardSearchInput) {
+  const closeLeaderboardSearch = () => {
+    if (!leaderboardSearchInput.value.trim() && !document.body.classList.contains('leaderboard-search-active')) return;
+    leaderboardSearchInput.value = '';
+    document.body.classList.remove('leaderboard-search-active');
+    clearTimeout(leaderboardSearchTimer);
+    loadLeaderboard('');
+  };
   leaderboardSearchInput.addEventListener('input', () => {
     clearTimeout(leaderboardSearchTimer);
+    const hasQuery = Boolean(leaderboardSearchInput.value.trim());
+    document.body.classList.toggle('leaderboard-search-active', hasQuery);
     leaderboardSearchTimer = setTimeout(() => loadLeaderboard(), 220);
+  });
+  leaderboardSearchInput.addEventListener('keydown', event => {
+    if (event.key === 'Escape') { event.preventDefault(); closeLeaderboardSearch(); leaderboardSearchInput.blur(); }
+  });
+  document.addEventListener('mousedown', event => {
+    if (!document.body.classList.contains('leaderboard-search-active')) return;
+    if (event.target.closest('.leaderboard-search-wrap, .leaderboard-search-panel')) return;
+    closeLeaderboardSearch();
   });
 }
 

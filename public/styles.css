@@ -6646,3 +6646,52 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V178 ===== */
+\n\n/* ===== V179 — Recherche Classement en panneau temporaire ===== */
+@media (min-width:901px){
+  /* Le classement reste dans ses proportions validées : pas de grand panneau de recherche. */
+  body.desktop-leaderboard-open .global-leaderboard{
+    width:min(1180px,calc(100vw - 96px))!important;
+    padding:28px 0 40px!important;
+  }
+  body.desktop-leaderboard-open #leaderboard{
+    width:100%!important;
+    max-width:1180px!important;
+    margin-inline:auto!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    width:min(1180px,calc(100vw - 96px))!important;
+    max-width:none!important;
+    margin:34px 0 30px!important;
+  }
+
+  /* La recherche n'ajoute aucune surface noire derrière la page. */
+  body.leaderboard-search-active .global-leaderboard,
+  body.leaderboard-search-active #leaderboard{
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+    border:0!important;
+    min-height:0!important;
+  }
+  body.leaderboard-search-active .leaderboard-search-panel{
+    width:min(760px,100%)!important;
+    margin:0 auto!important;
+    padding:0!important;
+    background:transparent!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+  body.leaderboard-search-active .leaderboard-v151-tabs,
+  body.leaderboard-search-active .leaderboard-v150-head,
+  body.leaderboard-search-active .leaderboard-v150-list{
+    width:100%!important;
+    max-width:760px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+  body.leaderboard-search-active .leaderboard-v150-row{
+    width:100%!important;
+    min-height:72px!important;
+  }
+}
+/* ===== /V179 ===== */\n
