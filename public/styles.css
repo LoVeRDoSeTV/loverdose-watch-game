@@ -6575,3 +6575,42 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V176 ===== */
+
+/* ===== V177 — Classement : aucune surface sombre / aucun flou autour de la page ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .global-leaderboard,
+  body[data-desktop-view="leaderboard"] .global-leaderboard{
+    background:none!important;
+    background-color:transparent!important;
+    background-image:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    filter:none!important;
+    box-shadow:none!important;
+    border:0!important;
+    outline:0!important;
+    opacity:1!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard::before,
+  body.desktop-leaderboard-open .global-leaderboard::after,
+  body[data-desktop-view="leaderboard"] .global-leaderboard::before,
+  body[data-desktop-view="leaderboard"] .global-leaderboard::after{
+    content:none!important;
+    display:none!important;
+    background:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body.desktop-leaderboard-open #leaderboard,
+  body[data-desktop-view="leaderboard"] #leaderboard{
+    background:none!important;
+    background-color:transparent!important;
+    background-image:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+    filter:none!important;
+    box-shadow:none!important;
+    border:0!important;
+  }
+}
+/* ===== /V177 ===== */
