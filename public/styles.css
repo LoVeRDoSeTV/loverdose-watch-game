@@ -7060,3 +7060,19 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .shop-toolbar{display:block}
 }
 /* ===== /V241 ===== */
+
+/* ===== V242 — TOPBAR : MEME CADRE QUE L'ACCUEIL SUR TOUTES LES PAGES ===== */
+@media (min-width:901px){
+  /*
+     Les pages internes élargissent .wrap à 100% pour leur contenu.
+     On recadre uniquement le bandeau logo / compte sur le gabarit de l'accueil,
+     sans modifier la navigation, les en-têtes ni le contenu des pages.
+  */
+  body[data-desktop-view]:not([data-desktop-view="home"]) .top{
+    width:min(1652px,calc(100vw - 96px))!important;
+    max-width:1652px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+}
+/* ===== /V242 ===== */
