@@ -7031,35 +7031,3 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V233 ===== */
-
-
-/* ===== V235 — PROGRESSION UNIQUEMENT : SCROLL VIOLET ===== */
-@media (min-width:901px){
-  #globalLevelRoad,
-  .global-level-rank-scroll{
-    scrollbar-width:auto!important;
-    scrollbar-color:#9147ff #24183f!important;
-    scroll-behavior:auto!important;
-    cursor:grab;
-  }
-  #globalLevelRoad.is-dragging,
-  .global-level-rank-scroll.is-dragging{
-    cursor:grabbing!important;
-    user-select:none!important;
-  }
-  #globalLevelRoad::-webkit-scrollbar,
-  .global-level-rank-scroll::-webkit-scrollbar{height:11px!important}
-  #globalLevelRoad::-webkit-scrollbar-track,
-  .global-level-rank-scroll::-webkit-scrollbar-track{
-    background:#24183f!important;
-    border-radius:999px!important;
-  }
-  #globalLevelRoad::-webkit-scrollbar-thumb,
-  .global-level-rank-scroll::-webkit-scrollbar-thumb{
-    background:#9147ff!important;
-    border:2px solid #24183f!important;
-    border-radius:999px!important;
-  }
-}
-/* ===== /V235 ===== */
-
