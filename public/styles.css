@@ -6614,3 +6614,35 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V177 ===== */
+
+/* ===== V178 — Classement : supprimer le panneau plein écran à la source ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .global-leaderboard{
+    position:absolute!important;
+    top:110px!important;
+    left:50%!important;
+    right:auto!important;
+    bottom:auto!important;
+    transform:translateX(-50%)!important;
+    width:min(1480px,calc(100vw - 96px))!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    padding:28px 30px 40px!important;
+    background:transparent!important;
+    background-color:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+    backdrop-filter:none!important;
+    -webkit-backdrop-filter:none!important;
+  }
+  body.desktop-leaderboard-open .global-leaderboard::before,
+  body.desktop-leaderboard-open .global-leaderboard::after{
+    display:none!important;
+    content:none!important;
+  }
+}
+/* ===== /V178 ===== */
