@@ -6936,24 +6936,151 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V223 — BLOC HEADER UNIVERSEL INDEPENDANT DES PAGES ===== */
+/* V207 — uniformisation finale des en-têtes PC.
+   Références : Boutique + Incubateur.
+   Ne cible PAS Boutique, Incubateur ni Classement et ne modifie pas les contenus. */
 @media (min-width:901px){
- #universalPageHeader{
-   display:none; position:absolute; z-index:20;
-   top:170px; left:0; width:100%; pointer-events:none;
-   background:transparent;
- }
- #universalPageHeader .universal-page-header-inner{
-   box-sizing:border-box; width:min(1500px,calc(100vw - 84px)); max-width:1500px;
-   margin:0 auto; padding:8px 0 22px;
-   border-bottom:1px solid rgba(145,71,255,.22);
- }
- #universalPageTitle{margin:0;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;}
- #universalPageSubtitle{margin:7px 0 0;font-size:13px;line-height:1.5;color:#aeb6d0;}
- /* On masque seulement les titres natifs. Le contenu de page reste intact. */
- .shop-head,.lovys-collection-head,.desktop-page-head,.incubator-topbar-head,
- body[data-desktop-view="pve"] .game-head,body[data-desktop-view="progression"] .game-head,
- body.desktop-leaderboard-open .global-leaderboard>h2{visibility:hidden!important;}
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
+  body[data-desktop-view="pve"] .game-head.unified-page-head{
+    width:calc(100vw - 224px)!important;
+    max-width:none!important;
+    margin-left:calc(50% - 50vw + 112px)!important;
+    margin-right:0!important;
+    margin-top:0!important;
+    margin-bottom:20px!important;
+    padding:0 0 22px!important;
+    min-height:0!important;
+    box-sizing:border-box!important;
+    border:0!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="progression"] .game-head.unified-page-head h2,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head h2,
+  body[data-desktop-view="pve"] .game-head.unified-page-head h2{
+    margin:0!important;
+    font-size:30px!important;
+    line-height:1.15!important;
+    font-weight:800!important;
+    letter-spacing:-.02em!important;
+  }
+
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="progression"] .game-head.unified-page-head .hub-sub,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head .hub-sub,
+  body[data-desktop-view="pve"] .game-head.unified-page-head .hub-sub{
+    margin:7px 0 0!important;
+    padding:0!important;
+    font-size:14px!important;
+    line-height:1.5!important;
+    font-weight:400!important;
+    color:#aeb8d4!important;
+  }
+
+  /* Les boutons X des anciennes modales ne participent pas à l'en-tête en mode page PC. */
+  body[data-desktop-view="progression"] .game-head.unified-page-head > .game-close,
+  body[data-desktop-view="pve"] .game-head.unified-page-head > .game-close,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head > .lovys-collection-close{
+    display:none!important;
+  }
 }
-/* ===== /V223 ===== */
+
+@media (min-width:901px) and (max-width:1300px){
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] .game-head.unified-page-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head.unified-page-head,
+  body[data-desktop-view="pve"] .game-head.unified-page-head{
+    width:calc(100vw - 48px)!important;
+    margin-left:calc(50% - 50vw + 24px)!important;
+  }
+}
+
+
+/* ===== V225 — SOURCE UNIQUE DES EN-TETES DESKTOP =====
+   IMPORTANT : ce bloc est l'unique autorité pour la géométrie des en-têtes.
+   PvE est volontairement exclu et conserve sa mise en page dédiée. */
+@media (min-width:901px){
+  :root{
+    --desktop-page-width:min(1500px,calc(100vw - 84px));
+    --desktop-page-title-size:34px;
+    --desktop-page-subtitle-size:13px;
+  }
+
+  /* Même axe horizontal pour toutes les pages standard. */
+  body[data-desktop-view="shop"] #shopModal .shop-panel,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="progression"] #progressionModal .game-panel,
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    box-sizing:border-box!important;
+    width:var(--desktop-page-width)!important;
+    max-width:1500px!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
+  }
+
+  /* Même en-tête natif. Aucun left/translate/calc propre à une page. */
+  body[data-desktop-view="shop"] .shop-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head,
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] #progressionModal .game-head,
+  body[data-desktop-view="incubator"] .incubator-topbar-head{
+    display:block!important;
+    visibility:visible!important;
+    box-sizing:border-box!important;
+    position:static!important;
+    width:100%!important;
+    max-width:none!important;
+    min-width:0!important;
+    left:auto!important;right:auto!important;top:auto!important;
+    transform:none!important;
+    margin:0 0 22px!important;
+    padding:8px 0 22px!important;
+    background:transparent!important;
+    border:0!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    text-align:left!important;
+  }
+
+  body[data-desktop-view="shop"] .shop-head h2,
+  body[data-desktop-view="lovys"] .lovys-collection-head h2,
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="progression"] #progressionModal .game-head h2,
+  body[data-desktop-view="incubator"] .incubator-topbar-title{
+    display:block!important;visibility:visible!important;
+    margin:0!important;padding:0!important;
+    font-size:var(--desktop-page-title-size)!important;
+    line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important;
+  }
+
+  body[data-desktop-view="shop"] .shop-head p,
+  body[data-desktop-view="lovys"] .lovys-collection-head p,
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="progression"] #progressionModal .game-head p,
+  body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
+    display:block!important;visibility:visible!important;
+    margin:7px 0 0!important;
+    font-size:var(--desktop-page-subtitle-size)!important;
+    line-height:1.5!important;
+  }
+
+  /* Classement n'a pas le même shell : seul son en-tête suit le même axe 1500px.
+     Tout le classement validé (recherche, onglets, podium, cartes) reste intact. */
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    display:block!important;visibility:visible!important;
+    box-sizing:border-box!important;position:relative!important;
+    width:var(--desktop-page-width)!important;max-width:1500px!important;
+    left:50%!important;transform:translateX(-50%)!important;
+    margin:0 0 22px!important;padding:8px 0 22px!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    font-size:var(--desktop-page-title-size)!important;line-height:1.15!important;font-weight:800!important;
+    text-align:left!important;
+  }
+}
+/* ===== /V225 ===== */
 
