@@ -7165,3 +7165,41 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     margin-top:24px!important;
   }
 }
+
+/* V200 — en-têtes PC réellement unifiés sur la géométrie Incubateur/Lobby */
+@media (min-width:901px){
+  body[data-desktop-view="progression"] .unified-page-head,
+  body[data-desktop-view="lovys"] .unified-page-head,
+  body[data-desktop-view="pve"] .unified-page-head,
+  body[data-desktop-view="shop"] .unified-page-head,
+  body[data-desktop-view="account"] .unified-page-head{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1700px,calc(100vw - 48px))!important;
+    max-width:1700px!important;
+    min-height:0!important;
+    margin:0 0 22px!important;
+    padding:26px 0 22px!important;
+    box-sizing:border-box!important;
+    border:0!important;
+    border-bottom:1px solid rgba(145,71,255,.22)!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="progression"] .unified-page-head,
+  body[data-desktop-view="lovys"] .unified-page-head,
+  body[data-desktop-view="pve"] .unified-page-head,
+  body[data-desktop-view="shop"] .unified-page-head{
+    display:flex!important;align-items:flex-start!important;justify-content:space-between!important;gap:14px!important;
+  }
+  body[data-desktop-view] .unified-page-head h2{
+    margin:0!important;font-size:30px!important;line-height:1.15!important;letter-spacing:-.02em!important;
+  }
+  body[data-desktop-view="progression"] .unified-page-head .hub-sub,
+  body[data-desktop-view="lovys"] .unified-page-head .hub-sub,
+  body[data-desktop-view="pve"] .unified-page-head .hub-sub,
+  body[data-desktop-view="shop"] .unified-page-head .shop-subtitle{
+    margin-top:7px!important;font-size:16px!important;line-height:1.55!important;color:#b9c3df!important;
+  }
+}
