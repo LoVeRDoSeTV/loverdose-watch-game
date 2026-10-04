@@ -962,7 +962,7 @@ function renderIncubatorSlot(slotData) {
   const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
   const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans ${formatEggTime(remaining)}`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
-  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">ℹ️ Chances</button>';
+  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">Chances</button>';
   el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}${action}`;
 }
 
@@ -5192,6 +5192,8 @@ const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve
 const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
 function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
 function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
+// V164 — Un rechargement/F5 repart toujours sur l’Accueil sur PC.
+if(isDesktopGameUi() && location.hash!=='#accueil'){history.replaceState(null,'',location.pathname+location.search+'#accueil');}
 document.querySelectorAll('[data-desktop-view]').forEach(link=>link.addEventListener('click',event=>{
   if(!isDesktopGameUi())return;
   event.preventDefault();
