@@ -7001,74 +7001,55 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V226 — BOUTIQUE LOCKEE / 5 PAGES COPIENT SON EN-TETE =====
-   Référence visuelle verrouillée : Boutique.
-   PvE exclu. Aucun sélecteur Boutique dans cette correction. */
+/* ===== V227 — STRUCTURE UNIQUE D'EN-TETE DESKTOP ===== */
 @media (min-width:901px){
- :root{
-   --boutique-ref-width:min(1500px,calc(100vw - 84px));
-   --boutique-ref-title:34px;
-   --boutique-ref-subtitle:13px;
- }
+  .standard-desktop-page-header{
+    display:none;
+    box-sizing:border-box;
+    width:min(1500px,calc(100vw - 84px));
+    max-width:1500px;
+    margin:76px auto 0;
+    padding:0;
+    background:transparent;
+  }
+  .standard-desktop-page-header.is-visible{display:block;}
+  .standard-desktop-page-header-inner{
+    box-sizing:border-box;width:100%;
+    margin:0;padding:8px 0 22px;
+    border-bottom:1px solid rgba(145,71,255,.22);
+  }
+  #standardDesktopPageTitle{
+    margin:0;padding:0;font-size:34px;line-height:1.15;
+    font-weight:800;letter-spacing:-.02em;text-align:left;
+  }
+  #standardDesktopPageSubtitle{
+    margin:7px 0 0;padding:0;font-size:13px;line-height:1.5;
+    color:#aeb6d0;text-align:left;
+  }
 
- /* Les 5 pages standard prennent exactement le même axe et la même largeur que Boutique. */
- body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel,
- body[data-desktop-view="lobby"] .desktop-lobby-shell,
- body[data-desktop-view="progression"] #progressionModal .game-panel,
- body[data-desktop-view="incubator"] .dashboard-head-grid{
-   box-sizing:border-box!important;
-   width:var(--boutique-ref-width)!important;
-   max-width:1500px!important;
-   margin-left:auto!important;
-   margin-right:auto!important;
- }
+  /* Les anciens en-têtes ne participent plus du tout à la mise en page. */
+  body[data-desktop-view="shop"] .shop-head,
+  body[data-desktop-view="lovys"] .lovys-collection-head,
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="progression"] #progressionModal .game-head,
+  body[data-desktop-view="incubator"] .incubator-topbar-head,
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    display:none!important;
+  }
 
- /* Même boîte d'en-tête : position, largeur, espaces et séparateur. */
- body[data-desktop-view="lovys"] .lovys-collection-head,
- body[data-desktop-view="lobby"] .desktop-page-head,
- body[data-desktop-view="progression"] #progressionModal .game-head,
- body[data-desktop-view="incubator"] .incubator-topbar-head{
-   display:block!important;visibility:visible!important;
-   box-sizing:border-box!important;position:static!important;
-   width:100%!important;max-width:none!important;min-width:0!important;
-   left:auto!important;right:auto!important;top:auto!important;transform:none!important;
-   margin:0 0 22px!important;padding:8px 0 22px!important;
-   border:0!important;border-bottom:1px solid rgba(145,71,255,.22)!important;
-   background:transparent!important;text-align:left!important;
- }
-
- body[data-desktop-view="lovys"] .lovys-collection-head h2,
- body[data-desktop-view="lobby"] .desktop-page-head h2,
- body[data-desktop-view="progression"] #progressionModal .game-head h2,
- body[data-desktop-view="incubator"] .incubator-topbar-title{
-   display:block!important;visibility:visible!important;
-   margin:0!important;padding:0!important;
-   font-size:var(--boutique-ref-title)!important;line-height:1.15!important;
-   font-weight:800!important;letter-spacing:-.02em!important;text-align:left!important;
- }
-
- body[data-desktop-view="lovys"] .lovys-collection-head p,
- body[data-desktop-view="lobby"] .desktop-page-head p,
- body[data-desktop-view="progression"] #progressionModal .game-head p,
- body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
-   display:block!important;visibility:visible!important;
-   margin:7px 0 0!important;padding:0!important;
-   font-size:var(--boutique-ref-subtitle)!important;line-height:1.5!important;text-align:left!important;
- }
-
- /* Classement : son contenu validé reste à 1180px.
-    Seul son en-tête reçoit une boîte indépendante de 1500px centrée comme Boutique. */
- body.desktop-leaderboard-open .global-leaderboard>h2{
-   display:block!important;visibility:visible!important;
-   box-sizing:border-box!important;position:relative!important;
-   width:var(--boutique-ref-width)!important;max-width:1500px!important;min-width:0!important;
-   left:50%!important;right:auto!important;transform:translateX(-50%)!important;
-   margin:0 0 22px!important;padding:8px 0 22px!important;
-   border:0!important;border-bottom:1px solid rgba(145,71,255,.22)!important;
-   background:transparent!important;
-   font-size:var(--boutique-ref-title)!important;line-height:1.15!important;
-   font-weight:800!important;letter-spacing:-.02em!important;text-align:left!important;
- }
+  /* Les contenus commencent tous sous le nouvel en-tête. */
+  body[data-desktop-view="shop"] #shopModal,
+  body[data-desktop-view="lovys"] #lovysCollectionModal,
+  body[data-desktop-view="progression"] #progressionModal{
+    top:auto!important;
+  }
+  body[data-desktop-view="shop"] #shopModal .shop-panel,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-panel,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell,
+  body[data-desktop-view="progression"] #progressionModal .game-panel,
+  body[data-desktop-view="incubator"] .dashboard-head-grid{
+    margin-top:14px!important;
+  }
 }
-/* ===== /V226 ===== */
+/* ===== /V227 ===== */
 
