@@ -6473,3 +6473,28 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V170 ===== */
+
+/* ===== V171 — Scroll naturel sur toutes les pages PC ===== */
+@media (min-width:901px){
+  /* Aucune navigation ou sous-navigation de page ne suit le scroll. */
+  .desktop-game-nav,
+  body[data-desktop-view] #shopModal .shop-tabs,
+  body[data-desktop-view] #shopModal .shop-subfilter,
+  body[data-desktop-view] #pveModal .pve-zone-tabs,
+  body[data-desktop-view] .lovys-collection-tabs{
+    position:relative!important;
+    top:auto!important;
+    z-index:auto!important;
+  }
+
+  /* Boutique : catégories intégrées au flux normal, sans bande collée. */
+  body[data-desktop-view="shop"] #shopModal .shop-tabs{
+    margin:0 0 18px!important;
+    padding:12px 0 14px!important;
+    background:transparent!important;
+    background-image:none!important;
+    box-shadow:none!important;
+    isolation:auto!important;
+  }
+}
+/* ===== /V171 ===== */
