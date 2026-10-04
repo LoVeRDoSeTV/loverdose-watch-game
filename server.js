@@ -1517,6 +1517,8 @@ async function initDatabase() {
     position INTEGER NOT NULL DEFAULT 1 CHECK (position BETWEEN 1 AND 3)
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS trade_offer_options_offer_idx ON trade_offer_options(offer_id, position)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS trade_wishes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, creature_id TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,creature_id))`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS trade_notifications (id BIGSERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,message TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,read_at TIMESTAMPTZ)`);
 
 
   await pool.query(`
@@ -6597,6 +6599,9 @@ app.post('/api/shop/use', async (req, res) => {
 const TRADE_MAX_OPTIONS = 3;
 const TRADE_MAX_QUANTITY = 999;
 const TRADE_DURATIONS = new Set([1, 3, 7]);
+const TRADE_MAX_ACTIVE = 10;
+const TRADE_MAX_DAILY_COMPLETED = 20;
+const TRADE_MIN_GLOBAL_LEVEL = 3;
 
 function tradeCreatureName(creatureId) {
   return creatures.find(creature => creature.id === creatureId)?.name || creatureId || 'Lovys';
@@ -6693,11 +6698,8 @@ async function restoreExpiredTrades(client=pool) {
 }
 
 function tradeAssetJson(type, creatureId, quantity) {
-  return {
-    type, creatureId:creatureId || null, quantity:Number(quantity || 0),
-    name:type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,
-    icon:type==='egg'?'🥚':'🧩'
-  };
+  const creature=creatures.find(c=>c.id===creatureId);
+  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?`/${creature.name}.webp`:null};
 }
 
 app.get('/api/lobby', async (req,res)=>{
@@ -6713,7 +6715,8 @@ app.get('/api/lobby', async (req,res)=>{
       ORDER BY CASE WHEN u.last_live_seen_at > CURRENT_TIMESTAMP-INTERVAL '90 seconds' THEN 0 ELSE 1 END,
                COALESCE(u.last_live_seen_at,u.updated_at) DESC,username ASC LIMIT 100`);
     const live=Boolean(tracker?.last_live);
-    res.json({ok:true,live,players:result.rows.map(row=>{const gp=globalProgressionFromXp(Number(row.global_xp||0));const cp=progressionFromXp(Number(row.xp||0));return {userId:Number(row.id),twitchId:row.twitch_id,username:row.username||'Joueur',profileImageUrl:row.profile_image_url||null,level:gp.level,prestige:Number(row.prestige||0),watchSeconds:Number(row.watch_seconds||0),present:live&&row.last_live_seen_at&&Date.now()-new Date(row.last_live_seen_at).getTime()<90000,lastSeenAt:row.last_live_seen_at||null,lovys:row.creature_id?{creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),rank:Number(row.rank||1),level:cp.level}:null};})});
+    const activeOffers=await pool.query(`SELECT creator_user_id,COUNT(*)::int count FROM trade_offers WHERE status='open' AND expires_at>CURRENT_TIMESTAMP GROUP BY creator_user_id`);const offerMap=new Map(activeOffers.rows.map(x=>[Number(x.creator_user_id),Number(x.count)]));const presentCount=result.rows.filter(row=>live&&row.last_live_seen_at&&Date.now()-new Date(row.last_live_seen_at).getTime()<90000).length;
+    res.json({ok:true,live,presentCount,lastLiveLabel:tracker?.last_live?new Intl.DateTimeFormat('fr-FR',{dateStyle:'medium',timeStyle:'short'}).format(new Date(tracker.last_live)):'indisponible',liveDuration:'en cours',players:result.rows.map(row=>{const gp=globalProgressionFromXp(Number(row.global_xp||0));const cp=progressionFromXp(Number(row.xp||0));return {userId:Number(row.id),twitchId:row.twitch_id,username:row.username||'Joueur',profileImageUrl:row.profile_image_url||null,level:gp.level,prestige:Number(row.prestige||0),watchSeconds:Number(row.watch_seconds||0),present:live&&row.last_live_seen_at&&Date.now()-new Date(row.last_live_seen_at).getTime()<90000,lastSeenAt:row.last_live_seen_at||null,lovys:row.creature_id?{creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),rank:Number(row.rank||1),level:cp.level}:null,activeOffers:offerMap.get(Number(row.id))||0};})});
   }catch(error){console.error('Erreur lobby :',error);res.status(500).json({error:'Impossible de charger le lobby.'});}
 });
 
@@ -6762,7 +6765,8 @@ app.post('/api/trades',async(req,res)=>{
     const unique=new Set(options.map(a=>`${a.type}:${a.creatureId||''}:${a.quantity}`));if(unique.size!==options.length)return res.status(400).json({error:'Deux contreparties identiques ne sont pas nécessaires.'});
     await client.query('BEGIN');await restoreExpiredTrades(client);const ctx=await tradeContext(client,req);if(!ctx)throw new Error('Profil introuvable.');
     const openCount=await client.query(`SELECT COUNT(*)::int count FROM trade_offers WHERE creator_user_id=$1 AND status='open'`,[ctx.userId]);
-    if(Number(openCount.rows[0]?.count||0)>=10)throw new Error('Tu peux avoir au maximum 10 offres actives en même temps.');
+    if(Number(openCount.rows[0]?.count||0)>=TRADE_MAX_ACTIVE)throw new Error(`Tu peux avoir au maximum ${TRADE_MAX_ACTIVE} offres actives en même temps.`);
+    const levelRow=await client.query(`SELECT global_xp FROM users WHERE id=$1`,[ctx.userId]);if(globalProgressionFromXp(Number(levelRow.rows[0]?.global_xp||0)).level<TRADE_MIN_GLOBAL_LEVEL)throw new Error(`Le niveau global ${TRADE_MIN_GLOBAL_LEVEL} est requis pour échanger.`);
     // Le créateur doit déjà posséder les Lovys dont il souhaite recevoir des fragments.
     for(const option of options){if(option.type==='fragment'){const balance=await tradeAssetBalance(client,ctx,option,true);if(balance===null)throw new Error(`Tu dois posséder ${tradeCreatureName(option.creatureId)} pour demander ses fragments.`);}}
     await changeTradeAsset(client,ctx,offered,-offered.quantity);
@@ -6778,6 +6782,7 @@ app.post('/api/trades/:offerId/accept',async(req,res)=>{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
     const offerId=Number.parseInt(req.params.offerId,10),optionId=Number.parseInt(req.body?.optionId,10);if(!offerId||!optionId)return res.status(400).json({error:'Échange invalide.'});
     await client.query('BEGIN');await restoreExpiredTrades(client);const accepter=await tradeContext(client,req);if(!accepter)throw new Error('Profil introuvable.');
+    const daily=await client.query(`SELECT COUNT(*)::int count FROM trade_offers WHERE status='completed' AND accepted_at>=CURRENT_DATE AND (accepted_by_user_id=$1 OR creator_user_id=$1)`,[accepter.userId]);if(Number(daily.rows[0]?.count||0)>=TRADE_MAX_DAILY_COMPLETED)throw new Error(`Limite de ${TRADE_MAX_DAILY_COMPLETED} échanges par jour atteinte.`);
     const offerResult=await client.query(`SELECT * FROM trade_offers WHERE id=$1 FOR UPDATE`,[offerId]);const offer=offerResult.rows[0];if(!offer||offer.status!=='open'||new Date(offer.expires_at)<=new Date())throw new Error("Cette offre n'est plus disponible.");if(Number(offer.creator_user_id)===accepter.userId)throw new Error('Tu ne peux pas accepter ta propre offre.');
     const optionResult=await client.query(`SELECT * FROM trade_offer_options WHERE id=$1 AND offer_id=$2`,[optionId,offerId]);const option=optionResult.rows[0];if(!option)throw new Error('Cette contrepartie est introuvable.');
     const creator={userId:Number(offer.creator_user_id),accountId:Number(offer.creator_account_id)};
@@ -6789,6 +6794,7 @@ app.post('/api/trades/:offerId/accept',async(req,res)=>{
     await changeTradeAsset(client,creator,requested,requested.quantity);
     await changeTradeAsset(client,accepter,offered,offered.quantity);
     await client.query(`UPDATE trade_offers SET status='completed',accepted_by_user_id=$2,accepted_option_id=$3,accepted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[offerId,accepter.userId,optionId]);
+    await client.query(`INSERT INTO trade_notifications(user_id,message) VALUES($1,$2)`,[creator.userId,`Ton offre #${offerId} a été acceptée par ${accepter.username}.`]);
     await client.query('COMMIT');pushLiveUpdate('trade-update',{offerId});res.json({ok:true,message:'Échange effectué !'});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur acceptation échange :',error);res.status(400).json({error:error.message||"Impossible d'accepter cet échange."});}finally{client.release();}
 });
@@ -6803,6 +6809,11 @@ app.post('/api/trades/:offerId/cancel',async(req,res)=>{
     await client.query(`UPDATE trade_offers SET status='cancelled',updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[offerId]);await client.query('COMMIT');pushLiveUpdate('trade-update',{offerId});res.json({ok:true,message:'Offre annulée. Les objets réservés ont été rendus.'});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur annulation échange :',error);res.status(400).json({error:error.message||"Impossible d'annuler cette offre."});}finally{client.release();}
 });
+
+
+app.get('/api/trades/history',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.*,COALESCE(a.username,u.display_name,u.login) creator_name,COALESCE(aa.username,au.display_name,au.login) accepted_by_name,u.profile_image_url FROM trade_offers o JOIN users u ON u.id=o.creator_user_id JOIN accounts a ON a.id=o.creator_account_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.status='completed' AND (o.creator_user_id=$1 OR o.accepted_by_user_id=$1) ORDER BY o.accepted_at DESC LIMIT 50`,[ctx.userId]);const ids=q.rows.map(x=>Number(x.id));const opts=ids.length?await pool.query(`SELECT * FROM trade_offer_options WHERE offer_id=ANY($1::bigint[]) ORDER BY offer_id,position`,[ids]):{rows:[]};const by=new Map();for(const x of opts.rows){const id=Number(x.offer_id);if(!by.has(id))by.set(id,[]);by.get(id).push({id:Number(x.id),...tradeAssetJson(x.receive_type,x.receive_creature_id,x.receive_quantity)});}res.json({ok:true,offers:q.rows.map(x=>({id:Number(x.id),creatorUserId:Number(x.creator_user_id),creatorName:x.creator_name,creatorAvatar:x.profile_image_url,status:x.status,expiresAt:x.expires_at,acceptedAt:x.accepted_at,acceptedByName:x.accepted_by_name,offer:tradeAssetJson(x.offer_type,x.offer_creature_id,x.offer_quantity),options:by.get(Number(x.id))||[]}))});}catch(e){res.status(500).json({error:'Historique indisponible.'});}});
+app.get('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const mine=await pool.query(`SELECT creature_id FROM trade_wishes WHERE user_id=$1`,[ctx.userId]);const sum=await pool.query(`SELECT w.creature_id,COUNT(DISTINCT w.user_id)::int wish_count,COUNT(DISTINCT o.id)::int offer_count FROM trade_wishes w LEFT JOIN trade_offers o ON o.offer_creature_id=w.creature_id AND o.offer_type='fragment' AND o.status='open' AND o.expires_at>CURRENT_TIMESTAMP GROUP BY w.creature_id ORDER BY wish_count DESC`);res.json({ok:true,mine:mine.rows.map(x=>x.creature_id),summary:sum.rows.map(x=>({creatureId:x.creature_id,name:tradeCreatureName(x.creature_id),wishCount:Number(x.wish_count),offerCount:Number(x.offer_count)}))});}catch(e){res.status(500).json({error:'Souhaits indisponibles.'});}});
+app.post('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const id=String(req.body?.creatureId||'');if(!creatures.some(c=>c.id===id))return res.status(400).json({error:'Lovys invalide.'});if(req.body?.wanted)await pool.query(`INSERT INTO trade_wishes(user_id,creature_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[ctx.userId,id]);else await pool.query(`DELETE FROM trade_wishes WHERE user_id=$1 AND creature_id=$2`,[ctx.userId,id]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de modifier le souhait.'});}});
 
 /* =========================================
    CLASSEMENT
