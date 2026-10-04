@@ -6936,46 +6936,57 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V215 — GABARIT UNIQUE POUR TOUTES LES PAGES PC =====
-   Une seule largeur de référence (Boutique) et un seul système d'en-tête.
-   Les composants internes conservent leurs tailles et leur fonctionnement. */
+/* ===== V216 — GABARIT PC CANONIQUE / ANTI-CONFLITS =====
+   Source unique pour la géométrie EXTERIEURE des pages.
+   Les anciennes règles de composants restent intactes pour ne pas casser leur contenu. */
 @media (min-width:901px){
   :root{
-    --desktop-page-max:1500px;
-    --desktop-page-gutter:42px;
-    --desktop-page-width:min(var(--desktop-page-max),calc(100vw - (var(--desktop-page-gutter) * 2)));
-    --desktop-page-title:34px;
-    --desktop-page-subtitle:13px;
-    --desktop-page-line:rgba(145,71,255,.22);
+    --page-pc-max:1500px;
+    --page-pc-gutter:42px;
+    --page-pc-width:min(var(--page-pc-max),calc(100vw - 84px));
+    --page-pc-title:34px;
+    --page-pc-subtitle:13px;
+    --page-pc-separator:rgba(145,71,255,.22);
   }
 
-  /* Tous les conteneurs principaux connus utilisent exactement le même cadre. */
-  .desktop-page-container,
-  body.desktop-leaderboard-open .global-leaderboard{
-    box-sizing:border-box!important;
-    width:var(--desktop-page-width)!important;
-    max-width:var(--desktop-page-max)!important;
-    margin-left:auto!important;
-    margin-right:auto!important;
-  }
-
-  /* Neutralise uniquement les décalages historiques du conteneur de page. */
+  /* RESET + GABARIT : tous les wrappers de pages connus. */
+  body[data-desktop-view="shop"] .shop-panel.desktop-page-container,
   body[data-desktop-view="lovys"] .lovys-collection-panel.desktop-page-container,
   body[data-desktop-view="lobby"] .desktop-lobby-shell.desktop-page-container,
   body[data-desktop-view="incubator"] .dashboard-head-grid.desktop-page-container,
   body[data-desktop-view="progression"] .game-panel.desktop-page-container,
   body[data-desktop-view="pve"] .game-panel.desktop-page-container,
-  body[data-desktop-view="shop"] .shop-panel.desktop-page-container{
+  body.desktop-leaderboard-open .global-leaderboard{
+    box-sizing:border-box!important;
+    position:relative!important;
+    width:var(--page-pc-width)!important;
+    min-width:0!important;
+    max-width:var(--page-pc-max)!important;
     left:auto!important;
     right:auto!important;
     transform:none!important;
+    margin-left:auto!important;
+    margin-right:auto!important;
   }
 
-  /* En-tête commun à toutes les pages qui en possèdent un. */
-  .desktop-page-container>.desktop-page-header,
-  .desktop-page-container .desktop-page-header{
+  /* Les paddings historiques ne doivent plus déplacer le cadre extérieur. */
+  body[data-desktop-view="shop"] .shop-panel.desktop-page-container,
+  body[data-desktop-view="lovys"] .lovys-collection-panel.desktop-page-container,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell.desktop-page-container,
+  body[data-desktop-view="progression"] .game-panel.desktop-page-container,
+  body[data-desktop-view="pve"] .game-panel.desktop-page-container,
+  body.desktop-leaderboard-open .global-leaderboard{
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+
+  /* HEADER : une seule géométrie, quel que soit l'ancien composant. */
+  .desktop-page-container .desktop-page-header,
+  body.desktop-leaderboard-open .global-leaderboard>h2{
     box-sizing:border-box!important;
+    position:relative!important;
     width:100%!important;
+    min-width:0!important;
     max-width:none!important;
     left:auto!important;
     right:auto!important;
@@ -6983,9 +6994,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     margin:0 0 22px!important;
     padding:8px 0 22px!important;
     border:0!important;
-    border-bottom:1px solid var(--desktop-page-line)!important;
+    border-bottom:1px solid var(--page-pc-separator)!important;
     background:transparent!important;
     box-shadow:none!important;
+    text-align:left!important;
   }
 
   .desktop-page-header h2,
@@ -6993,11 +7005,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.desktop-leaderboard-open .global-leaderboard>h2{
     margin:0!important;
     padding:0!important;
-    font-size:var(--desktop-page-title)!important;
+    font-size:var(--page-pc-title)!important;
     line-height:1.15!important;
     font-weight:800!important;
     letter-spacing:-.02em!important;
-    text-align:left!important;
   }
 
   .desktop-page-header p,
@@ -7006,25 +7017,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .desktop-page-header .incubator-topbar-subtitle{
     margin:7px 0 0!important;
     padding:0!important;
-    font-size:var(--desktop-page-subtitle)!important;
+    font-size:var(--page-pc-subtitle)!important;
     line-height:1.5!important;
     font-weight:400!important;
     color:#aeb6d0!important;
   }
-
-  /* Classement est maintenant lui aussi dans le même cadre global. */
-  body.desktop-leaderboard-open .global-leaderboard{
-    padding-left:0!important;
-    padding-right:0!important;
-  }
-  body.desktop-leaderboard-open .global-leaderboard>h2{
-    box-sizing:border-box!important;
-    width:100%!important;
-    max-width:none!important;
-    margin:0 0 22px!important;
-    padding:8px 0 22px!important;
-    border-bottom:1px solid var(--desktop-page-line)!important;
-  }
 }
-/* ===== /V215 ===== */
+/* ===== /V216 ===== */
 
