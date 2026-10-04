@@ -6310,3 +6310,25 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   0%,100%{transform:translateY(0) rotate(-1deg)}
   50%{transform:translateY(-9px) rotate(1deg)}
 }
+
+/* ===== V165 — Classement : podium sous les blocs, centré, sans scroll horizontal ===== */
+@media (min-width:901px){
+  body.desktop-leaderboard-open .global-leaderboard{
+    overflow-x:hidden!important;
+  }
+  body.desktop-leaderboard-open #leaderboard{
+    overflow-x:visible!important;
+  }
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    position:static!important;
+    left:auto!important;
+    transform:none!important;
+    width:min(1160px,100%)!important;
+    max-width:1160px!important;
+    margin:34px auto 30px!important;
+    grid-template-columns:minmax(0,1fr) minmax(0,1.12fr) minmax(0,1fr)!important;
+    column-gap:24px!important;
+    box-sizing:border-box!important;
+  }
+}
+/* ===== /V165 ===== */
