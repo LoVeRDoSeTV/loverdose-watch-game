@@ -6548,3 +6548,30 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!important;border:0!important;box-shadow:none!important;padding-top:18px!important}
 .lobby-tabs .lobby-tab b{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:4px;padding:0 5px;border-radius:999px;background:rgba(145,71,255,.2);font-size:10px}.lobby-presence-summary a{margin-left:8px;color:#fff;text-decoration:none}.lobby-trade-filters{align-items:center;flex-wrap:wrap}.lobby-trade-filters select{margin-left:auto;min-height:34px;padding:6px 30px 6px 10px;border:1px solid rgba(145,71,255,.25);border-radius:10px;background:#101427;color:#dfe4f5;font:inherit;font-size:10px;font-weight:850}.trade-asset-icon{overflow:hidden}.trade-asset-icon img{width:100%;height:100%;object-fit:contain}.lobby-empty-action{display:grid;justify-items:center;gap:9px}.lobby-empty-action strong{color:#fff;font-size:14px}.lobby-empty-action span{font-size:10px}.lobby-player-card{min-height:108px;grid-template-columns:58px minmax(0,1fr) 155px}.lobby-player-actions{display:grid;gap:7px}.lobby-player-lovys.muted{font-size:9px!important;opacity:.58}.lobby-player-offers{margin-top:5px;color:#bba5ff;font-size:9px;font-weight:900}.lobby-profile-drawer{position:fixed;z-index:100020;top:0;right:0;width:min(430px,92vw);height:100vh;padding:22px;background:#0d1122;border-left:1px solid rgba(145,71,255,.28);box-shadow:-25px 0 70px rgba(0,0,0,.4);overflow:auto}.lobby-profile-drawer.hidden{display:none}.lobby-profile-drawer-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.lobby-profile-drawer-head button{width:36px;height:36px;border:1px solid #303754;border-radius:50%;background:#14192d;color:#fff;font-size:20px}.lobby-profile-drawer .lobby-player-card{display:grid;grid-template-columns:58px 1fr;min-height:0}.lobby-profile-drawer .lobby-player-actions{grid-column:1/-1}.wishlist-editor,.wishlist-community,.lobby-community-footer{padding:18px;border:1px solid rgba(255,255,255,.07);border-radius:16px;background:#101427}.wishlist-editor h3{margin:0 0 5px}.wishlist-editor p{color:#8f99b8}.wishlist-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}.wishlist-grid label{padding:9px;border:1px solid rgba(145,71,255,.16);border-radius:9px;background:#0c1122;font-size:11px}.wishlist-community{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}.wishlist-community>div{display:flex;justify-content:space-between;gap:10px;padding:10px;border-radius:10px;background:#0c1122}.wishlist-community span{color:#8f99b8;font-size:9px}.lobby-community-footer{display:flex;justify-content:space-between;gap:20px;margin-top:22px}.lobby-community-footer #lobbyActivityFeed{margin-top:6px;color:#8f99b8;font-size:10px}
 }
+
+/* ===== V176 — Classement : supprimer définitivement le grand panneau noir ===== */
+@media (min-width:901px){
+  body[data-desktop-view="leaderboard"] .global-leaderboard,
+  body.desktop-leaderboard-open .global-leaderboard{
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    background:transparent!important;
+    background-color:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    border-radius:0!important;
+    box-shadow:none!important;
+  }
+  body[data-desktop-view="leaderboard"] #leaderboard,
+  body.desktop-leaderboard-open #leaderboard{
+    min-height:0!important;
+    background:transparent!important;
+    background-color:transparent!important;
+    background-image:none!important;
+    border:0!important;
+    box-shadow:none!important;
+  }
+}
+/* ===== /V176 ===== */
