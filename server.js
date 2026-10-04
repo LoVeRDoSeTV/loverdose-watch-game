@@ -6606,6 +6606,10 @@ const TRADE_MIN_GLOBAL_LEVEL = 3;
 function tradeCreatureName(creatureId) {
   return creatures.find(creature => creature.id === creatureId)?.name || creatureId || 'Lovys';
 }
+function tradeCreatureImage(creatureId){
+  const files={plant:'Mossy.webp',water:'Nymea.webp',lightning:'Voltis.webp',mist:'Brumee.webp',fire:'Flamby.webp',crystal:'Crysal.webp',forge:'Ferox.webp',dark:'Nocty.webp',solar:'Solka.webp',dream:'Mimo.webp'};
+  return '/'+(files[String(creatureId||'').toLowerCase()]||'');
+}
 
 function normalizeTradeAsset(raw = {}) {
   const type = String(raw.type || '').trim().toLowerCase();
@@ -6728,7 +6732,7 @@ app.get('/api/trades/inventory',async(req,res)=>{
       pool.query(`SELECT creature_id,fragments,rank FROM user_lovys WHERE user_id=$1 ORDER BY creature_id`,[ctx.userId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'`,[ctx.accountId])
     ]);
-    res.json({ok:true,eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:`/${tradeCreatureName(row.creature_id)}.webp`})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:`/${c.name}.webp`}))});
+    res.json({ok:true,eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:tradeCreatureImage(row.creature_id)})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:tradeCreatureImage(c.id)}))});
   }catch(error){console.error('Erreur inventaire échanges :',error);res.status(500).json({error:"Impossible de charger l'inventaire d'échange."});}
 });
 
