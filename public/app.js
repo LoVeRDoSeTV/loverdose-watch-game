@@ -4592,6 +4592,7 @@ async function openAdminPlayerEditor(accountId){
 }
 function renderAdminPlayerEditor(player){
   const editor=$('adminPlayerEditor');if(!editor)return;
+  editor.dataset.username=String(player.username||'Joueur');
   const lovys=Array.isArray(player.lovys)?player.lovys:[];
   const badges=Array.isArray(player.badges)?player.badges:[];
   const incubator=Array.isArray(player.incubator)?player.incubator:[];
@@ -4631,6 +4632,30 @@ function renderAdminPlayerEditor(player){
 function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
   return `<div class="admin-adjust-row"><div><strong>${icon} ${escapeHtml(label)}</strong><div class="admin-player-meta">${positiveOnly?'Valeur ou quantité':'Montant positif ou négatif'}</div></div><input type="number" step="1" value="${action==='prestige'?0:10}" ${positiveOnly&&action!=='prestige'?'min="1"':''} data-admin-amount="${action}" placeholder="${escapeHtml(placeholder)}"><button class="btn secondary" data-admin-action="${action}">Appliquer</button></div>`;
 }
+
+function showAdminActionConfirmation({username,actionLabel,sentence}){
+  return new Promise(resolve=>{
+    document.querySelector('.admin-confirm-overlay')?.remove();
+    const overlay=document.createElement('div');
+    overlay.className='admin-confirm-overlay';
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="adminConfirmTitle">
+      <div class="admin-confirm-icon">⚠️</div>
+      <div class="admin-confirm-kicker">Confirmation administrateur</div>
+      <h3 id="adminConfirmTitle">Confirmer la modification</h3>
+      <div class="admin-confirm-details"><div><span>Joueur</span><strong>${escapeHtml(username)}</strong></div><div><span>Action</span><strong>${escapeHtml(actionLabel)}</strong></div></div>
+      <p>${escapeHtml(sentence)}</p>
+      <div class="admin-confirm-actions"><button type="button" class="btn secondary" data-admin-confirm-cancel>Annuler</button><button type="button" class="btn" data-admin-confirm-approve>✓ Approuver</button></div>
+    </div>`;
+    document.body.appendChild(overlay);
+    let done=false;
+    const finish=value=>{if(done)return;done=true;document.removeEventListener('keydown',onKey);overlay.remove();resolve(value)};
+    const onKey=e=>{if(e.key==='Escape')finish(false)};
+    document.addEventListener('keydown',onKey);
+    overlay.addEventListener('click',e=>{if(e.target===overlay||e.target.closest('[data-admin-confirm-cancel]'))finish(false);if(e.target.closest('[data-admin-confirm-approve]'))finish(true)});
+    overlay.querySelector('[data-admin-confirm-approve]')?.focus();
+  });
+}
+
 async function runAdminPlayerAction(button){
   const editor=$('adminPlayerEditor');if(!editor)return;
   const accountId=editor.closest('.admin-players-panel')?.querySelector('.admin-player-card.editor-selected')?.dataset.accountId || editor.dataset.accountId;
@@ -4642,6 +4667,19 @@ async function runAdminPlayerAction(button){
   else amount=editor.querySelector(`[data-admin-amount="${action}"]`)?.value;
   if(action==='reset_pve'&&!window.confirm('Réinitialiser toute la progression PvE de ce joueur ? Cette action est volontairement réservée aux corrections.'))return;
   if(action==='reset_battle'&&!window.confirm('Annuler le combat PvE actuellement en cours pour ce joueur ?'))return;
+  if(!['reset_pve','reset_battle'].includes(action)){
+    const username=editor.dataset.username||'ce joueur';
+    const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d’œuf",universal_fragments:'fragments universels',grant_egg:'œuf(s)',prestige:'Prestige',lovys_fragments:'fragments de Lovys'};
+    const numeric=Number(amount);
+    const verb=action==='prestige'?'Régler':(numeric<0?'Retirer':'Ajouter');
+    const shown=action==='prestige'?String(amount):String(Math.abs(numeric));
+    const unit=labels[action]||action;
+    const sentence=action==='prestige'
+      ? `Êtes-vous sûr de vouloir régler le Prestige de ${username} sur ${shown} ?`
+      : `Êtes-vous sûr de vouloir ${verb.toLowerCase()} ${shown} ${unit} ${numeric<0?'à':'à'} ${username} ?`;
+    const approved=await showAdminActionConfirmation({username,actionLabel:`${verb} ${shown} ${unit}`,sentence});
+    if(!approved)return;
+  }
   button.disabled=true;const old=button.textContent;button.textContent='…';
   try{
     const body={action,reason,amount};if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
