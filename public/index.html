@@ -11,11 +11,18 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=222">
+<link rel="stylesheet" href="/styles.css?v=223">
 
 
 </head>
 <body class="auth-locked">
+<div id="universalPageHeader" class="universal-page-header" aria-hidden="true">
+  <div class="universal-page-header-inner">
+    <h1 id="universalPageTitle"></h1>
+    <p id="universalPageSubtitle"></p>
+  </div>
+</div>
+
   <div id="authOverlay" class="auth-overlay">
 
   <div class="auth-home">
@@ -1063,6 +1070,18 @@
   </div>
 </div>
 
-<script src="/app.js?v=222"></script>
+<script src="/app.js?v=223"></script>
 <script src="/auth-fallback.js?v=108"></script>
+<script id="universalPageHeaderController">
+(function(){
+ const D={lovys:["🐉 Mes Lovys","Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys."],incubateur:["🥚 Incubateur","Tes emplacements d’incubation."],pve:["⚔️ Aventure PvE","Progresse dans les zones et affronte les créatures."],communaute:["🤝 Communauté","La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],classement:["🏆 Classement",""],progression:["📈 Ma progression","Suis ta progression globale dans l'univers LoVeRDoSe."],boutique:["🛒 Boutique","Personnalise ton profil et utilise ton LoVeR’Cash."]};
+ const n=s=>(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z]/g,"");
+ const H=document.getElementById("universalPageHeader"),T=document.getElementById("universalPageTitle"),S=document.getElementById("universalPageSubtitle");
+ function show(k){const d=D[k];H.style.display=d?"block":"none";if(d){T.textContent=d[0];S.textContent=d[1];S.style.display=d[1]?"block":"none";}}
+ function keyFrom(s){s=n(s);for(const k in D)if(s.includes(n(k)))return k;if(s.includes("accueil"))return "";return null;}
+ document.addEventListener("click",e=>{const a=e.target.closest("a,button,[role=button]");if(!a)return;const k=keyFrom(a.textContent);if(k!==null)requestAnimationFrame(()=>show(k));},true);
+ function sync(){if(document.body.classList.contains("desktop-leaderboard-open"))return show("classement");const dv=n(document.body.dataset.desktopView),m={shop:"boutique",lobby:"communaute",leaderboard:"classement",incubator:"incubateur",lovys:"lovys",pve:"pve",progression:"progression"};if(m[dv])return show(m[dv]);for(const a of document.querySelectorAll(".active,[aria-current=page]")){const k=keyFrom(a.textContent);if(k!==null)return show(k);}}
+ new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","data-desktop-view","aria-current"]});sync();
+})();
+</script>
 </body></html>
