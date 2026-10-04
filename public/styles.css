@@ -7001,3 +7001,46 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V210 ===== */
 
+
+/* ===== V211 — EN-TETES PC ALIGNES SUR LE VIEWPORT =====
+   Correctif après contrôle visuel : les anciens parents avaient des largeurs
+   différentes. Les en-têtes utilisent maintenant directement la même largeur
+   viewport que la Boutique, indépendamment de leur wrapper historique. */
+@media (min-width:901px){
+  body[data-desktop-view="shop"] #shopModal .shop-head,
+  body[data-desktop-view="lovys"] #lovysCollectionModal .lovys-collection-head,
+  body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
+  body[data-desktop-view="progression"] #progressionModal>.game-panel>.game-head,
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body[data-desktop-view="incubator"] .incubator-topbar-head{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1500px,calc(100vw - 84px))!important;
+    max-width:none!important;
+    margin-top:0!important;
+    margin-bottom:22px!important;
+    padding:8px 0 22px!important;
+  }
+
+  /* Annule les retraits propres aux anciens wrappers pour que le haut de page
+     démarre au même niveau vertical que Boutique. */
+  body[data-desktop-view="incubator"] .dashboard-head-grid,
+  body[data-desktop-view="lobby"] .desktop-lobby-shell{
+    margin-top:12px!important;
+  }
+
+  /* Classement : seulement le bandeau titre. */
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    position:relative!important;
+    left:50%!important;
+    transform:translateX(-50%)!important;
+    width:min(1500px,calc(100vw - 84px))!important;
+    max-width:none!important;
+    margin:0!important;
+    padding:8px 0 22px!important;
+    text-align:left!important;
+  }
+}
+/* ===== /V211 ===== */
+
