@@ -2530,6 +2530,13 @@ function applyLeaderboardCanonicalLayout(isSearch = false) {
   const board = document.querySelector('.global-leaderboard');
   const container = $('leaderboard');
   const important = (el, prop, value) => el?.style.setProperty(prop, value, 'important');
+  // Le classement ne doit jamais pouvoir traverser sur une autre page PC.
+  // V184 utilise display:contents en recherche : sans ce garde, ses enfants
+  // restent visibles même lorsque l'aside parent est censé être masqué.
+  if (document.body.dataset.desktopView !== 'leaderboard') {
+    important(board, 'display', 'none');
+    return;
+  }
   if (board) {
     ['background','background-image','box-shadow','border','backdrop-filter','-webkit-backdrop-filter'].forEach(prop => important(board, prop, prop === 'border' ? '0' : prop.includes('filter') ? 'none' : prop.includes('shadow') ? 'none' : 'transparent'));
     important(board, 'height', 'auto'); important(board, 'min-height', '0'); important(board, 'max-height', 'none');
@@ -5258,6 +5265,15 @@ async function openDesktopView(view='home'){
   desktopView=view;setDesktopNavActive(view);
   document.body.dataset.desktopView=view;
   closeDesktopPrimaryPages(view);
+  const leaderboardBoard=document.querySelector('.global-leaderboard');
+  if(view!=='leaderboard'){
+    leaderboardBoard?.style.setProperty('display','none','important');
+    document.body.classList.remove('leaderboard-search-active');
+    const leaderboardSearch=$('leaderboardSearch');
+    if(leaderboardSearch) leaderboardSearch.value='';
+  }else{
+    leaderboardBoard?.style.removeProperty('display');
+  }
   window.scrollTo({top:0,behavior:'auto'});
   if(view==='home'||view==='incubator')return;
   if(view==='account'){await openAccountModal();return;}
