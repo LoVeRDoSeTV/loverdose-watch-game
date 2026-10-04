@@ -6332,3 +6332,14 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   }
 }
 /* ===== /V165 ===== */
+
+/* ===== V166 — Classement : cartes du podium plus larges ===== */
+@media (min-width:1200px){
+  body.desktop-leaderboard-open .leaderboard-v150-podium{
+    width:min(1280px,100%)!important;
+    max-width:1280px!important;
+    grid-template-columns:minmax(320px,1fr) minmax(360px,1.12fr) minmax(320px,1fr)!important;
+    column-gap:30px!important;
+  }
+}
+/* ===== /V166 ===== */
