@@ -7076,3 +7076,16 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 }
 /* ===== /V242 ===== */
+
+/* ===== V243 — POPUP PRESTIGE ===== */
+.progression-report-prestige{appearance:none;border:0;background:transparent;font:inherit;color:inherit;padding:4px 2px;margin-left:auto;text-align:right;cursor:pointer;border-radius:10px}
+.progression-report-prestige:hover{background:rgba(145,71,255,.09)}
+.progression-report-prestige:focus-visible{outline:2px solid #9147ff;outline-offset:4px}
+.prestige-info-modal{position:fixed;inset:0;z-index:1000100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(8px)}
+.prestige-info-modal.open{display:flex}
+.prestige-info-panel{position:relative;width:min(520px,100%);padding:26px;border:1px solid rgba(145,71,255,.42);border-radius:20px;background:linear-gradient(160deg,#19152e,#0e1224 72%);box-shadow:0 28px 90px rgba(0,0,0,.6)}
+.prestige-info-close{position:absolute;top:12px;right:12px;width:34px;height:34px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:rgba(255,255,255,.05);color:#fff;font-size:21px;cursor:pointer}
+.prestige-info-icon{font-size:34px}.prestige-info-panel h3{margin:8px 0 8px;font-size:23px}.prestige-info-panel>p{margin:0;color:#b9c2dc;font-size:13px;line-height:1.55}
+.prestige-info-rules{display:grid;gap:8px;margin:18px 0}.prestige-info-rules>div{display:grid;gap:3px;padding:11px 12px;border:1px solid rgba(145,71,255,.18);border-radius:11px;background:rgba(255,255,255,.035)}.prestige-info-rules b{font-size:12px;color:#eee7ff}.prestige-info-rules span{font-size:11px;color:#aeb8d2;line-height:1.45}
+.prestige-info-current{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border:1px solid rgba(245,215,122,.25);border-radius:12px;background:rgba(245,215,122,.06)}.prestige-info-current span{font-size:12px;font-weight:850}.prestige-info-current strong{font-size:24px;color:#f5d77a}.prestige-info-note{margin-top:12px!important}.prestige-info-ok{width:100%;margin-top:18px;min-height:40px}
+/* ===== /V243 ===== */
