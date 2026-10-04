@@ -6936,52 +6936,50 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 
-/* ===== V221 — EN-TETES NATIFS, MEME CADRE BOUTIQUE ===== */
+/* ===== V222 — UNIQUEMENT LOVYS / INCUBATEUR / COMMUNAUTE / CLASSEMENT =====
+   PvE / Boutique / Progression restent totalement hors de cette correction. */
 @media (min-width:901px){
- :root{--page-ref-width:min(1500px,calc(100vw - 84px));}
+  :root{--validated-page-left:calc((100vw - min(1500px,calc(100vw - 84px))) / 2);--validated-page-width:min(1500px,calc(100vw - 84px));}
 
- /* Chaque vrai header de page est affiché et placé dans le même cadre viewport. */
- body[data-desktop-view="shop"] .shop-head,
- body[data-desktop-view="lovys"] .lovys-collection-head,
- body[data-desktop-view="incubator"] .incubator-topbar-head,
- body[data-desktop-view="lobby"] .desktop-page-head,
- body[data-desktop-view="pve"] .game-head,
- body[data-desktop-view="progression"] .game-head,
- body.desktop-leaderboard-open .global-leaderboard>h2{
-   display:block!important;
-   box-sizing:border-box!important;
-   position:relative!important;
-   width:var(--page-ref-width)!important;
-   max-width:1500px!important;
-   min-width:0!important;
-   left:50%!important;
-   right:auto!important;
-   transform:translateX(-50%)!important;
-   margin-left:0!important;
-   margin-right:0!important;
-   padding-left:0!important;
-   padding-right:0!important;
-   text-align:left!important;
- }
+  /* Ces quatre headers utilisent le viewport comme référence, pas leur ancien parent. */
+  body[data-desktop-view="lovys"] .lovys-collection-head,
+  body[data-desktop-view="incubator"] .incubator-topbar-head,
+  body[data-desktop-view="lobby"] .desktop-page-head,
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    display:block!important;
+    box-sizing:border-box!important;
+    position:relative!important;
+    width:var(--validated-page-width)!important;
+    max-width:1500px!important;
+    min-width:0!important;
+    margin-left:var(--validated-page-left)!important;
+    margin-right:0!important;
+    left:0!important;
+    right:auto!important;
+    transform:none!important;
+    padding-left:0!important;
+    padding-right:0!important;
+    text-align:left!important;
+  }
 
- body[data-desktop-view="shop"] .shop-head h2,
- body[data-desktop-view="lovys"] .lovys-collection-head h2,
- body[data-desktop-view="lobby"] .desktop-page-head h2,
- body[data-desktop-view="pve"] .game-head h2,
- body[data-desktop-view="progression"] .game-head h2,
- body[data-desktop-view="incubator"] .incubator-topbar-title,
- body.desktop-leaderboard-open .global-leaderboard>h2{
-   font-size:34px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important;
- }
+  /* Typographie identique aux pages validées. */
+  body[data-desktop-view="lovys"] .lovys-collection-head h2,
+  body[data-desktop-view="lobby"] .desktop-page-head h2,
+  body[data-desktop-view="incubator"] .incubator-topbar-title,
+  body.desktop-leaderboard-open .global-leaderboard>h2{
+    font-size:34px!important;line-height:1.15!important;font-weight:800!important;letter-spacing:-.02em!important;
+  }
+  body[data-desktop-view="lovys"] .lovys-collection-head p,
+  body[data-desktop-view="lobby"] .desktop-page-head p,
+  body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
+    font-size:13px!important;line-height:1.5!important;
+  }
 
- body[data-desktop-view="shop"] .shop-head p,
- body[data-desktop-view="lovys"] .lovys-collection-head p,
- body[data-desktop-view="lobby"] .desktop-page-head p,
- body[data-desktop-view="pve"] .game-head p,
- body[data-desktop-view="progression"] .game-head p,
- body[data-desktop-view="incubator"] .incubator-topbar-subtitle{
-   font-size:13px!important;line-height:1.5!important;
- }
+  /* Communauté : le loader historique ne doit pas modifier la géométrie du titre. */
+  body[data-desktop-view="lobby"] .desktop-page-head .lobby-loading,
+  body[data-desktop-view="lobby"] .desktop-page-head progress{
+    max-width:100%!important;
+  }
 }
-/* ===== /V221 ===== */
+/* ===== /V222 ===== */
 
