@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=217">
+<link rel="stylesheet" href="/styles.css?v=218">
 
 
 </head>
@@ -271,7 +271,12 @@
 </div>
  <aside class="global-leaderboard">
   <h2>🏆 Classement</h2>
-  <div class="leaderboard-search-wrap">
+  
+<div id="desktopGlobalPageHeader" class="desktop-global-page-header" aria-live="polite">
+  <h1 id="desktopGlobalPageTitle"></h1>
+  <p id="desktopGlobalPageSubtitle"></p>
+</div>
+<div class="leaderboard-search-wrap">
     <input id="leaderboardSearch" class="leaderboard-search" type="search" maxlength="32" autocomplete="off" placeholder="🔎 Rechercher un joueur..." aria-label="Rechercher un joueur dans le classement">
   </div>
 
@@ -1063,5 +1068,35 @@
   </div>
 </div>
 
-<script src="/app.js?v=217"></script>
-<script src="/auth-fallback.js?v=108"></script></body></html>
+<script src="/app.js?v=218"></script>
+<script src="/auth-fallback.js?v=108"></script>
+<script id="desktopGlobalPageHeaderController">
+(function(){
+  const pages={
+    lovys:["🐉 Mes Lovys","Retrouve et gère ta collection de Lovys."],
+    incubator:["🥚 Incubateur","Fais éclore tes œufs et découvre de nouveaux Lovys."],
+    pve:["⚔️ Aventure PvE","Progresse dans les zones et affronte les créatures."],
+    lobby:["🤝 Communauté","La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
+    leaderboard:["🏆 Classement","Découvre ta position et celle de la communauté."],
+    classement:["🏆 Classement","Découvre ta position et celle de la communauté."],
+    progression:["📈 Ma progression","Suis ta progression globale dans l'univers LoVeRDoSe."],
+    shop:["🛒 Boutique","Utilise ton LoVeR’Cash pour obtenir des récompenses."]
+  };
+  const title=document.getElementById("desktopGlobalPageTitle");
+  const sub=document.getElementById("desktopGlobalPageSubtitle");
+  const header=document.getElementById("desktopGlobalPageHeader");
+  function sync(){
+    if(!header||!title||!sub)return;
+    let key=document.body.dataset.desktopView||"";
+    if(document.body.classList.contains("desktop-leaderboard-open")) key="leaderboard";
+    const data=pages[key];
+    header.style.display=data?"":"none";
+    if(data){title.textContent=data[0];sub.textContent=data[1]||"";}
+  }
+  new MutationObserver(sync).observe(document.body,{attributes:true,attributeFilter:["data-desktop-view","class"]});
+  document.addEventListener("click",()=>requestAnimationFrame(sync),true);
+  sync();
+})();
+</script>
+
+</body></html>
