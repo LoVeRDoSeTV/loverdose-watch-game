@@ -5591,3 +5591,53 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
   new MutationObserver(bindAll).observe(document.documentElement,{childList:true,subtree:true});
 })();
 
+
+/* V236 — drag horizontal uniquement sur la rangée des grades */
+(function(){
+  function bindGradeBandDrag(){
+    document.querySelectorAll('#page-progression .progression-grade-bands').forEach(function(band){
+      if(band.dataset.v236DragBound==='1') return;
+      band.dataset.v236DragBound='1';
+
+      let dragging=false, moved=false, startX=0, startScroll=0;
+
+      const stop=function(){
+        if(!dragging) return;
+        dragging=false;
+        band.classList.remove('dragging');
+      };
+
+      band.addEventListener('mousedown',function(e){
+        if(e.button!==0) return;
+        dragging=true;
+        moved=false;
+        startX=e.clientX;
+        startScroll=band.scrollLeft;
+        band.classList.add('dragging');
+      });
+
+      window.addEventListener('mousemove',function(e){
+        if(!dragging) return;
+        if(!(e.buttons&1)){ stop(); return; }
+        const dx=e.clientX-startX;
+        if(Math.abs(dx)>3) moved=true;
+        band.scrollLeft=startScroll-dx;
+        if(moved) e.preventDefault();
+      });
+
+      window.addEventListener('mouseup',stop);
+      window.addEventListener('blur',stop);
+
+      band.addEventListener('click',function(e){
+        if(!moved) return;
+        e.preventDefault();
+        e.stopPropagation();
+        moved=false;
+      },true);
+    });
+  }
+
+  bindGradeBandDrag();
+  new MutationObserver(bindGradeBandDrag).observe(document.documentElement,{childList:true,subtree:true});
+})();
+
