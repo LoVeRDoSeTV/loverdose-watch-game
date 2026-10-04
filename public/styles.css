@@ -6825,3 +6825,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .trade-asset-row #tradeOfferCreature{display:none!important}
   .trade-asset-row .trade-selected-preview{width:100%;box-sizing:border-box}
 }
+
+/* V190 — confirmation de publication intégrée au Lobby */
+.trade-publish-confirm{margin-top:14px;padding:15px;border:1px solid rgba(145,71,255,.32);border-radius:14px;background:linear-gradient(135deg,rgba(145,71,255,.10),rgba(91,214,164,.05));display:flex;align-items:center;justify-content:space-between;gap:18px}.trade-publish-confirm.hidden{display:none}.trade-publish-confirm>div:first-child{display:grid;gap:5px}.trade-publish-confirm strong{font-size:13px;color:#fff}.trade-publish-confirm span{font-size:12px;font-weight:850;color:#d9f7eb}.trade-publish-confirm small{font-size:10px;color:#9ea7c6}.trade-publish-confirm-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}.trade-publish-confirm-actions button{white-space:nowrap}
+@media(max-width:760px){.trade-publish-confirm{align-items:stretch;flex-direction:column}.trade-publish-confirm-actions{justify-content:flex-end;flex-wrap:wrap}}
