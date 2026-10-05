@@ -3521,8 +3521,21 @@ $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
 $('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('inventory'); });
 $('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('profile'); });
-window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } });
-document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
+function openMobileLeaderboard(){
+  if(!isMobileGameUi()) return;
+  closeAllMobilePanels('');
+  document.body.classList.add('mobile-leaderboard-open');
+  document.body.style.overflow='hidden';
+  loadLeaderboard();
+}
+function closeMobileLeaderboard(){
+  document.body.classList.remove('mobile-leaderboard-open');
+  if(isMobileGameUi()) document.body.style.overflow='';
+}
+$('mobileLeaderboardOpen')?.addEventListener('click',openMobileLeaderboard);
+$('mobileLeaderboardClose')?.addEventListener('click',closeMobileLeaderboard);
+window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.body.classList.contains('mobile-leaderboard-open')) closeMobileLeaderboard(); if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');
 if (leaderboardSearchInput) {
