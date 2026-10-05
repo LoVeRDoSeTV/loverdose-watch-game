@@ -7239,3 +7239,30 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V248 ===== */
 
+/* ===== V249 — MOBILE UNIQUEMENT : cosmétiques synchronisés dans le classement =====
+   Les bannières/fonds et encadrements équipés gardent la priorité sur le style
+   mobile du podium (y compris la 1re place). Le PC conserve son rendu existant. */
+@media(max-width:900px){
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card{
+    position:relative!important;
+    overflow:hidden!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+  }
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-background{
+    background-image:var(--leaderboard-card-bg)!important;
+  }
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-frame{
+    border-color:var(--leaderboard-card-border)!important;
+    box-shadow:var(--leaderboard-card-shadow)!important;
+  }
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-background .leaderboard-v150-name,
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-background .leaderboard-v150-row-main>strong,
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-background .leaderboard-v150-global,
+  body.mobile-leaderboard-open .leaderboard-v154-profile-card.has-cosmetic-background .leaderboard-v150-row-rank{
+    text-shadow:0 2px 8px rgba(0,0,0,.82);
+  }
+}
+/* ===== /V249 ===== */
+
