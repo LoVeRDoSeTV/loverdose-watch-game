@@ -4469,11 +4469,14 @@ body:has(#pveModal:not(.hidden)){
   background-repeat:no-repeat,no-repeat;
 }
 .reward-wheel-card::after{display:none}
-@media(max-width:700px){
+@media(max-width:900px){
   .wallet-card{
-    background-size:auto 100%;
-    background-position:left center;
+    background-image:none;
+    background-color:rgba(21,25,43,.94);
+    box-shadow:none;
   }
+}
+@media(max-width:700px){
   .reward-wheel-card{
     background-size:100% 100%,100% 100%;
   }
@@ -7208,9 +7211,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
   body.mobile-leaderboard-open .global-leaderboard .leaderboard-search-wrap{margin:0 0 14px!important}
   body.mobile-leaderboard-open .global-leaderboard #leaderboard{width:100%!important;max-width:100%!important;margin:0!important;padding-bottom:24px!important}
-  body.mobile-leaderboard-open .leaderboard-v150-podium{grid-template-columns:1fr!important;gap:10px!important;margin:16px 0!important;padding:0!important}
-  body.mobile-leaderboard-open .leaderboard-v150-podium-card,
-  body.mobile-leaderboard-open .leaderboard-v150-podium-card.rank-1{min-height:0!important;transform:none!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium{display:flex!important;flex-direction:column;align-items:center;gap:10px!important;margin:16px 0!important;padding:0!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium-card{transform:none!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium-card.rank-1{width:100%;min-height:146px!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium-card.rank-2{width:94%;min-height:126px!important;border-color:rgba(196,205,224,.45)}
+  body.mobile-leaderboard-open .leaderboard-v150-podium-card.rank-3{width:88%;min-height:108px!important;border-color:rgba(195,123,72,.48)}
   body.mobile-leaderboard-open .leaderboard-v150-row{min-width:0!important;width:100%!important}
 
   body.mobile-leaderboard-open .leaderboard-v151-tabs{display:flex;gap:7px;overflow-x:auto;padding:2px 0 8px;margin-bottom:10px;scrollbar-width:none}
@@ -7232,6 +7237,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-leaderboard-open .leaderboard-v150-avatar{width:42px;height:42px;border-radius:11px;object-fit:cover;background:#171a2d;border:1px solid rgba(145,71,255,.30)}
   body.mobile-leaderboard-open .leaderboard-v150-avatar-fallback{display:grid;place-items:center;font-size:20px}
   body.mobile-leaderboard-open .leaderboard-v150-podium .podium-avatar{width:42px!important;height:42px!important;margin:0!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium .rank-1 .podium-avatar{width:54px!important;height:54px!important}
+  body.mobile-leaderboard-open .leaderboard-v150-podium .rank-2 .podium-avatar{width:46px!important;height:46px!important}
+  body.mobile-leaderboard-open .rank-1 .leaderboard-v154-card-content{grid-template-columns:38px 54px minmax(0,1fr) auto}
+  body.mobile-leaderboard-open .rank-1 .leaderboard-v150-name{font-size:15px}
+  body.mobile-leaderboard-open .rank-1 .leaderboard-v150-medal{font-size:28px}
   body.mobile-leaderboard-open .leaderboard-v150-name{grid-column:3;grid-row:1;font-size:13px;font-weight:950;color:#fff}
   body.mobile-leaderboard-open .leaderboard-v150-title{grid-column:3;grid-row:2;font-size:9px;font-weight:800;margin-top:1px;color:#b9c1d9}
   body.mobile-leaderboard-open .leaderboard-v150-lovys.large{display:none}

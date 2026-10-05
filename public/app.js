@@ -2655,7 +2655,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
       return;
     }
     document.body.classList.remove('leaderboard-search-active');
-    const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = [top3.find(p=>Number(p.rank)===2), top3.find(p=>Number(p.rank)===1), top3.find(p=>Number(p.rank)===3)].filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
+    const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = (isMobileGameUi() ? [1,2,3] : [2,1,3]).map(rank=>top3.find(p=>Number(p.rank)===rank)).filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
     container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
     applyLeaderboardCanonicalLayout(false);
   } catch (error) { console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
