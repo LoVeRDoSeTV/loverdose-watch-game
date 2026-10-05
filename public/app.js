@@ -3407,9 +3407,47 @@ $('progressionModal')?.addEventListener('mouseup',event=>{
 
 function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
 function setMobileNavActive(id){ document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id)); }
-function getSelfLeaderboardPlayer(){ return (leaderboardPlayers||[]).find(player=>String(player.twitch_id||'')===String(me?.user?.twitch_id||'')); }
+function getSelfLeaderboardPlayer(){
+  const current = me?.user;
+  const cached = (leaderboardPlayers||[]).find(player=>String(player.twitch_id||'')===String(current?.twitch_id||''));
+  if(!current) return cached || null;
+  // Le profil mobile reprend toujours les données actuellement équipées sur la carte joueur.
+  // Les infos propres au classement (rang, badges, compteurs) restent celles du dernier chargement.
+  return {
+    ...(cached || {}),
+    twitch_id: current.twitch_id,
+    login: current.login,
+    display_name: current.game_username || current.display_name || cached?.display_name || 'Joueur',
+    is_sub: Boolean(current.is_sub),
+    profile_image_url: current.profile_image_url || null,
+    creature_id: current.creature_id || null,
+    xp: Number(current.xp ?? cached?.xp ?? 0),
+    pending_xp: Number(current.pending_xp ?? cached?.pending_xp ?? 0),
+    global_xp: Number(current.global_xp ?? cached?.global_xp ?? 0),
+    prestige: Number(current.prestige ?? cached?.prestige ?? 0),
+    egg_fragments: Number(current.egg_fragments ?? cached?.egg_fragments ?? 0),
+    points: Number(current.points ?? cached?.points ?? 0),
+    watch_seconds: Number(current.watch_seconds ?? cached?.watch_seconds ?? 0),
+    rank: Number(cached?.rank || current.leaderboard_rank || 0),
+    progression: current.progression || cached?.progression,
+    global_progression: current.global_progression || cached?.global_progression,
+    created_at: current.created_at || cached?.created_at || null,
+    lifetime_lovercash_earned: Number(current.lifetime_lovercash_earned ?? cached?.lifetime_lovercash_earned ?? 0),
+    lifetime_lovercash_spent: Number(current.lifetime_lovercash_spent ?? cached?.lifetime_lovercash_spent ?? 0),
+    creature_count: Number(cached?.creature_count ?? (current.creature_id ? 1 : 0)),
+    badge_count: Number(cached?.badge_count ?? (badgeData.badges || []).length),
+    cosmetic_title: current.cosmetic_title || null,
+    cosmetic_title_color: current.cosmetic_title_color || null,
+    cosmetic_background: current.cosmetic_background || null,
+    cosmetic_frame: current.cosmetic_frame || null,
+    cosmetic_avatar_frame: current.cosmetic_avatar_frame || null,
+    leaderboard_badges: cached?.leaderboard_badges || (badgeData.badges || []).filter(badge=>Number(badge.leaderboardSlot)>0).sort((a,b)=>Number(a.leaderboardSlot)-Number(b.leaderboardSlot)).slice(0,2),
+    unlocked_badges: cached?.unlocked_badges || badgeData.badges || []
+  };
+}
 function isMobileEggDetailsOpen(){ return Boolean($('pick')?.classList.contains('egg-details-open')); }
 function isMobilePanelOpen(panel){
+  if(panel==='leaderboard') return document.body.classList.contains('mobile-leaderboard-open');
   if(panel==='combat') return !$('pveModal')?.classList.contains('hidden');
   if(panel==='inventory') return !$('inventoryModal')?.classList.contains('hidden');
   if(panel==='profile') return !$('playerProfileModal')?.classList.contains('hidden');
@@ -3419,6 +3457,7 @@ function isMobilePanelOpen(panel){
 }
 function syncMobileNavState(){
   if(!isMobileGameUi()) return;
+  if(document.body.classList.contains('mobile-leaderboard-open')) return setMobileNavActive('mobileNavLeaderboard');
   if(!$('pveModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavCombat');
   if(!$('inventoryModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavInventory');
   if(!$('playerProfileModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavProfile');
@@ -3438,6 +3477,7 @@ function closeMobileEggDetails(){
 }
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  if(except!=='leaderboard') document.body.classList.remove('mobile-leaderboard-open');
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
   if(except!=='inventory') $('inventoryModal')?.classList.add('hidden');
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
@@ -3454,7 +3494,9 @@ function toggleMobilePanel(panel){
     syncMobileNavState();
     return;
   }
-  if(panel==='combat'){
+  if(panel==='leaderboard'){
+    openMobileLeaderboard();
+  } else if(panel==='combat'){
     $('pveModal')?.classList.remove('hidden');
     loadPve();
   } else if(panel==='inventory'){
@@ -3519,18 +3561,21 @@ $('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(isMobileGame
 $('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; closeAllMobilePanels(''); syncMobileNavState(); document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
 $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('combat'); });
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
+$('mobileNavLeaderboard')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('leaderboard'); });
 $('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('inventory'); });
 $('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('profile'); });
 function openMobileLeaderboard(){
   if(!isMobileGameUi()) return;
-  closeAllMobilePanels('');
+  closeAllMobilePanels('leaderboard');
   document.body.classList.add('mobile-leaderboard-open');
   document.body.style.overflow='hidden';
+  setMobileNavActive('mobileNavLeaderboard');
   loadLeaderboard();
 }
 function closeMobileLeaderboard(){
   document.body.classList.remove('mobile-leaderboard-open');
   if(isMobileGameUi()) document.body.style.overflow='';
+  syncMobileNavState();
 }
 $('mobileLeaderboardOpen')?.addEventListener('click',openMobileLeaderboard);
 $('mobileLeaderboardClose')?.addEventListener('click',closeMobileLeaderboard);

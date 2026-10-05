@@ -7115,47 +7115,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 /* ===== /V245 ===== */
 
 
-/* ===== V246 — MOBILE UNIQUEMENT : classement compact en bas ===== */
-.mobile-leaderboard-entry,.mobile-leaderboard-close{display:none}
+/* ===== V246/V247 — MOBILE UNIQUEMENT : classement en fenêtre ===== */
+.mobile-leaderboard-close{display:none}
 @media(max-width:900px){
-  /* Le classement complet ne prend plus de place dans l'accueil mobile. */
+  /* Le classement complet reste hors de l’accueil et s’ouvre depuis la navigation basse. */
   .global-leaderboard{display:none!important}
-
-  /* Petite catégorie Classement en bas de l'accueil. */
-  .mobile-leaderboard-entry{
-    display:grid;
-    grid-template-columns:48px minmax(0,1fr);
-    gap:11px 12px;
-    align-items:center;
-    margin:16px 0 8px;
-    padding:15px;
-    border:1px solid rgba(145,71,255,.28);
-    border-radius:18px;
-    background:linear-gradient(145deg,rgba(28,31,56,.96),rgba(14,17,34,.98));
-    box-shadow:0 12px 28px rgba(0,0,0,.20);
-  }
-  .mobile-leaderboard-entry-icon{
-    width:48px;height:48px;
-    display:grid;place-items:center;
-    border-radius:14px;
-    border:1px solid rgba(235,190,65,.30);
-    background:linear-gradient(145deg,rgba(235,190,65,.14),rgba(145,71,255,.10));
-    font-size:24px;
-  }
-  .mobile-leaderboard-entry-copy{min-width:0}
-  .mobile-leaderboard-entry-copy strong{display:block;color:#fff;font-size:15px;font-weight:950}
-  .mobile-leaderboard-entry-copy span{display:block;margin-top:3px;color:#9ea7c6;font-size:11px;line-height:1.35;font-weight:750}
-  .mobile-leaderboard-open-btn{
-    grid-column:1/-1;
-    width:100%;min-height:42px;
-    border:1px solid rgba(145,71,255,.52);
-    border-radius:12px;
-    background:linear-gradient(135deg,#7137c9,#9147ff);
-    color:#fff;
-    font:inherit;font-size:12px;font-weight:950;
-    cursor:pointer;
-    box-shadow:0 8px 20px rgba(82,38,153,.22);
-  }
 
   /* Le classement complet devient une vraie fenêtre mobile uniquement au clic. */
   body.mobile-leaderboard-open .global-leaderboard{
@@ -7244,3 +7208,18 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
   body.mobile-leaderboard-open .mobile-leaderboard-close{display:flex}
 }
+
+
+/* ===== V247 — MOBILE UNIQUEMENT : Classement dans la barre du bas ===== */
+@media(max-width:900px){
+  .mobile-game-nav{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:2px;
+    padding-left:4px;
+    padding-right:4px;
+  }
+  .mobile-game-nav-btn{padding-left:1px;padding-right:1px}
+  .mobile-game-nav-btn b{font-size:8px}
+  .mobile-game-nav-main{transform:translateY(-10px)}
+}
+/* ===== /V247 ===== */
