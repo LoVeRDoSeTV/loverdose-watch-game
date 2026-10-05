@@ -1262,6 +1262,14 @@ function renderTutorialStep() {
 
 function openGameTutorial({ restart = true } = {}) {
   if (restart) tutorialStepIndex = 0;
+  if(isMobileGameUi()){
+    closeAllMobilePanels();
+    syncMobileNavState();
+    updateMobileNavHeight();
+    const modal = $('gameIntroModal');
+    // Le tutoriel mobile ne dépend pas de l'empilement de la page ouverte.
+    if(modal && modal.parentElement !== document.body) document.body.appendChild(modal);
+  }
   $('gameIntroModal')?.classList.remove('hidden');
   renderTutorialStep();
 }
@@ -1292,7 +1300,7 @@ $('gameIntroClose')?.addEventListener('click', () => {
 });
 $('tutorialSkip')?.addEventListener('click', () => closeGameIntro({ markSeen:true }));
 $('gameIntroModal')?.addEventListener('click', event => {
-  if (event.target.id === 'gameIntroModal') closeGameIntro({ markSeen:true });
+  if (!isMobileGameUi() && event.target.id === 'gameIntroModal') closeGameIntro({ markSeen:true });
 });
 
 // V104 — assistant contextuel « Que faire maintenant ? ».
