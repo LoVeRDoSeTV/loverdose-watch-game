@@ -7223,3 +7223,19 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .mobile-game-nav-main{transform:translateY(-10px)}
 }
 /* ===== /V247 ===== */
+
+/* ===== V248 — MOBILE UNIQUEMENT : navigation basse toujours visible =====
+   La barre mobile reste au-dessus des pages/panneaux (dont Classement).
+   Le contenu du classement garde une réserve en bas pour ne jamais passer sous la barre.
+   Le rendu PC reste strictement inchangé. */
+@media(max-width:900px){
+  .mobile-game-nav{
+    z-index:1000070!important;
+  }
+
+  body.mobile-leaderboard-open .global-leaderboard{
+    padding-bottom:var(--mobile-game-nav-safe,calc(92px + env(safe-area-inset-bottom)))!important;
+  }
+}
+/* ===== /V248 ===== */
+
