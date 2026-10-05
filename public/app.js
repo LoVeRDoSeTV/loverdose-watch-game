@@ -3583,6 +3583,52 @@ async function hatchExtraIncubatorEgg(slot){
   }
 }
 
+// Incubateur mobile : défilement natif, sans reconstruire les cartes lors des mises à jour.
+let incubatorCarouselIndex = 0;
+function updateIncubatorCarousel(){
+  const track = $('incubatorCarousel');
+  if(!track || !isMobileGameUi() || !track.clientWidth) return;
+  const cards = [...track.querySelectorAll('[data-incubator-slot]')];
+  const left = track.getBoundingClientRect().left;
+  let closest = 0, distance = Infinity;
+  cards.forEach((card,index)=>{
+    const delta = Math.abs(card.getBoundingClientRect().left - left);
+    if(delta < distance){ closest = index; distance = delta; }
+  });
+  incubatorCarouselIndex = closest;
+  document.querySelectorAll('[data-incubator-slide]').forEach(button=>{
+    button.setAttribute('aria-pressed', String(Number(button.dataset.incubatorSlide) === closest));
+  });
+  if($('incubatorCarouselPrev')) $('incubatorCarouselPrev').disabled = closest === 0;
+  if($('incubatorCarouselNext')) $('incubatorCarouselNext').disabled = closest === cards.length - 1;
+  if($('incubatorCarouselCount')) $('incubatorCarouselCount').textContent = (closest + 1) + ' / ' + cards.length;
+}
+function goToIncubatorSlide(index, behavior){
+  const track = $('incubatorCarousel');
+  if(!track || !isMobileGameUi()) return;
+  const cards = [...track.querySelectorAll('[data-incubator-slot]')];
+  const target = cards[Math.max(0,Math.min(cards.length - 1,index))];
+  if(!target) return;
+  track.scrollTo({
+    left:track.scrollLeft + target.getBoundingClientRect().left - track.getBoundingClientRect().left,
+    behavior:behavior || (window.matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth')
+  });
+}
+$('incubatorCarousel')?.addEventListener('scroll',updateIncubatorCarousel,{passive:true});
+$('incubatorCarouselPrev')?.addEventListener('click',()=>goToIncubatorSlide(incubatorCarouselIndex - 1));
+$('incubatorCarouselNext')?.addEventListener('click',()=>goToIncubatorSlide(incubatorCarouselIndex + 1));
+document.querySelectorAll('[data-incubator-slide]').forEach(button=>{
+  button.addEventListener('click',()=>goToIncubatorSlide(Number(button.dataset.incubatorSlide)));
+});
+if(typeof ResizeObserver !== 'undefined' && $('incubatorCarousel')){
+  new ResizeObserver(()=>{
+    if(!isMobileGameUi()) return;
+    goToIncubatorSlide(incubatorCarouselIndex,'auto');
+    updateIncubatorCarousel();
+  }).observe($('incubatorCarousel'));
+}
+updateIncubatorCarousel();
+
 document.querySelector('.incubator-slots')?.addEventListener('click', event=>{
   const slotEl = event.target.closest('[data-incubator-slot]');
   if (!slotEl) return;
