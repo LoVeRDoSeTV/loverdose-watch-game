@@ -4587,14 +4587,30 @@ body:has(#pveModal:not(.hidden)){
 }
 .tutorial-modal .tutorial-panel{
   z-index:1!important;
-  width:100%;
+  width:min(400px,100%);
   max-height:calc(100dvh - var(--mobile-nav-height,calc(55px + env(safe-area-inset-bottom))) - env(safe-area-inset-top) - 32px);
   overflow-y:auto;
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
-  padding:20px 17px;
-  border-radius:22px 22px 14px 14px;
-}.tutorial-actions{align-items:stretch;flex-direction:column-reverse}.tutorial-nav-actions{display:grid;grid-template-columns:1fr 1fr}.tutorial-nav,.tutorial-skip{width:100%}.tutorial-focus{outline-offset:2px}.pwa-help-panel{padding-bottom:max(20px,env(safe-area-inset-bottom))}}
+  padding:16px;
+  border-radius:18px;
+}
+.tutorial-modal .tutorial-progress,
+.tutorial-modal .tutorial-step-label,
+.tutorial-modal #tutorialPrev,
+.tutorial-modal #tutorialSkip{display:none}
+.tutorial-modal .tutorial-icon{width:36px;height:36px;margin:0 0 8px;font-size:20px}
+.tutorial-modal .tutorial-panel h2{font-size:20px;margin-bottom:6px}
+.tutorial-modal .tutorial-panel>p{min-height:0;font-size:12px}
+.tutorial-modal .tutorial-tip{margin:10px 0;padding:10px;font-size:11px;line-height:1.45}
+.mobile-intro-item{display:grid;grid-template-columns:22px minmax(0,1fr);gap:6px}
+.mobile-intro-item+.mobile-intro-item{margin-top:10px}
+.mobile-intro-item>span{font-size:18px}
+.mobile-intro-item strong{color:#fff}
+.tutorial-modal .tutorial-actions{margin-top:10px}
+.tutorial-modal .tutorial-nav-actions{grid-template-columns:1fr}
+.tutorial-modal .tutorial-nav{min-height:42px}
+.tutorial-actions{align-items:stretch;flex-direction:column-reverse}.tutorial-nav-actions{display:grid;grid-template-columns:1fr 1fr}.tutorial-nav,.tutorial-skip{width:100%}.tutorial-focus{outline-offset:2px}.pwa-help-panel{padding-bottom:max(20px,env(safe-area-inset-bottom))}}
 @media(display-mode:standalone){body{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}}
 
 /* ===== V105 — Combat tactique, talents et rangs Lovys ===== */

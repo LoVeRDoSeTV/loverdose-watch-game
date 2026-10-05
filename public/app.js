@@ -1239,6 +1239,20 @@ function positionTutorialPanel(target) {
 }
 
 function renderTutorialStep() {
+  if(isMobileGameUi()){
+    clearTutorialFocus();
+    resetTutorialPanelPosition();
+    $('gameIntroModal')?.classList.remove('tutorial-step-incubator');
+    if($('tutorialIcon')) $('tutorialIcon').textContent='👋';
+    if($('gameIntroTitle')) $('gameIntroTitle').textContent='Bienvenue dans le jeu !';
+    if($('tutorialText')) $('tutorialText').textContent='Voici l’essentiel pour commencer :';
+    if($('tutorialTip')) $('tutorialTip').innerHTML=
+      '<div class="mobile-intro-item"><span>📺</span><div><strong>Regarde les lives Twitch</strong><br>Ta présence fait progresser ton compte et tes œufs.</div></div>'+
+      '<div class="mobile-intro-item"><span>🐉</span><div><strong>Découvre tes Lovys</strong><br>Fais éclore tes œufs, collectionne les Lovys et pars en combat.</div></div>'+
+      '<div class="mobile-intro-item"><span>🎁</span><div><strong>Récupère tes récompenses</strong><br>Sur l’accueil : défis du jour et roues. Les boutons du bas ouvrent les autres pages.</div></div>';
+    if($('gameIntroClose')) $('gameIntroClose').textContent='C’est parti !';
+    return;
+  }
   const step = tutorialSteps[Math.max(0, Math.min(tutorialSteps.length - 1, tutorialStepIndex))];
   clearTutorialFocus();
   resetTutorialPanelPosition();
@@ -1263,8 +1277,6 @@ function renderTutorialStep() {
 function openGameTutorial({ restart = true } = {}) {
   if (restart) tutorialStepIndex = 0;
   if(isMobileGameUi()){
-    closeAllMobilePanels();
-    syncMobileNavState();
     updateMobileNavHeight();
     const modal = $('gameIntroModal');
     // Le tutoriel mobile ne dépend pas de l'empilement de la page ouverte.
@@ -1276,6 +1288,7 @@ function openGameTutorial({ restart = true } = {}) {
 
 function maybeShowGameIntro() {
   if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
+  if(isMobileGameUi() && !$('gameIntroModal')?.classList.contains('hidden')) return;
   openGameTutorial({ restart:true });
 }
 
@@ -1295,6 +1308,7 @@ async function closeGameIntro({ markSeen = true } = {}) {
 $('infoButton')?.addEventListener('click', () => openGameTutorial({ restart:true }));
 $('tutorialPrev')?.addEventListener('click', () => { if (tutorialStepIndex > 0) { tutorialStepIndex -= 1; renderTutorialStep(); } });
 $('gameIntroClose')?.addEventListener('click', () => {
+  if(isMobileGameUi()){ closeGameIntro({markSeen:true}); return; }
   if (tutorialStepIndex < tutorialSteps.length - 1) { tutorialStepIndex += 1; renderTutorialStep(); return; }
   closeGameIntro({ markSeen:true });
 });
