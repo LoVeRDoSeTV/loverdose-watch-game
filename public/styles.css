@@ -1734,6 +1734,18 @@ html, body{
   .incubator-carousel-dot::before{content:'';width:7px;height:7px;border-radius:99px;background:#414761;transition:width .15s,background .15s}
   .incubator-carousel-dot[aria-pressed="true"]::before{width:20px;background:#a76aff}
   .incubator-carousel-count{font-size:11px;font-weight:850;color:#aeb7d1}
+  .incubator-overview{margin-top:24px;padding-top:18px;border-top:1px solid rgba(145,71,255,.18);text-align:center}
+  .incubator-overview-head{display:grid;justify-items:center;gap:12px;margin-bottom:16px}
+  .incubator-overview-kicker{display:block;font-size:10px;font-weight:900;letter-spacing:.12em;color:#b982ff}
+  .incubator-overview h3{margin:8px 0;font-size:17px;line-height:1.4}
+  .incubator-overview p{margin:8px 0;color:#b9c3df;font-size:12px;line-height:1.5}
+  .incubator-stock{font-size:12px;color:#dce1f2}
+  .incubator-info-grid{display:grid;gap:14px}
+  .incubator-info-card>strong{display:block;margin-bottom:8px;font-size:13px}
+  .incubator-info-card small{display:block;font-size:11px;line-height:1.5;color:#aeb7d1}
+  .incubator-rarity-line{display:flex;justify-content:center;flex-wrap:wrap;gap:7px 12px;margin-bottom:10px;font-size:11px}
+  .incubator-rarity-line span{white-space:nowrap}
+  .incubator-global-live{margin-top:8px;font-size:11px;line-height:1.5;color:#aeb7d1}
 }
 @media(prefers-reduced-motion:reduce){.incubator-carousel-dot::before{transition:none}}
 .wallet-card{align-self:start;width:100%;margin:0;padding:16px 18px;border:1px solid rgba(145,71,255,.28);border-radius:0;background-image:linear-gradient(90deg,rgba(7,10,22,.18) 0%,rgba(7,10,22,.30) 44%,rgba(7,10,22,.42) 100%),url('reward-wallet-bg.webp');background-size:cover;background-position:center;background-repeat:no-repeat;box-shadow:0 14px 40px rgba(0,0,0,.20),inset 0 0 38px rgba(6,8,20,.18);display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;gap:14px}.wallet-card .wallet-kicker{grid-column:1/-1;margin-bottom:0}.wallet-card .wallet-balance-row{margin-bottom:0;min-width:0}.wallet-card .wallet-shop-button{margin-top:0;align-self:center;justify-self:end;width:220px;min-height:40px}
@@ -6073,7 +6085,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .incubator-missing-cash{margin-top:5px;color:#f0b4c2}
 .incubator-empty-buy .incubator-add-actions{justify-content:center;width:100%}
 .incubator-empty-buy .incubator-add-actions .hub-btn{min-width:250px;justify-content:center;text-align:center}
-@media(max-width:900px){.incubator-add-head-actions{gap:7px}.incubator-popup-balance{padding:7px 9px;font-size:11px}.incubator-popup-balance strong{font-size:12px}.incubator-empty-buy .incubator-add-actions .hub-btn{min-width:0;width:100%}}
+@media(max-width:900px){.incubator-add-head-actions{gap:7px}.incubator-popup-balance{display:none}.incubator-popup-balance strong{font-size:12px}.incubator-empty-buy .incubator-add-actions .hub-btn{min-width:0;width:100%}}
 
 
 /* V147 — popup incubateur épurée */
