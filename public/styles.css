@@ -7266,3 +7266,152 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V249 ===== */
 
+/* ===== V250 — MOBILE UNIQUEMENT : vraies pages + Communauté =====
+   Lovys, Combat, Inventaire et Profil ne sont plus présentés comme des popups.
+   La navigation basse reste identique et fixe sur toutes les pages.
+   La Communauté PC est réutilisée avec une mise en page mobile dédiée. */
+@media(max-width:900px){
+  :root{--mobile-page-bottom:var(--mobile-game-nav-safe,calc(92px + env(safe-area-inset-bottom)))}
+
+  /* 7 destinations stables dans la même barre. */
+  .mobile-game-nav{
+    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    z-index:1000070!important;
+  }
+  .mobile-game-nav-btn{position:relative;min-width:0!important;padding-left:0!important;padding-right:0!important}
+  .mobile-game-nav-btn b{font-size:7px!important;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .mobile-game-nav-btn>span{font-size:19px}
+  .mobile-nav-badge{position:absolute;top:4px;right:4px;display:grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef426f;color:#fff;font-style:normal;font-size:8px;font-weight:1000;line-height:1}
+  .mobile-nav-badge.hidden{display:none!important}
+
+  /* Les anciens modals principaux deviennent des pages mobiles plein écran. */
+  #pveModal,
+  #lovysCollectionModal,
+  #inventoryModal,
+  #playerProfileModal{
+    position:fixed!important;
+    inset:0 0 var(--mobile-page-bottom) 0!important;
+    width:100%!important;
+    height:auto!important;
+    z-index:1000055!important;
+    display:block!important;
+    padding:0!important;
+    margin:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    background:linear-gradient(180deg,#12172c 0%,#090d1b 100%)!important;
+    backdrop-filter:none!important;
+  }
+  #pveModal.hidden,
+  #lovysCollectionModal.hidden,
+  #inventoryModal.hidden,
+  #playerProfileModal.hidden{display:none!important}
+
+  #pveModal>.game-panel,
+  #lovysCollectionModal>.lovys-collection-panel,
+  #inventoryModal>.inventory-panel,
+  #playerProfileModal>.player-profile-panel{
+    width:100%!important;
+    max-width:none!important;
+    min-height:100%!important;
+    max-height:none!important;
+    margin:0!important;
+    padding:calc(18px + env(safe-area-inset-top)) 14px 30px!important;
+    overflow:visible!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  #pveModal .game-close,
+  #lovysCollectionModal .lovys-collection-head>.game-close,
+  #inventoryModal .inventory-close,
+  #playerProfileModal .player-profile-close{display:none!important}
+
+  /* Le contenu PvE défile avec la page, sans second panneau modal. */
+  #pveModal #pveContent{height:auto!important;max-height:none!important;overflow:visible!important;padding-bottom:24px!important}
+  #pveModal .game-panel{height:auto!important;overflow:visible!important}
+
+  /* Communauté : vraie page mobile utilisant exactement les fonctions de la version PC. */
+  body.mobile-community-open #desktopLobbyPage{
+    display:block!important;
+    position:fixed!important;
+    inset:0 0 var(--mobile-page-bottom) 0!important;
+    z-index:1000055!important;
+    padding:0!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    background:linear-gradient(180deg,#12172c 0%,#090d1b 100%)!important;
+  }
+  body.mobile-community-open #desktopLobbyPage.hidden{display:none!important}
+  body.mobile-community-open .desktop-lobby-shell{
+    width:100%!important;min-height:100%!important;margin:0!important;
+    padding:calc(18px + env(safe-area-inset-top)) 14px 30px!important;
+    border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+  }
+  body.mobile-community-open .desktop-page-head{display:grid!important;grid-template-columns:1fr;gap:10px}
+  body.mobile-community-open .desktop-page-head h2{margin:0!important;font-size:24px!important;color:#fff}
+  body.mobile-community-open .desktop-page-head p{margin:5px 0 0!important;color:#aeb8d4!important;font-size:11px!important;line-height:1.45}
+  body.mobile-community-open .lobby-presence-summary{justify-self:start;padding:7px 10px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:9px;font-weight:900}
+  body.mobile-community-open .lobby-howto{margin-top:13px;padding:10px 11px;border:1px solid rgba(145,71,255,.14);border-radius:11px;background:rgba(145,71,255,.06);color:#aeb8d4;font-size:9px;line-height:1.5}
+  body.mobile-community-open .lobby-howto span{color:#a98cff}
+  body.mobile-community-open .lobby-tabs{display:flex!important;gap:6px;margin-top:14px;padding:0 0 10px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.07);scrollbar-width:none}
+  body.mobile-community-open .lobby-tabs::-webkit-scrollbar{display:none}
+  body.mobile-community-open .lobby-tab{flex:0 0 auto;min-height:38px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:9px;font-weight:900}
+  body.mobile-community-open .lobby-tab.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
+  body.mobile-community-open .lobby-tab b{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:3px;padding:0 4px;border-radius:999px;background:rgba(145,71,255,.2);font-size:8px}
+  body.mobile-community-open .lobby-panel{margin-top:14px}
+  body.mobile-community-open .lobby-panel.hidden{display:none!important}
+  body.mobile-community-open .lobby-trade-toolbar{display:grid;grid-template-columns:1fr;gap:10px}
+  body.mobile-community-open .lobby-trade-toolbar strong{display:block;color:#fff;font-size:15px}
+  body.mobile-community-open .lobby-trade-toolbar span{display:block;margin-top:3px;color:#8f99b8;font-size:9px;line-height:1.4}
+  body.mobile-community-open .lobby-primary-btn,
+  body.mobile-community-open .lobby-secondary-btn{min-height:40px;padding:9px 11px;border:1px solid rgba(145,71,255,.28);border-radius:10px;background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:10px;font-weight:900}
+  body.mobile-community-open .lobby-primary-btn{background:linear-gradient(145deg,#6f36c7,#9147ff)}
+  body.mobile-community-open .lobby-trade-filters{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}
+  body.mobile-community-open .lobby-trade-filters::-webkit-scrollbar{display:none}
+  body.mobile-community-open .lobby-trade-filters button{flex:0 0 auto;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:8px;font-weight:900}
+  body.mobile-community-open .lobby-trade-filters button.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
+  body.mobile-community-open .lobby-trade-filters select{flex:0 0 auto;min-height:32px;padding:5px 8px;border:1px solid rgba(145,71,255,.25);border-radius:9px;background:#101427;color:#dfe4f5;font:inherit;font-size:8px;font-weight:850}
+  body.mobile-community-open .lobby-trades-grid,
+  body.mobile-community-open .lobby-player-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px;margin-top:12px}
+  body.mobile-community-open .trade-offer-card{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,#11162b,#0e1326)}
+  body.mobile-community-open .lobby-toolbar{display:flex;gap:8px}
+  body.mobile-community-open .lobby-toolbar input{width:100%;min-height:42px;padding:10px 12px;border:1px solid #303754;border-radius:11px;background:#0b1020;color:#fff;font:inherit;font-size:12px}
+  body.mobile-community-open .lobby-player-card{display:grid!important;grid-template-columns:48px minmax(0,1fr)!important;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.075);border-radius:14px;background:#101427}
+  body.mobile-community-open .lobby-player-avatar{position:relative;width:46px;height:46px;display:grid;place-items:center;border-radius:12px;background:#0b1020;font-size:22px}
+  body.mobile-community-open .lobby-player-avatar img{width:100%;height:100%;object-fit:cover;border-radius:12px}
+  body.mobile-community-open .lobby-player-name{color:#fff;font-size:13px;font-weight:950}
+  body.mobile-community-open .lobby-player-meta,
+  body.mobile-community-open .lobby-player-lovys{margin-top:3px;color:#9ca6c4;font-size:9px;line-height:1.4}
+  body.mobile-community-open .lobby-player-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  body.mobile-community-open .lobby-empty{padding:24px 14px;border:1px dashed rgba(145,71,255,.18);border-radius:13px;text-align:center;color:#8993b2;font-size:10px}
+  body.mobile-community-open .wishlist-editor,
+  body.mobile-community-open .wishlist-community,
+  body.mobile-community-open .lobby-community-footer{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
+  body.mobile-community-open .wishlist-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin-top:10px}
+  body.mobile-community-open .wishlist-community{display:grid;grid-template-columns:1fr;gap:7px;margin-top:10px}
+  body.mobile-community-open .lobby-community-footer{margin-top:14px}
+
+  /* Le tiroir joueur de la Communauté reste au-dessus de la page mais sous la nav. */
+  body.mobile-community-open .lobby-profile-drawer{position:fixed;z-index:1000060;inset:0 0 var(--mobile-page-bottom) 0;width:100%;height:auto;padding:18px 14px 28px;overflow:auto;background:#0d1122;border:0;box-shadow:none}
+
+  /* Création d'offre : sous-page mobile fonctionnelle, sans perdre la navigation. */
+  #tradeComposer:not(.hidden){display:flex!important;position:fixed!important;z-index:1000065!important;inset:0 0 var(--mobile-page-bottom) 0!important;align-items:flex-start!important;padding:0!important;overflow-y:auto!important;background:#0d1122!important;backdrop-filter:none!important}
+  #tradeComposer .trade-composer-card{width:100%!important;max-height:none!important;min-height:100%!important;margin:0!important;padding:calc(18px + env(safe-area-inset-top)) 14px 30px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
+  #tradeComposer .trade-composer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+  #tradeComposer .trade-composer-head h2{margin:0;font-size:22px}
+  #tradeComposer .trade-composer-head p{margin:5px 0 0;color:#9ea7c6;font-size:10px;line-height:1.45}
+  #tradeComposer .trade-composer-head>button{width:38px;height:38px;flex:0 0 38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px}
+  #tradeComposer .trade-composer-section{margin-top:12px;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
+  #tradeComposer .trade-asset-row,
+  #tradeComposer .trade-option-edit{display:grid!important;grid-template-columns:1fr!important;gap:7px}
+  #tradeComposer .trade-option-number{display:none}
+  #tradeComposer .trade-option-edit>button{width:40px;justify-self:end}
+  #tradeComposer .trade-composer-footer{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
+  #tradeComposer .trade-composer-footer .lobby-primary-btn{width:100%}
+}
+/* ===== /V250 ===== */
+

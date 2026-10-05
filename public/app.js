@@ -3449,6 +3449,7 @@ function getSelfLeaderboardPlayer(){
 function isMobileEggDetailsOpen(){ return Boolean($('pick')?.classList.contains('egg-details-open')); }
 function isMobilePanelOpen(panel){
   if(panel==='leaderboard') return document.body.classList.contains('mobile-leaderboard-open');
+  if(panel==='community') return document.body.classList.contains('mobile-community-open');
   if(panel==='combat') return !$('pveModal')?.classList.contains('hidden');
   if(panel==='inventory') return !$('inventoryModal')?.classList.contains('hidden');
   if(panel==='profile') return !$('playerProfileModal')?.classList.contains('hidden');
@@ -3459,6 +3460,7 @@ function isMobilePanelOpen(panel){
 function syncMobileNavState(){
   if(!isMobileGameUi()) return;
   if(document.body.classList.contains('mobile-leaderboard-open')) return setMobileNavActive('mobileNavLeaderboard');
+  if(document.body.classList.contains('mobile-community-open')) return setMobileNavActive('mobileNavCommunity');
   if(!$('pveModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavCombat');
   if(!$('inventoryModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavInventory');
   if(!$('playerProfileModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavProfile');
@@ -3479,6 +3481,7 @@ function closeMobileEggDetails(){
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
   if(except!=='leaderboard') document.body.classList.remove('mobile-leaderboard-open');
+  if(except!=='community'){ document.body.classList.remove('mobile-community-open'); $('desktopLobbyPage')?.classList.add('hidden'); }
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
   if(except!=='inventory') $('inventoryModal')?.classList.add('hidden');
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
@@ -3497,6 +3500,11 @@ function toggleMobilePanel(panel){
   }
   if(panel==='leaderboard'){
     openMobileLeaderboard();
+  } else if(panel==='community'){
+    document.body.classList.add('mobile-community-open');
+    $('desktopLobbyPage')?.classList.remove('hidden');
+    document.body.style.overflow='hidden';
+    openLobbyTab(lobbyTab);
   } else if(panel==='combat'){
     $('pveModal')?.classList.remove('hidden');
     loadPve();
@@ -3563,6 +3571,7 @@ $('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; 
 $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('combat'); });
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
 $('mobileNavLeaderboard')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('leaderboard'); });
+$('mobileNavCommunity')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('community'); });
 $('mobileNavInventory')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('inventory'); });
 $('mobileNavProfile')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('profile'); });
 function openMobileLeaderboard(){
@@ -5453,9 +5462,9 @@ $('lobbyTradeCreatureFilter')?.addEventListener('change',e=>{tradeCreatureFilter
 $('desktopLobbyPage')?.addEventListener('click',e=>{if(e.target.closest('[data-empty-create]'))openTradeComposer();});
 $('lobbyWishesGrid')?.addEventListener('click',async e=>{const wish=e.target.closest('[data-wish-toggle]');if(wish){const wanted=wish.getAttribute('aria-pressed')!=='true';await fetch('/api/trades/wishes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatureId:wish.dataset.wishToggle,wanted})});loadTradeWishes();return;}const trade=e.target.closest('[data-wish-trade-creature]');if(trade){await openTradeComposer(trade.dataset.wishTradeCreature||'');}});
 async function loadLobbyActivity(){const box=$('lobbyActivityBox'),feed=$('lobbyActivityFeed');if(!box||!feed)return;try{const r=await fetch('/api/trades/activity',{cache:'no-store'}),d=await r.json();const items=d.items||[];if(!r.ok||!items.length){box.classList.add('hidden');feed.innerHTML='';return;}feed.innerHTML=items.slice(0,6).map(x=>`<div class="lobby-activity-item"><span>•</span><span>${escapeHtml(x.text)}</span><small>${formatTradeDate(x.at)}</small></div>`).join('');box.classList.remove('hidden');}catch{box.classList.add('hidden');}}
-let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badge=$('lobbyNavBadge');if(badge){badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);}if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest)new Notification('LoVeRDoSeTV · Lobby',{body:newest.message});}lastLobbyUnread=n;}catch{}}
-async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;const b=$('lobbyNavBadge');if(b)b.classList.add('hidden');}catch{}}
-function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();if(desktopView==='lobby'){openLobbyTab(lobbyTab);if(lobbyTab==='trades')loadLobbyActivity();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
+let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest)new Notification('LoVeRDoSeTV · Lobby',{body:newest.message});}lastLobbyUnread=n;}catch{}}
+async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));}catch{}}
+function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();if(desktopView==='lobby'||document.body.classList.contains('mobile-community-open')){openLobbyTab(lobbyTab);if(lobbyTab==='trades')loadLobbyActivity();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
 function tradeCreatureImageUrl(l){
   if(!l)return '';
