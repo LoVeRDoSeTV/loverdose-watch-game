@@ -4755,7 +4755,7 @@ body:has(#pveModal:not(.hidden)){
   .lobby-panel{margin-top:18px}.lobby-panel.hidden{display:none}.lobby-toolbar{display:flex;gap:10px;align-items:center}.lobby-toolbar input{flex:1;min-height:42px;padding:10px 13px;border:1px solid #303754;border-radius:11px;background:#0b1020;color:#fff;font:inherit}.lobby-secondary-btn,.lobby-primary-btn{min-height:40px;padding:9px 13px;border-radius:10px;border:1px solid rgba(145,71,255,.28);background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}.lobby-primary-btn{background:linear-gradient(145deg,#6f36c7,#9147ff);border-color:rgba(190,145,255,.34)}
   .lobby-player-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}.lobby-player-card{display:grid;grid-template-columns:58px minmax(0,1fr) auto;align-items:center;gap:12px;padding:14px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:#101427}.lobby-player-card.present{border-color:rgba(91,214,164,.20)}.lobby-player-avatar{position:relative;width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:#0b1020;overflow:visible;font-size:25px}.lobby-player-avatar img{width:100%;height:100%;object-fit:cover;border-radius:14px}.lobby-presence-dot{position:absolute;right:-2px;bottom:-2px;width:12px;height:12px;border:3px solid #101427;border-radius:50%;background:#5c657f}.lobby-player-card.present .lobby-presence-dot{background:#5bd6a4}.lobby-player-name{font-size:15px;font-weight:950}.lobby-player-meta,.lobby-player-lovys{margin-top:4px;color:#8f99b8;font-size:10px;font-weight:800}.lobby-player-lovys{color:#c9d1e8}
   .lobby-trade-toolbar{display:flex;align-items:center;justify-content:space-between;gap:20px}.lobby-trade-toolbar strong{display:block;font-size:17px}.lobby-trade-toolbar span{display:block;margin-top:4px;color:#8f99b8;font-size:10px}.lobby-trade-filters{display:flex;gap:6px;margin-top:14px}.lobby-trade-filters button{padding:7px 10px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:10px;font-weight:900;cursor:pointer}.lobby-trade-filters button.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
-  .lobby-trades-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.trade-offer-card{padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:linear-gradient(180deg,#11162b,#0e1326)}.trade-offer-card.status-completed{border-color:rgba(91,214,164,.22)}.trade-offer-card.status-cancelled,.trade-offer-card.status-expired{opacity:.66}.trade-offer-head,.trade-owner{display:flex;align-items:center}.trade-offer-head{justify-content:space-between;gap:10px}.trade-owner{gap:9px}.trade-owner>span{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#0a0f20;overflow:hidden}.trade-owner img{width:100%;height:100%;object-fit:cover}.trade-owner strong{display:block;font-size:12px}.trade-owner small{display:block;margin-top:3px;color:#818baa;font-size:8.5px}.trade-cancel-btn{border:1px solid rgba(255,105,125,.20);border-radius:9px;background:rgba(255,80,105,.07);color:#ff9dad;padding:7px 9px;font:inherit;font-size:9px;font-weight:900;cursor:pointer}.trade-give{margin-top:14px;padding:13px;border:1px solid rgba(145,71,255,.18);border-radius:13px;background:rgba(145,71,255,.07)}.trade-label{margin-bottom:8px;color:#9f8acb;font-size:8px;font-weight:1000;letter-spacing:.13em}.trade-asset-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(145,71,255,.09);font-size:18px}.trade-give,.trade-option{display:flex;align-items:center;gap:10px}.trade-give>span:last-child,.trade-option>span:last-of-type{min-width:0}.trade-give strong,.trade-option strong{display:block;font-size:11px}.trade-give small,.trade-option small{display:block;margin-top:2px;color:#8f99b8;font-size:9px}.trade-arrow{margin:10px 0 7px;text-align:center;color:#717c9e;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}.trade-options{display:grid;gap:6px}.trade-option{min-height:54px;padding:8px 9px;border:1px solid rgba(255,255,255,.065);border-radius:11px;background:#0d1224}.trade-option.possible{border-color:rgba(91,214,164,.18)}.trade-option button{margin-left:auto;padding:7px 9px;border:1px solid rgba(91,214,164,.24);border-radius:8px;background:rgba(91,214,164,.09);color:#c5f4e1;font:inherit;font-size:8.5px;font-weight:900;cursor:pointer}.trade-option button:disabled{opacity:.4;cursor:not-allowed}.trade-completed-note{margin-top:10px;color:#9fe5c9;font-size:10px;font-weight:900}.lobby-empty{grid-column:1/-1;padding:32px;border:1px dashed rgba(145,71,255,.18);border-radius:15px;text-align:center;color:#8993b2;font-size:12px}
+  .lobby-trades-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:16px}.trade-offer-card{padding:16px;border:1px solid rgba(255,255,255,.08);border-radius:17px;background:linear-gradient(180deg,#11162b,#0e1326)}.trade-offer-card.status-completed{border-color:rgba(91,214,164,.22)}.trade-offer-card.status-cancelled,.trade-offer-card.status-expired{opacity:.66}.trade-offer-head,.trade-owner{display:flex;align-items:center}.trade-offer-head{justify-content:space-between;gap:10px}.trade-owner{gap:9px}.trade-owner>span{width:36px;height:36px;display:grid;place-items:center;border-radius:10px;background:#0a0f20;overflow:hidden}.trade-owner img{width:100%;height:100%;object-fit:cover}.trade-owner strong{display:block;font-size:12px}.trade-owner small{display:block;margin-top:3px;color:#818baa;font-size:8.5px}.trade-cancel-btn{border:1px solid rgba(255,105,125,.20);border-radius:9px;background:rgba(255,80,105,.07);color:#ff9dad;padding:7px 9px;font:inherit;font-size:9px;font-weight:900;cursor:pointer}.trade-give{margin-top:14px;padding:13px;border:1px solid rgba(145,71,255,.18);border-radius:13px;background:rgba(145,71,255,.07)}.trade-label{margin-bottom:8px;color:#9f8acb;font-size:8px;font-weight:1000;letter-spacing:.13em}.trade-asset-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:rgba(145,71,255,.09);font-size:18px}.trade-give,.trade-option{display:flex;align-items:center;gap:10px}.trade-give>span:nth-of-type(2),.trade-option>span:last-of-type{min-width:0}.trade-give strong,.trade-option strong{display:block;font-size:11px}.trade-give small,.trade-option small{display:block;margin-top:2px;color:#8f99b8;font-size:9px}.trade-arrow{margin:10px 0 7px;text-align:center;color:#717c9e;font-size:8px;font-weight:900;text-transform:uppercase;letter-spacing:.09em}.trade-options{display:grid;gap:6px}.trade-option{min-height:54px;padding:8px 9px;border:1px solid rgba(255,255,255,.065);border-radius:11px;background:#0d1224}.trade-option.possible{border-color:rgba(91,214,164,.18)}.trade-option button{margin-left:auto;padding:7px 9px;border:1px solid rgba(91,214,164,.24);border-radius:8px;background:rgba(91,214,164,.09);color:#c5f4e1;font:inherit;font-size:8.5px;font-weight:900;cursor:pointer}.trade-option button:disabled{opacity:.4;cursor:not-allowed}.trade-completed-note{margin-top:10px;color:#9fe5c9;font-size:10px;font-weight:900}.lobby-empty{grid-column:1/-1;padding:32px;border:1px dashed rgba(145,71,255,.18);border-radius:15px;text-align:center;color:#8993b2;font-size:12px}
 
   .trade-composer{position:fixed;z-index:1000080;inset:0;display:flex;align-items:center;justify-content:center;padding:30px;background:rgba(3,5,15,.76);backdrop-filter:blur(10px)}.trade-composer.hidden{display:none}.trade-composer-card{width:min(850px,100%);max-height:90vh;overflow:auto;padding:24px;border:1px solid rgba(145,71,255,.34);border-radius:22px;background:linear-gradient(180deg,#151a30,#0e1325);box-shadow:0 30px 100px rgba(0,0,0,.55)}.trade-composer-head{display:flex;justify-content:space-between;gap:20px}.trade-composer-head>button{width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px;cursor:pointer}.trade-composer-section{margin-top:18px;padding:15px;border:1px solid rgba(255,255,255,.07);border-radius:15px;background:#101427}.trade-composer-section h3{margin:0 0 12px;font-size:14px}.trade-asset-row,.trade-option-edit{display:grid;grid-template-columns:170px minmax(0,1fr) 110px;gap:8px}.trade-asset-row select,.trade-asset-row input,.trade-option-edit select,.trade-option-edit input,.trade-composer-footer select{min-height:40px;padding:8px 10px;border:1px solid #303754;border-radius:9px;background:#0b1020;color:#fff;font:inherit;font-size:11px;font-weight:800}.trade-balance{margin-top:8px;color:#8f99b8;font-size:10px}.trade-section-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px}.trade-options-list{display:grid;gap:8px}.trade-option-edit{grid-template-columns:28px 150px minmax(0,1fr) 100px 34px;align-items:center}.trade-option-number{width:26px;height:26px;display:grid;place-items:center;border-radius:8px;background:rgba(145,71,255,.10);font-size:10px;font-weight:950}.trade-option-edit>button{height:34px;border:1px solid rgba(255,100,120,.18);border-radius:8px;background:rgba(255,80,100,.06);color:#ff9bad;font-size:18px;cursor:pointer}.trade-composer-footer{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-top:18px}.trade-composer-footer label{display:grid;gap:5px;color:#9da7c5;font-size:9px;font-weight:900}.trade-composer-message{min-height:18px;margin-top:10px;color:#aab3cf;font-size:11px;font-weight:800}.trade-composer-message.error{color:#ff91a4}
 }
@@ -7206,7 +7206,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
     font:inherit;font-size:22px;font-weight:900;
     cursor:pointer;
   }
-  body.mobile-leaderboard-open .mobile-leaderboard-close{display:flex}
+  body.mobile-leaderboard-open .mobile-leaderboard-close{display:none}
 }
 
 
@@ -7234,7 +7234,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
 
   body.mobile-leaderboard-open .global-leaderboard{
-    padding-bottom:var(--mobile-game-nav-safe,calc(92px + env(safe-area-inset-bottom)))!important;
+    padding-bottom:calc(var(--mobile-nav-height,55px) + 24px)!important;
   }
 }
 /* ===== /V248 ===== */
@@ -7271,7 +7271,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
    La navigation basse reste identique et fixe sur toutes les pages.
    La Communauté PC est réutilisée avec une mise en page mobile dédiée. */
 @media(max-width:900px){
-  :root{--mobile-page-bottom:var(--mobile-game-nav-safe,calc(92px + env(safe-area-inset-bottom)))}
+  :root{--mobile-page-bottom:var(--mobile-nav-height,calc(55px + env(safe-area-inset-bottom)))}
 
   /* 7 destinations stables dans la même barre. */
   .mobile-game-nav{
@@ -7288,7 +7288,8 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #pveModal,
   #lovysCollectionModal,
   #inventoryModal,
-  #playerProfileModal{
+  #playerProfileModal,
+  #progressionModal{
     position:fixed!important;
     inset:0 0 var(--mobile-page-bottom) 0!important;
     width:100%!important;
@@ -7306,12 +7307,14 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #pveModal.hidden,
   #lovysCollectionModal.hidden,
   #inventoryModal.hidden,
-  #playerProfileModal.hidden{display:none!important}
+  #playerProfileModal.hidden,
+  #progressionModal.hidden{display:none!important}
 
   #pveModal>.game-panel,
   #lovysCollectionModal>.lovys-collection-panel,
   #inventoryModal>.inventory-panel,
-  #playerProfileModal>.player-profile-panel{
+  #playerProfileModal>.player-profile-panel,
+  #progressionModal>.game-panel{
     width:100%!important;
     max-width:none!important;
     min-height:100%!important;
@@ -7327,7 +7330,14 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #pveModal .game-close,
   #lovysCollectionModal .lovys-collection-head>.game-close,
   #inventoryModal .inventory-close,
-  #playerProfileModal .player-profile-close{display:none!important}
+  #playerProfileModal .player-profile-close,
+  #progressionModal .game-close{display:none!important}
+
+  #pick.egg-details-open{
+    inset:0 0 var(--mobile-page-bottom) 0;
+    padding:calc(18px + env(safe-area-inset-top)) 14px 30px;
+  }
+  #pick.egg-details-open .mobile-egg-close{display:none!important}
 
   /* Le contenu PvE défile avec la page, sans second panneau modal. */
   #pveModal #pveContent{height:auto!important;max-height:none!important;overflow:visible!important;padding-bottom:24px!important}
@@ -7378,6 +7388,15 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .lobby-trades-grid,
   body.mobile-community-open .lobby-player-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px;margin-top:12px}
   body.mobile-community-open .trade-offer-card{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,#11162b,#0e1326)}
+  body.mobile-community-open .trade-asset-icon{width:36px;height:36px;flex:0 0 36px;display:grid;place-items:center;font-size:23px}
+  body.mobile-community-open .trade-asset-icon img{width:100%;height:100%;object-fit:contain}
+  body.mobile-community-open .trade-give,
+  body.mobile-community-open .trade-option{display:flex;align-items:center;gap:8px;min-width:0}
+  body.mobile-community-open .trade-give>span:nth-of-type(2),
+  body.mobile-community-open .trade-option>span:nth-of-type(2){min-width:0;overflow-wrap:anywhere}
+  body.mobile-community-open .wishlist-card{grid-template-columns:32px minmax(0,1fr) 18px;gap:6px;padding:8px;min-width:0}
+  body.mobile-community-open .wishlist-card img{width:32px;height:32px;object-fit:contain}
+  body.mobile-community-open .wishlist-double-grid{grid-template-columns:1fr}
   body.mobile-community-open .lobby-toolbar{display:flex;gap:8px}
   body.mobile-community-open .lobby-toolbar input{width:100%;min-height:42px;padding:10px 12px;border:1px solid #303754;border-radius:11px;background:#0b1020;color:#fff;font:inherit;font-size:12px}
   body.mobile-community-open .lobby-player-card{display:grid!important;grid-template-columns:48px minmax(0,1fr)!important;gap:10px;padding:12px;border:1px solid rgba(255,255,255,.075);border-radius:14px;background:#101427}

@@ -3394,11 +3394,11 @@ $('pveContent')?.addEventListener('click',async e=>{
   const nb=e.target.closest('[data-pve-node]');if(nb){pveMapState.selectedFight=nb.dataset.pveNode;const info=pveFightInfoByKey(pveMapState.selectedFight),detail=$('pveMapDetail');if(detail&&info){detail.innerHTML=pveFightDetailMarkup(info.fight);detail.classList.add('detail-open');}document.querySelectorAll('.pve-map-node').forEach(n=>n.classList.toggle('selected',n.dataset.pveNode===pveMapState.selectedFight));return;}
   const b=e.target.closest('[data-fight]');if(!b)return;b.disabled=true;const fightKey=b.dataset.fight,info=pveFightInfoByKey(fightKey);const r=await fetch('/api/pve/fight',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fightKey})}),d=await r.json();if(!r.ok){$('combatResult').innerHTML=`<div class="combat-report">${escapeHtml(d.error||'Combat impossible.')}</div>`;b.disabled=false;return;}$('combatResult').innerHTML='';$('pveMapDetail')?.classList.remove('detail-open');openPveTacticalBattle(info?.fight||{key:fightKey,name:'Combat'},d.battle);b.disabled=false;
 });
-$('pveModal')?.addEventListener('click',e=>{if(!isDesktopGameUi()&&e.target.id==='pveModal'){$('pveModal')?.classList.add('hidden');syncMobileNavState?.();}});
+$('pveModal')?.addEventListener('click',e=>{if(!isDesktopGameUi()&&!isMobileGameUi()&&e.target.id==='pveModal'){$('pveModal')?.classList.add('hidden');syncMobileNavState?.();}});
 let progressionBackdropMouseDown=false;
 $('progressionModal')?.addEventListener('mousedown',event=>{ progressionBackdropMouseDown=event.target.id==='progressionModal'; });
 $('progressionModal')?.addEventListener('mouseup',event=>{
-  if(!isDesktopGameUi() && progressionBackdropMouseDown && event.target.id==='progressionModal'){
+  if(!isDesktopGameUi() && !isMobileGameUi() && progressionBackdropMouseDown && event.target.id==='progressionModal'){
     $('progressionModal')?.classList.add('hidden');
     syncMobileNavState?.();
   }
@@ -3407,7 +3407,22 @@ $('progressionModal')?.addEventListener('mouseup',event=>{
 
 
 function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
-function setMobileNavActive(id){ document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id)); }
+function setMobileNavActive(id){
+  document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id));
+  if(isMobileGameUi()) document.body.style.overflow=id==='mobileNavHome'?'':'hidden';
+}
+// La hauteur mesurée comprend la zone sûre iOS et suit les rotations / zooms.
+function updateMobileNavHeight(){
+  const nav = $('mobileGameNav');
+  if(!nav || !isMobileGameUi()) return;
+  const height = nav.getBoundingClientRect().height;
+  if(height > 0) document.documentElement.style.setProperty('--mobile-nav-height', height + 'px');
+}
+if(typeof ResizeObserver !== 'undefined' && $('mobileGameNav')){
+  new ResizeObserver(updateMobileNavHeight).observe($('mobileGameNav'));
+}
+window.addEventListener('resize', updateMobileNavHeight);
+updateMobileNavHeight();
 function getSelfLeaderboardPlayer(){
   const current = me?.user;
   const cached = (leaderboardPlayers||[]).find(player=>String(player.twitch_id||'')===String(current?.twitch_id||''));
@@ -3465,6 +3480,7 @@ function syncMobileNavState(){
   if(!$('inventoryModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavInventory');
   if(!$('playerProfileModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavProfile');
   if(isMobileEggDetailsOpen() || !$('lovysCollectionModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavCreatures');
+  if(!$('progressionModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavProfile');
   setMobileNavActive('mobileNavHome');
 }
 function openMobileEggDetails(){
@@ -3488,16 +3504,14 @@ function closeAllMobilePanels(except=''){
   if(except!=='progression') $('progressionModal')?.classList.add('hidden');
   if(except!=='creatures'){ $('pick')?.classList.remove('egg-details-open'); $('lovysCollectionModal')?.classList.add('hidden'); }
   $('dailyChallengeDetailModal')?.classList.add('hidden');
+  $('tradeComposer')?.classList.add('hidden');
+  document.querySelector('.lobby-profile-drawer')?.classList.add('hidden');
   document.body.style.overflow='';
 }
 function toggleMobilePanel(panel){
   if(!isMobileGameUi()) return;
-  const alreadyOpen = isMobilePanelOpen(panel);
-  closeAllMobilePanels(alreadyOpen ? '' : panel);
-  if(alreadyOpen){
-    syncMobileNavState();
-    return;
-  }
+  if(isMobilePanelOpen(panel)){ syncMobileNavState(); return; }
+  closeAllMobilePanels(panel);
   if(panel==='leaderboard'){
     openMobileLeaderboard();
   } else if(panel==='community'){
@@ -3737,7 +3751,7 @@ document.addEventListener('click', event => {
 });
 let playerProfileBackdropMouseDown = false;
 $('playerProfileModal')?.addEventListener('mousedown', event => { playerProfileBackdropMouseDown = event.target.id === 'playerProfileModal'; });
-$('playerProfileModal')?.addEventListener('mouseup', event => { if (playerProfileBackdropMouseDown && event.target.id === 'playerProfileModal') closePlayerProfile(); playerProfileBackdropMouseDown = false; });
+$('playerProfileModal')?.addEventListener('mouseup', event => { if (!isMobileGameUi() && playerProfileBackdropMouseDown && event.target.id === 'playerProfileModal') closePlayerProfile(); playerProfileBackdropMouseDown = false; });
 
 const TITLE_COLOR_ORDER = { gold:0, silver:1, violet:2, blue:3, green:4, pink:5, red:6, other:9 };
 
@@ -4275,7 +4289,7 @@ $('inventoryGrid')?.addEventListener('click', event => {
 
 let inventoryBackdropMouseDown = false;
 $('inventoryModal')?.addEventListener('mousedown', event => { inventoryBackdropMouseDown = event.target.id === 'inventoryModal'; });
-$('inventoryModal')?.addEventListener('mouseup', event => { if (inventoryBackdropMouseDown && event.target.id === 'inventoryModal') closeInventory(); inventoryBackdropMouseDown = false; });
+$('inventoryModal')?.addEventListener('mouseup', event => { if (!isMobileGameUi() && inventoryBackdropMouseDown && event.target.id === 'inventoryModal') closeInventory(); inventoryBackdropMouseDown = false; });
 
 $('shopGrid')?.addEventListener('click', event => {
   const preview = event.target.closest('[data-shop-preview]');
