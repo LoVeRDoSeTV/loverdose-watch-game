@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=270">
+<link rel="stylesheet" href="/styles.css?v=272">
 
 
 </head>
@@ -283,6 +283,7 @@
 <div class="top">
   <div class="logo">🐾 LoVeRDoSeTV Watch Game</div>
   <div class="account-access">
+    <button id="desktopAdminButton" class="desktop-admin-button hidden" type="button" aria-haspopup="dialog" aria-controls="desktopAdminModal">🛠️ Administration</button>
     <button id="desktopAccountButton" class="desktop-account-button" type="button" aria-label="Ouvrir mon compte" title="Mon compte"><span>👤</span><b>Mon compte</b></button>
     <button id="infoButton" class="account-icon-button" type="button" aria-label="Voir les informations du jeu" title="Comment jouer">ⓘ</button>
   </div>
@@ -738,6 +739,17 @@
 </div>
 
 
+<!-- Administration PC : les contrôles existants y sont déplacés sans duplication. -->
+<div id="desktopAdminModal" class="desktop-admin-modal hidden" role="dialog" aria-modal="true" aria-labelledby="desktopAdminTitle">
+  <div class="desktop-admin-panel">
+    <div class="admin-players-head">
+      <div><h2 id="desktopAdminTitle">🛠️ Administration</h2><div class="muted admin-subtitle">Tes outils de gestion du Watch Game.</div></div>
+      <button id="desktopAdminClose" class="account-close" type="button" aria-label="Fermer l’administration">×</button>
+    </div>
+    <div id="desktopAdminContent"></div>
+  </div>
+</div>
+
 <!-- ADMIN - JOUEURS INSCRITS -->
 <div id="adminPlayersModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminPlayersTitle">
   <div class="admin-players-panel">
@@ -1104,5 +1116,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=270"></script>
+<script src="/app.js?v=272"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

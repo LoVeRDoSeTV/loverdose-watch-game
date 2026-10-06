@@ -6605,6 +6605,20 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .admin-confirm-summary{display:grid;gap:8px;text-align:left}.admin-confirm-summary>div{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:11px 13px;border:1px solid rgba(255,255,255,.08);border-radius:11px;background:rgba(255,255,255,.035)}.admin-confirm-summary span{color:#969bb8;font-size:12px}.admin-confirm-summary strong{color:#fff;text-align:right}
 .admin-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}.admin-confirm-actions .btn{min-width:140px}.admin-confirm-actions [data-admin-confirm-approve]{background:linear-gradient(135deg,#7136d8,#9147ff);border-color:#a86dff}
 
+/* V272 : espace d’administration séparé du compte, PC uniquement. */
+.desktop-admin-button,.desktop-admin-modal{display:none}
+@media(min-width:901px){
+  .desktop-admin-button:not(.hidden){display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 13px;border:1px solid rgba(145,71,255,.5);border-radius:12px;background:rgba(145,71,255,.16);color:#eee2ff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
+  .desktop-admin-modal:not(.hidden){position:fixed;inset:0;z-index:1000900;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(3,5,15,.82);backdrop-filter:blur(9px)}
+  .desktop-admin-panel{width:min(820px,100%);max-height:calc(100dvh - 56px);overflow-y:auto;padding:26px;border:1px solid rgba(145,71,255,.38);border-radius:22px;background:linear-gradient(180deg,#15192d,#0d1122);box-shadow:0 26px 90px rgba(0,0,0,.55)}
+  #desktopAdminTitle{margin:0;font-size:26px}
+  #desktopAdminContent .tracker-admin{margin-top:20px;padding:0;border:0;background:transparent}
+  #desktopAdminContent .admin-profile-actions{gap:12px;margin-top:20px}
+  #desktopAdminContent .admin-profile-actions .btn{min-height:48px;text-align:center}
+  .admin-confirm-overlay{z-index:1001200!important}
+  .desktop-admin-button:focus-visible,.desktop-admin-panel button:focus-visible,.admin-confirm-card button:focus-visible{outline:2px solid #c89aff;outline-offset:4px}
+}
+
 /* ===== V163 — Incubateur : animation des œufs + accueil sans bouton Chances ===== */
 @media (min-width: 901px){
   /* Sur l'accueil, les chances restent accessibles depuis la vraie page Incubateur. */
@@ -7783,4 +7797,3 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #tradeComposer .trade-composer-footer .lobby-primary-btn{width:100%}
 }
 /* ===== /V250 ===== */
-

@@ -1,4 +1,8 @@
 let me = null;
+let desktopAdminAuthorized = false;
+let desktopAdminOrigin = null;
+let desktopAdminPreviousOverflow = '';
+let desktopAdminConfirmationCancel = null;
 let dailyChallengesData = null;
 let dailyCarouselIndex = 0;
 let dailyCarouselTimer = null;
@@ -472,6 +476,7 @@ function showSuccess(title, message, buttonText, callback) {
 });
   
 function showAuthHome() {
+  setDesktopAdminAccess(false);
   authOverlay.classList.remove('hidden');
   authHome.style.display = 'flex';
   
@@ -498,6 +503,7 @@ function showGame() {
   authOverlay.classList.add('hidden');
   twitchScreen.classList.add('hidden');
   document.body.classList.remove('auth-locked');
+  if(isDesktopGameUi()) refreshDesktopAdminAccess();
 }
 
 async function refreshAccountState() {
@@ -508,6 +514,7 @@ async function refreshAccountState() {
     if (!response.ok) {
       throw new Error(data.error || 'Impossible de charger le compte.');
     }
+    setDesktopAdminAccess(Boolean(data.authenticated && data.account?.isBroadcaster));
 
     if (!data.authenticated) {
       showAuthHome();
@@ -4772,6 +4779,74 @@ showSuccess(
 
 
 
+function syncDesktopAdminPlacement(){
+  const section=$('trackerAdminSection'), content=$('desktopAdminContent');
+  if(!section || !content)return;
+  if(!desktopAdminOrigin){
+    desktopAdminOrigin=document.createComment('tracker-admin-account-origin');
+    section.parentNode.insertBefore(desktopAdminOrigin,section);
+  }
+  if(isDesktopGameUi()){
+    if(section.parentNode!==content)content.appendChild(section);
+    section.classList.toggle('hidden',!desktopAdminAuthorized);
+  }else{
+    closeDesktopAdmin();
+    if(desktopAdminOrigin.parentNode && section.parentNode!==desktopAdminOrigin.parentNode){
+      desktopAdminOrigin.parentNode.insertBefore(section,desktopAdminOrigin.nextSibling);
+    }
+  }
+}
+function setDesktopAdminAccess(allowed){
+  desktopAdminAuthorized=Boolean(allowed);
+  $('desktopAdminButton')?.classList.toggle('hidden',!desktopAdminAuthorized);
+  if(!desktopAdminAuthorized){closeDesktopAdmin();if(isDesktopGameUi())desktopAdminConfirmationCancel?.();}
+  if(isDesktopGameUi())syncDesktopAdminPlacement();
+}
+async function refreshDesktopAdminAccess(){
+  if(!isDesktopGameUi())return false;
+  try{
+    const response=await fetch('/api/account/me',{cache:'no-store'});
+    const data=await response.json();
+    setDesktopAdminAccess(Boolean(response.ok && data.authenticated && data.account?.isBroadcaster));
+  }catch{setDesktopAdminAccess(false);}
+  return desktopAdminAuthorized;
+}
+async function openDesktopAdmin(){
+  if(!isDesktopGameUi() || !await refreshDesktopAdminAccess())return;
+  if(!isDesktopGameUi())return;
+  syncDesktopAdminPlacement();
+  const modal=$('desktopAdminModal');
+  if(!modal || !modal.classList.contains('hidden'))return;
+  desktopAdminPreviousOverflow=document.body.style.overflow;
+  document.body.style.overflow='hidden';
+  modal.classList.remove('hidden');
+  $('desktopAdminClose')?.focus();
+  await loadTrackerStatus();
+}
+function closeDesktopAdmin(){
+  const modal=$('desktopAdminModal');
+  if(!modal || modal.classList.contains('hidden'))return;
+  modal.classList.add('hidden');
+  document.body.style.overflow=desktopAdminPreviousOverflow;
+  if(isDesktopGameUi())$('desktopAdminButton')?.focus();
+}
+$('desktopAdminButton')?.addEventListener('click',openDesktopAdmin);
+$('desktopAdminClose')?.addEventListener('click',closeDesktopAdmin);
+$('desktopAdminModal')?.addEventListener('click',event=>{if(event.target===$('desktopAdminModal'))closeDesktopAdmin();});
+document.addEventListener('keydown',event=>{
+  if(!isDesktopGameUi() || $('desktopAdminModal')?.classList.contains('hidden'))return;
+  if(document.querySelector('[data-admin-confirm-overlay]'))return;
+  if(['adminPlayersModal','adminDashboardModal','adminEconomyModal','adminTrackerModal','trackerDetectedModal','adminHistoryModal','eventsModal'].some(id=>!$(id)?.classList.contains('hidden')))return;
+  if(event.key==='Escape'){event.preventDefault();closeDesktopAdmin();}
+  if(event.key==='Tab')trapDesktopAdminFocus(event,$('desktopAdminModal'));
+});
+window.matchMedia('(min-width:901px)').addEventListener('change',event=>{
+  if(!event.matches)desktopAdminConfirmationCancel?.();
+  syncDesktopAdminPlacement();
+  if(event.matches)refreshDesktopAdminAccess();
+});
+syncDesktopAdminPlacement();
+
 async function loadTrackerStatus() {
   const section = $('trackerAdminSection');
   const status = $('trackerStatus');
@@ -4921,6 +4996,7 @@ $('eventZombieToggle')?.addEventListener('click', async () => {
   button.textContent = 'Modification…';
   try {
     const nextMode = currentSpecialMode === 'zombie' ? null : 'zombie';
+    if(isDesktopGameUi() && !await showAdminActionConfirmation({username:'Tous les joueurs concernés',actionText:nextMode?'Activer le mode Zombie':'Désactiver le mode Zombie',question:nextMode?'Activer le mode Zombie pour le jeu ?':'Désactiver le mode Zombie pour le jeu ?'}))return;
     const response = await fetch('/api/events/special-mode', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -4948,6 +5024,11 @@ $('eventsGrid')?.addEventListener('click', async event => {
   const old=button.textContent;
   button.textContent='Modification…';
   try{
+    if(isDesktopGameUi()){
+      const label={xp:'XP Lovys ×2',cash:'LoVeR’Cash ×2',global_xp:'XP globale ×2',all:'XP Lovys, LoVeR’Cash et XP globale ×2'}[kind];
+      const details={username:'Les joueurs récompensés par le tracker Twitch',actionText:kind==='off'?'Arrêter les boosts live':`Activer ${label} pendant 60 min`,question:kind==='off'?'Arrêter tous les boosts live du jeu ?':`Activer ${label} pendant 60 minutes pour les joueurs du tracker Twitch ? Ce réglage remplace le boost live précédent.`};
+      if(!await showAdminActionConfirmation(details))return;
+    }
     const response=await fetch('/api/admin/events/live-boost',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,minutes:60})});
     const data=await response.json();
     if(!response.ok) throw new Error(data.error||'Modification impossible.');
@@ -5112,7 +5193,7 @@ function adminActionConfirmationDetails(action, amount, button, editor){
   if(action==='reset_pve') return {username,actionText:'Réinitialiser la progression PvE',question:`Êtes-vous sûr de vouloir réinitialiser toute la progression PvE de ${username} ?`};
   return {username,actionText:`Appliquer ${action} ${signed}`,question:`Êtes-vous sûr de vouloir appliquer cette modification à ${username} ?`};
 }
-function showAdminActionConfirmation(details){
+function showLegacyAdminActionConfirmation(details){
   return new Promise(resolve=>{
     document.querySelector('[data-admin-confirm-overlay]')?.remove();
     const overlay=document.createElement('div');
@@ -5125,7 +5206,68 @@ function showAdminActionConfirmation(details){
     overlay.querySelector('[data-admin-confirm-approve]')?.focus();
   });
 }
+function trapDesktopAdminFocus(event,container){
+  const buttons=Array.from(container.querySelectorAll('button:not(:disabled),a[href],input:not(:disabled)')).filter(el=>el.getClientRects().length);
+  if(!buttons.length)return;
+  const first=buttons[0],last=buttons[buttons.length-1];
+  if(event.shiftKey && (document.activeElement===first || !container.contains(document.activeElement))){event.preventDefault();last.focus();}
+  else if(!event.shiftKey && (document.activeElement===last || !container.contains(document.activeElement))){event.preventDefault();first.focus();}
+}
+function showAdminActionConfirmation(details){
+  if(!isDesktopGameUi())return showLegacyAdminActionConfirmation(details);
+  desktopAdminConfirmationCancel?.();
+  return new Promise(resolve=>{
+    const previousFocus=document.activeElement;
+    const overlay=document.createElement('div');
+    overlay.className='admin-confirm-overlay';overlay.setAttribute('data-admin-confirm-overlay','');
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="desktopAdminConfirmTitle"><div class="admin-confirm-icon">⚠️</div><h3 id="desktopAdminConfirmTitle">Confirmer ou refuser</h3><div class="admin-confirm-summary"><div><span>Joueur / cible</span><strong>${escapeHtml(details.username)}</strong></div><div><span>Action</span><strong>${escapeHtml(details.actionText)}</strong></div></div><p>${escapeHtml(details.question)}</p><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-admin-confirm-cancel>✕ Non, refuser</button><button type="button" class="btn" data-admin-confirm-approve>✓ Oui, confirmer</button></div></div>`;
+    document.body.appendChild(overlay);
+    let finished=false;
+    const finish=value=>{
+      if(finished)return;finished=true;
+      overlay.remove();document.removeEventListener('keydown',onKey);
+      desktopAdminConfirmationCancel=null;
+      if(previousFocus?.isConnected)previousFocus.focus();
+      resolve(value);
+    };
+    const onKey=event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);}
+      if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);
+    };
+    desktopAdminConfirmationCancel=()=>finish(false);
+    document.addEventListener('keydown',onKey);
+    overlay.addEventListener('click',event=>{
+      if(event.target===overlay || event.target.closest('[data-admin-confirm-cancel]'))finish(false);
+      else if(event.target.closest('[data-admin-confirm-approve]'))finish(true);
+    });
+    overlay.querySelector('[data-admin-confirm-cancel]')?.focus();
+  });
+}
+function desktopAdminActionConfirmationDetails(action,amount,button,editor){
+  const username=editor.dataset.playerUsername||'ce joueur';
+  const numeric=Number(amount),qty=Math.abs(numeric).toLocaleString('fr-FR');
+  const verb=numeric<0?'Retirer':'Donner';
+  const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:'fragments d’œuf',universal_fragments:'fragments universels'};
+  if(labels[action])return {username,actionText:`${verb} ${qty} ${labels[action]}`,question:`${verb} ${qty} ${labels[action]} à ${username} ?`};
+  if(action==='grant_egg')return {username,actionText:`Donner ${qty} œuf(s) mystère`,question:`Donner ${qty} œuf(s) mystère à ${username} ?`};
+  if(action==='prestige')return {username,actionText:`Régler le Prestige à ${numeric}`,question:`Régler le Prestige de ${username} à ${numeric} ?`};
+  if(action==='lovys_fragments'){
+    const name=button.closest('.admin-lovys-row')?.querySelector('strong')?.textContent?.replace(/^⭐\s*/,'').trim()||'ce Lovys';
+    return {username,actionText:`${verb} ${qty} fragment(s) de ${name}`,question:`${verb} ${qty} fragment(s) de ${name} à ${username} ?`};
+  }
+  if(action==='reset_battle')return {username,actionText:'Annuler le combat actif',question:`Annuler le combat actif de ${username} ?`};
+  return {username,actionText:'Réinitialiser la progression PvE',question:`Réinitialiser toute la progression PvE de ${username} ? Les victoires enregistrées seront effacées.`};
+}
+function validateDesktopAdminAmount(action,amount){
+  if(action==='reset_battle' || action==='reset_pve')return;
+  const value=Number(amount);
+  const limit=action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
+  if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (action==='grant_egg' && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
+    throw new Error(`Saisis un nombre entier ${action==='grant_egg'?`entre 1 et ${limit}`:action==='prestige'?`entre 0 et ${limit}`:`non nul entre −${limit.toLocaleString('fr-FR')} et ${limit.toLocaleString('fr-FR')}`}.`);
+  }
+}
 async function runAdminPlayerAction(button){
+  if(isDesktopGameUi())return runDesktopAdminPlayerAction(button);
   const editor=$('adminPlayerEditor');if(!editor)return;
   const accountId=editor.closest('.admin-players-panel')?.querySelector('.admin-player-card.editor-selected')?.dataset.accountId || editor.dataset.accountId;
   if(!accountId)return;
@@ -5145,6 +5287,31 @@ async function runAdminPlayerAction(button){
     await openAdminPlayerEditor(accountId);await loadAdminPlayers();
   }catch(error){window.alert(error.message||'Correction impossible.');}
   finally{button.disabled=false;button.textContent=old;}
+}
+async function runDesktopAdminPlayerAction(button){
+  const editor=$('adminPlayerEditor');
+  if(!desktopAdminAuthorized || !editor?.dataset.accountId || button.disabled)return;
+  const accountId=editor.dataset.accountId;
+  const action=button.getAttribute('data-admin-action');
+  const amount=action==='lovys_fragments'?editor.querySelector(`[data-lovys-fragment-input="${button.dataset.lovysId}"]`)?.value:editor.querySelector(`[data-admin-amount="${action}"]`)?.value;
+  const message=$('adminPlayerActionMessage');
+  try{validateDesktopAdminAmount(action,amount);}catch(error){if(message){message.textContent=error.message;message.className='admin-action-message error';}return;}
+  const body={action,reason:$('adminPlayerActionReason')?.value?.trim()||''};
+  if(amount!==undefined)body.amount=Number(amount);
+  if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+  const details=desktopAdminActionConfirmationDetails(action,amount,button,editor);
+  const old=button.textContent;button.disabled=true;
+  try{
+    if(!await showAdminActionConfirmation(details))return;
+    button.textContent='Application…';
+    const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    await loadAdminPlayers();await openAdminPlayerEditor(accountId);
+    const result=$('adminPlayerActionMessage');
+    if(result){result.textContent=`✅ ${data.summary}`;result.className='admin-action-message success';}
+  }catch(error){
+    const result=$('adminPlayerActionMessage');
+    if(result){result.textContent=error.message||'Correction impossible.';result.className='admin-action-message error';}
+  }finally{button.disabled=false;button.textContent=old;if(button.isConnected)button.focus();}
 }
 
 async function loadAdminDashboard(){
@@ -5233,6 +5400,7 @@ $('adminPlayersList')?.addEventListener('click', async event => {
   if(manageButton){await openAdminPlayerEditor(manageButton.getAttribute('data-admin-open-player'));return;}
   const button = event.target.closest('[data-delete-account]');
   if (!button) return;
+  if(isDesktopGameUi()){await deleteDesktopAdminAccount(button);return;}
 
   const accountId = button.getAttribute('data-delete-account');
   const username = button.getAttribute('data-delete-username') || 'ce joueur';
@@ -5257,6 +5425,22 @@ $('adminPlayersList')?.addEventListener('click', async event => {
     button.textContent = oldText;
   }
 });
+
+async function deleteDesktopAdminAccount(button){
+  if(!desktopAdminAuthorized || button.disabled)return;
+  const accountId=button.getAttribute('data-delete-account');
+  const username=button.getAttribute('data-delete-username')||'ce joueur';
+  const old=button.textContent;button.disabled=true;
+  try{
+    if(!await showAdminActionConfirmation({username,actionText:'Supprimer le compte et sa progression',question:`Supprimer le compte de ${username} ? Ses Lovys, badges, XP, LoVeR’Cash et temps de visionnage seront effacés.`}))return;
+    if(!await showAdminActionConfirmation({username,actionText:'Suppression définitive du compte',question:`Dernière confirmation : supprimer définitivement ${username} ? Cette action ne peut pas être annulée.`}))return;
+    button.textContent='Suppression…';
+    await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}`,{method:'DELETE'});
+    if($('adminPlayerEditor')?.dataset.accountId===accountId)$('adminPlayerEditor')?.classList.add('hidden');
+    await loadAdminPlayers();await loadLeaderboard();
+  }catch(error){window.alert(error.message||'Suppression impossible.');}
+  finally{button.disabled=false;button.textContent=old;if(button.isConnected)button.focus();}
+}
 
 $('adminPlayerEditor')?.addEventListener('click', async event=>{
   if(event.target.closest('[data-admin-close-editor]')){$('adminPlayerEditor')?.classList.add('hidden');return;}
@@ -5384,6 +5568,7 @@ async function openAccountModal() {
       }
     }
 
+    setDesktopAdminAccess(Boolean(data.account.isBroadcaster));
     const trackerSection = $('trackerAdminSection');
     if (trackerSection) {
       trackerSection.classList.toggle('hidden', !data.account.isBroadcaster);
