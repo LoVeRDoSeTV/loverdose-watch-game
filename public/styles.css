@@ -4755,6 +4755,9 @@ body:has(#pveModal:not(.hidden)){
   #shopModal .mobile-shop-category select{width:100%;min-width:0;min-height:48px;border:1px solid #7445c3;border-radius:12px;padding:11px 14px;background:#191e33;color:#fff;font:inherit;font-size:16px;font-weight:850}
   #shopModal .shop-tabs,#shopModal .shop-subfilter{display:none}
   #inventoryModal .shop-subfilter.hidden{display:none}
+  #inventoryModal .inventory-item.inventory-item-new{border-color:rgba(185,130,255,.85);box-shadow:0 0 18px rgba(145,71,255,.2),inset 0 0 16px rgba(145,71,255,.07)}
+  #inventoryModal .inventory-new-badge{align-self:flex-start;display:inline-flex;padding:5px 9px;border:1px solid rgba(185,130,255,.45);border-radius:999px;background:rgba(145,71,255,.18);color:#eadcff;font-size:11px;font-weight:850}
+
   #shopModal .mobile-shop-summary{display:block;margin:8px 0 14px;font-size:12px;color:#aeb7d1}
   #shopModal .mobile-shop-pagination{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;margin:20px 0 4px}
   #shopModal .mobile-shop-pagination.hidden{display:none}

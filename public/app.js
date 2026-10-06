@@ -988,14 +988,17 @@ function renderIncubatorOverview() {
   }
 }
 
-function renderMobileHomeLiveStatus(live){
+function renderMobileHomeLiveStatus(live,presentCount){
   const button=$('mobileHomeLiveStatus');
   if(!button || !isMobileGameUi())return;
   button.classList.toggle('is-live',live);
   button.classList.toggle('is-offline',!live);
-  if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live?'En live':'Hors ligne';
+  const value=Number(presentCount);
+  const count=presentCount!=null && Number.isFinite(value)?Math.max(0,Math.floor(value)):null;
+  const players=count===null?'':`${count.toLocaleString('fr-FR')} joueur${count===1?'':'s'} présent${count===1?'':'s'} dans le jeu`;
+  if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live?`En live${players?' · '+players:''}`:'Hors ligne';
   if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live?'Regarder LoVeRDoSeTV sur Twitch':'Voir la chaîne Twitch';
-  button.setAttribute('aria-label',live?'LoVeRDoSeTV est en live. Regarder sur Twitch.':'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.');
+  button.setAttribute('aria-label',live?`LoVeRDoSeTV est en live.${players?' '+players+'.':''} Regarder sur Twitch.`:'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.');
 }
 
 async function refreshIncubatorLiveState() {
@@ -1004,7 +1007,7 @@ async function refreshIncubatorLiveState() {
     const data = await response.json();
     if (!response.ok) return;
     const live = Boolean(data.live);
-    renderMobileHomeLiveStatus(live);
+    renderMobileHomeLiveStatus(live,data.presentCount);
     document.querySelectorAll('[data-incubator-live]').forEach(el => {
       el.textContent = live ? '🟢 En progression · Live en cours' : '⏸️ En pause · Reprendra au prochain live';
       el.classList.toggle('is-live', live);
@@ -3617,7 +3620,7 @@ function closeAllMobilePanels(except=''){
   if(except!=='leaderboard') document.body.classList.remove('mobile-leaderboard-open');
   if(except!=='community'){ document.body.classList.remove('mobile-community-open'); $('desktopLobbyPage')?.classList.add('hidden'); }
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
-  if(except!=='inventory') $('inventoryModal')?.classList.add('hidden');
+  if(except!=='inventory'){ $('inventoryModal')?.classList.add('hidden'); mobileInventoryNewItemKey=null; }
   $('shopModal')?.classList.add('hidden');
   closeShopItemPreview();
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
@@ -4011,6 +4014,7 @@ let shopPreviewCurrentKey = null;
 let shopFocusItemKey = null;
 let inventoryCategory = 'title';
 let inventoryTitleFilter = 'all';
+let mobileInventoryNewItemKey = null;
 
 function setShopMessage(message = '', type = '') {
   const box = $('shopMessage');
@@ -4289,7 +4293,9 @@ function renderInventory() {
       ? `<span class="inventory-qty">Quantité : ${Number(item.quantity || 0)}</span>`
       : `<span class="inventory-status">${item.equipped ? 'Équipé' : 'Possédé'}</span>`;
 
-    return `<article class="inventory-item${item.equipped ? ' equipped' : ''}">
+    const newlyPurchased=isMobileGameUi() && item.key===mobileInventoryNewItemKey;
+    return `<article class="inventory-item${item.equipped ? ' equipped' : ''}${newlyPurchased?' inventory-item-new':''}" data-inventory-item-key="${escapeHtml(item.key)}">
+      ${newlyPurchased?'<span class="inventory-new-badge">✨ Nouveau</span>':''}
       ${shopPreview(item)}
       <div class="inventory-item-name">${escapeHtml(item.name)}</div>
       <div class="inventory-item-desc">${escapeHtml(item.description || '')}</div>
@@ -4313,6 +4319,7 @@ async function openInventory() {
 }
 
 function closeInventory() {
+  if(isMobileGameUi())mobileInventoryNewItemKey=null;
   $('inventoryModal')?.classList.add('hidden');
   syncMobileNavState?.();
 }
@@ -4390,7 +4397,10 @@ function closeShopPurchaseConfirm() {
 
 function openShopPurchaseSuccess(item, balance) {
   const inventoryButton=$('shopPurchaseSuccessInventory');
-  if(inventoryButton)inventoryButton.dataset.inventoryCategory=item?.category||'object';
+  if(inventoryButton){
+    inventoryButton.dataset.inventoryCategory=item?.category||'object';
+    inventoryButton.dataset.inventoryItemKey=item?.key||'';
+  }
   if ($('shopPurchaseSuccessVisual')) $('shopPurchaseSuccessVisual').innerHTML = shopPreview(item);
   if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = item?.name || 'Ton objet';
   if ($('shopPurchaseSuccessBalance')) $('shopPurchaseSuccessBalance').textContent = `${Number(balance || 0).toLocaleString('fr-FR')} LoVeR’Cash`;
@@ -4582,12 +4592,15 @@ $('shopPurchaseSuccessInventory')?.addEventListener('click', async event => {
     const category=event.currentTarget.dataset.inventoryCategory;
     inventoryCategory=['title','background','frame','avatar_frame','object'].includes(category)?category:'object';
     inventoryTitleFilter='all';
+    mobileInventoryNewItemKey=event.currentTarget.dataset.inventoryItemKey||null;
     closeAllMobilePanels('inventory');
     closeShopItemPreview();
     $('inventoryModal')?.classList.remove('hidden');
     syncMobileNavState();
     await openInventory();
-    $('inventoryModal')?.scrollTo({top:0,behavior:'auto'});
+    const purchased=[...($('inventoryGrid')?.querySelectorAll('[data-inventory-item-key]')||[])].find(card=>card.dataset.inventoryItemKey===mobileInventoryNewItemKey);
+    if(purchased)purchased.scrollIntoView({block:'center',behavior:'auto'});
+    else $('inventoryModal')?.scrollTo({top:0,behavior:'auto'});
     return;
   }
   if (slot) { $('shopModal')?.classList.add('hidden'); requestAnimationFrame(() => openIncubatorAddModal(slot)); return; }
