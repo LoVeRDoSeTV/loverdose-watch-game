@@ -42,7 +42,7 @@ export function buildDiscordFeedbackPayload(row, mentionId) {
     embeds:[{
       author:{name:'LoVeR Watch Game · Retours des joueurs'},
       title:bug?'🐛 Nouveau signalement de bug':'💡 Nouvelle suggestion pour le jeu',
-      color:bug?0xe47788:0x9147ff,
+      color:row.status==='resolved'?0x53e6a8:row.status==='in_progress'?0xf3c85b:bug?0xe47788:0x9147ff,
       description:`**👤 Envoyé par :** ${plain(row.player_name).slice(0,200)}\n**📍 Page concernée :** ${plain(row.page)}\n**📋 Suivi :** ${status}\n\n**${bug?'💬 Description du problème':'💬 Idée proposée'}**\n${plain(row.description).slice(0,3400)}${plain(row.description).length>3400?'… (suite dans l’Admin)':''}\n\n**📷 Capture d’écran**\n${capture}`,
       footer:{text:`${bug?'Bug':'Idée'} n°${row.id} · Administration → Bugs et idées des joueurs`},
       timestamp:new Date(row.created_at).toISOString()
@@ -65,14 +65,30 @@ export async function deliverFeedbackToDiscord(pool, id) {
       payload.embeds[0].image={url:`attachment://${filename}`};
       body=new FormData();body.append('payload_json',JSON.stringify(payload));body.append('files[0]',new Blob([row.screenshot],{type:row.screenshot_mime}),filename);
     } else {body=JSON.stringify(payload);headers={'Content-Type':'application/json'};}
-    const response=await fetch(webhook,{method:'POST',headers,body,redirect:'error',signal:AbortSignal.timeout(8000)});
+    const response=await fetch(`${webhook}?wait=true`,{method:'POST',headers,body,redirect:'error',signal:AbortSignal.timeout(8000)});
     if (!response.ok) throw new Error('Discord indisponible');
-    await pool.query(`UPDATE game_feedback SET discord_status='sent',discord_sent_at=CURRENT_TIMESTAMP WHERE id=$1`,[id]);
+    const message=await response.json();
+    if(!/^\d{17,20}$/.test(String(message.id||'')))throw Error('Réponse Discord invalide');
+    await pool.query(`UPDATE game_feedback SET discord_status='sent',discord_sent_at=CURRENT_TIMESTAMP,discord_message_id=$2 WHERE id=$1`,[id,message.id]);
     return 'sent';
   } catch {
     await pool.query(`UPDATE game_feedback SET discord_status='failed' WHERE id=$1`,[id]);
     return 'failed';
   }
+}
+export async function syncFeedbackDiscordStatus(pool,id) {
+  const row=(await pool.query('SELECT * FROM game_feedback WHERE id=$1',[id])).rows[0];
+  const webhook=feedbackWebhookUrl();
+  if(!webhook)return 'not_configured';
+  if(!row?.discord_message_id)return row?.discord_status==='sent'?'legacy':'not_sent';
+  if(!/^\d{17,20}$/.test(String(row.discord_message_id)))return 'failed';
+  try {
+    const payload=buildDiscordFeedbackPayload(row,null);
+    if(row.screenshot){const ext=row.screenshot_mime==='image/jpeg'?'jpg':row.screenshot_mime==='image/png'?'png':'webp';payload.embeds[0].image={url:`attachment://capture-${row.id}.${ext}`};}
+    // Ne modifier ni la mention initiale ni les pièces jointes du message.
+    const response=await fetch(`${webhook}/messages/${row.discord_message_id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({embeds:payload.embeds,allowed_mentions:{parse:[]}}),redirect:'error',signal:AbortSignal.timeout(8000)});
+    return response.ok?'synced':'failed';
+  }catch{return 'failed';}
 }
 export function createFeedbackRouter({pool,getBroadcasterAccount}) {
   const router=express.Router();
@@ -100,7 +116,11 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
     try {if (!await getBroadcasterAccount(req)) return res.status(403).json({error:'Accès réservé au diffuseur.'});next();} catch {res.status(500).json({error:'Vérification impossible.'});}
   });
   router.get('/admin/feedback',async(req,res)=>{
-    try {const rows=await pool.query(`SELECT id,player_name,kind,page,description,status,discord_status,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot FROM game_feedback ORDER BY created_at DESC LIMIT 100`);res.json({ok:true,items:rows.rows,discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
+    try {const archived=req.query?.archive==='1';const page=Math.max(1,Math.min(100000,Number.parseInt(req.query?.page,10)||1));const rows=await pool.query(`SELECT id,account_id,player_name,kind,page,description,status,discord_status,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot,COUNT(*) OVER() total_count FROM game_feedback WHERE (status='resolved')=$1 ORDER BY created_at DESC LIMIT 20 OFFSET $2`,[archived,(page-1)*20]);res.json({ok:true,items:rows.rows,page,total:Number(rows.rows[0]?.total_count||0),discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
+  });
+  router.get('/admin/feedback/:id',async(req,res)=>{
+    const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
+    try{const row=(await pool.query('SELECT id,account_id,player_name,kind,page,description,status,discord_status,created_at,screenshot IS NOT NULL has_screenshot FROM game_feedback WHERE id=$1',[id])).rows[0];if(!row)return res.sendStatus(404);res.json({ok:true,item:row});}catch{res.status(500).json({error:'Retour indisponible.'});}
   });
   router.get('/admin/feedback/:id/screenshot',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
@@ -109,11 +129,11 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
   router.patch('/admin/feedback/:id',async(req,res)=>{
     const id=Number(req.params.id),status=req.body?.status;
     if(!Number.isSafeInteger(id)||id<1||!['new','in_progress','resolved'].includes(status))return res.status(400).json({error:'Statut invalide.'});
-    try {const result=await pool.query('UPDATE game_feedback SET status=$2 WHERE id=$1 RETURNING id',[id,status]);if(!result.rowCount)return res.sendStatus(404);res.json({ok:true});} catch {res.status(500).json({error:'Modification impossible.'});}
+    try {const result=await pool.query('UPDATE game_feedback SET status=$2 WHERE id=$1 RETURNING id',[id,status]);if(!result.rowCount)return res.sendStatus(404);let discordSync='failed';try{discordSync=await syncFeedbackDiscordStatus(pool,id);}catch{}res.json({ok:true,discordSync});} catch {res.status(500).json({error:'Modification impossible.'});}
   });
   router.post('/admin/feedback/:id/discord',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
-    try {const status=await deliverFeedbackToDiscord(pool,id);res.json({ok:true,status});} catch {res.status(500).json({error:'Envoi Discord impossible.'});}
+    try {let status=await deliverFeedbackToDiscord(pool,id);if(status==='unchanged')status=await syncFeedbackDiscordStatus(pool,id);res.json({ok:true,status});} catch {res.status(500).json({error:'Envoi Discord impossible.'});}
   });
   return router;
 }
