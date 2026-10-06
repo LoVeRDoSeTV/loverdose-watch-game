@@ -3665,6 +3665,12 @@ function arrangeIncubatorCarousel(){
       const aOccupied = slots.has(aSlot) && !slots.get(aSlot).empty;
       const bOccupied = slots.has(bSlot) && !slots.get(bSlot).empty;
       if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
+      if(aOccupied && bOccupied){
+        const hatchSeconds = Number(incubatorData.hatchSeconds || 21600);
+        const remaining = slot => slot.ready ? 0 : Math.max(0,hatchSeconds - Number(slot.watchedSeconds || 0));
+        const timeDifference = remaining(slots.get(aSlot)) - remaining(slots.get(bSlot));
+        if(timeDifference) return timeDifference;
+      }
     }
     return aSlot - bSlot;
   });
