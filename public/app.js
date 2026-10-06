@@ -6761,3 +6761,57 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
   new MutationObserver(bindAll).observe(document.documentElement,{childList:true,subtree:true});
 })();
 
+
+// Retours joueurs PC : capture compressée puis enregistrée sur le serveur.
+const gameFeedbackPages=['Accueil','Lovys','Incubateur','PvE','Communauté','Classement','Progression','Boutique','Inventaire','Mon compte','Autre'];
+let gameFeedbackScreenshot=null,gameFeedbackImageVersion=0,gameFeedbackImageBusy=false,gameFeedbackSending=false,gameFeedbackPreviousFocus=null;
+function feedbackMessage(text,error=false){$('gameFeedbackMessage').textContent=text;$('gameFeedbackMessage').classList.toggle('error',error);}
+function clearFeedbackImage(){gameFeedbackImageVersion++;gameFeedbackScreenshot=null;gameFeedbackImageBusy=false;$('gameFeedbackScreenshot').value='';$('gameFeedbackImage').removeAttribute('src');$('gameFeedbackImagePreview').classList.add('hidden');}
+function closeGameFeedback(){if(gameFeedbackSending)return;$('gameFeedbackModal').classList.add('hidden');gameFeedbackPreviousFocus?.focus();}
+function openGameFeedback(){
+  if(!isDesktopGameUi()||!me?.user)return;
+  gameFeedbackPreviousFocus=document.activeElement;$('gameFeedbackForm').reset();clearFeedbackImage();feedbackMessage('');
+  $('gameFeedbackPage').innerHTML=gameFeedbackPages.map(page=>`<option>${escapeHtml(page)}</option>`).join('');
+  $('gameFeedbackPage').value=({home:'Accueil',lovys:'Lovys',incubator:'Incubateur',pve:'PvE',lobby:'Communauté',leaderboard:'Classement',progression:'Progression',shop:commerceTab==='inventory'?'Inventaire':'Boutique',account:'Mon compte'})[desktopView]||'Autre';
+  $('gameFeedbackSubmit').disabled=false;$('gameFeedbackSubmit').textContent='Envoyer mon message';$('gameFeedbackModal').classList.remove('hidden');$('gameFeedbackKind').dispatchEvent(new Event('change'));$('gameFeedbackKind').focus();
+}
+$('gameFeedbackOpen')?.addEventListener('click',openGameFeedback);
+$('gameFeedbackClose')?.addEventListener('click',closeGameFeedback);
+$('gameFeedbackModal')?.addEventListener('click',e=>{if(e.target===$('gameFeedbackModal'))closeGameFeedback();});
+$('gameFeedbackRemoveImage')?.addEventListener('click',clearFeedbackImage);
+$('gameFeedbackKind')?.addEventListener('change',()=>{const bug=$('gameFeedbackKind').value==='bug';$('gameFeedbackDescriptionLabel').textContent=bug?'Que s’est-il passé ? Comment reproduire le bug ?':'Quelle est ton idée et que pourrait-elle améliorer ?';$('gameFeedbackDescription').placeholder=bug?'Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…':'Décris ton idée et pourquoi elle serait utile aux joueurs…';});
+$('gameFeedbackScreenshot')?.addEventListener('change',async()=>{
+  const file=$('gameFeedbackScreenshot').files[0];clearFeedbackImage();if(!file)return;
+  const version=gameFeedbackImageVersion;gameFeedbackImageBusy=true;feedbackMessage('Préparation de la capture…');
+  let url;
+  try {
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>12000000)throw Error('Choisis une image PNG, JPEG ou WebP de moins de 12 Mo.');
+    url=URL.createObjectURL(file);const image=new Image();image.src=url;await image.decode();
+    if(image.width*image.height>40000000)throw Error('Cette image est trop grande.');
+    const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+    const result=canvas.toDataURL('image/jpeg',.82);if(result.length>2000000)throw Error('La capture est trop lourde. Essaie une image plus petite.');
+    if(version!==gameFeedbackImageVersion)return;gameFeedbackScreenshot=result;$('gameFeedbackImage').src=result;$('gameFeedbackImagePreview').classList.remove('hidden');feedbackMessage('Capture prête à être envoyée.');
+  } catch(error){if(version===gameFeedbackImageVersion)feedbackMessage(error.message||'Capture illisible.',true);}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
+});
+$('gameFeedbackForm')?.addEventListener('submit',async event=>{
+  event.preventDefault();if(gameFeedbackSending)return;if(gameFeedbackImageBusy){feedbackMessage('Attends la préparation de la capture.',true);return;}
+  const description=$('gameFeedbackDescription').value.trim();if(description.length<20){feedbackMessage('Décris ton message en au moins 20 caractères.',true);return;}
+  gameFeedbackSending=true;const button=$('gameFeedbackSubmit');button.disabled=true;button.textContent='Envoi en cours…';feedbackMessage('');
+  try {
+    const response=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:$('gameFeedbackKind').value,page:$('gameFeedbackPage').value,description,screenshot:gameFeedbackScreenshot})});const data=await response.json();if(!response.ok)throw Error(data.error||'Envoi impossible.');
+    feedbackMessage(`✓ Merci ! Ton message #${data.id} a bien été envoyé à l’administrateur.`);$('gameFeedbackDescription').value='';clearFeedbackImage();button.textContent='Message envoyé ✓';
+  } catch(error){feedbackMessage(error.message||'Envoi impossible.',true);button.disabled=false;button.textContent='Réessayer l’envoi';}finally{gameFeedbackSending=false;}
+});
+document.addEventListener('keydown',event=>{if($('gameFeedbackModal')?.classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeGameFeedback();}else if(event.key==='Tab')trapDesktopAdminFocus(event,$('gameFeedbackModal'));},true);
+window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches&&!gameFeedbackSending)closeGameFeedback();});
+async function loadAdminFeedback(){
+  const list=$('adminFeedbackList');list.innerHTML='<p class="muted">Chargement…</p>';
+  try {
+    const data=await adminFetch('/api/admin/feedback');$('adminFeedbackDiscordState').textContent=data.discordConfigured?'Discord configuré : les nouveaux messages sont envoyés automatiquement dans ton salon.':'Discord non configuré : renseigne DISCORD_FEEDBACK_WEBHOOK_URL sur le serveur. Les messages restent enregistrés ici.';
+    const discordLabels={sent:'✓ Envoyé sur Discord',failed:'⚠️ Envoi Discord échoué',not_configured:'Discord à configurer',waiting:'En attente Discord',sending:'Envoi Discord en cours'};
+    list.innerHTML=data.items.length?data.items.map(item=>`<article class="admin-feedback-item"><header><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small></header><p class="admin-feedback-description">${escapeHtml(item.description)}</p>${item.has_screenshot?`<a href="/api/admin/feedback/${Number(item.id)}/screenshot" target="_blank" rel="noopener"><img loading="lazy" src="/api/admin/feedback/${Number(item.id)}/screenshot" alt="Capture du signalement ${Number(item.id)}"></a>`:''}<div class="admin-feedback-actions"><label>Statut <select data-feedback-status="${Number(item.id)}">${[['new','À traiter'],['in_progress','En cours'],['resolved','Résolu']].map(([value,label])=>`<option value="${value}" ${item.status===value?'selected':''}>${label}</option>`).join('')}</select></label><small>${discordLabels[item.discord_status]||'En attente'}</small>${data.discordConfigured&&['failed','not_configured','waiting'].includes(item.discord_status)?`<button type="button" class="btn secondary" data-feedback-discord="${Number(item.id)}">Envoyer sur Discord</button>`:''}</div></article>`).join(''):'<p class="muted">Aucun message pour le moment.</p>';
+  }catch(error){list.textContent=error.message;}
+}
+$('adminFeedbackOpen')?.addEventListener('click',async()=>{$('adminFeedbackSection').classList.remove('hidden');await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
+$('adminFeedbackList')?.addEventListener('change',async event=>{const select=event.target.closest('[data-feedback-status]');if(!select)return;select.disabled=true;try{await adminFetch(`/api/admin/feedback/${Number(select.dataset.feedbackStatus)}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:select.value})});await loadAdminFeedback();}catch(error){$('adminFeedbackDiscordState').textContent=error.message;select.disabled=false;}});
+$('adminFeedbackList')?.addEventListener('click',async event=>{const button=event.target.closest('[data-feedback-discord]');if(!button)return;button.disabled=true;try{await adminFetch(`/api/admin/feedback/${Number(button.dataset.feedbackDiscord)}/discord`,{method:'POST'});await loadAdminFeedback();}catch(error){$('adminFeedbackDiscordState').textContent=error.message;button.disabled=false;}});
