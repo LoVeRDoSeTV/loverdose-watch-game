@@ -6471,6 +6471,52 @@ app.post('/api/shop/buy', async (req, res) => {
   } finally { client.release(); }
 });
 
+// Tenue cosmétique : validation complète puis un seul UPDATE dans une transaction.
+app.post('/api/shop/equip-outfit', async (req, res) => {
+  if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+  const equipment = req.body?.equipment;
+  const columns = {title:'equipped_title_key',background:'equipped_background_key',frame:'equipped_frame_key',avatar_frame:'equipped_avatar_frame_key'};
+  if (!equipment || typeof equipment !== 'object' || Array.isArray(equipment)) return res.status(400).json({error:'Tenue invalide.'});
+  const entries = Object.entries(equipment);
+  if (!entries.length || entries.length > 4 || entries.some(([category,key]) => !Object.hasOwn(columns, category) || (key !== null && typeof key !== 'string'))) {
+    return res.status(400).json({error:'Tenue invalide.'});
+  }
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const accountResult = await client.query('SELECT twitch_id FROM accounts WHERE id = $1 FOR UPDATE', [req.session.account.id]);
+    if (!accountResult.rowCount) {await client.query('ROLLBACK');return res.status(404).json({error:'Compte introuvable.'});}
+    const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+    const isBroadcaster = Boolean(broadcasterId && String(accountResult.rows[0].twitch_id || '') === broadcasterId);
+    const values = [req.session.account.id], assignments = [];
+    for (const [category,key] of entries) {
+      if (key !== null) {
+        const item = key === MASTER_TITLE.key ? MASTER_TITLE : shopItemByKey(key);
+        if (!item || item.category !== category || item.category === 'object') {
+          await client.query('ROLLBACK');return res.status(400).json({error:'Article incompatible avec cet emplacement.'});
+        }
+        if (key === MASTER_TITLE.key) {
+          if (!isBroadcaster) {await client.query('ROLLBACK');return res.status(403).json({error:'Titre exclusif.'});}
+        } else {
+          const owned = await client.query('SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0 FOR SHARE', [req.session.account.id,key]);
+          if (!owned.rowCount) {await client.query('ROLLBACK');return res.status(403).json({error:'Tu ne possèdes pas tous les articles de cette tenue.'});}
+        }
+      }
+      values.push(key === null && category === 'title' ? TITLE_NONE_KEY : key);
+      assignments.push(`${columns[category]} = $${values.length}`);
+    }
+    await client.query(`UPDATE accounts SET ${assignments.join(', ')}, updated_at=CURRENT_TIMESTAMP WHERE id = $1`,values);
+    await client.query('COMMIT');
+    pushLiveUpdate('shop-update',{twitchId:req.session.user.twitchId});
+    res.json({ok:true,message:'Tenue équipée !'});
+  } catch (error) {
+    if (client) {try {await client.query('ROLLBACK');} catch {}}
+    console.error('Erreur équipement tenue :',error);
+    res.status(500).json({error:'Impossible d’équiper cette tenue.'});
+  } finally {client?.release();}
+});
+
 app.post('/api/shop/equip', async (req, res) => {
   try {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
