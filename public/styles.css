@@ -8051,3 +8051,17 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .desktop-game-footer-inner{grid-template-columns:minmax(0,1fr) auto;gap:16px 24px}
   .desktop-game-footer-terms summary{grid-column:2;grid-row:2}
 }
+
+/* v312 : vue de suivi des retours, réservée à l'administration PC. */
+@media(min-width:901px){
+ #adminFeedbackSection{padding-top:12px;}
+ .admin-feedback-row{display:flex;width:100%;justify-content:space-between;gap:24px;text-align:left;color:inherit;cursor:pointer;font:inherit;}
+ .admin-feedback-row small,.admin-feedback-preview{display:block;margin-top:10px;}
+ .admin-feedback-preview{color:var(--muted);font-size:14px;}
+ .admin-feedback-detail-grid{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);gap:20px;margin-top:20px;}
+ .admin-feedback-detail-grid>*{min-width:0;}
+ .admin-feedback-stats{display:grid;gap:12px;}
+ .admin-feedback-avatar{width:80px!important;height:80px;object-fit:cover;border-radius:18px;}
+ #adminFeedbackNotice{color:#c9b4ff;white-space:pre-wrap;}
+ #adminFeedbackPagination{margin-top:18px;}
+}

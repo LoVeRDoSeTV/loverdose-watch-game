@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=309">
+<link rel="stylesheet" href="/styles.css?v=312">
 
 
 </head>
@@ -760,7 +760,14 @@
       <button id="desktopAdminClose" class="account-close" type="button" aria-label="Fermer l’administration">×</button>
     </div>
     <button id="adminFeedbackOpen" class="btn secondary" type="button">📬 Bugs et idées des joueurs</button>
-    <section id="adminFeedbackSection" class="hidden"><h3>📬 Retours des joueurs</h3><p id="adminFeedbackDiscordState" class="muted"></p><div id="adminFeedbackList"></div></section>
+    <section id="adminFeedbackSection" class="hidden">
+      <button id="adminFeedbackBack" class="btn secondary" type="button">← Administration</button>
+      <h3>📬 Bugs et idées des joueurs</h3>
+      <div class="admin-feedback-actions"><button id="adminFeedbackActive" class="btn" type="button">À traiter / En cours</button><button id="adminFeedbackArchive" class="btn secondary" type="button">✓ Archives</button></div>
+      <p id="adminFeedbackDiscordState" class="muted"></p><p id="adminFeedbackNotice" role="status"></p>
+      <div id="adminFeedbackList"></div><div id="adminFeedbackDetail" class="hidden"></div>
+      <div id="adminFeedbackPagination" class="admin-feedback-actions"></div>
+    </section>
     <div id="desktopAdminContent"></div>
   </div>
 </div>
@@ -1188,5 +1195,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=309"></script>
+<script src="/app.js?v=312"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
