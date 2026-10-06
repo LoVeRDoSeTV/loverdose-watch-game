@@ -890,6 +890,8 @@ async function loadGame() {
     }
 
     me = data;
+    startLiveUpdates();
+    refreshDesktopHomeLiveStatus();
     $('app').classList.remove('hidden');
     syncLoverCashDisplays(me.user);
     renderPlayerVisitCard();
@@ -1011,7 +1013,11 @@ function renderDesktopHomeLiveStatus(data) {
 async function refreshDesktopHomeLiveStatus() {
   if (!isDesktopGameUi() || !me?.user) return;
   try {
-    const response = await fetch('/api/game/live-status', { cache:'no-store' });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
+    let response;
+    try { response = await fetch('/api/game/live-status', { cache:'no-store', signal:controller.signal }); }
+    finally { clearTimeout(timeout); }
     if (!response.ok) throw new Error('Statut indisponible');
     renderDesktopHomeLiveStatus(await response.json());
   } catch { renderDesktopHomeLiveStatus(null); }
@@ -6517,7 +6523,7 @@ async function refreshLiveGameState() {
 }
 
 function startLiveUpdates() {
-  if (!window.EventSource || liveUpdates) return;
+  if (!me?.user || !window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
   liveUpdates.addEventListener('connected', refreshDesktopHomeLiveStatus);
