@@ -3580,6 +3580,8 @@ function closeAllMobilePanels(except=''){
   if(except!=='community'){ document.body.classList.remove('mobile-community-open'); $('desktopLobbyPage')?.classList.add('hidden'); }
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
   if(except!=='inventory') $('inventoryModal')?.classList.add('hidden');
+  $('shopModal')?.classList.add('hidden');
+  closeShopItemPreview();
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
   if(except!=='progression') $('progressionModal')?.classList.add('hidden');
   if(except!=='creatures'){ $('pick')?.classList.remove('egg-details-open'); $('lovysCollectionModal')?.classList.add('hidden'); }
