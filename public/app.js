@@ -3014,14 +3014,41 @@ function openLovysFragmentTrades(){
   if(isMobileGameUi()){ toggleMobilePanel('community'); return; }
   document.querySelector('[data-lobby-tab="trades"]')?.click();
 }
+function mobileLovysTalentHelpMarkup(active){
+  const name=escapeHtml(active?.name||'ton Lovys');
+  const talent=active?.talent;
+  const previews=active?.rankPreviews||[];
+  const cost=Number(active?.nextRankCost||0);
+  const rank=Math.max(1,Number(active?.rank||1));
+  const stages=[{rank:1,label:'Rangs 1 et 2'},{rank:3,label:'Rangs 3 et 4'},{rank:5,label:'Rang 5'}];
+  const evolution=stages.map(stage=>{
+    const preview=previews.find(item=>Number(item.rank)===stage.rank);
+    if(!preview?.talent?.description)return '';
+    return `<span><strong>${stage.label} :</strong> ${escapeHtml(preview.talent.description)}</span>`;
+  }).join('');
+  return `<div><b>✨ Le talent fonctionne automatiquement</b><span>${talent?`${escapeHtml(talent.icon||'✨')} ${escapeHtml(talent.name||'Talent')} de ${name} : ${escapeHtml(talent.description||'')}`:'Chaque Lovys possède son propre talent passif.'}</span><span>Tu n’as aucun bouton à activer : le talent agit en combat selon les conditions de sa description. Un pourcentage peut représenter une chance de déclenchement ou un bonus, selon le talent.</span></div>
+  <div><b>⭐ Augmente le rang pour renforcer le talent</b><span>Le talent s’améliore au rang 3, puis au rang 5. Les rangs 2 et 4 gardent le même effet de talent que le rang précédent.</span>${evolution}</div>
+  <div><b>🧩 Récupère les fragments de ${name}</b><span>Fais éclore un œuf : si tu obtiens un Lovys déjà découvert, le doublon donne des fragments de ce Lovys. Tu peux aussi en obtenir par un échange dans Communauté → Échanges.</span><span>Les fragments universels peuvent compléter jusqu’à 50 % du coût d’un rang.</span></div>
+  <div><b>👆 Passe au rang suivant</b><span>${rank>=5?'Ton Lovys est déjà au rang maximum : son talent a atteint son dernier palier.':`Ouvre Mes Lovys → Fragments, retrouve ${name}, puis appuie sur « Passer au rang ${rank+1} » et confirme.${cost?` Ce passage coûte ${cost} fragments.`:''} Le bouton s’active quand tu as assez de fragments.`}</span><span>Pour atteindre le rang 3 ou 5, passe chaque rang dans l’ordre. Consulte « Évolution du talent » pour voir le résultat.</span></div>
+  <div><b>⚡ L’XP augmente le niveau</b><span>« Donner de l’XP » améliore le niveau et les statistiques. Pour augmenter les pourcentages du talent, utilise les fragments pour monter le rang.</span></div>`;
+}
 function openLovysKitHelp(){
   let modal=document.getElementById('lovysKitHelpModal');
+  const mode=isMobileGameUi()?'mobile':'pc';
+  if(modal && modal.dataset.helpMode && modal.dataset.helpMode!==mode){modal.remove();modal=null;}
   if(!modal){
     modal=document.createElement('div'); modal.id='lovysKitHelpModal'; modal.className='lovys-help-modal';
     modal.innerHTML=`<div class="lovys-help-card" role="dialog" aria-modal="true" aria-labelledby="lovysHelpTitle"><button class="lovys-help-close" type="button" aria-label="Fermer">×</button><div class="lovys-help-kicker">GUIDE RAPIDE</div><h3 id="lovysHelpTitle">Comment fonctionnent les Lovys ?</h3><div class="lovys-help-steps"><div><b>🧩 Doublons → fragments</b><span>Obtenir un Lovys déjà découvert te donne des fragments liés à sa rareté.</span></div><div><b>⭐ Fragments → rang</b><span>Accumule les fragments nécessaires pour faire évoluer ton Lovys jusqu’à 5 étoiles.</span></div><div><b>✨ Rang → talent renforcé</b><span>Chaque nouveau rang améliore le talent passif de ton Lovys.</span></div><div><b>⚔️ Compétences de combat</b><span>Elles sont utilisées pendant les combats puis doivent attendre leur nombre de tours de recharge.</span></div><div><b>⚡ XP → niveau</b><span>L’XP augmente le niveau du Lovys. Le niveau et le rang sont deux progressions différentes.</span></div></div></div>`;
     document.body.appendChild(modal);
     modal.querySelector('.lovys-help-close')?.addEventListener('click',()=>modal.classList.remove('open'));
     modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('open')});
+  }
+  modal.dataset.helpMode=mode;
+  if(mode==='mobile'){
+    const active=(lovysCollectionData?.lovys||[]).find(l=>l.isActive)||(lovysCollectionData?.lovys||[])[0];
+    modal.querySelector('.lovys-help-kicker').textContent='TALENT PASSIF';
+    modal.querySelector('#lovysHelpTitle').textContent='Comment améliorer ton talent ?';
+    modal.querySelector('.lovys-help-steps').innerHTML=mobileLovysTalentHelpMarkup(active);
   }
   modal.classList.add('open');
 }
