@@ -5819,6 +5819,9 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
   #lovysCollectionModal .lovys-active-title h3{width:100%;margin:0;font-size:23px}
   #lovysCollectionModal .lovys-active-level{font-size:12px;line-height:1.6}
   #lovysCollectionModal .lovys-active-level span{color:#aeb7d1}
+  #lovysCollectionModal .lovys-live-level-estimate{margin:10px 0 14px;padding:10px 12px;border:1px solid #a279e52b;border-radius:10px;background:#8b5cf60a}
+  #lovysCollectionModal .lovys-live-level-estimate strong{display:block;font-size:12px;line-height:1.5;color:#d7c4fa}
+  #lovysCollectionModal .lovys-live-level-estimate small{display:block;margin-top:4px;font-size:10px;line-height:1.5;color:#9fa6be}
   #lovysCollectionModal .lovys-active-xp{height:8px;overflow:hidden;background:#292f4b;border-radius:10px;margin:10px 0}
   #lovysCollectionModal .lovys-active-xp>span{display:block;height:100%;background:linear-gradient(90deg,#7041bd,#c89aff)}
   #lovysCollectionModal .lovys-xp-copy{display:grid;gap:4px;font-size:11px;line-height:1.4}
