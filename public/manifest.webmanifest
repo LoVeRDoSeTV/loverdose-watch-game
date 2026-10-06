@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "LoVeRWatchGame",
-  "short_name": "LoVeRWatchGame",
-  "description": "LoVeRWatchGame : jeu communautaire Twitch avec Lovys, incubation, défis, PvE et progression.",
+  "name": "LoVeR Watch Game",
+  "short_name": "LoVeR Watch Game",
+  "description": "LoVeR Watch Game : jeu communautaire Twitch avec Lovys, incubation, défis, PvE et progression.",
   "lang": "fr-FR",
   "start_url": "/?source=pwa",
   "scope": "/",
