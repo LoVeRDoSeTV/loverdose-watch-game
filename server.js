@@ -3597,14 +3597,21 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
   }
 });
 
+const GAME_STATUS_PRESENCE = new Map();
+
 function connectedGamePlayerCount() {
-  return new Set([...LIVE_UPDATE_CLIENTS]
+  const now = Date.now();
+  for (const [id, seenAt] of GAME_STATUS_PRESENCE) {
+    if (now - seenAt > 90000) GAME_STATUS_PRESENCE.delete(id);
+  }
+  return new Set([...GAME_STATUS_PRESENCE.keys(), ...[...LIVE_UPDATE_CLIENTS]
     .filter(client => !client.destroyed && !client.writableEnded && client.gamePlayerId)
-    .map(client => client.gamePlayerId)).size;
+    .map(client => String(client.gamePlayerId))]).size;
 }
 
 app.get('/api/game/live-status', async (req, res) => {
   if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+  if (req.session.user.twitchId) GAME_STATUS_PRESENCE.set(String(req.session.user.twitchId), Date.now());
   try {
     const tracker = (await pool.query('SELECT last_live FROM twitch_tracker_auth WHERE id=1')).rows[0];
     res.setHeader('Cache-Control', 'no-store');
