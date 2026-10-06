@@ -4520,6 +4520,7 @@ $('inventoryTitleFilter')?.addEventListener('change', event => {
   renderInventory();
 });
 $('playerCardInventory')?.addEventListener('click', openInventory);
+$('shopInventoryButton')?.addEventListener('click',()=>{if(isDesktopGameUi())openInventory();});
 $('inventoryClose')?.addEventListener('click', closeInventory);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {

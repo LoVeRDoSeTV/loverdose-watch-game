@@ -7366,11 +7366,16 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 /* ===== V229 — NAV NATIVE / HEADER UNIQUE / CONTENU ===== */
+.desktop-shop-inventory{display:none}
 @media (min-width:901px){
  /* NAV volontairement intacte : elle défile exactement comme avant. */
  .standard-page-header{display:none;box-sizing:border-box;width:min(1500px,calc(100vw - 84px));max-width:1500px;margin:28px auto 0;padding:0;background:transparent}
  .standard-page-header.is-visible{display:block}
  .standard-page-header-inner{box-sizing:border-box;width:100%;margin:0;padding:8px 0 22px;border-bottom:1px solid rgba(145,71,255,.22)}
+ body[data-desktop-view="shop"] .standard-page-header-inner{position:relative;padding-right:170px}
+ body[data-desktop-view="shop"] .desktop-shop-inventory{position:absolute;top:8px;right:0;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:11px 18px;border:1px solid rgba(145,71,255,.45);border-radius:12px;background:rgba(145,71,255,.14);font:inherit;font-size:14px;font-weight:850;white-space:nowrap}
+ body[data-desktop-view="shop"] .desktop-shop-inventory:hover{background:rgba(145,71,255,.25)}
+ body[data-desktop-view="shop"] .desktop-shop-inventory:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
  #standardPageHeaderTitle{margin:0;padding:0;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;text-align:left}
  #standardPageHeaderSubtitle{margin:7px 0 0;padding:0;font-size:13px;line-height:1.5;color:#aeb6d0;text-align:left}
 
