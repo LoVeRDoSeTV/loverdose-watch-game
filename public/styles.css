@@ -1978,7 +1978,12 @@ html, body{
 .inventory-modal.hidden{display:none}
 .desktop-boost-status{display:none}
 @media(min-width:901px){
-  .desktop-boost-status.has-boosts{display:flex;flex-wrap:wrap;gap:10px;width:min(1500px,calc(100% - 84px));margin:18px auto 0;align-items:center}
+  body[data-desktop-view="home"] .desktop-boost-status{display:block;width:100%;margin:0;padding:16px 18px;border:1px solid rgba(145,71,255,.28);border-radius:14px;background:linear-gradient(145deg,rgba(27,24,48,.8),rgba(13,17,34,.8));box-sizing:border-box}
+  .home-boost-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .home-boost-heading h3{margin:0;font-size:17px;color:#eee6ff}
+  .home-boost-heading button{padding:7px 10px;border:1px solid rgba(145,71,255,.3);border-radius:9px;background:rgba(145,71,255,.1);color:#d9c6ff;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
+  .home-boost-list{display:grid;gap:8px}
+  .home-boost-empty{margin:0;color:#a4adc7;font-size:12px;line-height:1.5}
   .desktop-boost-chip,.desktop-boost-notice{padding:10px 14px;border:1px solid rgba(106,217,162,.35);border-radius:12px;background:rgba(39,120,80,.12);color:#c0f1d5;font-size:13px;line-height:1.5}
   .desktop-boost-notice{border-color:rgba(174,120,255,.4);background:rgba(145,71,255,.12);color:#e9d9ff}
   .desktop-boost-notice.error{border-color:rgba(245,101,130,.45);background:rgba(180,55,85,.12);color:#ffc1cf}
@@ -2006,7 +2011,7 @@ html, body{
 }
 
 /* Boutique / Inventaire PC : catalogue et cabine d’essayage partagés. */
-.desktop-inventory-preview,.commerce-tabs,.commerce-boosts,.commerce-preview-slot{display:none}
+.desktop-inventory-preview,.commerce-tabs,.commerce-preview-slot{display:none}
 .commerce-topline,.commerce-layout,.commerce-catalog,.commerce-shop-catalog{display:contents}
 @media(min-width:901px){
   .commerce-topline{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;margin-bottom:22px}
@@ -2043,8 +2048,6 @@ html, body{
   .commerce-equipment-slot span,.commerce-equipment-slot strong{display:block;overflow-wrap:anywhere}
   .commerce-equipment-slot span{color:#a6afca;font-size:11px;margin-bottom:4px}
   .commerce-slot-remove{color:#ef9caf!important;font-size:11px!important}
-  .commerce-boosts.has-boosts{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px}
-  .commerce-boosts span{padding:10px 14px;border:1px solid rgba(82,216,150,.3);border-radius:10px;background:rgba(82,216,150,.07);color:#b3edc9;font-size:13px;font-weight:800}
   body[data-desktop-view="shop"] #shopModal .commerce-catalog :is(.shop-grid,.inventory-grid){grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))!important;gap:12px}
   body[data-desktop-view="shop"] #shopModal .commerce-catalog :is(.shop-item,.inventory-item){padding:12px;gap:8px;min-width:0}
   .commerce-catalog :is(.shop-item-desc,.inventory-item-desc),.commerce-catalog #inventoryCount{display:none}

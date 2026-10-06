@@ -4197,16 +4197,10 @@ function setCommerceTab(tab) {
   renderInventoryVisitPreview();
 }
 
-function renderCommerceBoosts() {
+function syncDesktopBoostData() {
   if (!isDesktopGameUi()) return;
   desktopActiveBoosts = shopData?.activeBoosts || {};
   renderDesktopBoostStatus();
-  const messages = Object.entries(shopData?.activeBoosts || {}).filter(([,end]) => Date.parse(end) > Date.now()).map(([key,end]) => {
-    const name = getShopItemByKey(key)?.name || (key === 'boost_xp_x2' ? 'Booster XP ×2' : 'Booster LoVeR’Cash ×2');
-    return `⚡ ${escapeHtml(name)} actif · encore ${Math.ceil((Date.parse(end)-Date.now())/60000)} min`;
-  });
-  $('commerceBoosts').innerHTML = messages.map(message => `<span>${message}</span>`).join('');
-  $('commerceBoosts').classList.toggle('has-boosts', messages.length > 0);
 }
 
 async function equipCommerceOutfit() {
@@ -4396,7 +4390,7 @@ function renderShop() {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
-    const activeText = activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
+    const activeText = isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
     const ownedText = item.category === 'object'
       ? (Number(item.quantity || 0) > 0 ? `<span class="shop-qty">Possédé : ${Number(item.quantity)}</span>` : '')
       : (item.owned || item.exclusive ? '<span class="shop-owned">Possédé</span>' : '');
@@ -4520,7 +4514,7 @@ async function loadShop() {
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
   shopData = data;
   renderShop();
-  if(isDesktopGameUi()) {renderCommerceBoosts();renderInventoryVisitPreview();if(commerceTab==='inventory')renderInventory();}
+  if(isDesktopGameUi()) {syncDesktopBoostData();renderInventoryVisitPreview();if(commerceTab==='inventory')renderInventory();}
 }
 
 function focusShopItem(itemKey) {
@@ -4662,15 +4656,14 @@ let desktopBoostNotice = null;
 let desktopBoostNoticeTimer = null;
 
 function renderDesktopBoostStatus() {
-  const box = $('desktopBoostStatus');
+  const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
   const active = Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
     const label = key === 'boost_xp_x2' ? '⚡ XP Lovys ×2' : '💰 LoVeR’Cash ×2';
     return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${Math.ceil((Date.parse(until)-Date.now())/60000)} min</span>`;
   });
   if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
-  box.innerHTML = active.join('');
-  box.classList.toggle('has-boosts', active.length > 0);
+  box.innerHTML = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
 }
 function showDesktopBoostNotice(message, error = false) {
   if (!isDesktopGameUi()) return;
@@ -4690,6 +4683,33 @@ async function refreshDesktopBoostStatus() {
   } catch {}
 }
 setInterval(() => {renderDesktopBoostStatus();refreshDesktopBoostStatus();},60000);
+
+let desktopBoostAcceptedClose = null;
+function showDesktopBoostAccepted(itemKey, data) {
+  if (!isDesktopGameUi()) return;
+  desktopBoostAcceptedClose?.();
+  const acceleration = data.acceleration;
+  const title = itemKey === 'boost_xp_x2' ? '⚡ Double XP activé !'
+    : itemKey === 'boost_cash_x2' ? '💰 Double LoVeR’Cash activé !' : '⏱️ Œuf accéléré !';
+  const copy = itemKey === 'boost_xp_x2' ? 'Ton Lovys gagne deux fois plus d’XP pendant tes heures de présence en live.'
+    : itemKey === 'boost_cash_x2' ? 'Tu gagnes deux fois plus de LoVeR’Cash pendant tes heures de présence en live.'
+    : data.message || 'Le temps d’incubation a été réduit.';
+  const until = Date.parse(data.boostExpiresAt);
+  const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
+    : Number.isFinite(until) ? `1 heure ajoutée · ${Math.max(0,Math.ceil((until-Date.now())/60000))} min restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Durée ajoutée : 1 heure';
+  const previousFocus = document.activeElement;
+  const overlay = document.createElement('div');
+  overlay.className = 'desktop-boost-accepted-overlay';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','desktopBoostAcceptedTitle');
+  overlay.innerHTML = `<div class="desktop-boost-accepted-panel"><div class="boost-accepted-check" aria-hidden="true">✓</div><div class="boost-accepted-kicker">Boost accepté</div><h2 id="desktopBoostAcceptedTitle">${escapeHtml(title)}</h2><p>${escapeHtml(copy)}</p><div class="boost-accepted-duration">${escapeHtml(detail)}</div><button class="shop-action" type="button">Compris !</button></div>`;
+  const close = () => {document.removeEventListener('keydown',keydown,true);window.removeEventListener('resize',resize);overlay.remove();desktopBoostAcceptedClose=null;previousFocus?.focus?.();};
+  const keydown = event => {if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+  const resize = () => {if(!isDesktopGameUi())close();};
+  overlay.addEventListener('click', event => {if(event.target===overlay || event.target.closest('button'))close();});
+  desktopBoostAcceptedClose=close;
+  document.body.appendChild(overlay);document.addEventListener('keydown',keydown,true);window.addEventListener('resize',resize);
+  overlay.querySelector('button').focus();
+}
 
 async function chooseEggForAcceleration() {
   const response = await fetch('/api/incubator',{cache:'no-store'});
@@ -4747,7 +4767,7 @@ async function shopAction(url, itemKey) {
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
-    if(desktopUse) {showDesktopBoostNotice(`✓ ${data.message || 'Objet utilisé.'}`);showDesktopActionSuccess(data.message || 'Objet utilisé.');}
+    if(desktopUse) {showDesktopBoostNotice(`✓ ${data.message || 'Objet utilisé.'}`);showDesktopBoostAccepted(itemKey,data);}
     if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(data.message || 'Action effectuée.', 'ok');
     await loadShop();
@@ -4798,6 +4818,7 @@ $('inventoryClose')?.setAttribute('title', 'Retour à la boutique');
 $('inventoryClose')?.addEventListener('click', closeInventory);
 $('inventoryPreviewReset')?.addEventListener('click', () => {commerceDraft = {}; $('inventoryOutfitMessage').textContent = ''; renderInventoryVisitPreview();});
 $('inventoryOutfitEquip')?.addEventListener('click', equipCommerceOutfit);
+$('homeBoostObjects')?.addEventListener('click', () => {if(!isDesktopGameUi())return;inventoryCategory='object';openInventory();});
 $('commerceShopTab')?.addEventListener('click', () => setCommerceTab('shop'));
 $('commerceInventoryTab')?.addEventListener('click', () => setCommerceTab('inventory'));
 $('inventoryCurrentEquipment')?.addEventListener('click', event => {
@@ -4805,7 +4826,7 @@ $('inventoryCurrentEquipment')?.addEventListener('click', event => {
   if (remove && !commerceBusy) shopAction('/api/shop/unequip', remove.dataset.commerceRemove);
   else if (slot) {inventoryCategory = slot.dataset.commerceSlot;inventoryTitleFilter = 'all';setCommerceTab('inventory');}
 });
-setInterval(renderCommerceBoosts, 30000);
+setInterval(syncDesktopBoostData, 30000);
 window.addEventListener('resize', syncInventoryPagePlacement);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {

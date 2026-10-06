@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=284">
+<link rel="stylesheet" href="/styles.css?v=285">
 
 
 </head>
@@ -314,7 +314,6 @@
   <a class="desktop-game-nav-btn" href="#progression" data-desktop-view="progression"><span>📈</span>Progression</a>
   <a class="desktop-game-nav-btn" href="#boutique" data-desktop-view="shop"><span>🛒</span>Boutique</a>
 </nav>
-<section id="desktopBoostStatus" class="desktop-boost-status" aria-label="Mes boosts" aria-live="polite"></section>
 <section id="standardPageHeader" class="standard-page-header" aria-hidden="true">
  <div class="standard-page-header-inner">
   <h2 id="standardPageHeaderTitle"></h2>
@@ -391,6 +390,10 @@
     </div>
     <button id="playerCardShop" class="player-card-action wallet-shop-button" type="button">🛒 Boutique</button>
   </aside>
+  <section id="desktopBoostStatus" class="desktop-boost-status" aria-label="Mes boosts">
+    <div class="home-boost-heading"><h3>⚡ Mes boosts</h3><button id="homeBoostObjects" type="button">🎁 Mes objets</button></div>
+    <div id="desktopBoostList" class="home-boost-list" aria-live="polite"><p class="home-boost-empty">Aucun boost actif pour le moment.</p></div>
+  </section>
   </div>
 <div class="dashboard-side-stack">
 <section id="dailyChallengesCard" class="daily-challenges-card" aria-label="Défis journaliers">
@@ -1008,7 +1011,6 @@
     <nav id="commerceTabs" class="commerce-tabs" aria-label="Boutique et inventaire"><button id="commerceShopTab" type="button" aria-pressed="true">🛒 Boutique</button><button id="commerceInventoryTab" type="button" aria-pressed="false">🎒 Inventaire</button></nav>
 
     </div>
-    <div id="commerceBoosts" class="commerce-boosts" role="status"></div>
     <div class="commerce-layout"><div id="commerceCatalog" class="commerce-catalog"><div class="commerce-shop-catalog">
     <div class="shop-toolbar">
       <label class="mobile-shop-category" for="shopMobileCategory"><span>Catégorie</span><select id="shopMobileCategory">
@@ -1136,5 +1138,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=282"></script>
+<script src="/app.js?v=285"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
