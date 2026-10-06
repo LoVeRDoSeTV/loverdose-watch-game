@@ -3054,21 +3054,52 @@ $('openLovysCollection')?.addEventListener('click',()=>openLovysCollection('coll
 $('lovysCollectionClose')?.addEventListener('click',closeLovysCollection);
 $('lovysCollectionModal')?.addEventListener('click',e=>{if(!isDesktopGameUi()&&e.target.id==='lovysCollectionModal')closeLovysCollection();});
 document.querySelectorAll('[data-lovys-tab]').forEach(btn=>btn.addEventListener('click',()=>{lovysCollectionTab=btn.dataset.lovysTab==='fragments'?'fragments':'collection';renderLovysCollectionTabs();}));
+function showLovysRankCelebration(chosen, newRank) {
+  if (!isDesktopGameUi()) return;
+  desktopBoostAcceptedClose?.();
+  const rank = Math.max(1, Math.min(5, Number(newRank) || 1));
+  const previousRank = Math.max(1, Number(chosen.rank) || 1);
+  const previousFocus = document.activeElement;
+  const overlay = document.createElement('div');
+  overlay.className = 'desktop-boost-accepted-overlay';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','lovysRankCelebrationTitle');
+  overlay.innerHTML = `<div class="desktop-boost-accepted-panel lovys-rank-celebration"><div class="lovys-rank-celebration-art">${artForLovys(chosen.creatureId,chosen.evolution||0,true)}</div><div class="boost-accepted-kicker">Rang amélioré !</div><h2 id="lovysRankCelebrationTitle">${escapeHtml(chosen.name)} passe au rang ${rank}</h2><div class="lovys-celebration-stars" aria-label="${rank} étoiles sur 5">${Array.from({length:5},(_,i)=>`<span aria-hidden="true" class="${i<rank?'earned':'locked'} ${i>=previousRank&&i<rank?'new-star':''}">★</span>`).join('')}</div><p>Ton Lovys devient plus puissant !</p><button class="shop-action" type="button">Continuer</button></div>`;
+  let finished = false;
+  const close = () => {
+    if (finished) return;finished = true;
+    document.removeEventListener('keydown',keydown,true);window.removeEventListener('resize',resize);
+    overlay.remove();desktopBoostAcceptedClose = null;
+    if(previousFocus?.isConnected)previousFocus.focus();
+  };
+  const keydown = event => {if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+  const resize = () => {if(!isDesktopGameUi())close();};
+  overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('button'))close();});
+  desktopBoostAcceptedClose=close;
+  document.body.appendChild(overlay);document.addEventListener('keydown',keydown,true);window.addEventListener('resize',resize);
+  overlay.querySelector('button').focus();
+}
+let lovysRankUpgradeBusy = false;
 async function rankUpLovysFromButton(rankBtn){
+  if(lovysRankUpgradeBusy)return;
   const lovysId=Number(rankBtn?.dataset.rankLovys||0);
   const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);
   if(!chosen)return;
   if(!confirm(`Améliorer ${chosen.name} pour ${Number(chosen.nextRankCost||0)} fragments ? Les fragments universels peuvent couvrir jusqu’à 50 % du coût si nécessaire.`))return;
+  lovysRankUpgradeBusy=true;
   rankBtn.disabled=true;
   try{
     const r=await fetch('/api/lovys/rank-up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId})});
     const d=await r.json();
     if(!r.ok){alert(d.error||'Amélioration impossible.');return;}
-    alert(d.message||'Rang amélioré !');
+    if(isDesktopGameUi())showLovysRankCelebration(chosen,d.rank);
+    else alert(d.message||'Rang amélioré !');
     await loadGame();
     await loadLovysCollection();
     await loadPve();
+  }catch(error){
+    alert(error.message||'Amélioration impossible.');
   }finally{
+    lovysRankUpgradeBusy=false;
     if(document.body.contains(rankBtn)) rankBtn.disabled=false;
   }
 }
@@ -4758,12 +4789,17 @@ let desktopActiveBoosts = {};
 let desktopBoostNotice = null;
 let desktopBoostNoticeTimer = null;
 
+function formatBoostRemainingTime(milliseconds) {
+  const minutes = Math.max(1, Math.round(Math.max(0, Number(milliseconds) || 0) / 60000));
+  const hours = Math.floor(minutes / 60), rest = minutes % 60;
+  return hours ? `${hours} h${rest ? ' '+String(rest).padStart(2,'0') : ''}` : `${minutes} min`;
+}
 function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
   const active = Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
     const label = key === 'boost_xp_x2' ? '⚡ XP Lovys ×2' : '💰 LoVeR’Cash ×2';
-    return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${Math.ceil((Date.parse(until)-Date.now())/60000)} min</span>`;
+    return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${formatBoostRemainingTime(Date.parse(until)-Date.now())}</span>`;
   });
   if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
   box.innerHTML = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
@@ -4799,7 +4835,7 @@ function showDesktopBoostAccepted(itemKey, data) {
     : data.message || 'Le temps d’incubation a été réduit.';
   const until = Date.parse(data.boostExpiresAt);
   const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
-    : Number.isFinite(until) ? `1 heure ajoutée · ${Math.max(0,Math.ceil((until-Date.now())/60000))} min restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Durée ajoutée : 1 heure';
+    : Number.isFinite(until) ? `1 heure ajoutée · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Durée ajoutée : 1 heure';
   const previousFocus = document.activeElement;
   const overlay = document.createElement('div');
   overlay.className = 'desktop-boost-accepted-overlay';
@@ -4911,7 +4947,7 @@ async function shopAction(url, itemKey) {
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
-    if(desktopUse) {showDesktopBoostNotice(`✓ ${data.message || 'Objet utilisé.'}`);showDesktopBoostAccepted(itemKey,data);}
+    if(desktopUse) {clearTimeout(desktopBoostNoticeTimer);desktopBoostNotice=null;renderDesktopBoostStatus();showDesktopBoostAccepted(itemKey,data);}
     if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(data.message || 'Action effectuée.', 'ok');
     await loadShop();

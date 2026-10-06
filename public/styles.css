@@ -1995,6 +1995,16 @@ html, body{
   .desktop-boost-accepted-panel p{color:#c6cee2;font-size:14px;line-height:1.6}
   .boost-accepted-duration{margin:20px 0;padding:12px;border:1px solid rgba(153,117,224,.35);border-radius:12px;background:rgba(145,71,255,.12);color:#e2cdff;font-size:13px;line-height:1.6;font-weight:800}
   .desktop-boost-accepted-panel .shop-action{width:100%;min-height:46px;font-size:14px}
+  .lovys-rank-celebration{border-color:#bd93ff;background:radial-gradient(ellipse at top,#39224e,#15162d 65%)}
+  .lovys-rank-celebration-art{height:150px;display:grid;place-items:center}
+  .lovys-rank-celebration-art img,.lovys-rank-celebration-art svg{max-width:160px;max-height:150px;filter:drop-shadow(0 0 18px #ac70e755)}
+  .lovys-rank-celebration .boost-accepted-kicker{color:#ddc0ff}
+  .lovys-celebration-stars{display:flex;justify-content:center;gap:10px;margin:22px 0;font-size:44px;line-height:1.4}
+  .lovys-celebration-stars .earned{color:#ffdb70;text-shadow:0 0 16px #ffc85d66}
+  .lovys-celebration-stars .locked{color:#514660}
+  .lovys-celebration-stars .new-star{animation:lovys-new-star 1.1s ease-out both}
+  @keyframes lovys-new-star{0%{opacity:.2;transform:scale(.35) rotate(-35deg);color:#514660}55%{opacity:1;transform:scale(1.5) rotate(10deg);text-shadow:0 0 35px #ffdc70}100%{transform:scale(1) rotate(0);color:#ffdb70}}
+  @media(prefers-reduced-motion:reduce){.lovys-celebration-stars .new-star{animation:none}}
   @keyframes boost-accepted-enter{from{opacity:0;transform:translateY(12px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
   @media(prefers-reduced-motion:reduce){.desktop-boost-accepted-panel{animation:none}}
   .desktop-egg-boost-overlay{position:fixed;inset:0;z-index:1001250;display:grid;place-items:center;padding:24px;background:rgba(4,7,17,.82);backdrop-filter:blur(8px)}
@@ -5786,6 +5796,8 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
 .lovys-fragment-rule{grid-column:1/-1;padding:10px 12px;border-radius:10px;background:rgba(145,71,255,.10);border:1px solid rgba(145,71,255,.18)}.lovys-fragment-rule strong{display:block;font-size:10px}.lovys-fragment-rule span{display:block;margin-top:3px;font-size:8px;color:#9ca6c4}.lovys-detail-panel{margin-top:18px;padding:18px;border:1px solid rgba(145,71,255,.26);border-radius:18px;background:linear-gradient(145deg,#11162b,#0b1020)}.lovys-detail-head{display:flex;justify-content:space-between;align-items:start}.lovys-detail-head h3{margin:4px 0 0;font-size:22px}.lovys-detail-head button{width:32px;height:32px;border-radius:50%;border:1px solid #303858;background:#171d34;color:#fff;cursor:pointer}.lovys-detail-grid{display:grid;grid-template-columns:.7fr 1fr 1fr;gap:16px;margin-top:14px}.lovys-detail-grid h4{font-size:11px;margin:0 0 7px}.lovys-detail-art{height:190px;display:grid;place-items:center;border-radius:14px;background:radial-gradient(circle,rgba(145,71,255,.16),transparent 66%)}.lovys-detail-art img{max-height:180px;max-width:180px}.lovys-detail-types{display:grid;gap:6px;margin-top:8px}.lovys-detail-types span{padding:7px 9px;border-radius:8px;background:#0d1224;font-size:8px;color:#9da7c6}.lovys-rank-road{display:grid;gap:5px}.lovys-rank-road>div{display:grid;grid-template-columns:55px 70px 1fr;gap:7px;align-items:center;padding:7px 8px;border-radius:8px;background:#0d1224;border:1px solid rgba(255,255,255,.05);opacity:.7}.lovys-rank-road>div.done{opacity:1;border-color:rgba(145,71,255,.24)}.lovys-rank-road strong{font-size:9px}.lovys-rank-road span,.lovys-rank-road small{font-size:7px;color:#8f99b8}.lovys-level-stages{display:flex;gap:5px;flex-wrap:wrap}.lovys-level-stages span{padding:6px 8px;border-radius:999px;background:#151b31;border:1px solid #2d3554;font-size:8px;font-weight:900}
 }
 @media(min-width:901px){
+  .lovys-live-level-estimate{margin:10px 0 22px;line-height:1.5}
+  .lovys-live-level-estimate strong{display:block}
   .lovys-desktop-rank-action{margin-top:auto;padding-top:18px;text-align:center;grid-column:1/-1}
   .lovys-rank-ready-label{display:block;margin-bottom:9px;font-size:12px;font-weight:850;color:#9da8c5}
   .lovys-desktop-rank-button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:60px;border-radius:13px;font-size:16px;font-weight:900}
@@ -5819,9 +5831,6 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
   #lovysCollectionModal .lovys-active-title h3{width:100%;margin:0;font-size:23px}
   #lovysCollectionModal .lovys-active-level{font-size:12px;line-height:1.6}
   #lovysCollectionModal .lovys-active-level span{color:#aeb7d1}
-  #lovysCollectionModal .lovys-live-level-estimate{margin:10px 0 14px;padding:10px 12px;border:1px solid #a279e52b;border-radius:10px;background:#8b5cf60a}
-  #lovysCollectionModal .lovys-live-level-estimate strong{display:block;font-size:12px;line-height:1.5;color:#d7c4fa}
-  #lovysCollectionModal .lovys-live-level-estimate small{display:block;margin-top:4px;font-size:10px;line-height:1.5;color:#9fa6be}
   #lovysCollectionModal .lovys-active-xp{height:8px;overflow:hidden;background:#292f4b;border-radius:10px;margin:10px 0}
   #lovysCollectionModal .lovys-active-xp>span{display:block;height:100%;background:linear-gradient(90deg,#7041bd,#c89aff)}
   #lovysCollectionModal .lovys-xp-copy{display:grid;gap:4px;font-size:11px;line-height:1.4}
