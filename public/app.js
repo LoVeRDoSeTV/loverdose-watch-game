@@ -1224,7 +1224,7 @@ function updateEgg(egg) {
 
 const tutorialSteps = [
   {
-    icon:'👋', title:'Bienvenue dans LoVeRDoSe !',
+    icon:'👋', title:'Bienvenue dans LoVeRWatchGame !',
     text:'Ton temps de présence sur les lives fait progresser ton compte et alimente plusieurs systèmes du jeu.',
     tip:'Le tutoriel reste accessible à tout moment avec le bouton ⓘ en haut de la page.'
   },
@@ -1495,7 +1495,7 @@ function updatePwaInstallUi() {
   const wrap = button?.closest('.next-actions-install');
   if (!button || !status) return;
   if (isStandalonePwa()) {
-    button.disabled = true; button.textContent = 'Installé ✓'; status.textContent = 'LoVeRDoSe est déjà lancé comme une application.'; wrap?.classList.add('is-installed'); return;
+    button.disabled = true; button.textContent = 'Installé ✓'; status.textContent = 'LoVeRWatchGame est déjà lancé comme une application.'; wrap?.classList.add('is-installed'); return;
   }
   button.disabled = false; wrap?.classList.remove('is-installed');
   if (deferredPwaInstallPrompt) { button.textContent = 'Installer'; status.textContent = 'Installation disponible sur cet appareil.'; }
@@ -1505,7 +1505,7 @@ function updatePwaInstallUi() {
 function openPwaHelp() {
   const content = $('pwaHelpContent');
   if (!content) return;
-  if (isIosDevice()) content.innerHTML = `<div class="pwa-help-step"><b>1.</b> Ouvre le jeu dans <b>Safari</b>.</div><div class="pwa-help-step"><b>2.</b> Appuie sur le bouton <b>Partager</b>.</div><div class="pwa-help-step"><b>3.</b> Choisis <b>Sur l’écran d’accueil</b>, puis confirme avec <b>Ajouter</b>.</div><div class="pwa-help-note">L’icône LoVeRDoSe apparaîtra avec tes applications et le jeu s’ouvrira dans une fenêtre dédiée.</div>`;
+  if (isIosDevice()) content.innerHTML = `<div class="pwa-help-step"><b>1.</b> Ouvre le jeu dans <b>Safari</b>.</div><div class="pwa-help-step"><b>2.</b> Appuie sur le bouton <b>Partager</b>.</div><div class="pwa-help-step"><b>3.</b> Choisis <b>Sur l’écran d’accueil</b>, puis confirme avec <b>Ajouter</b>.</div><div class="pwa-help-note">L’icône LoVeRWatchGame apparaîtra avec tes applications et le jeu s’ouvrira dans une fenêtre dédiée.</div>`;
   else content.innerHTML = `<div class="pwa-help-step"><b>1.</b> Ouvre le menu de ton navigateur.</div><div class="pwa-help-step"><b>2.</b> Cherche <b>Installer l’application</b> ou <b>Ajouter à l’écran d’accueil</b>.</div><div class="pwa-help-step"><b>3.</b> Confirme l’installation.</div><div class="pwa-help-note">Sur Chrome/Edge compatibles, le bouton Installer peut aussi apparaître automatiquement ici.</div>`;
   $('pwaHelpModal')?.classList.remove('hidden');
 }
@@ -1679,7 +1679,7 @@ function openSubBenefitsModal() {
   if (title) title.textContent = isSub ? '⭐ Avantages Abonné Twitch' : '☆ Avantages de l’abonnement Twitch';
   if (intro) intro.textContent = isSub
     ? 'Être abonné à LoVeRDoSeTV accélère ta progression pendant les lives et débloque des avantages exclusifs.'
-    : 'En t’abonnant à LoVeRDoSeTV, tu profites de bonus permanents pendant les lives et d’avantages exclusifs dans le Watch Game.';
+    : 'En t’abonnant à LoVeRDoSeTV, tu profites de bonus permanents pendant les lives et d’avantages exclusifs dans LoVeRWatchGame.';
   if (note) note.textContent = isSub
     ? 'Les bonus sont appliqués automatiquement par le tracker lorsque tu es présent pendant un live.'
     : 'Une fois ton abonnement détecté par le tracker, tous ces avantages sont appliqués automatiquement.';
@@ -2598,7 +2598,7 @@ let leaderboardPlayers = [];
 let leaderboardMetric = 'watch';
 
 const LEADERBOARD_METRICS = {
-  watch: { label: 'Visionnage', icon: '👁️', heading: 'Classé par temps de visionnage', description: 'Le temps total enregistré par le Watch Game détermine ta position.' },
+  watch: { label: 'Visionnage', icon: '👁️', heading: 'Classé par temps de visionnage', description: 'Le temps total enregistré par LoVeRWatchGame détermine ta position.' },
   level: { label: 'Niveau global', icon: '⭐', heading: 'Classé par progression globale', description: 'Le classement suit ton XP globale et ton niveau général.' },
   pve: { label: 'PvE', icon: '⚔️', heading: 'Classé par victoires PvE', description: 'Chaque victoire enregistrée dans les combats PvE compte.' },
   collection: { label: 'Collection', icon: '🧬', heading: 'Classé par Lovys éclos', description: 'Chaque éclosion compte, y compris lorsqu’un doublon est converti en fragments.' }
@@ -5296,7 +5296,7 @@ if (!data.account?.twitchConnected || !data.account?.gameReady) {
 
 showSuccess(
   'Connexion réussie !',
-  'Bon retour dans le Watch Game. Ton monstre t’attend !',
+  'Bon retour dans LoVeRWatchGame. Ton monstre t’attend !',
   'Entrer dans le jeu',
   async () => {
     showGame();
@@ -5432,7 +5432,7 @@ async function loadTrackerStatus() {
     const trackerDetailText = data.error
       ? `Dernière erreur : ${data.error}`
       : data.live
-        ? `${viewers} spectateur(s) Twitch · ${chatters} compte(s) présent(s) dans le chat · ${matched} compte(s) Watch Game reconnu(s).`
+        ? `${viewers} spectateur(s) Twitch · ${chatters} compte(s) présent(s) dans le chat · ${matched} compte(s) LoVeRWatchGame reconnu(s).`
         : 'Le temps sera compté automatiquement lorsque la chaîne sera en live.';
 
     detail.textContent = specialModeLine
@@ -5897,7 +5897,7 @@ async function loadAdminEconomy(){
 
 async function loadAdminTrackerPanel(){
   const box=$('adminTrackerContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','Watch Game reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeRWatchGame reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
 }
 async function loadAdminHistory(){
   const box=$('adminHistoryContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
@@ -5945,8 +5945,8 @@ async function loadTrackerDetectedAccounts(){
     if(!d.live){box.innerHTML='<div class="admin-players-empty">⚪ La chaîne est hors ligne.</div>';return;}
     const matched=Array.isArray(d.matched)?d.matched:[];
     const others=(Array.isArray(d.chatters)?d.chatters:[]).filter(x=>!x.linked);
-    const row=x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.twitchName||x.twitchLogin||'Compte Twitch')}</strong><div class="admin-player-meta">@${escapeHtml(x.twitchLogin||'—')}${x.watchGameName?` · Watch Game : ${escapeHtml(x.watchGameName)}`:''}</div></div><div>${x.linked?'✅ Reconnu':'⚪ Non lié'}</div></div>`;
-    box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('💬','Comptes chat',d.chatterCount||0)}${adminStatCard('🎮','Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><h3>✅ Comptes Watch Game détectés</h3>${matched.length?matched.map(row).join(''):'<div class="admin-players-empty">Aucun compte Watch Game reconnu pour le moment.</div>'}</div><div class="admin-dashboard-section"><h3>Autres comptes présents dans le chat</h3><div class="admin-player-meta" style="margin-bottom:10px">Les bots connus et le compte diffuseur sont exclus des récompenses.</div>${others.length?others.map(row).join(''):'<div class="admin-players-empty">Aucun autre compte.</div>'}</div>`;
+    const row=x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.twitchName||x.twitchLogin||'Compte Twitch')}</strong><div class="admin-player-meta">@${escapeHtml(x.twitchLogin||'—')}${x.watchGameName?` · LoVeRWatchGame : ${escapeHtml(x.watchGameName)}`:''}</div></div><div>${x.linked?'✅ Reconnu':'⚪ Non lié'}</div></div>`;
+    box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('💬','Comptes chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeRWatchGame reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><h3>✅ Comptes LoVeRWatchGame détectés</h3>${matched.length?matched.map(row).join(''):'<div class="admin-players-empty">Aucun compte LoVeRWatchGame reconnu pour le moment.</div>'}</div><div class="admin-dashboard-section"><h3>Autres comptes présents dans le chat</h3><div class="admin-player-meta" style="margin-bottom:10px">Les bots connus et le compte diffuseur sont exclus des récompenses.</div>${others.length?others.map(row).join(''):'<div class="admin-players-empty">Aucun autre compte.</div>'}</div>`;
   }catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message||'Chargement impossible.')}</div>`;}
 }
 
@@ -6122,7 +6122,7 @@ async function openAccountModal() {
           ? `✅ Discord lié · ${data.account.discordUsername}`
           : '✅ Discord lié';
         discordStatus.classList.add('discord-status-ok');
-        discordHelp.textContent = 'Ton compte Discord reste lié à ton compte Watch Game.';
+        discordHelp.textContent = 'Ton compte Discord reste lié à ton compte LoVeRWatchGame.';
         discordConnect.textContent = 'Discord connecté';
         discordConnect.style.display = 'none';
       } else if (data.account.discordConnected) {
@@ -6136,7 +6136,7 @@ async function openAccountModal() {
       } else {
         discordConnect.style.display = '';
         discordStatus.textContent = 'Non connecté';
-        discordHelp.textContent = 'Connecte Discord une seule fois pour le lier à ton compte Watch Game.';
+        discordHelp.textContent = 'Connecte Discord une seule fois pour le lier à ton compte LoVeRWatchGame.';
         discordConnect.textContent = 'Connecter Discord';
       }
     }
@@ -6293,7 +6293,7 @@ $('resetGameButton')?.addEventListener('click', () => {
 $('deleteAccountButton')?.addEventListener('click', () => {
   openAccountConfirmation({
     title: 'Supprimer définitivement le compte ?',
-    message: "Ton compte Watch Game, ton lien Twitch, ton monstre, ton XP, ton LoVeR'Cash et ton temps de jeu seront supprimés définitivement. Cette action est irréversible.",
+    message: "Ton compte LoVeRWatchGame, ton lien Twitch, ton monstre, ton XP, ton LoVeR'Cash et ton temps de jeu seront supprimés définitivement. Cette action est irréversible.",
     buttonText: 'Supprimer définitivement',
     mode: 'delete'
   });
@@ -6522,7 +6522,7 @@ $('lobbyTradeCreatureFilter')?.addEventListener('change',e=>{tradeCreatureFilter
 $('desktopLobbyPage')?.addEventListener('click',e=>{if(e.target.closest('[data-empty-create]'))openTradeComposer();});
 $('lobbyWishesGrid')?.addEventListener('click',async e=>{const wish=e.target.closest('[data-wish-toggle]');if(wish){const wanted=wish.getAttribute('aria-pressed')!=='true';await fetch('/api/trades/wishes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatureId:wish.dataset.wishToggle,wanted})});loadTradeWishes();return;}const trade=e.target.closest('[data-wish-trade-creature]');if(trade){await openTradeComposer(trade.dataset.wishTradeCreature||'');}});
 async function loadLobbyActivity(){const box=$('lobbyActivityBox'),feed=$('lobbyActivityFeed');if(!box||!feed)return;try{const r=await fetch('/api/trades/activity',{cache:'no-store'}),d=await r.json();const items=d.items||[];if(!r.ok||!items.length){box.classList.add('hidden');feed.innerHTML='';return;}feed.innerHTML=items.slice(0,6).map(x=>`<div class="lobby-activity-item"><span>•</span><span>${escapeHtml(x.text)}</span><small>${formatTradeDate(x.at)}</small></div>`).join('');box.classList.remove('hidden');}catch{box.classList.add('hidden');}}
-let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest)new Notification('LoVeRDoSeTV · Lobby',{body:newest.message});}lastLobbyUnread=n;}catch{}}
+let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest)new Notification('LoVeRWatchGame · Communauté',{body:newest.message});}lastLobbyUnread=n;}catch{}}
 async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));}catch{}}
 function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();if(desktopView==='lobby'||document.body.classList.contains('mobile-community-open')){openLobbyTab(lobbyTab);if(lobbyTab==='trades')loadLobbyActivity();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
@@ -6600,10 +6600,11 @@ $('lobbyMineGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[da
 
 async function inviteFriendToWatchGame(){
   const shareUrl=location.origin+location.pathname;
-  const shareData={title:'LoVeRDoSeTV Watch Game',text:'Rejoins-moi sur LoVeRDoSeTV Watch Game !',url:shareUrl};
+  const shareName='LoVeRWatchGame';
+  const shareData={title:shareName,text:`Rejoins-moi sur ${shareName} !`,url:shareUrl};
   if(navigator.share){try{await navigator.share(shareData);return;}catch(error){if(error?.name==='AbortError')return;}}
   const overlay=document.createElement('div');overlay.className='lobby-share-overlay';
-  overlay.innerHTML=`<div class="lobby-share-card" role="dialog" aria-modal="true"><button class="lobby-share-close" type="button">×</button><div class="desktop-page-kicker">INVITER UN AMI</div><h3>🔗 Partager le Watch Game</h3><p>Envoie le lien du jeu à ton ami.</p><div class="lobby-share-url">${escapeHtml(shareUrl)}</div><div class="lobby-share-actions"><button type="button" data-share-copy>📋 Copier le lien</button><button type="button" data-share-discord>💬 Copier & ouvrir Discord</button></div><small>Sur iPhone, Android et les navigateurs compatibles, le bouton utilise directement le menu de partage du système.</small></div>`;
+  overlay.innerHTML=`<div class="lobby-share-card" role="dialog" aria-modal="true"><button class="lobby-share-close" type="button">×</button><div class="desktop-page-kicker">INVITER UN AMI</div><h3>🔗 Partager LoVeRWatchGame</h3><p>Envoie le lien du jeu à ton ami.</p><div class="lobby-share-url">${escapeHtml(shareUrl)}</div><div class="lobby-share-actions"><button type="button" data-share-copy>📋 Copier le lien</button><button type="button" data-share-discord>💬 Copier & ouvrir Discord</button></div><small>Sur iPhone, Android et les navigateurs compatibles, le bouton utilise directement le menu de partage du système.</small></div>`;
   document.body.appendChild(overlay);
   const close=()=>overlay.remove();overlay.querySelector('.lobby-share-close').onclick=close;overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
   overlay.querySelector('[data-share-copy]').onclick=async e=>{await navigator.clipboard?.writeText(shareUrl);e.currentTarget.textContent='✓ Lien copié';};
@@ -6759,3 +6760,4 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
   bindAll();
   new MutationObserver(bindAll).observe(document.documentElement,{childList:true,subtree:true});
 })();
+
