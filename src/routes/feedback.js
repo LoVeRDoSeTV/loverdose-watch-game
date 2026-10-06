@@ -128,8 +128,6 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
       client=await pool.connect();await client.query('BEGIN');
       const account=(await client.query('SELECT id,username FROM accounts WHERE id=$1 FOR UPDATE',[req.session.account.id])).rows[0];
       if (!account) {await client.query('ROLLBACK');return res.status(401).json({error:'Compte introuvable.'});}
-      const count=(await client.query(`SELECT COUNT(*)::int count FROM game_feedback WHERE account_id=$1 AND created_at>CURRENT_TIMESTAMP-INTERVAL '1 hour'`,[account.id])).rows[0].count;
-      if (count>=5) {await client.query('ROLLBACK');return res.status(429).json({error:'Tu as déjà envoyé 5 messages en une heure. Réessaie plus tard.'});}
       const row=(await client.query(`INSERT INTO game_feedback(account_id,player_name,kind,page,description,screenshot,screenshot_mime) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[account.id,account.username,kind,page,description.trim(),image?.bytes || null,image?.mime || null])).rows[0];
       await client.query('COMMIT');client.release();client=null;
       // L'enregistrement reste disponible dans l'Admin même si Discord échoue.
