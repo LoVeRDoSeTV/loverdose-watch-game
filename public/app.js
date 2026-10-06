@@ -6770,7 +6770,7 @@ function clearFeedbackImage(){gameFeedbackImageVersion++;gameFeedbackScreenshot=
 function closeGameFeedback(){if(gameFeedbackSending)return;$('gameFeedbackModal').classList.add('hidden');gameFeedbackPreviousFocus?.focus();}
 function openGameFeedback(){
   if(!isDesktopGameUi()||!me?.user)return;
-  gameFeedbackPreviousFocus=document.activeElement;$('gameFeedbackSuccess').classList.add('hidden');$('gameFeedbackForm').classList.remove('hidden');$('gameFeedbackIntro').classList.remove('hidden');$('gameFeedbackTitle').textContent='Améliorons le jeu ensemble';$('gameFeedbackForm').reset();clearFeedbackImage();feedbackMessage('');
+  gameFeedbackPreviousFocus=document.activeElement;$('gameFeedbackSuccess').classList.add('hidden');$('gameFeedbackForm').classList.remove('hidden');$('gameFeedbackForm').style.removeProperty('display');$('gameFeedbackSubmit').style.removeProperty('display');$('gameFeedbackIntro').classList.remove('hidden');$('gameFeedbackTitle').textContent='Améliorons le jeu ensemble';$('gameFeedbackForm').reset();clearFeedbackImage();feedbackMessage('');
   $('gameFeedbackPage').innerHTML=gameFeedbackPages.map(page=>`<option>${escapeHtml(page)}</option>`).join('');
   $('gameFeedbackPage').value=({home:'Accueil',lovys:'Lovys',incubator:'Incubateur',pve:'PvE',lobby:'Communauté',leaderboard:'Classement',progression:'Progression',shop:commerceTab==='inventory'?'Inventaire':'Boutique',account:'Mon compte'})[desktopView]||'Autre';
   $('gameFeedbackSubmit').disabled=false;$('gameFeedbackSubmit').textContent='Envoyer mon message';$('gameFeedbackModal').classList.remove('hidden');$('gameFeedbackKind').dispatchEvent(new Event('change'));$('gameFeedbackKind').focus();
@@ -6804,7 +6804,7 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
   event.preventDefault();if(gameFeedbackSending)return;if(gameFeedbackImageBusy){feedbackMessage('Attends la préparation de la capture.',true);return;}
   const description=$('gameFeedbackDescription').value.trim();if(description.length<20){feedbackMessage('Décris ton message en au moins 20 caractères.',true);return;}
   const submittedKind=$('gameFeedbackKind').value;
-  gameFeedbackSending=true;const button=$('gameFeedbackSubmit');button.disabled=true;button.textContent='Envoi en cours…';feedbackMessage('');
+  gameFeedbackSending=true;const button=$('gameFeedbackSubmit');button.disabled=true;feedbackMessage('');
   try {
     const response=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:submittedKind,page:$('gameFeedbackPage').value,description,screenshot:gameFeedbackScreenshot})});const data=await response.json();if(!response.ok)throw Error(data.error||'Envoi impossible.');
     const bug=submittedKind==='bug';
@@ -6813,7 +6813,7 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
     $('gameFeedbackSuccessTitle').textContent=bug?'Merci pour votre signalement !':'Merci pour votre idée !';
     $('gameFeedbackSuccessText').textContent=bug?'Votre bug a bien été transmis à l’équipe. Nous ferons notre possible pour vous aider rapidement.':'Merci de nous faire parvenir vos idées ! Cela contribue à améliorer LoVeR Watch Game pour toute la communauté.';
     $('gameFeedbackSuccessReference').textContent=`${bug?'Signalement':'Suggestion'} n°${data.id} · Enregistré ✓`;
-    $('gameFeedbackDescription').value='';clearFeedbackImage();$('gameFeedbackForm').classList.add('hidden');$('gameFeedbackIntro').classList.add('hidden');$('gameFeedbackSuccess').classList.remove('hidden');$('gameFeedbackSuccessClose').focus();
+    $('gameFeedbackDescription').value='';clearFeedbackImage();button.style.display='none';$('gameFeedbackForm').style.display='none';$('gameFeedbackForm').classList.add('hidden');$('gameFeedbackIntro').classList.add('hidden');$('gameFeedbackSuccess').classList.remove('hidden');$('gameFeedbackSuccessClose').focus();
   } catch(error){feedbackMessage(error.message||'Envoi impossible.',true);button.disabled=false;button.textContent='Réessayer l’envoi';}finally{gameFeedbackSending=false;}
 });
 document.addEventListener('keydown',event=>{if($('gameFeedbackModal')?.classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeGameFeedback();}else if(event.key==='Tab')trapDesktopAdminFocus(event,$('gameFeedbackModal'));},true);
