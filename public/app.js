@@ -1077,14 +1077,23 @@ function openIncubatorAddModal(slot) {
   const content = $('incubatorAddContent');
   if (!content) return;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
-  const popupBalance = $('incubatorPopupBalance');
-  const knownBalance = Math.max(0, Math.floor(Number(shopData?.balance ?? me?.user?.points ?? 0)));
-  if (popupBalance) popupBalance.innerHTML = `💰 <strong>${knownBalance.toLocaleString('fr-FR')}</strong> LoVeR’Cash`;
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · choisis un œuf disponible.`;
   if (available > 0) {
     content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Œuf mystère</div><div class="incubator-add-copy">Place cet œuf dans l’incubateur. Il progressera automatiquement pendant tes heures de présence en live, sur PC comme sur mobile.</div><div class="incubator-add-count">${eggIconMarkup()} ${available} disponible${available > 1 ? 's' : ''}</div></div></div><div class="incubator-add-actions"><button id="incubatorPlaceEgg" class="hub-btn" type="button">Placer dans l’emplacement ${selectedIncubatorSlot}</button></div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
     $('incubatorPlaceEgg')?.addEventListener('click', placeEggInSelectedSlot);
   } else {
+    if (isDesktopGameUi()) {
+      content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">Aucun œuf disponible</div><div class="incubator-add-copy">Récupère un œuf dans la boutique, puis reviens le placer dans cet emplacement.</div></div></div><div class="incubator-add-actions"><button id="incubatorOpenEggShop" class="hub-btn" type="button">🥚 Voir les œufs dans la boutique</button></div></div>`;
+      $('incubatorOpenEggShop')?.addEventListener('click', async () => {
+        closeIncubatorAddModal();
+        shopCategory = 'object';
+        history.replaceState(null, '', location.pathname + location.search + '#boutique');
+        await openDesktopView('shop');
+        focusShopItem('mystery_egg');
+      });
+      $('incubatorAddModal')?.classList.remove('hidden');
+      return;
+    }
     // Aucun œuf : on reste dans une popup dédiée à l’incubateur au lieu d’envoyer
     // le joueur vers la Boutique complète.
     incubatorShopTargetSlot = selectedIncubatorSlot;
@@ -1107,8 +1116,6 @@ async function prepareIncubatorEggPurchase() {
     const price = Number(item.price ?? item.cost ?? 0);
     const balance = Math.max(0, Math.floor(Number(shopData?.balance ?? me?.user?.points ?? 0)));
     const missing = Math.max(0, price - balance);
-    const popupBalance = $('incubatorPopupBalance');
-    if (popupBalance) popupBalance.innerHTML = `💰 <strong>${balance.toLocaleString('fr-FR')}</strong> LoVeR’Cash`;
     if (button) {
       button.disabled = price > 0 && balance < price;
       button.textContent = price > 0 ? `🥚 Acheter · ${price.toLocaleString('fr-FR')} LoVeR’Cash` : '🥚 Acheter un œuf';
