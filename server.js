@@ -10,6 +10,7 @@ import { getSessionSecret, isProduction } from './src/config.js';
 import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit } from './src/middleware/security.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
+import { createFeedbackRouter } from './src/routes/feedback.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -1053,6 +1054,22 @@ async function initDatabase() {
         DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS game_feedback (
+    id BIGSERIAL PRIMARY KEY,
+    account_id BIGINT REFERENCES accounts(id) ON DELETE SET NULL,
+    player_name TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('bug','idea')),
+    page TEXT NOT NULL,
+    description TEXT NOT NULL,
+    screenshot BYTEA,
+    screenshot_mime TEXT,
+    status TEXT NOT NULL DEFAULT 'new' CHECK(status IN ('new','in_progress','resolved')),
+    discord_status TEXT NOT NULL DEFAULT 'waiting',
+    discord_sent_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS game_feedback_account_date ON game_feedback(account_id,created_at)`);
 
   // Les comptes déjà existants sont considérés comme ayant déjà vu l'introduction.
   // Les nouvelles inscriptions passent explicitement cette valeur à FALSE.
@@ -2633,6 +2650,7 @@ async function logAdminAction(adminAccountId, targetAccountId, actionKey, summar
    EXPRESS
 ========================================= */
 
+app.use('/api/feedback', express.json({ limit: '3mb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(createOriginGuard({ baseUrl: BASE_URL }));
 
@@ -5978,6 +5996,8 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
 /* =========================================
    ADMIN - JOUEURS INSCRITS
 ========================================= */
+
+app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
 
 app.get('/api/admin/players', async (req, res) => {
   try {
