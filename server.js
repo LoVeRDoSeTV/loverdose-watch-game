@@ -897,7 +897,7 @@ const SHOP_ITEMS = [
   { key:'avatarframe_pearl', category:'avatar_frame', subcategory:'classic', name:'Cadre de profil perle', price:420, preview:'pearl', description:'Contour nacré élégant pour un profil lumineux.' },
   { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:300, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:300, icon:'💰', description:"Double le LoVeR'Cash gagné pendant 1 heure.", consumable:true },
-  { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:220, icon:'⏱️', description:'Retire 30 minutes au temps restant de ton œuf actif.', consumable:true },
+  { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:220, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:600, icon:'🥚', description:'Un œuf supplémentaire à placer dans un emplacement libre de l’incubateur.', consumable:true }
 ];
 
@@ -6172,7 +6172,7 @@ app.get('/api/incubator', async (req, res) => {
     if (!user) return res.status(404).json({ error:'Profil introuvable.' });
 
     const eggsResult = await pool.query(
-      `SELECT slot, egg_key, watched_seconds, status, placed_at FROM user_incubator_eggs WHERE user_id=$1 ORDER BY slot ASC`,
+      `SELECT id, slot, egg_key, watched_seconds, status, placed_at FROM user_incubator_eggs WHERE user_id=$1 ORDER BY slot ASC`,
       [user.id]
     );
     const inventoryResult = await pool.query(
@@ -6201,6 +6201,7 @@ app.get('/api/incubator', async (req, res) => {
       return {
         slot,
         source:'extra',
+        eggId:Number(extra.id),
         eggKey:extra.egg_key,
         watchedSeconds:watched,
         progress:Math.min(100, watched / EGG_HATCH_SECONDS * 100),
@@ -6597,16 +6598,18 @@ app.post('/api/shop/use', async (req, res) => {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
     const key = String(req.body?.itemKey || '').trim();
     const item = shopItemByKey(key);
-    if (!item || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
+    if (key === 'mystery_egg') return res.status(400).json({ error:'Place cet œuf dans un emplacement libre de l’incubateur.' });
+    if (!item || !['boost_xp_x2','boost_cash_x2','incubator_skip_30'].includes(key) || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
 
     await client.query('BEGIN');
-    const inv = await client.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2 FOR UPDATE`, [req.session.account.id, key]);
-    if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
     const userResult = await client.query(`SELECT id, creature_id, watch_seconds FROM users WHERE twitch_id=$1 FOR UPDATE`, [req.session.user.twitchId]);
     const user = userResult.rows[0];
     if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Profil introuvable.' }); }
+    const inv = await client.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2 FOR UPDATE`, [req.session.account.id, key]);
+    if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
 
     let message = '';
+    let acceleration = null;
     if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
       if (key === 'boost_xp_x2' && !user.creature_id) {
         await client.query('ROLLBACK');
@@ -6620,17 +6623,37 @@ app.post('/api/shop/use', async (req, res) => {
       );
       message = key === 'boost_xp_x2' ? 'Booster XP x2 activé pendant 1 heure.' : "Booster LoVeR'Cash x2 activé pendant 1 heure.";
     } else if (key === 'incubator_skip_30') {
-      if (user.creature_id) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Aucun œuf actif à accélérer.' }); }
-      const watched = Math.max(0, Number(user.watch_seconds || 0));
-      if (watched >= EGG_HATCH_SECONDS) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Ton œuf est déjà prêt à éclore.' }); }
-      await client.query(`UPDATE users SET watch_seconds = LEAST(watch_seconds + 1800, $2), updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [user.id, EGG_HATCH_SECONDS]);
-      message = '30 minutes retirées du temps d’incubation.';
+      const requestedSlot = req.body?.slot;
+      const slot = requestedSlot == null && !user.creature_id ? 1 : Number(requestedSlot);
+      if (!Number.isInteger(slot) || ![1,2,3].includes(slot)) {await client.query('ROLLBACK');return res.status(400).json({error:'Choisis l’œuf à accélérer.'});}
+      let egg = null;
+      const starter = slot === 1 && !user.creature_id;
+      if (!starter) {
+        const result = await client.query('SELECT id, watched_seconds, status FROM user_incubator_eggs WHERE user_id=$1 AND slot=$2 FOR UPDATE', [user.id,slot]);
+        egg = result.rows[0];
+        if (!egg) {await client.query('ROLLBACK');return res.status(400).json({error:'Cet emplacement ne contient aucun œuf.'});}
+      }
+      if ((req.body?.source && req.body.source !== (starter ? 'starter' : 'extra')) ||
+          (!starter && req.body?.eggId != null && Number(req.body.eggId) !== Number(egg.id))) {
+        await client.query('ROLLBACK');return res.status(409).json({error:'L’œuf de cet emplacement a changé. Choisis-le à nouveau.'});
+      }
+      const watched = Math.max(0, Number(starter ? user.watch_seconds : egg.watched_seconds) || 0);
+      if (watched >= EGG_HATCH_SECONDS || egg?.status === 'ready') {await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf est déjà prêt à éclore.'});}
+      const next = Math.min(EGG_HATCH_SECONDS, watched + 1800);
+      if (starter) {
+        await client.query('UPDATE users SET watch_seconds=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1', [user.id,next]);
+      } else {
+        await client.query("UPDATE user_incubator_eggs SET watched_seconds=$2, status=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1", [egg.id,next,next >= EGG_HATCH_SECONDS ? 'ready' : 'incubating']);
+      }
+      acceleration = {slot,secondsReduced:next-watched,remainingSeconds:EGG_HATCH_SECONDS-next,ready:next>=EGG_HATCH_SECONDS};
+      const minutes = Math.ceil((next-watched)/60);
+      message = `Œuf de l’emplacement ${slot} accéléré de ${minutes} min.${acceleration.ready ? ' Il est prêt à éclore !' : ''}`;
     }
 
     await client.query(`UPDATE shop_inventory SET quantity = quantity - 1 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key]);
     await client.query('COMMIT');
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
-    res.json({ ok:true, message });
+    res.json({ ok:true, message, acceleration });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur utilisation objet :', error);
