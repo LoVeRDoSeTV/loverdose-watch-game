@@ -4717,6 +4717,21 @@ body:has(#pveModal:not(.hidden)){
 
 
 /* ===== V106 · Collection Lovys / Fragments de doublons ===== */
+/* Accueil mobile : statut partagé avec les incubateurs. */
+.mobile-home-live-status{display:none}
+@media(max-width:900px){
+  .mobile-home-live-status{display:flex;align-items:center;gap:12px;width:100%;margin:14px 0;padding:12px 14px;border:1px solid #343b5f;border-radius:14px;background:#151a2f;color:#fff;text-decoration:none;min-height:56px}
+  .mobile-home-live-dot{width:12px;height:12px;flex:0 0 12px;border-radius:50%;background:#8f98b8}
+  .mobile-home-live-status>span:nth-child(2){flex:1;min-width:0}
+  .mobile-home-live-status strong{display:block;font-size:14px;font-weight:900}
+  .mobile-home-live-status small{display:block;margin-top:4px;font-size:11px;line-height:1.4;color:#b9c3df}
+  .mobile-home-live-status.is-live{border-color:rgba(74,222,128,.5);background:rgba(22,101,52,.18)}
+  .mobile-home-live-status.is-live .mobile-home-live-dot{background:#4ade80;box-shadow:0 0 12px rgba(74,222,128,.35)}
+  .mobile-home-live-status.is-offline{border-color:rgba(248,113,113,.4);background:rgba(127,29,29,.12)}
+  .mobile-home-live-status.is-offline .mobile-home-live-dot{background:#f87171}
+  .mobile-home-live-status:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
+}
+
 .mobile-shop-category,.mobile-shop-summary,.mobile-shop-pagination{display:none}
 
 /* Mobile : fenêtres secondaires et formulaires, au-dessus des pages. */

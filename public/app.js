@@ -988,12 +988,23 @@ function renderIncubatorOverview() {
   }
 }
 
+function renderMobileHomeLiveStatus(live){
+  const button=$('mobileHomeLiveStatus');
+  if(!button || !isMobileGameUi())return;
+  button.classList.toggle('is-live',live);
+  button.classList.toggle('is-offline',!live);
+  if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live?'En live':'Hors ligne';
+  if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live?'Regarder LoVeRDoSeTV sur Twitch':'Voir la chaîne Twitch';
+  button.setAttribute('aria-label',live?'LoVeRDoSeTV est en live. Regarder sur Twitch.':'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.');
+}
+
 async function refreshIncubatorLiveState() {
   try {
     const response = await fetch('/api/lobby', { cache:'no-store' });
     const data = await response.json();
     if (!response.ok) return;
     const live = Boolean(data.live);
+    renderMobileHomeLiveStatus(live);
     document.querySelectorAll('[data-incubator-live]').forEach(el => {
       el.textContent = live ? '🟢 En progression · Live en cours' : '⏸️ En pause · Reprendra au prochain live';
       el.classList.toggle('is-live', live);
