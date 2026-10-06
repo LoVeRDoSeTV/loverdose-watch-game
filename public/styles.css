@@ -800,6 +800,7 @@ body.auth-locked .wrap { visibility:hidden; }
 .account-username-message{display:none;margin-top:8px;font-size:12px;line-height:1.4}
 .account-username-message.success{display:block;color:#91e6ad}
 .account-username-message.error{display:block;color:#ff9b9b}
+.account-session-label{display:none}
 .account-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
 .account-actions .btn{flex:1 1 160px;text-align:center}
 
@@ -5295,6 +5296,38 @@ body:has(#pveModal:not(.hidden)){
    Le bouton ⓘ reste une vraie popup. Mobile inchangé.
 ========================================================= */
 @media (min-width:901px){
+  /* V273 : compte PC centré, champs et connexions regroupés en cartes. */
+  #accountModal .account-panel{
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;
+    width:min(1040px,100%)!important;max-width:1040px!important;
+    max-height:calc(100dvh - 48px);overflow-y:auto;padding:26px;
+  }
+  #accountModal .account-panel-head{grid-column:1/-1;margin-bottom:4px}
+  #accountModal .account-info-row{
+    min-width:0;padding:20px;border:1px solid rgba(145,71,255,.20);
+    border-radius:16px;background:linear-gradient(145deg,rgba(28,29,51,.9),rgba(15,19,35,.9));
+  }
+  #accountModal .account-info-label{margin-bottom:10px;font-size:13px;font-weight:750;color:#aeb7d1}
+  #accountModal .account-identity-card .account-info-label::before{content:'👤 '}
+  #accountModal .account-email-card .account-info-label::before{content:'✉️ '}
+  #accountModal .account-twitch-card .account-info-label::before{content:'📺 '}
+  #accountModal .account-discord-card .account-info-label::before{content:'💬 '}
+  #accountModal .account-info-value{font-size:17px;line-height:1.5;overflow-wrap:anywhere}
+  #accountModal .account-username-edit{margin-top:14px;align-items:stretch}
+  #accountModal .account-username-edit input{min-height:44px;font:inherit}
+  #accountModal .account-username-save{min-height:44px;padding:10px 16px}
+  #accountModal .discord-connect-row{flex-direction:column;align-items:flex-start;gap:12px;margin-top:10px}
+  #accountModal .account-edit-help{margin-top:0}
+  #accountModal .discord-connect-button{display:inline-flex;align-items:center;justify-content:center;min-height:42px;padding:10px 16px}
+  #accountModal .account-panel>.account-actions{grid-column:1/-1;align-items:center;justify-content:space-between;margin-top:0;padding:14px 4px}
+  #accountModal .account-session-label{display:inline;color:#aeb7d1;font-size:14px}
+  #accountModal .account-panel>.account-actions .btn{flex:0 0 auto;min-height:42px;padding:10px 20px}
+  #accountModal .account-danger-zone{grid-column:1/-1;margin-top:0;padding:20px;border:1px solid rgba(248,113,113,.22);border-radius:16px;background:rgba(127,29,29,.06)}
+  #accountModal .account-danger-title{font-size:16px;margin-bottom:8px}
+  #accountModal .account-danger-zone .account-actions{margin-top:16px}
+  #accountModal .account-danger-zone .btn{flex:0 1 auto;min-height:42px;padding:10px 18px}
+  #accountModal button:focus-visible,#accountModal a:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
+
   /* Mon compte devient lui aussi une destination de page. */
   body[data-desktop-view="account"] #accountModal{
     position:fixed!important;
@@ -5308,10 +5341,9 @@ body:has(#pveModal:not(.hidden)){
   }
   body[data-desktop-view="account"] #accountModal.hidden{display:none!important}
   body[data-desktop-view="account"] #accountModal .account-panel{
-    width:min(1180px,100%)!important;
-    min-height:calc(100vh - 218px)!important;
+    min-height:0!important;max-height:none!important;overflow:visible;
     margin:0 auto!important;
-    padding:32px 36px!important;
+    padding:0 0 32px!important;
     border:0!important;
     border-radius:0!important;
     background:transparent!important;
@@ -5324,7 +5356,6 @@ body:has(#pveModal:not(.hidden)){
   }
   body[data-desktop-view="account"] #accountModal .account-panel-head h2{font-size:30px!important}
   body[data-desktop-view="account"] #accountModal .account-close{display:none!important}
-  body[data-desktop-view="account"] #accountModal .account-info-row{padding:18px 0!important}
   body[data-desktop-view="account"] #accountModal #trackerAdminSection{margin-top:22px!important}
 
   /* Les destinations principales ne sont jamais des backdrops cliquables sur PC. */
@@ -5437,13 +5468,6 @@ body:has(#pveModal:not(.hidden)){
   }
   body[data-desktop-view="incubator"] .incubator-slots{margin-top:28px!important}
 
-  /* Mon compte : même largeur/rythme que les autres vraies pages. */
-  body[data-desktop-view="account"] #accountModal .account-panel{
-    width:min(1500px,100%)!important;
-    max-width:1500px!important;
-    min-height:0!important;
-    padding:28px 0 60px!important;
-  }
 }
 /* ===== /V118 ===== */
 
@@ -5897,8 +5921,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   body[data-desktop-view="pve"] #pveModal .game-panel,
   body[data-desktop-view="lobby"] .desktop-lobby-shell,
   body[data-desktop-view="progression"] #progressionModal .game-panel,
-  body[data-desktop-view="shop"] #shopModal .shop-panel,
-  body[data-desktop-view="account"] #accountModal .account-panel{
+  body[data-desktop-view="shop"] #shopModal .shop-panel{
     width:min(1700px,100%)!important;
     max-width:1700px!important;
   }
