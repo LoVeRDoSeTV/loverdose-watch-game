@@ -21,6 +21,34 @@ export function feedbackWebhookUrl() {
     return url.href;
   } catch { return null; }
 }
+export async function feedbackMentionUserId(pool) {
+  const configured=String(process.env.DISCORD_FEEDBACK_MENTION_USER_ID || '').trim();
+  if (configured) return /^\d{17,20}$/.test(configured) ? configured : null;
+  const broadcaster=String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+  if (!broadcaster) return null;
+  const account=(await pool.query('SELECT discord_user_id FROM accounts WHERE twitch_id=$1 LIMIT 1',[broadcaster])).rows[0];
+  const linked=String(account?.discord_user_id || '').trim();
+  return /^\d{17,20}$/.test(linked) ? linked : null;
+}
+export function buildDiscordFeedbackPayload(row, mentionId) {
+  const bug=row.kind === 'bug';
+  const plain=value=>String(value || '').replace(/([\\`*_~|>\[\]])/g,'\\$1');
+  const status={new:'À traiter',in_progress:'En cours',resolved:'Résolu'}[row.status] || 'À traiter';
+  const capture=row.screenshot ? 'La capture jointe apparaît ci-dessous.' : 'Aucune capture jointe.';
+  return {
+    username:'LoVeR Watch Game',
+    content:mentionId ? `<@${mentionId}> ${bug?'🐛 Un joueur a signalé un bug.':'💡 Un joueur a proposé une idée.'}` : undefined,
+    allowed_mentions:{parse:[],users:mentionId?[mentionId]:[]},
+    embeds:[{
+      author:{name:'LoVeR Watch Game · Retours des joueurs'},
+      title:bug?'🐛 Nouveau signalement de bug':'💡 Nouvelle suggestion pour le jeu',
+      color:bug?0xe47788:0x9147ff,
+      description:`**👤 Envoyé par :** ${plain(row.player_name).slice(0,200)}\n**📍 Page concernée :** ${plain(row.page)}\n**📋 Suivi :** ${status}\n\n**${bug?'💬 Description du problème':'💬 Idée proposée'}**\n${plain(row.description).slice(0,3400)}${plain(row.description).length>3400?'… (suite dans l’Admin)':''}\n\n**📷 Capture d’écran**\n${capture}`,
+      footer:{text:`${bug?'Bug':'Idée'} n°${row.id} · Administration → Bugs et idées des joueurs`},
+      timestamp:new Date(row.created_at).toISOString()
+    }]
+  };
+}
 export async function deliverFeedbackToDiscord(pool, id) {
   const webhook = feedbackWebhookUrl();
   if (!webhook) { await pool.query(`UPDATE game_feedback SET discord_status='not_configured' WHERE id=$1 AND discord_status IN ('waiting','failed','not_configured')`,[id]); return 'not_configured'; }
@@ -28,7 +56,8 @@ export async function deliverFeedbackToDiscord(pool, id) {
   const row = claimed.rows[0];
   if (!row) return 'unchanged';
   try {
-    const payload = { username:'LoVeR Watch Game', allowed_mentions:{parse:[]}, embeds:[{title:`${row.kind === 'bug' ? '🐛 Bug' : '💡 Idée'} #${row.id}`,description:row.description,color:row.kind === 'bug' ? 10176767 : 9553919,fields:[{name:'Joueur',value:row.player_name.slice(0,100),inline:true},{name:'Page',value:row.page,inline:true}],timestamp:new Date(row.created_at).toISOString()}] };
+    const mentionId=await feedbackMentionUserId(pool);
+    const payload = buildDiscordFeedbackPayload(row,mentionId);
     let body,headers;
     if (row.screenshot) {
       const extension=row.screenshot_mime === 'image/jpeg' ? 'jpg' : row.screenshot_mime === 'image/png' ? 'png' : 'webp';
@@ -71,7 +100,7 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
     try {if (!await getBroadcasterAccount(req)) return res.status(403).json({error:'Accès réservé au diffuseur.'});next();} catch {res.status(500).json({error:'Vérification impossible.'});}
   });
   router.get('/admin/feedback',async(req,res)=>{
-    try {const rows=await pool.query(`SELECT id,player_name,kind,page,description,status,discord_status,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot FROM game_feedback ORDER BY created_at DESC LIMIT 100`);res.json({ok:true,items:rows.rows,discordConfigured:Boolean(feedbackWebhookUrl())});} catch {res.status(500).json({error:'Messages indisponibles.'});}
+    try {const rows=await pool.query(`SELECT id,player_name,kind,page,description,status,discord_status,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot FROM game_feedback ORDER BY created_at DESC LIMIT 100`);res.json({ok:true,items:rows.rows,discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
   });
   router.get('/admin/feedback/:id/screenshot',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
