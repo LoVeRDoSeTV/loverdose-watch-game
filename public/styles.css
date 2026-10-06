@@ -8035,6 +8035,13 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #gameFeedbackImage{display:block;width:100%;max-height:220px;object-fit:contain;margin-bottom:8px;border-radius:8px}
   #gameFeedbackMessage{font-size:13px;line-height:1.6;color:#d1baff}
   #gameFeedbackMessage.error{color:#ff9caa}
+  .feedback-success{text-align:center;padding:18px 8px 6px;}
+  .feedback-success-emoji{font-size:46px;margin-bottom:18px;}
+  .feedback-success h3{font-size:21px;color:#eee4ff;margin:0 0 14px;}
+  .feedback-success p{font-size:15px;line-height:1.75;color:#c7cfe4;margin:0 0 18px;}
+  .feedback-success small{display:block;color:#aab6d4;font-size:12px;}
+  .feedback-success .btn{display:block;width:100%;margin-top:24px;}
+
   #adminFeedbackOpen{margin:12px 0}
   #adminFeedbackSection{margin:16px 0;padding-top:12px;border-top:1px solid #343b5f}
   #adminFeedbackDiscordState{font-size:12px;line-height:1.6}
