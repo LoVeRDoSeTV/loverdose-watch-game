@@ -1340,7 +1340,14 @@ async function closeGameIntro({ markSeen = true } = {}) {
   }
 }
 
-$('infoButton')?.addEventListener('click', () => openGameTutorial({ restart:true }));
+$('infoButton')?.addEventListener('click', async () => {
+  if (isDesktopGameUi()) {
+    // Le tutoriel présente les blocs de l'accueil : les afficher avant son ouverture.
+    history.replaceState(null, '', location.pathname + location.search + '#accueil');
+    await openDesktopView('home');
+  }
+  openGameTutorial({ restart:true });
+});
 $('tutorialPrev')?.addEventListener('click', () => { if (tutorialStepIndex > 0) { tutorialStepIndex -= 1; renderTutorialStep(); } });
 $('gameIntroClose')?.addEventListener('click', () => {
   if(isMobileGameUi()){ closeGameIntro({markSeen:true}); return; }
