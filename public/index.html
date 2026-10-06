@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=277">
+<link rel="stylesheet" href="/styles.css?v=278">
 
 
 </head>
@@ -964,6 +964,7 @@
       <div><h2 id="inventoryTitle">🎒 Inventaire</h2><div class="inventory-subtitle">Retrouve et gère tous tes achats de la boutique.</div></div>
       <button id="inventoryClose" class="inventory-close" type="button" aria-label="Fermer">×</button>
     </div>
+    <button id="inventoryCardPreview" class="shop-action secondary desktop-inventory-card-preview" type="button" aria-haspopup="dialog">🪪 Prévisualiser ma carte de visite</button>
     <div class="inventory-tabs" role="tablist" aria-label="Catégories de l’inventaire">
       <button class="inventory-tab active" type="button" data-inventory-category="title">🏷️ Titres</button>
       <button class="inventory-tab" type="button" data-inventory-category="background">🖼️ Fonds</button>
@@ -1102,7 +1103,7 @@
 <div id="shopItemPreviewModal" class="shop-modal shop-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopItemPreviewTitle">
   <div class="shop-preview-panel">
     <div class="shop-head">
-      <div><h2 id="shopItemPreviewTitle">👁 Prévisualisation</h2><div class="shop-subtitle">Découvre l’article avant de dépenser ton LoVeR'Cash.</div></div>
+      <div><h2 id="shopItemPreviewTitle">👁 Prévisualisation</h2><div id="shopItemPreviewSubtitle" class="shop-subtitle">Découvre l’article avant de dépenser ton LoVeR'Cash.</div></div>
       <button id="shopItemPreviewClose" class="shop-close" type="button" aria-label="Fermer">×</button>
     </div>
     <div class="shop-preview-body">
@@ -1120,5 +1121,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=276"></script>
+<script src="/app.js?v=278"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

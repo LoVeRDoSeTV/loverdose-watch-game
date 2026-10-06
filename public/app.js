@@ -4074,12 +4074,63 @@ function getShopActionButtons(item, { includePreview = false } = {}) {
   return buttons.join('');
 }
 
+function renderDesktopVisitCardPreview(item = null) {
+  const source = document.querySelector('.dashboard-left-stack > .player-visit-card');
+  if (!source) return '';
+  const card = source.cloneNode(true);
+  card.querySelectorAll('button, .player-card-actions').forEach(node => node.remove());
+  card.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
+  card.querySelectorAll('[role="button"], [tabindex]').forEach(node => {
+    node.removeAttribute('role');
+    node.removeAttribute('tabindex');
+    node.removeAttribute('aria-label');
+  });
+  card.id = 'shopProfilePreviewCard';
+  card.classList.add('inventory-visit-preview');
+  const avatar = card.querySelector('.player-card-avatar');
+  avatar?.classList.add('shop-profile-preview-avatar');
+  if (item?.category === 'title') {
+    const title = card.querySelector('.player-card-title');
+    if (title) {
+      title.textContent = `"${item.name}"`;
+      title.classList.remove('hidden');
+      title.style.color = item.color || '#e2d2ff';
+    }
+  }
+  applyProfileCosmetics(card, item?.category === 'background' ? item.key : me?.user?.cosmetic_background,
+    item?.category === 'frame' ? item.key : me?.user?.cosmetic_frame);
+  applyAvatarFrameCosmetics(avatar, item?.category === 'avatar_frame' ? item.key : me?.user?.cosmetic_avatar_frame);
+  return card.outerHTML;
+}
+
+function openInventoryCardPreview() {
+  if (!isDesktopGameUi()) return;
+  shopPreviewCurrentKey = null;
+  $('shopItemPreviewTitle').textContent = '🪪 Ma carte de visite';
+  $('shopItemPreviewSubtitle').textContent = 'Aperçu de ta carte avec ton équipement actuel.';
+  $('shopItemPreviewKicker').textContent = 'Mon apparence actuelle';
+  $('shopItemPreviewName').textContent = 'Ta carte joueur';
+  $('shopItemPreviewDesc').textContent = 'Voici ta carte avec ton titre, tes fonds, tes cadres et tes badges actuellement équipés. Utilise « Prévisualiser » sur un article pour essayer son apparence sur cette carte.';
+  $('shopItemPreviewMeta').innerHTML = '';
+  $('shopItemPreviewOwned').textContent = 'Équipement actuel';
+  $('shopItemPreviewEffect').classList.add('hidden');
+  $('shopItemPreviewVisual').innerHTML = renderDesktopVisitCardPreview();
+  $('shopItemPreviewActions').innerHTML = '<button id="inventoryCardPreviewBack" class="shop-action secondary" type="button">Retour à l’inventaire</button>';
+  $('inventoryCardPreviewBack').addEventListener('click', closeShopItemPreview);
+  $('shopItemPreviewModal').classList.remove('hidden');
+  $('shopItemPreviewClose')?.focus();
+}
+
 function renderShopPreviewVisual(item) {
   if (item.category === 'object') {
     const objectVisual = item.key === 'mystery_egg'
       ? `<span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span>`
       : `<div class="shop-preview-object-large">${escapeHtml(item.icon || '🎁')}</div>`;
     return `<div class="shop-preview-object-stage">${objectVisual}<div class="shop-preview-object-title">${escapeHtml(item.name)}</div><div class="shop-preview-object-copy">${escapeHtml(item.description || '')}</div></div>`;
+  }
+
+  if (isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')) {
+    return renderDesktopVisitCardPreview(item);
   }
 
   const previewTitle = item.category === 'title' ? item.name : String(me?.user?.cosmetic_title || '').trim();
@@ -4098,6 +4149,9 @@ function renderShopItemPreview() {
   const item = getShopItemByKey(shopPreviewCurrentKey);
   if (!item) return;
 
+  $('shopItemPreviewSubtitle').textContent = isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')
+    ? 'Essaie cet article sur ta carte avant de l’équiper.'
+    : "Découvre l’article avant de dépenser ton LoVeR'Cash.";
   $('shopItemPreviewTitle').textContent = `👁 Prévisualisation · ${shopCategoryLabel(item.category)}`;
   $('shopItemPreviewKicker').textContent = shopCategoryLabel(item.category);
   $('shopItemPreviewName').textContent = item.name || 'Article';
@@ -4522,6 +4576,7 @@ $('inventoryTitleFilter')?.addEventListener('change', event => {
 $('playerCardInventory')?.addEventListener('click', openInventory);
 $('shopInventoryButton')?.addEventListener('click',()=>{if(isDesktopGameUi())openInventory();});
 $('inventoryClose')?.addEventListener('click', closeInventory);
+$('inventoryCardPreview')?.addEventListener('click', openInventoryCardPreview);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {
   button.addEventListener('click', () => {
