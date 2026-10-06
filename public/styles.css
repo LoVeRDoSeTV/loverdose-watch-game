@@ -7990,20 +7990,27 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 /* ===== /V250 ===== */
 
-/* PC — Informations communes au bas des pages, hors PvE. */
+/* PC — Pied de page sobre et pleine largeur, hors PvE. */
 .desktop-game-footer{display:none}
 @media(min-width:901px){
-  body:not(.auth-locked):not([data-desktop-view="pve"]) .desktop-game-footer{display:block;width:min(1500px,calc(100% - 84px));margin:36px auto 24px;background:rgba(21,25,43,.65);border:1px solid rgba(145,71,255,.18);border-radius:14px;overflow:hidden}
-  .desktop-game-footer-bar{height:4px;background:linear-gradient(90deg,#6f35d9,#b47aff,#6f35d9)}
-  .desktop-game-footer-main{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 22px}
-  .desktop-game-footer-main strong{font-size:14px}
-  .desktop-game-footer-main p{margin:6px 0 0;font-size:12px;line-height:1.6;color:#a8b3d0}
-  .desktop-game-footer-free{flex-shrink:0;padding:7px 12px;border-radius:999px;background:rgba(145,71,255,.13);color:#dbc4ff;font-size:12px;font-weight:800}
-  .desktop-game-footer-terms{padding:0 22px 18px}
-  .desktop-game-footer-terms summary{width:fit-content;cursor:pointer;font-size:12px;color:#cba9ff}
+  body:not(.auth-locked):not([data-desktop-view="pve"]) .desktop-game-footer{display:block;width:100%;margin:42px 0 0;background:transparent}
+  .desktop-game-footer-bar{height:2px;background:linear-gradient(90deg,#6f35d9,#b47aff,#6f35d9)}
+  .desktop-game-footer-inner{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:18px 32px;width:min(1500px,calc(100% - 84px));margin:0 auto;padding:24px 0 28px}
+  .desktop-game-footer-main{display:contents}
+  .desktop-game-footer-main strong{font-size:13px;font-weight:800;color:#dce0ef}
+  .desktop-game-footer-main p{margin:5px 0 0;font-size:11px;line-height:1.6;color:#8f99b3}
+  .desktop-game-footer-free{color:#cba9ff;font-size:11px;font-weight:750;white-space:nowrap}
+  .desktop-game-footer-terms{display:contents}
+  .desktop-game-footer-terms::details-content{display:contents}
+  .desktop-game-footer-terms summary{grid-column:3;grid-row:1;list-style:none;cursor:pointer;font-size:11px;color:#a8b3d0;transition:color .15s ease}
+  .desktop-game-footer-terms summary::-webkit-details-marker{display:none}
+  .desktop-game-footer-terms summary::after{content:' ＋';color:#b47aff}
+  .desktop-game-footer-terms[open] summary::after{content:' −'}
+  .desktop-game-footer-terms summary:hover{color:#dbc4ff}
   .desktop-game-footer-terms summary:focus-visible{outline:2px solid #b47aff;outline-offset:5px;border-radius:3px}
-  .desktop-game-footer-terms-copy{max-width:1000px;margin-top:16px;padding-top:12px;border-top:1px solid rgba(145,71,255,.18);font-size:13px;line-height:1.7;color:#a8b3d0}
-  .desktop-game-footer-terms-copy h3{margin:0 0 10px;font-size:15px;color:#f7f7fb}
-  .desktop-game-footer-terms-copy p{margin:8px 0}
+  .desktop-game-footer-terms-copy{display:none;grid-column:1/-1;padding-top:16px;border-top:1px solid rgba(145,71,255,.15);font-size:12px;line-height:1.7;color:#a8b3d0}
+  .desktop-game-footer-terms[open] .desktop-game-footer-terms-copy{display:block}
+  .desktop-game-footer-terms-copy h3{margin:0 0 10px;font-size:14px;color:#f7f7fb}
+  .desktop-game-footer-terms-copy p{margin:8px 0;max-width:1000px}
   .desktop-game-footer-terms-copy strong{color:#e0d4ff}
 }
