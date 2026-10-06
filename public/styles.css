@@ -4717,6 +4717,8 @@ body:has(#pveModal:not(.hidden)){
 
 
 /* ===== V106 · Collection Lovys / Fragments de doublons ===== */
+.mobile-shop-category,.mobile-shop-summary,.mobile-shop-pagination{display:none}
+
 /* Mobile : fenêtres secondaires et formulaires, au-dessus des pages. */
 @media(max-width:900px){
   :is(#pwaHelpModal,#subBenefitsModal,#badgeCollectionModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay]){
@@ -4734,6 +4736,16 @@ body:has(#pveModal:not(.hidden)){
   :is(#shopModal,#inventoryModal) :is(.shop-tab,.inventory-tab){min-height:44px;white-space:normal;font-size:12px}
   :is(#shopModal,#inventoryModal) :is(.shop-grid,.inventory-grid){grid-template-columns:repeat(auto-fit,minmax(min(240px,100%),1fr))}
   :is(#shopModal,#inventoryModal) :is(.shop-action,.inventory-actions button){min-height:44px;white-space:normal}
+  #shopModal .mobile-shop-category{display:grid;gap:7px;margin-bottom:14px;font-size:12px;font-weight:850;color:#aeb7d1}
+  #shopModal .mobile-shop-category select{width:100%;min-width:0;min-height:48px;border:1px solid #7445c3;border-radius:12px;padding:11px 14px;background:#191e33;color:#fff;font:inherit;font-size:16px;font-weight:850}
+  #shopModal .shop-tabs,#shopModal .shop-subfilter{display:none}
+  #inventoryModal .shop-subfilter.hidden{display:none}
+  #shopModal .mobile-shop-summary{display:block;margin:8px 0 14px;font-size:12px;color:#aeb7d1}
+  #shopModal .mobile-shop-pagination{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;margin:20px 0 4px}
+  #shopModal .mobile-shop-pagination.hidden{display:none}
+  #shopModal .mobile-shop-pagination button{min-width:0;min-height:44px;border:1px solid #7445c3;border-radius:11px;padding:9px 6px;background:#382258;color:#fff;font:inherit;font-size:12px;font-weight:850;cursor:pointer}
+  #shopModal .mobile-shop-pagination button:disabled{opacity:.4;cursor:default}
+  #shopModal .mobile-shop-pagination span{font-size:11px;color:#cbd3ea;text-align:center}
   #shopModal .shop-balance{display:flex;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;font-size:12px;margin-bottom:16px}
   #shopModal .shop-balance img{width:28px;height:28px;object-fit:contain}
   #shopModal .shop-head>div,#inventoryModal .inventory-head>div{min-width:0}

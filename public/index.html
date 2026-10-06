@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=263">
+<link rel="stylesheet" href="/styles.css?v=266">
 
 
 </head>
@@ -979,6 +979,13 @@
     </div>
     <div id="shopMessage" class="shop-message"></div>
     <div class="shop-toolbar">
+      <label class="mobile-shop-category" for="shopMobileCategory"><span>Catégorie</span><select id="shopMobileCategory">
+        <option value="title">🏷️ Titres</option>
+        <option value="background">🖼️ Fonds</option>
+        <option value="frame">✨ Encadrements</option>
+        <option value="avatar_frame">🪞 Cadres de profil</option>
+        <option value="object">🎁 Objets</option>
+      </select></label>
       <div class="shop-tabs" role="tablist" aria-label="Catégories de la boutique">
         <button class="shop-tab active" type="button" data-shop-category="title">🏷️ Titres</button>
         <button class="shop-tab" type="button" data-shop-category="background">🖼️ Fonds</button>
@@ -1028,7 +1035,13 @@
         <option value="animated">Animés</option>
       </select>
     </div>
+    <div id="shopMobileSummary" class="mobile-shop-summary" aria-live="polite"></div>
     <div id="shopGrid" class="shop-grid"></div>
+    <nav id="shopMobilePagination" class="mobile-shop-pagination hidden" aria-label="Pages de la boutique">
+      <button id="shopMobilePrevious" type="button" aria-controls="shopGrid">‹ Précédent</button>
+      <span id="shopMobilePageLabel" aria-live="polite">Page 1 / 1</span>
+      <button id="shopMobileNext" type="button" aria-controls="shopGrid">Suivant ›</button>
+    </nav>
   </div>
 </div>
 
@@ -1086,5 +1099,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=265"></script>
+<script src="/app.js?v=266"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

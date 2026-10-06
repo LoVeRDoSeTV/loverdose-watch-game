@@ -3989,6 +3989,9 @@ function sortCatalogItems(items, category) {
 
 let shopData = null;
 let shopCategory = 'title';
+let mobileShopPage = 0;
+let mobileShopPageCategory = 'title';
+const MOBILE_SHOP_PAGE_SIZE = 4;
 let shopTitleFilter = 'all';
 let shopBackgroundFilter = 'all';
 let shopFrameFilter = 'all';
@@ -4156,6 +4159,22 @@ function closeShopItemPreview() {
   $('shopItemPreviewModal')?.classList.add('hidden');
 }
 
+function mobileShopPageItems(items){
+  if(mobileShopPageCategory!==shopCategory){mobileShopPage=0;mobileShopPageCategory=shopCategory;}
+  const pageCount=Math.max(1,Math.ceil(items.length/MOBILE_SHOP_PAGE_SIZE));
+  const focused=shopFocusItemKey ? items.findIndex(item=>item.key===shopFocusItemKey) : -1;
+  if(focused>=0)mobileShopPage=Math.floor(focused/MOBILE_SHOP_PAGE_SIZE);
+  mobileShopPage=Math.max(0,Math.min(pageCount-1,mobileShopPage));
+  const pagination=$('shopMobilePagination');
+  pagination?.classList.toggle('hidden',pageCount<=1);
+  if($('shopMobilePageLabel'))$('shopMobilePageLabel').textContent=`Page ${mobileShopPage+1} / ${pageCount}`;
+  if($('shopMobilePrevious'))$('shopMobilePrevious').disabled=mobileShopPage===0;
+  if($('shopMobileNext'))$('shopMobileNext').disabled=mobileShopPage===pageCount-1;
+  if($('shopMobileCategory'))$('shopMobileCategory').value=shopCategory;
+  const from=mobileShopPage*MOBILE_SHOP_PAGE_SIZE;
+  if($('shopMobileSummary'))$('shopMobileSummary').textContent=items.length ? `${items.length} article${items.length>1?'s':''} · ${from+1}–${Math.min(from+MOBILE_SHOP_PAGE_SIZE,items.length)} affiché${items.length>1?'s':''}` : 'Aucun article disponible';
+  return items.slice(from,from+MOBILE_SHOP_PAGE_SIZE);
+}
 function renderShop() {
   if (!shopData) return;
   $('shopBalance').textContent = Math.floor(Number(shopData.balance || 0));
@@ -4181,15 +4200,16 @@ function renderShop() {
     item.category === shopCategory && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
   ), shopCategory);
   let items = allCategoryItems;
-  if (shopCategory === 'title' && shopTitleFilter !== 'all') {
+  if (!isMobileGameUi() && shopCategory === 'title' && shopTitleFilter !== 'all') {
     items = allCategoryItems.filter(item => getTitleColorGroup(item) === shopTitleFilter);
-  } else if (shopCategory === 'background' && shopBackgroundFilter !== 'all') {
+  } else if (!isMobileGameUi() && shopCategory === 'background' && shopBackgroundFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopBackgroundFilter);
-  } else if (shopCategory === 'frame' && shopFrameFilter !== 'all') {
+  } else if (!isMobileGameUi() && shopCategory === 'frame' && shopFrameFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopFrameFilter);
-  } else if (shopCategory === 'avatar_frame' && shopAvatarFrameFilter !== 'all') {
+  } else if (!isMobileGameUi() && shopCategory === 'avatar_frame' && shopAvatarFrameFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
+  if(isMobileGameUi())items=mobileShopPageItems(items);
   $('shopGrid').innerHTML = items.map(item => {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
@@ -4319,6 +4339,7 @@ async function openShopForIncubatorEgg(slot) {
 }
 
 async function openShop() {
+  if(isMobileGameUi())mobileShopPage=0;
   if(typeof isDesktopGameUi==='function'&&isDesktopGameUi()){desktopView='shop';document.body.dataset.desktopView='shop';setDesktopNavActive?.('shop');}
   shopFocusItemKey = null;
   incubatorShopTargetSlot = null;
@@ -4510,6 +4531,18 @@ document.querySelectorAll('[data-shop-category]').forEach(button => {
     renderShop();
   });
 });
+
+$('shopMobileCategory')?.addEventListener('change',event=>{
+  shopCategory=event.target.value;mobileShopPage=0;shopFocusItemKey=null;renderShop();
+});
+function changeMobileShopPage(delta){
+  if(!isMobileGameUi())return;
+  mobileShopPage+=delta;shopFocusItemKey=null;renderShop();
+  $('shopModal')?.scrollTo({top:0,behavior:'smooth'});
+}
+$('shopMobilePrevious')?.addEventListener('click',()=>changeMobileShopPage(-1));
+$('shopMobileNext')?.addEventListener('click',()=>changeMobileShopPage(1));
+window.matchMedia('(max-width:900px)').addEventListener?.('change',()=>{if(shopData)renderShop();});
 
 $('shopClose')?.addEventListener('click', () => { $('shopModal')?.classList.add('hidden'); closeShopItemPreview(); shopFocusItemKey=null; incubatorShopTargetSlot=null; });
 $('shopItemPreviewClose')?.addEventListener('click', closeShopItemPreview);
