@@ -478,6 +478,7 @@ function showSuccess(title, message, buttonText, callback) {
   
 function showAuthHome() {
   setDesktopAdminAccess(false);
+  desktopActiveBoosts={};desktopBoostNotice=null;renderDesktopBoostStatus();
   authOverlay.classList.remove('hidden');
   authHome.style.display = 'flex';
   
@@ -504,7 +505,7 @@ function showGame() {
   authOverlay.classList.add('hidden');
   twitchScreen.classList.add('hidden');
   document.body.classList.remove('auth-locked');
-  if(isDesktopGameUi()) refreshDesktopAdminAccess();
+  if(isDesktopGameUi()) {refreshDesktopAdminAccess();refreshDesktopBoostStatus();}
 }
 
 async function refreshAccountState() {
@@ -4198,6 +4199,8 @@ function setCommerceTab(tab) {
 
 function renderCommerceBoosts() {
   if (!isDesktopGameUi()) return;
+  desktopActiveBoosts = shopData?.activeBoosts || {};
+  renderDesktopBoostStatus();
   const messages = Object.entries(shopData?.activeBoosts || {}).filter(([,end]) => Date.parse(end) > Date.now()).map(([key,end]) => {
     const name = getShopItemByKey(key)?.name || (key === 'boost_xp_x2' ? 'Booster XP ×2' : 'Booster LoVeR’Cash ×2');
     return `⚡ ${escapeHtml(name)} actif · encore ${Math.ceil((Date.parse(end)-Date.now())/60000)} min`;
@@ -4653,17 +4656,104 @@ async function confirmShopPurchase() {
   }
 }
 
+let desktopObjectUseBusy = false;
+let desktopActiveBoosts = {};
+let desktopBoostNotice = null;
+let desktopBoostNoticeTimer = null;
+
+function renderDesktopBoostStatus() {
+  const box = $('desktopBoostStatus');
+  if (!box || !isDesktopGameUi()) return;
+  const active = Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
+    const label = key === 'boost_xp_x2' ? '⚡ XP Lovys ×2' : '💰 LoVeR’Cash ×2';
+    return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${Math.ceil((Date.parse(until)-Date.now())/60000)} min</span>`;
+  });
+  if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
+  box.innerHTML = active.join('');
+  box.classList.toggle('has-boosts', active.length > 0);
+}
+function showDesktopBoostNotice(message, error = false) {
+  if (!isDesktopGameUi()) return;
+  clearTimeout(desktopBoostNoticeTimer);
+  desktopBoostNotice = {message,error};
+  renderDesktopBoostStatus();
+  desktopBoostNoticeTimer = setTimeout(() => {desktopBoostNotice=null;renderDesktopBoostStatus();},12000);
+}
+async function refreshDesktopBoostStatus() {
+  if (!isDesktopGameUi() || document.body.classList.contains('auth-locked')) return;
+  try {
+    const response = await fetch('/api/shop',{cache:'no-store'});
+    if (!response.ok) return;
+    const data = await response.json();
+    desktopActiveBoosts = data.activeBoosts || {};
+    renderDesktopBoostStatus();
+  } catch {}
+}
+setInterval(() => {renderDesktopBoostStatus();refreshDesktopBoostStatus();},60000);
+
+async function chooseEggForAcceleration() {
+  const response = await fetch('/api/incubator',{cache:'no-store'});
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Impossible de charger tes œufs.');
+  incubatorData = data;
+  const hatch = Number(data.hatchSeconds || 21600);
+  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds)<hatch);
+  if (!slots.length) throw new Error('Aucun œuf à accélérer : tes emplacements sont libres ou tes œufs sont déjà prêts.');
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'desktop-egg-boost-overlay';
+    overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
+    let selected = null;
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⏱️ Accélérateur −30 min</h2><p>Choisis l’œuf à accélérer. Un seul accélérateur sera utilisé après confirmation.</p><div class="egg-boost-choices">${slots.map(slot => {
+      const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
+      return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="false"><span>🥚 Œuf · emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} → ${remaining<=1800?'Prêt à éclore !':formatEggTime(remaining-1800)}</strong></button>`;
+    }).join('')}</div><p class="egg-boost-question" data-egg-boost-question>Choisis un œuf pour continuer.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Confirmer</button></div></div>`;
+    const finish = value => {document.removeEventListener('keydown',keyHandler,true);window.removeEventListener('resize',resizeHandler);overlay.remove();previousFocus?.focus?.();resolve(value);};
+    const resizeHandler = () => {if(!isDesktopGameUi())finish(null);};
+    const keyHandler = event => {
+      if (event.key==='Escape') {event.preventDefault();event.stopImmediatePropagation();finish(null);}
+      else if (event.key==='Tab') trapDesktopAdminFocus(event,overlay);
+    };
+    overlay.addEventListener('click',event => {
+      const choice = event.target.closest('[data-egg-boost-slot]');
+      if (choice) {
+        selected = slots.find(slot => Number(slot.slot)===Number(choice.dataset.eggBoostSlot));
+        overlay.querySelectorAll('[data-egg-boost-slot]').forEach(button => button.setAttribute('aria-pressed', String(button===choice)));
+        overlay.querySelector('[data-egg-boost-question]').textContent = `Utiliser un accélérateur sur l’œuf de l’emplacement ${selected.slot} ?`;
+        overlay.querySelector('[data-egg-boost-confirm]').disabled = false;
+      } else if (event.target.closest('[data-egg-boost-confirm]') && selected) finish({slot:Number(selected.slot),source:selected.source,eggId:selected.eggId});
+      else if (event.target===overlay || event.target.closest('[data-egg-boost-cancel]')) finish(null);
+    });
+    document.body.appendChild(overlay);document.addEventListener('keydown',keyHandler,true);window.addEventListener('resize',resizeHandler);
+    overlay.querySelector('[data-egg-boost-cancel]').focus();
+  });
+}
+
 async function shopAction(url, itemKey) {
+  const desktopUse = isDesktopGameUi() && url === '/api/shop/use';
+  if(desktopUse && desktopObjectUseBusy)return;
+  if(desktopUse)desktopObjectUseBusy=true;
   setShopMessage();
   try {
-    const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    let target = {};
+    if(desktopUse && itemKey === 'mystery_egg') {
+      await openDesktopView('incubator');await loadIncubatorSlots();
+      const free = incubatorData?.slots?.find(slot => slot.empty);
+      if(!free)throw new Error('Tous tes emplacements sont occupés. Fais éclore un œuf pour libérer une place.');
+      openIncubatorAddModal(free.slot);return;
+    }
+    if(desktopUse && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration();if(!target)return;} 
+    const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
+    if(desktopUse) {showDesktopBoostNotice(`✓ ${data.message || 'Objet utilisé.'}`);showDesktopActionSuccess(data.message || 'Objet utilisé.');}
     if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(data.message || 'Action effectuée.', 'ok');
     await loadShop();
     await loadGame();
     await loadLeaderboard();
+    if(desktopUse)await loadIncubatorSlots();
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
@@ -4678,7 +4768,8 @@ async function shopAction(url, itemKey) {
     }
   } catch (error) {
     setShopMessage(error.message || 'Action impossible.', 'error');
-  }
+    if(desktopUse)showDesktopBoostNotice(error.message || 'Action impossible.',true);
+  } finally {if(desktopUse)desktopObjectUseBusy=false;}
 }
 
 $('shopTitleFilter')?.addEventListener('change', event => {
@@ -6322,7 +6413,7 @@ function startLiveUpdates() {
   liveUpdates = new EventSource('/api/live-updates');
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
-  liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
+  liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
   liveUpdates.addEventListener('trade-update', () => { if (desktopView === 'lobby') openLobbyTab(lobbyTab); });
   liveUpdates.onerror = () => {
     // EventSource tente automatiquement de se reconnecter.
