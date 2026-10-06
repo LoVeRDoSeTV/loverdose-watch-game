@@ -307,6 +307,23 @@ const LEVEL_XP = [
 ];
 
 
+function estimateLovysLiveSeconds(remainingXp, baseXpPerHour, boosts, now = Date.now()) {
+  let remaining = Math.max(0, Number(remainingXp));
+  if (!Number.isFinite(remaining) || !(baseXpPerHour > 0)) return null;
+  const active = boosts.filter(b => b.multiplier > 1 && new Date(b.expiresAt).getTime() > now)
+    .map(b => ({multiplier:b.multiplier, seconds:(new Date(b.expiresAt).getTime()-now)/1000}));
+  const stops = [...new Set(active.map(b => b.seconds))].sort((a,b)=>a-b);
+  let elapsed = 0;
+  for (const stop of [...stops, Infinity]) {
+    const rate = baseXpPerHour / 3600 * active.filter(b => b.seconds > elapsed).reduce((m,b)=>m*b.multiplier,1);
+    const duration = stop - elapsed;
+    if (remaining <= rate * duration) return Math.ceil(elapsed + remaining / rate);
+    remaining -= rate * duration;
+    elapsed = stop;
+  }
+  return null;
+}
+
 function progressionFromXp(xp) {
 
   const value =
@@ -6352,14 +6369,20 @@ app.post('/api/incubator/hatch', async (req,res)=>{
 app.get('/api/lovys', async (req,res)=>{
   try{
     if(!req.session.account||!req.session.user) return res.status(401).json({error:'Connexion requise.'});
-    const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp,universal_lovys_fragments FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
+    const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp,universal_lovys_fragments,is_sub FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
     const user=ur.rows[0];
     if(!user) return res.status(404).json({error:'Joueur introuvable.'});
     if(user.creature_id){
       await pool.query(`UPDATE user_lovys SET xp=$2, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
     }
     const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at,rank,fragments FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
-    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
+    const [personalBoostResult, adminBoost] = await Promise.all([
+      pool.query(`SELECT expires_at FROM user_active_boosts WHERE user_id=$1 AND boost_key='boost_xp_x2' AND expires_at > CURRENT_TIMESTAMP`, [user.id]),
+      getActiveAdminLiveBoosts()
+    ]);
+    const liveXpBoosts = [{multiplier:2,expiresAt:personalBoostResult.rows[0]?.expires_at}, {multiplier:adminBoost.xp,expiresAt:adminBoost.expiresAt}];
+    const baseXpPerHour = user.is_sub ? 120 : 100;
+    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,liveSecondsToNextLevel:prog.maxLevel?null:estimateLovysLiveSeconds(Math.max(0,prog.nextThreshold-Number(row.xp||0)),baseXpPerHour,liveXpBoosts),progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
     res.json({ok:true,lovys,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
   }catch(error){console.error('Erreur collection Lovys :',error);res.status(500).json({error:'Impossible de charger tes Lovys.'});}
 });
