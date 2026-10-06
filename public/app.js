@@ -1218,12 +1218,12 @@ const tutorialSteps = [
   {
     icon:'🪪', title:'Ta carte joueur', target:'.player-visit-card',
     text:'Ici tu retrouves ton niveau global, ton grade, tes badges, ton profil et l’accès à ton inventaire.',
-    tip:'Ton niveau global continue de progresser même pendant l’incubation d’un œuf.'
+    tip:'Ton inventaire se trouve aussi dans la page Boutique, onglet 🎒 Inventaire. Tu peux y essayer et équiper tes titres, fonds et cadres.'
   },
   {
     icon:'🥚', title:'Œufs et incubateur', target:'.incubator-topbar',
-    text:'Place tes œufs dans l’incubateur. Leur progression avance grâce à ta présence cumulée pendant les lives.',
-    tip:'Les XP Lovys gagnés sans compagnon actif sont conservés dans ta réserve et seront utilisés lors de l’éclosion.'
+    text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 6 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
+    tip:'Le temps se cumule sur plusieurs lives et se met en pause hors ligne. Quand l’œuf est prêt, clique sur « Faire éclore ». Tu peux faire progresser jusqu’à 3 œufs en même temps.'
   },
   {
     icon:'🎯', title:'Défis du jour', target:'#dailyChallengesCard',

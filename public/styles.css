@@ -2189,7 +2189,7 @@ html, body{
 
 /* ===== MOBILE GAME UI ONLY (desktop unchanged) ===== */
 /* Harmonisation PC + mobile : progression dans la carte joueur et œuf fusionné à l’incubateur */
-.player-card-progress-mobile{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
+.player-card-progress-mobile{display:none;align-items:center;justify-content:center;border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
 .progression-hub{grid-template-columns:1fr}
 .progression-hub .progression-card{display:none}
 #topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
@@ -2209,7 +2209,7 @@ html, body{
   .mobile-game-nav-main{transform:translateY(-12px);background:linear-gradient(145deg,#6f36c7,#9147ff)!important;color:#fff!important;border:1px solid rgba(219,195,255,.45)!important;box-shadow:0 8px 20px rgba(98,47,169,.36)}
   .mobile-game-nav-main span{font-size:24px}
   .progression-hub{display:none!important}
-  .player-card-progress-mobile{border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
+  .player-card-progress-mobile{display:inline-flex;border:1px solid rgba(145,71,255,.38);background:rgba(145,71,255,.10);color:#d9c7ff;border-radius:999px;padding:4px 8px;font:inherit;font-size:10px;font-weight:900;cursor:pointer;white-space:nowrap}
   #topIncubatorEgg{cursor:pointer;transition:transform .16s ease,border-color .16s ease,background .16s ease}
   #topIncubatorEgg::after{content:'Toucher pour voir les chances'}
   #pick.egg-details-open{padding:58px 16px calc(100px + env(safe-area-inset-bottom));background:linear-gradient(180deg,#12172c,#0d1122)}
