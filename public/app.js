@@ -4554,10 +4554,46 @@ async function openShop() {
 
 let pendingShopPurchaseKey = null;
 
+let shopPurchaseBusy = false;
+function shopPurchaseQuantity(item) {
+  return isDesktopGameUi() && item?.category === 'object' ? Number($('shopPurchaseQuantity')?.value) : 1;
+}
+function updateShopPurchaseQuantity() {
+  if (!isDesktopGameUi()) return;
+  const item = getShopItemByKey(pendingShopPurchaseKey);
+  if (!item) return;
+  const quantity = shopPurchaseQuantity(item);
+  const valid = Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= 100;
+  const total = valid ? Number(item.price || 0) * quantity : 0;
+  const enough = valid && Number(shopData?.balance || 0) >= total;
+  $('shopPurchaseConfirmPrice').textContent = valid ? `${total.toLocaleString('fr-FR')} LoVeR’Cash` : 'Quantité invalide';
+  $('shopPurchaseConfirmText').textContent = valid ? `Confirmer l’achat de ${quantity > 1 ? `${quantity} × ` : ''}${item.name} ?` : 'Choisis une quantité entière entre 1 et 100.';
+  $('shopPurchaseConfirmButton').disabled = shopPurchaseBusy || !enough;
+  $('shopPurchaseConfirmButton').textContent = shopPurchaseBusy ? 'Paiement en cours…' : !valid ? 'Quantité invalide' : enough ? 'Confirmer l’achat' : 'LoVeR’Cash insuffisant';
+  $('shopPurchaseQuantity').disabled = shopPurchaseBusy;
+  $('shopPurchaseQuantityMinus').disabled = shopPurchaseBusy || !valid || quantity <= 1;
+  $('shopPurchaseQuantityPlus').disabled = shopPurchaseBusy || !valid || quantity >= 100 || Number(shopData?.balance || 0) < Number(item.price || 0)*(quantity+1);
+}
+function changeShopPurchaseQuantity(delta) {
+  if (!isDesktopGameUi() || shopPurchaseBusy) return;
+  const input = $('shopPurchaseQuantity');
+  input.value = String(Math.max(1,Math.min(100,(Number(input.value)||1)+delta)));
+  $('shopPurchaseConfirmError').textContent='';
+  updateShopPurchaseQuantity();
+}
+$('shopPurchaseQuantity')?.addEventListener('input', () => {if(!shopPurchaseBusy){$('shopPurchaseConfirmError').textContent='';updateShopPurchaseQuantity();}});
+$('shopPurchaseQuantityMinus')?.addEventListener('click', () => changeShopPurchaseQuantity(-1));
+$('shopPurchaseQuantityPlus')?.addEventListener('click', () => changeShopPurchaseQuantity(1));
+
 function openShopPurchaseConfirm(itemKey) {
   const item = getShopItemByKey(itemKey);
   if (!item) return;
+  if(shopPurchaseBusy)return;
   pendingShopPurchaseKey = itemKey;
+  $('shopPurchaseQuantity').value='1';
+  $('shopPurchaseQuantityWrap').classList.toggle('is-visible',isDesktopGameUi() && item.category==='object');
+  $('shopPurchaseUnitPrice').textContent=`${Number(item.price||0).toLocaleString('fr-FR')} LoVeR’Cash par objet`;
+  $('shopPurchaseConfirmError').textContent='';
   const balance = Number(shopData?.balance || 0);
   const price = Math.max(0, Math.floor(Number(item.price || 0)));
   const enough = balance >= price;
@@ -4573,22 +4609,24 @@ function openShopPurchaseConfirm(itemKey) {
   if ($('shopPurchaseConfirmClose')) $('shopPurchaseConfirmClose').disabled = false;
   $('shopPaymentWaiting')?.classList.add('hidden');
   $('shopPaymentWaiting')?.classList.remove('is-running');
+  updateShopPurchaseQuantity();
   $('shopPurchaseConfirmModal')?.classList.remove('hidden');
 }
 
 function closeShopPurchaseConfirm() {
+  if(shopPurchaseBusy)return;
   $('shopPurchaseConfirmModal')?.classList.add('hidden');
   pendingShopPurchaseKey = null;
 }
 
-function openShopPurchaseSuccess(item, balance) {
+function openShopPurchaseSuccess(item, balance, quantity = 1) {
   const inventoryButton=$('shopPurchaseSuccessInventory');
   if(inventoryButton){
     inventoryButton.dataset.inventoryCategory=item?.category||'object';
     inventoryButton.dataset.inventoryItemKey=item?.key||'';
   }
   if ($('shopPurchaseSuccessVisual')) $('shopPurchaseSuccessVisual').innerHTML = shopPreview(item);
-  if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = item?.name || 'Ton objet';
+  if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = `${quantity > 1 ? `${quantity} × ` : ''}${item?.name || 'Ton objet'}`;
   if ($('shopPurchaseSuccessBalance')) $('shopPurchaseSuccessBalance').textContent = `${Number(balance || 0).toLocaleString('fr-FR')} LoVeR’Cash`;
   $('shopPurchaseSuccessModal')?.classList.remove('hidden');
   const card = $('shopPurchaseSuccessCard');
@@ -4602,7 +4640,12 @@ function closeShopPurchaseSuccess() { $('shopPurchaseSuccessModal')?.classList.a
 async function confirmShopPurchase() {
   const itemKey = pendingShopPurchaseKey;
   const item = getShopItemByKey(itemKey);
-  if (!itemKey || !item) return;
+  if (!itemKey || !item || shopPurchaseBusy) return;
+  const quantity = shopPurchaseQuantity(item);
+  if(!Number.isSafeInteger(quantity) || quantity<1 || quantity>100 || (item.category!=='object' && quantity!==1)) {updateShopPurchaseQuantity();return;}
+  if(Number(shopData?.balance||0)<Number(item.price||0)*quantity){updateShopPurchaseQuantity();return;}
+  shopPurchaseBusy = true;
+  updateShopPurchaseQuantity();
   const button = $('shopPurchaseConfirmButton');
   const cancel = $('shopPurchaseConfirmCancel');
   const close = $('shopPurchaseConfirmClose');
@@ -4615,7 +4658,7 @@ async function confirmShopPurchase() {
   void waiting?.offsetWidth;
   waiting?.classList.add('is-running');
   try {
-    const paymentRequest = fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
+    const paymentRequest = fetch('/api/shop/buy', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, quantity }) });
     const minimumAnimation = new Promise(resolve => setTimeout(resolve, 1500));
     const [response] = await Promise.all([paymentRequest, minimumAnimation]);
     const data = await response.json();
@@ -4629,7 +4672,7 @@ async function confirmShopPurchase() {
     await loadLeaderboard();
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     closeShopItemPreview();
-    openShopPurchaseSuccess(item, data.balance);
+    openShopPurchaseSuccess(item, data.balance, data.quantity || quantity);
 
     if (itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
       const targetSlot = Number(incubatorShopTargetSlot);
@@ -4644,10 +4687,11 @@ async function confirmShopPurchase() {
     waiting?.classList.add('hidden');
     waiting?.classList.remove('is-running');
     setShopMessage(error.message || 'Achat impossible.', 'error');
+    if(isDesktopGameUi())$('shopPurchaseConfirmError').textContent=error.message || 'Achat impossible.';
     if (button) { button.disabled = false; button.textContent = 'Confirmer l’achat'; }
     if (cancel) cancel.disabled = false;
     if (close) close.disabled = false;
-  }
+  } finally {shopPurchaseBusy=false;updateShopPurchaseQuantity();}
 }
 
 let desktopObjectUseBusy = false;

@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=285">
+<link rel="stylesheet" href="/styles.css?v=286">
 
 
 </head>
@@ -1093,6 +1093,8 @@
     <div id="shopPurchaseConfirmVisual" class="shop-purchase-visual"></div>
     <div id="shopPurchaseConfirmName" class="shop-purchase-name"></div>
     <div id="shopPurchaseConfirmText" class="shop-purchase-copy"></div>
+    <div id="shopPurchaseQuantityWrap" class="shop-purchase-quantity"><label for="shopPurchaseQuantity">Quantité</label><div><button id="shopPurchaseQuantityMinus" type="button" aria-label="Réduire la quantité">−</button><input id="shopPurchaseQuantity" type="number" min="1" max="100" step="1" value="1" inputmode="numeric"><button id="shopPurchaseQuantityPlus" type="button" aria-label="Augmenter la quantité">＋</button></div><small id="shopPurchaseUnitPrice"></small></div>
+    <div id="shopPurchaseConfirmError" class="shop-purchase-error" role="status"></div>
     <div class="shop-purchase-summary"><span>Prix <strong id="shopPurchaseConfirmPrice"></strong></span><span>Ton solde <strong id="shopPurchaseConfirmBalance"></strong></span></div>
     <div class="shop-purchase-actions"><button id="shopPurchaseConfirmCancel" class="shop-action secondary" type="button">Annuler</button><button id="shopPurchaseConfirmButton" class="shop-action" type="button">Confirmer l’achat</button></div>
     <div id="shopPaymentWaiting" class="shop-payment-waiting hidden" aria-live="polite">
@@ -1138,5 +1140,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=285"></script>
+<script src="/app.js?v=286"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
