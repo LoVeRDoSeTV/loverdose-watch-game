@@ -5798,6 +5798,9 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
 @media(min-width:901px){
   .lovys-live-level-estimate{margin:10px 0 22px;line-height:1.5}
   .lovys-live-level-estimate strong{display:block}
+  .lovys-live-xp-explanation{margin:0 0 20px;padding:12px 14px;border:1px solid rgba(145,71,255,.22);border-radius:12px;background:rgba(145,71,255,.07);font-size:12px;line-height:1.6;color:#b8c1dc}
+  .lovys-live-xp-explanation strong{display:block;color:#e0d4ff}
+  .lovys-live-xp-explanation p{margin:7px 0 0}
   .lovys-desktop-rank-action{margin-top:auto;padding-top:18px;text-align:center;grid-column:1/-1}
   .lovys-rank-ready-label{display:block;margin-bottom:9px;font-size:12px;font-weight:850;color:#9da8c5}
   .lovys-desktop-rank-button{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;width:100%;min-height:60px;border-radius:13px;font-size:16px;font-weight:900}
