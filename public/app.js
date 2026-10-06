@@ -3078,26 +3078,55 @@ function showLovysRankCelebration(chosen, newRank) {
   document.body.appendChild(overlay);document.addEventListener('keydown',keydown,true);window.addEventListener('resize',resize);
   overlay.querySelector('button').focus();
 }
+function confirmLovysRankInGame(chosen, errorMessage = '') {
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const cost = Math.max(0, Number(chosen.nextRankCost) || 0);
+    const specific = Math.min(cost, Math.max(0, Number(chosen.fragments) || 0));
+    const universal = Math.max(0, cost - specific);
+    const nextRank = Math.min(5, Number(chosen.rank || 1) + 1);
+    const overlay = document.createElement('div');
+    overlay.className = 'desktop-egg-boost-overlay';
+    overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','lovysRankConfirmTitle');
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="lovysRankConfirmTitle">${errorMessage ? 'Amélioration impossible' : '⭐ Améliorer '+escapeHtml(chosen.name)}</h2>${errorMessage ? `<p>${escapeHtml(errorMessage)}</p>` : `<p>Souhaites-tu passer <strong>${escapeHtml(chosen.name)}</strong> au rang <strong>${nextRank}/5 · ${'⭐'.repeat(nextRank)}</strong> ?</p><div class="boost-accepted-duration">🧩 ${specific} fragments de ${escapeHtml(chosen.name)}${universal ? `<br>✨ ${universal} fragments universels en complément` : ''}<br>Total : ${cost} fragments</div><p>Les fragments seront consommés uniquement après confirmation et réussite de l’amélioration.</p>`}<div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-rank-confirm-no>${errorMessage ? 'Compris' : '✕ Non, annuler'}</button>${errorMessage ? '' : '<button class="shop-action" type="button" data-rank-confirm-yes>✓ Oui, améliorer</button>'}</div></div>`;
+    let finished = false;
+    const finish = value => {
+      if(finished)return;finished=true;
+      document.removeEventListener('keydown',onKey,true);window.removeEventListener('resize',onResize);
+      overlay.remove();if(previousFocus?.isConnected)previousFocus.focus();resolve(value);
+    };
+    const onKey = event => {if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    const onResize = () => {if(!isDesktopGameUi())finish(false);};
+    overlay.addEventListener('click',event=>{
+      if(event.target===overlay||event.target.closest('[data-rank-confirm-no]'))finish(false);
+      else if(event.target.closest('[data-rank-confirm-yes]'))finish(true);
+    });
+    document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);window.addEventListener('resize',onResize);
+    overlay.querySelector('[data-rank-confirm-no]').focus();
+  });
+}
 let lovysRankUpgradeBusy = false;
 async function rankUpLovysFromButton(rankBtn){
   if(lovysRankUpgradeBusy)return;
   const lovysId=Number(rankBtn?.dataset.rankLovys||0);
   const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);
   if(!chosen)return;
-  if(!confirm(`Améliorer ${chosen.name} pour ${Number(chosen.nextRankCost||0)} fragments ? Les fragments universels peuvent couvrir jusqu’à 50 % du coût si nécessaire.`))return;
   lovysRankUpgradeBusy=true;
   rankBtn.disabled=true;
   try{
+    const approved = isDesktopGameUi() ? await confirmLovysRankInGame(chosen) : confirm(`Améliorer ${chosen.name} pour ${Number(chosen.nextRankCost||0)} fragments ? Les fragments universels peuvent couvrir jusqu’à 50 % du coût si nécessaire.`);
+    if(!approved)return;
     const r=await fetch('/api/lovys/rank-up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId})});
     const d=await r.json();
-    if(!r.ok){alert(d.error||'Amélioration impossible.');return;}
+    if(!r.ok)throw new Error(d.error||'Amélioration impossible.');
     if(isDesktopGameUi())showLovysRankCelebration(chosen,d.rank);
     else alert(d.message||'Rang amélioré !');
     await loadGame();
     await loadLovysCollection();
     await loadPve();
   }catch(error){
-    alert(error.message||'Amélioration impossible.');
+    if(isDesktopGameUi())await confirmLovysRankInGame(chosen,error.message||'Amélioration impossible.');
+    else alert(error.message||'Amélioration impossible.');
   }finally{
     lovysRankUpgradeBusy=false;
     if(document.body.contains(rankBtn)) rankBtn.disabled=false;
