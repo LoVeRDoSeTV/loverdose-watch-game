@@ -2943,7 +2943,7 @@ function lovysLiveLevelEstimate(active) {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
   const hours = Math.floor(minutes / 60), rest = minutes % 60;
   const time = hours ? `${hours} h${rest ? ' '+String(rest).padStart(2,'0') : ''}` : `${minutes} min`;
-  return `<div class="lovys-live-level-estimate"><strong>📺 Environ ${time} de live pour atteindre le niveau ${Number(active.level)+1}</strong><small>Si tu regardes un live maintenant, avec tes bonus et leur durée restante. Les récompenses et l’XP ajoutée peuvent réduire ce temps.</small></div>`;
+  return `<div class="lovys-live-level-estimate"><strong>📺 Environ ${time} de live pour atteindre le niveau ${Number(active.level)+1}</strong></div>`;
 }
 
 function renderLovysActiveHero(data){
