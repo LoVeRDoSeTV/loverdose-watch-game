@@ -836,29 +836,29 @@ const SHOP_ITEMS = [
   { key:'title_noctambule', category:'title', subcategory:'violet', name:'Noctambule', price:150, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
   { key:'title_collectionneur', category:'title', subcategory:'blue', name:'Collectionneuse', price:200, color:'#4fd1c5', description:'Un titre pour celles qui aiment compléter leur collection.' },
   { key:'title_gardien_live', category:'title', subcategory:'blue', name:'Gardien du live', price:250, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
-  { key:'title_legende', category:'title', subcategory:'gold', name:'Légende du Watch Game', price:400, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
+  { key:'title_legende', category:'title', subcategory:'gold', name:'Légende de LoVeR Watch Game', price:400, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
   { key:'title_agent_fantome', category:'title', subcategory:'silver', name:'Agent fantôme', price:280, color:'#e7edf8', description:'Un titre sobre et élégant inspiré des agents les plus discrets.' },
   { key:'title_commandant_chat', category:'title', subcategory:'blue', name:'Commandante du chat', price:320, color:'#7ab8ff', description:'Pour celles qui mènent la discussion pendant les lives.' },
   { key:'title_oracle_nocturne', category:'title', subcategory:'violet', name:'Oracle nocturne', price:360, color:'#c28cff', description:'Un titre mystique pour les viewers du soir.' },
   { key:'title_gardien_couvoir', category:'title', subcategory:'green', name:'Gardien du couvoir', price:380, color:'#69e3a7', description:'Parfait pour les passionnés d’œufs et de compagnons.' },
   { key:'title_icone_stream', category:'title', subcategory:'pink', name:'Icône du stream', price:460, color:'#ff8ad9', description:'Un titre flashy pour briller sur la carte joueur.' },
-  { key:'title_veilleur_azur', category:'title', subcategory:'blue', name:'Veilleur azur', price:520, color:'#79c8ff', description:'Un titre céleste pour les fidèles du Watch Game.' },
+  { key:'title_veilleur_azur', category:'title', subcategory:'blue', name:'Veilleur azur', price:520, color:'#79c8ff', description:'Un titre céleste pour les fidèles de LoVeR Watch Game.' },
   { key:'title_chasseur_oeufs', category:'title', subcategory:'green', name:'Chasseuse d’œufs', price:560, color:'#8ce26b', description:'Pour les joueuses qui ne laissent jamais un incubateur vide.' },
   { key:'title_braise_royale', category:'title', subcategory:'red', name:'Braise royale', price:620, color:'#ff8a63', description:'Un titre rouge incandescent pour un profil qui se démarque.' },
   { key:'title_etoile_rose', category:'title', subcategory:'pink', name:'Étoile rose', price:680, color:'#ff95ef', description:'Un titre lumineux et pétillant pour les profils les plus stylés.' },
   { key:'title_roi_arene', category:'title', subcategory:'gold', name:'Reine de l’arène', price:1200, color:'#f4cd67', description:"Un titre doré premium réservé aux plus grosses collectionneuses de LoVeR'Cash." },
   { key:'title_souverain_live', category:'title', subcategory:'gold', name:'Souverain du live', price:1600, color:'#ffd86b', description:'Un grand titre doré pour les profils les plus prestigieux.' },
-  { key:'reward_title_recrue', category:'title', subcategory:'silver', name:'Recrue du Watch Game', price:0, color:'#9aa3b8', description:'Débloqué au niveau global 1.', rewardOnly:true },
+  { key:'reward_title_recrue', category:'title', subcategory:'silver', name:'Recrue de LoVeR Watch Game', price:0, color:'#9aa3b8', description:'Débloqué au niveau global 1.', rewardOnly:true },
   { key:'reward_title_eclaireur', category:'title', subcategory:'blue', name:'Éclaireur du Live', price:0, color:'#67c7ff', description:'Débloqué au niveau global 6.', rewardOnly:true },
   { key:'reward_title_veilleur', category:'title', subcategory:'blue', name:'Veilleur du Live', price:0, color:'#7dd8d0', description:'Débloqué au niveau global 11.', rewardOnly:true },
   { key:'reward_title_gardien', category:'title', subcategory:'green', name:'Gardien du Direct', price:0, color:'#6fe09b', description:'Débloqué au niveau global 16.', rewardOnly:true },
   { key:'reward_title_veteran', category:'title', subcategory:'violet', name:'Vétéran du Stream', price:0, color:'#c2a7ff', description:'Débloqué au niveau global 21.', rewardOnly:true },
-  { key:'reward_title_elite', category:'title', subcategory:'violet', name:'Élite du Watch Game', price:0, color:'#a878ff', description:'Débloqué au niveau global 26.', rewardOnly:true },
+  { key:'reward_title_elite', category:'title', subcategory:'violet', name:'Élite de LoVeR Watch Game', price:0, color:'#a878ff', description:'Débloqué au niveau global 26.', rewardOnly:true },
   { key:'reward_title_commandant', category:'title', subcategory:'red', name:'Commandant du Live', price:0, color:'#ff9c69', description:'Débloqué au niveau global 31.', rewardOnly:true },
   { key:'reward_title_maitre_terrain', category:'title', subcategory:'red', name:'Maître de terrain', price:0, color:'#ff7b7b', description:'Débloqué au niveau global 36.', rewardOnly:true },
   { key:'reward_title_champion', category:'title', subcategory:'gold', name:'Champion du Direct', price:0, color:'#f3c85b', description:'Débloqué au niveau global 41.', rewardOnly:true },
   { key:'reward_title_legende_grade', category:'title', subcategory:'gold', name:'Légende du Live', price:0, color:'#ffd86b', description:'Débloqué au niveau global 46.', rewardOnly:true },
-  { key:'reward_title_mythique', category:'title', subcategory:'gold', name:'Mythique du Watch Game', price:0, color:'#fff0a8', description:'Débloqué au niveau global 51.', rewardOnly:true },
+  { key:'reward_title_mythique', category:'title', subcategory:'gold', name:'Mythique de LoVeR Watch Game', price:0, color:'#fff0a8', description:'Débloqué au niveau global 51.', rewardOnly:true },
   { key:'reward_title_live_1', category:'title', subcategory:'silver', name:'Premier rendez-vous', price:0, color:'#d9e2ef', description:'Débloqué en assistant à 1 live.', rewardOnly:true },
   { key:'reward_title_live_5', category:'title', subcategory:'blue', name:'Habitué du live', price:0, color:'#79c8ff', description:'Débloqué en assistant à 5 lives.', rewardOnly:true },
   { key:'reward_title_live_10', category:'title', subcategory:'green', name:'Fidèle du direct', price:0, color:'#69e3a7', description:'Débloqué en assistant à 10 lives.', rewardOnly:true },
@@ -7151,7 +7151,7 @@ async function start() {
       () => {
 
         console.log(
-          `LoVeRDoSe Watch Game: ${BASE_URL}`
+          `LoVeR Watch Game: ${BASE_URL}`
         );
 
       }
