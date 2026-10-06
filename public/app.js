@@ -4822,7 +4822,7 @@ async function chooseEggForAcceleration() {
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⏱️ Accélérateur −30 min</h2><p>Choisis l’œuf à accélérer. Un seul accélérateur sera utilisé après confirmation.</p><div class="egg-boost-choices">${slots.map(slot => {
       const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
       return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="false"><span>🥚 Œuf · emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} → ${remaining<=1800?'Prêt à éclore !':formatEggTime(remaining-1800)}</strong></button>`;
-    }).join('')}</div><p class="egg-boost-question" data-egg-boost-question>Choisis un œuf pour continuer.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Confirmer</button></div></div>`;
+    }).join('')}</div><p class="egg-boost-question" data-egg-boost-question>Choisis un œuf pour continuer.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>✕ Non, annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>✓ Oui, utiliser</button></div></div>`;
     const finish = value => {document.removeEventListener('keydown',keyHandler,true);window.removeEventListener('resize',resizeHandler);overlay.remove();previousFocus?.focus?.();resolve(value);};
     const resizeHandler = () => {if(!isDesktopGameUi())finish(null);};
     const keyHandler = event => {
@@ -4844,6 +4844,46 @@ async function chooseEggForAcceleration() {
   });
 }
 
+function confirmDesktopObjectUse(itemKey) {
+  const item = getShopItemByKey(itemKey);
+  const name = item?.name || 'cet objet';
+  const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 1 heure.'
+    : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
+    : item?.description || '';
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'desktop-egg-boost-overlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','objectUseConfirmTitle');
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>Souhaites-tu vraiment utiliser <strong>${escapeHtml(name)}</strong> ?</p><p>${escapeHtml(effect)}</p><p>Un objet sera consommé uniquement si tu confirmes et que l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Non, annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Oui, utiliser</button></div></div>`;
+    let finished = false;
+    const finish = value => {
+      if (finished) return;
+      finished = true;
+      document.removeEventListener('keydown', onKey, true);
+      window.removeEventListener('resize', onResize);
+      overlay.remove();
+      if (previousFocus?.isConnected) previousFocus.focus();
+      resolve(value);
+    };
+    const onKey = event => {
+      if (event.key === 'Escape') {event.preventDefault();event.stopImmediatePropagation();finish(false);}
+      else if (event.key === 'Tab') trapDesktopAdminFocus(event,overlay);
+    };
+    const onResize = () => {if (!isDesktopGameUi()) finish(false);};
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay || event.target.closest('[data-object-use-no]')) finish(false);
+      else if (event.target.closest('[data-object-use-yes]')) finish(true);
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', onResize);
+    overlay.querySelector('[data-object-use-no]').focus();
+  });
+}
+
 async function shopAction(url, itemKey) {
   const desktopUse = isDesktopGameUi() && url === '/api/shop/use';
   if(desktopUse && desktopObjectUseBusy)return;
@@ -4858,6 +4898,7 @@ async function shopAction(url, itemKey) {
       openIncubatorAddModal(free.slot);return;
     }
     if(desktopUse && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration();if(!target)return;} 
+    else if(desktopUse && !(await confirmDesktopObjectUse(itemKey))) return;
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
