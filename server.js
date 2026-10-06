@@ -3597,6 +3597,24 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
   }
 });
 
+function connectedGamePlayerCount() {
+  return new Set([...LIVE_UPDATE_CLIENTS]
+    .filter(client => !client.destroyed && !client.writableEnded && client.gamePlayerId)
+    .map(client => client.gamePlayerId)).size;
+}
+
+app.get('/api/game/live-status', async (req, res) => {
+  if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
+  try {
+    const tracker = (await pool.query('SELECT last_live FROM twitch_tracker_auth WHERE id=1')).rows[0];
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ live:tracker ? Boolean(tracker.last_live) : null, gamePlayerCount:connectedGamePlayerCount() });
+  } catch (error) {
+    console.error('Erreur statut accueil :', error);
+    res.status(500).json({ error:'Statut indisponible.' });
+  }
+});
+
 app.get('/api/live-updates', (req, res) => {
   if (!req.session.account) {
     return res.status(401).end();
@@ -3608,6 +3626,7 @@ app.get('/api/live-updates', (req, res) => {
   res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders?.();
 
+  res.gamePlayerId = req.session.user?.twitchId || null;
   LIVE_UPDATE_CLIENTS.add(res);
   res.write(`event: connected\ndata: ${JSON.stringify({ ok: true })}\n\n`);
 
