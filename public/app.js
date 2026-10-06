@@ -4389,6 +4389,8 @@ function closeShopPurchaseConfirm() {
 }
 
 function openShopPurchaseSuccess(item, balance) {
+  const inventoryButton=$('shopPurchaseSuccessInventory');
+  if(inventoryButton)inventoryButton.dataset.inventoryCategory=item?.category||'object';
   if ($('shopPurchaseSuccessVisual')) $('shopPurchaseSuccessVisual').innerHTML = shopPreview(item);
   if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = item?.name || 'Ton objet';
   if ($('shopPurchaseSuccessBalance')) $('shopPurchaseSuccessBalance').textContent = `${Number(balance || 0).toLocaleString('fr-FR')} LoVeR’Cash`;
@@ -4576,6 +4578,18 @@ $('shopPurchaseSuccessClose')?.addEventListener('click', closeShopPurchaseSucces
 $('shopPurchaseSuccessInventory')?.addEventListener('click', async event => {
   const slot = Number(event.currentTarget.dataset.incubatorSlot || 0);
   closeShopPurchaseSuccess();
+  if(isMobileGameUi()){
+    const category=event.currentTarget.dataset.inventoryCategory;
+    inventoryCategory=['title','background','frame','avatar_frame','object'].includes(category)?category:'object';
+    inventoryTitleFilter='all';
+    closeAllMobilePanels('inventory');
+    closeShopItemPreview();
+    $('inventoryModal')?.classList.remove('hidden');
+    syncMobileNavState();
+    await openInventory();
+    $('inventoryModal')?.scrollTo({top:0,behavior:'auto'});
+    return;
+  }
   if (slot) { $('shopModal')?.classList.add('hidden'); requestAnimationFrame(() => openIncubatorAddModal(slot)); return; }
   await openInventory();
 });
