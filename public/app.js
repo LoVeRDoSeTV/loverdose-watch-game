@@ -4055,7 +4055,7 @@ function getShopItemByKey(itemKey) {
 
 function getShopActionButtons(item, { includePreview = false } = {}) {
   const buttons = [];
-  if (includePreview) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
+  if (includePreview && !(isDesktopGameUi() && item.category === 'object')) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
 
   if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
   } else if (item.comingSoon) {
@@ -4074,18 +4074,19 @@ function getShopActionButtons(item, { includePreview = false } = {}) {
   return buttons.join('');
 }
 
-function renderDesktopVisitCardPreview(item = null) {
+function renderDesktopVisitCardPreview(item = null, cardId = 'shopProfilePreviewCard') {
   const source = document.querySelector('.dashboard-left-stack > .player-visit-card');
   if (!source) return '';
   const card = source.cloneNode(true);
-  card.querySelectorAll('button, .player-card-actions').forEach(node => node.remove());
+  card.querySelectorAll('.player-card-actions, .player-card-progress-mobile').forEach(node => node.remove());
+  card.querySelectorAll('button').forEach(node => {const label=document.createElement('span');label.className=node.className;label.innerHTML=node.innerHTML;node.replaceWith(label);});
   card.querySelectorAll('[id]').forEach(node => node.removeAttribute('id'));
   card.querySelectorAll('[role="button"], [tabindex]').forEach(node => {
     node.removeAttribute('role');
     node.removeAttribute('tabindex');
     node.removeAttribute('aria-label');
   });
-  card.id = 'shopProfilePreviewCard';
+  card.id = cardId;
   card.classList.add('inventory-visit-preview');
   const avatar = card.querySelector('.player-card-avatar');
   avatar?.classList.add('shop-profile-preview-avatar');
@@ -4094,6 +4095,7 @@ function renderDesktopVisitCardPreview(item = null) {
     if (title) {
       title.textContent = `"${item.name}"`;
       title.classList.remove('hidden');
+      title.classList.add('visible');
       title.style.color = item.color || '#e2d2ff';
     }
   }
@@ -4103,22 +4105,122 @@ function renderDesktopVisitCardPreview(item = null) {
   return card.outerHTML;
 }
 
-function openInventoryCardPreview() {
+let commerceDraft = {};
+let commerceTab = 'shop';
+let commerceBusy = false;
+let commercePreviewOrigin = null;
+let commerceToolsOrigin = null;
+let inventoryDesktopOrigin = null;
+
+function syncInventoryPagePlacement() {
+  const page = $('inventoryModal'), preview = $('inventoryVisitPreview'), tools = $('shopAccountTools');
+  if (!page || !preview) return;
+  if (!inventoryDesktopOrigin) {
+    inventoryDesktopOrigin = document.createComment('inventory-origin');
+    page.parentNode.insertBefore(inventoryDesktopOrigin, page);
+    commercePreviewOrigin = document.createComment('inventory-preview-origin');
+    preview.parentNode.insertBefore(commercePreviewOrigin, preview);
+    commerceToolsOrigin = document.createComment('shop-tools-origin');
+    tools.parentNode.insertBefore(commerceToolsOrigin, tools);
+  }
+  if (isDesktopGameUi()) {
+    $('commerceCatalog')?.appendChild(page);
+    $('commercePreviewSlot')?.appendChild(preview);
+    $('commerceTopline')?.appendChild(tools);
+    page.removeAttribute('aria-modal');
+    page.setAttribute('role', 'region');
+  } else {
+    inventoryDesktopOrigin.parentNode.insertBefore(page, inventoryDesktopOrigin.nextSibling);
+    commercePreviewOrigin.parentNode.insertBefore(preview, commercePreviewOrigin.nextSibling);
+    commerceToolsOrigin.parentNode.insertBefore(tools, commerceToolsOrigin.nextSibling);
+    page.setAttribute('role', 'dialog');
+    page.setAttribute('aria-modal', 'true');
+  }
+}
+
+const COMMERCE_SLOTS = {title:'🏷️ Titre',background:'🖼️ Fond',frame:'✨ Encadrement',avatar_frame:'🪞 Cadre de profil'};
+function commerceOwns(item) { return Boolean(item && (item.owned || item.equipped || item.exclusive)); }
+function renderInventoryVisitPreview() {
   if (!isDesktopGameUi()) return;
-  shopPreviewCurrentKey = null;
-  $('shopItemPreviewTitle').textContent = '🪪 Ma carte de visite';
-  $('shopItemPreviewSubtitle').textContent = 'Aperçu de ta carte avec ton équipement actuel.';
-  $('shopItemPreviewKicker').textContent = 'Mon apparence actuelle';
-  $('shopItemPreviewName').textContent = 'Ta carte joueur';
-  $('shopItemPreviewDesc').textContent = 'Voici ta carte avec ton titre, tes fonds, tes cadres et tes badges actuellement équipés. Utilise « Prévisualiser » sur un article pour essayer son apparence sur cette carte.';
-  $('shopItemPreviewMeta').innerHTML = '';
-  $('shopItemPreviewOwned').textContent = 'Équipement actuel';
-  $('shopItemPreviewEffect').classList.add('hidden');
-  $('shopItemPreviewVisual').innerHTML = renderDesktopVisitCardPreview();
-  $('shopItemPreviewActions').innerHTML = '<button id="inventoryCardPreviewBack" class="shop-action secondary" type="button">Retour à l’inventaire</button>';
-  $('inventoryCardPreviewBack').addEventListener('click', closeShopItemPreview);
-  $('shopItemPreviewModal').classList.remove('hidden');
-  $('shopItemPreviewClose')?.focus();
+  const entries = Object.entries(commerceDraft);
+  $('inventoryVisitPreviewVisual').innerHTML = renderDesktopVisitCardPreview(null, 'inventoryCurrentVisitCard');
+  const card = $('inventoryCurrentVisitCard');
+  if (card) {
+    const keys = {...(shopData?.equipped || {}), ...commerceDraft};
+    const title = getShopItemByKey(keys.title), titleEl = card.querySelector('.player-card-title');
+    if (titleEl) {
+      titleEl.textContent = title ? `"${title.name}"` : '';
+      titleEl.classList.toggle('visible', Boolean(title));
+      titleEl.style.color = title?.color || '';
+    }
+    applyProfileCosmetics(card, keys.background, keys.frame);
+    applyAvatarFrameCosmetics(card.querySelector('.player-card-avatar'), keys.avatar_frame);
+  }
+  $('inventoryPreviewStatus').textContent = entries.length ? 'Aperçu, non équipé' : 'Ton équipement actuel';
+  const missing = entries.some(([,key]) => key && !commerceOwns(getShopItemByKey(key)));
+  $('inventoryOutfitEquip').disabled = commerceBusy || !entries.length || missing;
+  $('inventoryPreviewReset').disabled = commerceBusy || !entries.length;
+  $('inventoryOutfitEquip').textContent = commerceBusy ? 'Équipement…' : 'Équiper cette tenue';
+  $('inventoryOutfitEquip').title = missing ? 'Achète les articles essayés avant de les équiper.' : '';
+  $('inventoryCurrentEquipment').innerHTML = Object.entries(COMMERCE_SLOTS).map(([category,label]) => {
+    const item = getShopItemByKey(shopData?.equipped?.[category]);
+    return `<div class="commerce-equipment-slot"><button type="button" data-commerce-slot="${category}"><span>${label}</span><strong>${escapeHtml(item?.name || 'Aucun')}</strong></button>${item ? `<button type="button" class="commerce-slot-remove" data-commerce-remove="${escapeHtml(item.key)}" aria-label="Retirer ${escapeHtml(item.name)}" ${commerceBusy?'disabled':''}>Retirer</button>` : ''}</div>`;
+  }).join('');
+  document.querySelectorAll('[data-shop-item-key], [data-inventory-item-key]').forEach(node => {
+    const item = getShopItemByKey(node.dataset.shopItemKey || node.dataset.inventoryItemKey);
+    node.classList.toggle('commerce-tried', Boolean(item && commerceDraft[item.category] === item.key));
+  });
+}
+
+function previewInventoryItem(key) {
+  const item = getShopItemByKey(key);
+  if (!isDesktopGameUi()) return openShopItemPreview(key);
+  if (!item || item.category === 'object' || commerceBusy) return;
+  if (commerceDraft[item.category] === key) return;
+  commerceDraft[item.category] = key;
+  $('inventoryOutfitMessage').textContent = commerceOwns(item) ? '' : 'Achète cet article pour pouvoir équiper la tenue.';
+  renderInventoryVisitPreview();
+}
+
+function setCommerceTab(tab) {
+  if (!isDesktopGameUi()) return;
+  commerceTab = tab === 'inventory' ? 'inventory' : 'shop';
+  syncInventoryPagePlacement();
+  $('shopModal').classList.remove('hidden');
+  $('shopModal').classList.toggle('commerce-inventory-active', commerceTab === 'inventory');
+  $('inventoryModal').classList.toggle('hidden', commerceTab !== 'inventory');
+  $('commerceShopTab').setAttribute('aria-pressed', String(commerceTab === 'shop'));
+  $('commerceInventoryTab').setAttribute('aria-pressed', String(commerceTab === 'inventory'));
+  if (commerceTab === 'inventory') renderInventory();
+  else renderShop();
+  renderInventoryVisitPreview();
+}
+
+function renderCommerceBoosts() {
+  if (!isDesktopGameUi()) return;
+  const messages = Object.entries(shopData?.activeBoosts || {}).filter(([,end]) => Date.parse(end) > Date.now()).map(([key,end]) => {
+    const name = getShopItemByKey(key)?.name || (key === 'boost_xp_x2' ? 'Booster XP ×2' : 'Booster LoVeR’Cash ×2');
+    return `⚡ ${escapeHtml(name)} actif · encore ${Math.ceil((Date.parse(end)-Date.now())/60000)} min`;
+  });
+  $('commerceBoosts').innerHTML = messages.map(message => `<span>${message}</span>`).join('');
+  $('commerceBoosts').classList.toggle('has-boosts', messages.length > 0);
+}
+
+async function equipCommerceOutfit() {
+  if (!isDesktopGameUi() || commerceBusy || !Object.keys(commerceDraft).length) return;
+  const equipment = {...commerceDraft};
+  if (Object.values(equipment).some(key => key && !commerceOwns(getShopItemByKey(key)))) return;
+  commerceBusy = true; renderInventoryVisitPreview();
+  try {
+    const response = await fetch('/api/shop/equip-outfit', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipment})});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Impossible d’équiper cette tenue.');
+    commerceDraft = {};
+    $('inventoryOutfitMessage').textContent = '✓ Tenue équipée !';
+    await loadShop(); await loadGame(); await loadLeaderboard();
+    if (commerceTab === 'inventory') renderInventory();
+  } catch (error) { $('inventoryOutfitMessage').textContent = error.message; }
+  finally {commerceBusy = false;renderInventoryVisitPreview();}
 }
 
 function renderShopPreviewVisual(item) {
@@ -4295,7 +4397,7 @@ function renderShop() {
     const ownedText = item.category === 'object'
       ? (Number(item.quantity || 0) > 0 ? `<span class="shop-qty">Possédé : ${Number(item.quantity)}</span>` : '')
       : (item.owned || item.exclusive ? '<span class="shop-owned">Possédé</span>' : '');
-    return `<article class="shop-item${item.equipped ? ' equipped' : ''}${item.comingSoon ? ' coming-soon' : ''}${shopFocusItemKey === item.key ? ' shop-focus' : ''}" data-shop-item-key="${escapeHtml(item.key)}">
+    return `<article ${isDesktopGameUi()?`title="${escapeHtml(item.description || '')}" ${item.category!=='object'?'tabindex="0"':''}`:''} class="shop-item${item.equipped ? ' equipped' : ''}${item.comingSoon ? ' coming-soon' : ''}${shopFocusItemKey === item.key ? ' shop-focus' : ''}" data-shop-item-key="${escapeHtml(item.key)}">
       ${shopPreview(item)}
       <div class="shop-item-name">${escapeHtml(item.name)}</div>
       <div class="shop-item-desc">${escapeHtml(item.description || '')}</div>
@@ -4305,7 +4407,13 @@ function renderShop() {
     </article>`;
   }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>';
 
-  document.querySelectorAll('[data-shop-category]').forEach(button => button.classList.toggle('active', button.dataset.shopCategory === shopCategory));
+  document.querySelectorAll('[data-shop-category]').forEach(button => {
+    const category=button.dataset.shopCategory;
+    button.classList.toggle('active', category === shopCategory);
+    const count=(shopData.catalog||[]).filter(item=>item.category===category&&!isProgressionReward(item)&&(category==='object'||(!item.owned&&!item.equipped&&!item.exclusive))).length;
+    button.textContent=`${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${isDesktopGameUi()?` ${count}`:''}`;
+  });
+  if(isDesktopGameUi())renderInventoryVisitPreview();
 }
 
 function inventoryOwnedItems() {
@@ -4327,7 +4435,13 @@ function renderInventory() {
 
   const titleFilterWrap = $('inventoryTitleFilterWrap');
   if (titleFilterWrap) titleFilterWrap.classList.toggle('hidden', inventoryCategory !== 'title');
+  renderInventoryVisitPreview();
   const items = inventoryOwnedItems();
+  document.querySelectorAll('[data-inventory-category]').forEach(button => {
+    const category = button.dataset.inventoryCategory;
+    const count = (shopData?.catalog || []).filter(item => item.category === category && (category === 'object' ? Number(item.quantity)>0 : commerceOwns(item))).length;
+    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${isDesktopGameUi()?` ${count}`:''}`;
+  });
   $('inventoryCount').textContent = `${items.length} article${items.length > 1 ? 's' : ''} dans cette catégorie`;
 
   document.querySelectorAll('[data-inventory-category]').forEach(button => {
@@ -4335,7 +4449,7 @@ function renderInventory() {
   });
 
   if (!items.length) {
-    grid.innerHTML = `<div class="inventory-empty">Tu ne possèdes encore aucun article dans cette catégorie.</div>`;
+    grid.innerHTML = isDesktopGameUi() ? `<div class="inventory-empty">Tu n’as ${({title:'aucun titre',background:'aucun fond',frame:'aucun encadrement',avatar_frame:'aucun cadre de profil',object:'aucun objet'})[inventoryCategory]}.<br><button class="shop-action secondary" type="button" data-commerce-empty-shop="${inventoryCategory}">Voir dans la boutique →</button></div>` : `<div class="inventory-empty">Tu ne possèdes encore aucun article dans cette catégorie.</div>`;
     return;
   }
 
@@ -4351,26 +4465,36 @@ function renderInventory() {
       action = `<button class="shop-action" type="button" data-inventory-equip="${escapeHtml(item.key)}">Équiper</button>`;
     }
 
+    if(isDesktopGameUi() && item.category!=='object') action = '';
     const possession = item.category === 'object'
       ? `<span class="inventory-qty">Quantité : ${Number(item.quantity || 0)}</span>`
       : `<span class="inventory-status">${item.equipped ? 'Équipé' : 'Possédé'}</span>`;
 
     const newlyPurchased=isMobileGameUi() && item.key===mobileInventoryNewItemKey;
-    return `<article class="inventory-item${item.equipped ? ' equipped' : ''}${newlyPurchased?' inventory-item-new':''}" data-inventory-item-key="${escapeHtml(item.key)}">
+    return `<article ${isDesktopGameUi()?`title="${escapeHtml(item.description || '')}" ${item.category!=='object'?'tabindex="0"':''}`:''} class="inventory-item${item.equipped ? ' equipped' : ''}${newlyPurchased?' inventory-item-new':''}" data-inventory-item-key="${escapeHtml(item.key)}">
       ${newlyPurchased?'<span class="inventory-new-badge">✨ Nouveau</span>':''}
       ${shopPreview(item)}
       <div class="inventory-item-name">${escapeHtml(item.name)}</div>
       <div class="inventory-item-desc">${escapeHtml(item.description || '')}</div>
       <div class="inventory-item-meta">${possession}</div>
       <div class="inventory-actions">
-        <button class="shop-action secondary" type="button" data-inventory-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>
+        ${isDesktopGameUi()&&item.category==='object'?'':`<button class="shop-action secondary" type="button" data-inventory-preview="${escapeHtml(item.key)}">👁 ${isDesktopGameUi()?'Essayer':'Prévisualiser'}</button>`}
         ${action}
       </div>
     </article>`;
   }).join('');
+  if(isDesktopGameUi())renderInventoryVisitPreview();
 }
 
 async function openInventory() {
+  if (isDesktopGameUi()) {
+    inventoryTitleFilter = 'all';
+    if (desktopView !== 'shop') await openDesktopView('shop');
+    setCommerceTab('inventory');
+    return;
+  }
+  syncInventoryPagePlacement();
+  renderInventoryVisitPreview();
   $('inventoryModal')?.classList.remove('hidden');
   try {
     await loadShop();
@@ -4381,6 +4505,7 @@ async function openInventory() {
 }
 
 function closeInventory() {
+  if (isDesktopGameUi()) {setCommerceTab('shop');return;}
   if(isMobileGameUi())mobileInventoryNewItemKey=null;
   $('inventoryModal')?.classList.add('hidden');
   syncMobileNavState?.();
@@ -4392,6 +4517,7 @@ async function loadShop() {
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
   shopData = data;
   renderShop();
+  if(isDesktopGameUi()) {renderCommerceBoosts();renderInventoryVisitPreview();if(commerceTab==='inventory')renderInventory();}
 }
 
 function focusShopItem(itemKey) {
@@ -4425,6 +4551,7 @@ async function openShop() {
   incubatorShopTargetSlot = null;
   $('shopModal')?.classList.remove('hidden');
   setShopMessage();
+  if(isDesktopGameUi()) setCommerceTab('shop');
   try { await loadShop(); } catch (error) { setShopMessage(error.message, 'error'); }
 }
 
@@ -4503,7 +4630,7 @@ async function confirmShopPurchase() {
     await loadShop();
     await loadGame();
     await loadLeaderboard();
-    if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     closeShopItemPreview();
     openShopPurchaseSuccess(item, data.balance);
 
@@ -4532,11 +4659,12 @@ async function shopAction(url, itemKey) {
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
+    if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(data.message || 'Action effectuée.', 'ok');
     await loadShop();
     await loadGame();
     await loadLeaderboard();
-    if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
     if (url === '/api/shop/buy' && itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
@@ -4575,8 +4703,19 @@ $('inventoryTitleFilter')?.addEventListener('change', event => {
 });
 $('playerCardInventory')?.addEventListener('click', openInventory);
 $('shopInventoryButton')?.addEventListener('click',()=>{if(isDesktopGameUi())openInventory();});
+$('inventoryClose')?.setAttribute('title', 'Retour à la boutique');
 $('inventoryClose')?.addEventListener('click', closeInventory);
-$('inventoryCardPreview')?.addEventListener('click', openInventoryCardPreview);
+$('inventoryPreviewReset')?.addEventListener('click', () => {commerceDraft = {}; $('inventoryOutfitMessage').textContent = ''; renderInventoryVisitPreview();});
+$('inventoryOutfitEquip')?.addEventListener('click', equipCommerceOutfit);
+$('commerceShopTab')?.addEventListener('click', () => setCommerceTab('shop'));
+$('commerceInventoryTab')?.addEventListener('click', () => setCommerceTab('inventory'));
+$('inventoryCurrentEquipment')?.addEventListener('click', event => {
+  const slot = event.target.closest('[data-commerce-slot]'), remove = event.target.closest('[data-commerce-remove]');
+  if (remove && !commerceBusy) shopAction('/api/shop/unequip', remove.dataset.commerceRemove);
+  else if (slot) {inventoryCategory = slot.dataset.commerceSlot;inventoryTitleFilter = 'all';setCommerceTab('inventory');}
+});
+setInterval(renderCommerceBoosts, 30000);
+window.addEventListener('resize', syncInventoryPagePlacement);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {
   button.addEventListener('click', () => {
@@ -4590,11 +4729,28 @@ $('inventoryGrid')?.addEventListener('click', event => {
   const equip = event.target.closest('[data-inventory-equip]');
   const unequip = event.target.closest('[data-inventory-unequip]');
   const use = event.target.closest('[data-inventory-use]');
-  if (preview) openShopItemPreview(preview.dataset.inventoryPreview);
+  const emptyShop = event.target.closest('[data-commerce-empty-shop]');
+  if(emptyShop && isDesktopGameUi()){shopCategory=emptyShop.dataset.commerceEmptyShop;shopTitleFilter=shopBackgroundFilter=shopFrameFilter=shopAvatarFrameFilter='all';setCommerceTab('shop');return;}
+  if (preview) previewInventoryItem(preview.dataset.inventoryPreview);
   else if (equip) shopAction('/api/shop/equip', equip.dataset.inventoryEquip);
   else if (unequip) shopAction('/api/shop/unequip', unequip.dataset.inventoryUnequip);
   else if (use) shopAction('/api/shop/use', use.dataset.inventoryUse);
 });
+
+for (const [gridId,attribute] of [['inventoryGrid','inventoryItemKey'],['shopGrid','shopItemKey']]) {
+  const grid = $(gridId);
+  const tryCard = event => {
+    if (!isDesktopGameUi()) return;
+    const card = event.target.closest('[data-inventory-item-key], [data-shop-item-key]');
+    if (!card || (event.type === 'pointerover' && card.contains(event.relatedTarget))) return;
+    if (event.type === 'click' && event.target.closest('button')) return;
+    previewInventoryItem(card.dataset[attribute]);
+  };
+  grid?.addEventListener('pointerover', tryCard);
+  grid?.addEventListener('focusin', tryCard);
+  grid?.addEventListener('click', tryCard);
+  grid?.addEventListener('keydown', event => {if(isDesktopGameUi() && event.target.matches('article') && ['Enter',' '].includes(event.key)){event.preventDefault();tryCard(event);}});
+}
 
 let inventoryBackdropMouseDown = false;
 $('inventoryModal')?.addEventListener('mousedown', event => { inventoryBackdropMouseDown = event.target.id === 'inventoryModal'; });
@@ -4605,7 +4761,7 @@ $('shopGrid')?.addEventListener('click', event => {
   const buy = event.target.closest('[data-shop-buy]');
   const equip = event.target.closest('[data-shop-equip]');
   const use = event.target.closest('[data-shop-use]');
-  if (preview) openShopItemPreview(preview.dataset.shopPreview);
+  if (preview) {if(isDesktopGameUi())previewInventoryItem(preview.dataset.shopPreview);else openShopItemPreview(preview.dataset.shopPreview);}
   else if (buy) openShopPurchaseConfirm(buy.dataset.shopBuy);
   else if (equip) shopAction('/api/shop/equip', equip.dataset.shopEquip);
   else if (use) shopAction('/api/shop/use', use.dataset.shopUse);
@@ -5914,6 +6070,7 @@ let tradeOptionCount=1;
 function isDesktopGameUi(){return window.matchMedia('(min-width:901px)').matches;}
 function setDesktopNavActive(view){document.querySelectorAll('.desktop-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.desktopView===view));}
 function closeDesktopPrimaryPages(except=''){
+  if(except!=='shop')$('inventoryModal')?.classList.add('hidden');
   if(except!=='account')$('accountModal')?.classList.add('hidden');
   if(except!=='lovys')$('lovysCollectionModal')?.classList.add('hidden');
   if(except!=='pve'){$('pveModal')?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}
@@ -5939,7 +6096,9 @@ function syncDesktopLeaderboardPlacement(){
 }
 async function openDesktopView(view='home'){
   if(!isDesktopGameUi())return;
+  if(view==='inventory') return openInventory();
   syncDesktopLeaderboardPlacement();
+  syncInventoryPagePlacement();
   desktopView=view;setDesktopNavActive(view);
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
@@ -5964,7 +6123,7 @@ async function openDesktopView(view='home'){
   if(view==='lobby'){$('desktopLobbyPage')?.classList.remove('hidden');await openLobbyTab(lobbyTab);}
 }
 
-const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique',account:'compte'};
+const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique',inventory:'inventaire',account:'compte'};
 const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
 function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
 function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
@@ -6163,7 +6322,7 @@ function startLiveUpdates() {
   liveUpdates = new EventSource('/api/live-updates');
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
-  liveUpdates.addEventListener('shop-update', refreshLiveGameState);
+  liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
   liveUpdates.addEventListener('trade-update', () => { if (desktopView === 'lobby') openLobbyTab(lobbyTab); });
   liveUpdates.onerror = () => {
     // EventSource tente automatiquement de se reconnecter.

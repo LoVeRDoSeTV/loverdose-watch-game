@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=278">
+<link rel="stylesheet" href="/styles.css?v=280">
 
 
 </head>
@@ -964,7 +964,13 @@
       <div><h2 id="inventoryTitle">🎒 Inventaire</h2><div class="inventory-subtitle">Retrouve et gère tous tes achats de la boutique.</div></div>
       <button id="inventoryClose" class="inventory-close" type="button" aria-label="Fermer">×</button>
     </div>
-    <button id="inventoryCardPreview" class="shop-action secondary desktop-inventory-card-preview" type="button" aria-haspopup="dialog">🪪 Prévisualiser ma carte de visite</button>
+    <section id="inventoryVisitPreview" class="desktop-inventory-preview" aria-label="Prévisualisation de ma carte de visite">
+      <div class="inventory-preview-heading"><div><h3>🪪 Ma carte de visite</h3><p id="inventoryPreviewStatus" aria-live="polite">Ton équipement actuel</p></div></div>
+      <div id="inventoryVisitPreviewVisual"></div>
+      <div class="commerce-outfit-actions"><button id="inventoryOutfitEquip" class="shop-action" type="button">Équiper cette tenue</button><button id="inventoryPreviewReset" class="shop-action secondary" type="button">Annuler</button></div>
+      <div id="inventoryOutfitMessage" class="commerce-outfit-message" role="status"></div>
+      <h4>Équipement actuel</h4><div id="inventoryCurrentEquipment" class="commerce-equipment"></div>
+    </section>
     <div class="inventory-tabs" role="tablist" aria-label="Catégories de l’inventaire">
       <button class="inventory-tab active" type="button" data-inventory-category="title">🏷️ Titres</button>
       <button class="inventory-tab" type="button" data-inventory-category="background">🖼️ Fonds</button>
@@ -997,6 +1003,12 @@
       <button id="shopClose" class="shop-close" type="button" aria-label="Fermer">×</button>
     </div>
     <div id="shopMessage" class="shop-message"></div>
+    <div id="commerceTopline" class="commerce-topline">
+    <nav id="commerceTabs" class="commerce-tabs" aria-label="Boutique et inventaire"><button id="commerceShopTab" type="button" aria-pressed="true">🛒 Boutique</button><button id="commerceInventoryTab" type="button" aria-pressed="false">🎒 Inventaire</button></nav>
+
+    </div>
+    <div id="commerceBoosts" class="commerce-boosts" role="status"></div>
+    <div class="commerce-layout"><div id="commerceCatalog" class="commerce-catalog"><div class="commerce-shop-catalog">
     <div class="shop-toolbar">
       <label class="mobile-shop-category" for="shopMobileCategory"><span>Catégorie</span><select id="shopMobileCategory">
         <option value="title">🏷️ Titres</option>
@@ -1012,7 +1024,8 @@
         <button class="shop-tab" type="button" data-shop-category="avatar_frame">🪞 Cadres de profil</button>
         <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
       </div>
-      <div class="shop-account-tools">
+
+      <div id="shopAccountTools" class="shop-account-tools">
       <button id="shopInventoryButton" class="btn secondary desktop-shop-inventory" type="button" aria-controls="inventoryModal" aria-haspopup="dialog">🎒 Inventaire</button>
       <div class="shop-balance"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
       </div>
@@ -1064,6 +1077,7 @@
       <span id="shopMobilePageLabel" aria-live="polite">Page 1 / 1</span>
       <button id="shopMobileNext" type="button" aria-controls="shopGrid">Suivant ›</button>
     </nav>
+    </div></div><aside id="commercePreviewSlot" class="commerce-preview-slot"></aside></div>
   </div>
 </div>
 
@@ -1121,5 +1135,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=278"></script>
+<script src="/app.js?v=280"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
