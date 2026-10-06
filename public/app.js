@@ -3,6 +3,7 @@ let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
 let desktopAdminConfirmationCancel = null;
+let desktopActionSuccessTimer = null;
 let dailyChallengesData = null;
 let dailyCarouselIndex = 0;
 let dailyCarouselTimer = null;
@@ -5004,6 +5005,7 @@ $('eventZombieToggle')?.addEventListener('click', async () => {
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Modification impossible');
+    showDesktopActionSuccess(nextMode?'Mode Zombie bien activé.':'Mode Zombie bien désactivé.');
     renderEventsState(data);
     await loadTrackerStatus();
   } catch (error) {
@@ -5032,6 +5034,8 @@ $('eventsGrid')?.addEventListener('click', async event => {
     const response=await fetch('/api/admin/events/live-boost',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,minutes:60})});
     const data=await response.json();
     if(!response.ok) throw new Error(data.error||'Modification impossible.');
+    const successLabel={xp:'Boost XP Lovys ×2',cash:'Boost LoVeR’Cash ×2',global_xp:'Boost XP globale ×2',all:'Boost XP Lovys, LoVeR’Cash et XP globale ×2'}[kind];
+    showDesktopActionSuccess(kind==='off'?'Les boosts live ont bien été arrêtés.':`${successLabel} bien activé pour les joueurs du tracker Twitch pendant 60 minutes.`);
     await refreshEventsState();
   }catch(error){window.alert(error.message||'Modification impossible.');}
   finally{button.disabled=false;button.textContent=old;}
@@ -5215,6 +5219,9 @@ function trapDesktopAdminFocus(event,container){
 }
 function showAdminActionConfirmation(details){
   if(!isDesktopGameUi())return showLegacyAdminActionConfirmation(details);
+  if(desktopActionSuccessTimer)clearTimeout(desktopActionSuccessTimer);
+  desktopActionSuccessTimer=null;
+  document.querySelector('[data-desktop-action-success]')?.remove();
   desktopAdminConfirmationCancel?.();
   return new Promise(resolve=>{
     const previousFocus=document.activeElement;
@@ -5253,7 +5260,7 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
   if(action==='prestige')return {username,actionText:`Régler le Prestige à ${numeric}`,question:`Régler le Prestige de ${username} à ${numeric} ?`};
   if(action==='lovys_fragments'){
     const name=button.closest('.admin-lovys-row')?.querySelector('strong')?.textContent?.replace(/^⭐\s*/,'').trim()||'ce Lovys';
-    return {username,actionText:`${verb} ${qty} fragment(s) de ${name}`,question:`${verb} ${qty} fragment(s) de ${name} à ${username} ?`};
+    return {username,lovysName:name,actionText:`${verb} ${qty} fragment(s) de ${name}`,question:`${verb} ${qty} fragment(s) de ${name} à ${username} ?`};
   }
   if(action==='reset_battle')return {username,actionText:'Annuler le combat actif',question:`Annuler le combat actif de ${username} ?`};
   return {username,actionText:'Réinitialiser la progression PvE',question:`Réinitialiser toute la progression PvE de ${username} ? Les victoires enregistrées seront effacées.`};
@@ -5265,6 +5272,32 @@ function validateDesktopAdminAmount(action,amount){
   if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (action==='grant_egg' && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
     throw new Error(`Saisis un nombre entier ${action==='grant_egg'?`entre 1 et ${limit}`:action==='prestige'?`entre 0 et ${limit}`:`non nul entre −${limit.toLocaleString('fr-FR')} et ${limit.toLocaleString('fr-FR')}`}.`);
   }
+}
+function showDesktopActionSuccess(message){
+  if(!isDesktopGameUi())return;
+  if(desktopActionSuccessTimer)clearTimeout(desktopActionSuccessTimer);
+  document.querySelector('[data-desktop-action-success]')?.remove();
+  const notice=document.createElement('div');
+  notice.className='desktop-action-success';notice.setAttribute('data-desktop-action-success','');
+  notice.setAttribute('role','status');notice.setAttribute('aria-live','polite');notice.setAttribute('aria-atomic','true');
+  notice.innerHTML=`<span class="desktop-action-success-check" aria-hidden="true">✓</span><strong>Action réussie</strong><p>${escapeHtml(message)}</p><span class="desktop-action-success-progress" aria-hidden="true"></span>`;
+  document.body.appendChild(notice);
+  desktopActionSuccessTimer=setTimeout(()=>{notice.remove();desktopActionSuccessTimer=null;},2600);
+}
+function desktopAdminPlayerSuccessMessage(action,amount,details){
+  const name=details.username,qty=Math.abs(Number(amount)||0).toLocaleString('fr-FR');
+  const removing=Number(amount)<0;
+  if(action==='cash')return removing?`Retrait de ${qty} LoVeR’Cash effectué pour ${name}.`:`${qty} LoVeR’Cash bien crédités à ${name}.`;
+  if(action==='grant_egg')return `${qty} œuf(s) mystère bien donnés à ${name}.`;
+  if(action==='pending_xp')return removing?`Réserve d’XP Lovys de ${name} mise à jour.`:`${qty} XP Lovys bien créditées à la réserve de ${name}.`;
+  if(action==='global_xp')return `XP globale de ${name} bien mise à jour.`;
+  if(action==='egg_fragments')return removing?`Fragments d’œuf de ${name} bien mis à jour.`:`${qty} fragments d’œuf bien crédités à ${name}.`;
+  if(action==='universal_fragments')return removing?`Fragments universels de ${name} bien mis à jour.`:`${qty} fragments universels bien crédités à ${name}.`;
+  if(action==='lovys_fragments')return removing?`Fragments de ${details.lovysName||'Lovys'} de ${name} bien mis à jour.`:`${qty} fragments de ${details.lovysName||'Lovys'} bien donnés à ${name}.`;
+  if(action==='prestige')return `Prestige de ${name} bien réglé à ${amount}.`;
+  if(action==='reset_battle')return `Combat actif de ${name} bien annulé.`;
+  if(action==='reset_pve')return `Progression PvE de ${name} bien réinitialisée.`;
+  return `${details.actionText} : modification bien appliquée à ${name}.`;
 }
 async function runAdminPlayerAction(button){
   if(isDesktopGameUi())return runDesktopAdminPlayerAction(button);
@@ -5305,6 +5338,7 @@ async function runDesktopAdminPlayerAction(button){
     if(!await showAdminActionConfirmation(details))return;
     button.textContent='Application…';
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    showDesktopActionSuccess(desktopAdminPlayerSuccessMessage(action,body.amount,details));
     await loadAdminPlayers();await openAdminPlayerEditor(accountId);
     const result=$('adminPlayerActionMessage');
     if(result){result.textContent=`✅ ${data.summary}`;result.className='admin-action-message success';}
@@ -5436,6 +5470,7 @@ async function deleteDesktopAdminAccount(button){
     if(!await showAdminActionConfirmation({username,actionText:'Suppression définitive du compte',question:`Dernière confirmation : supprimer définitivement ${username} ? Cette action ne peut pas être annulée.`}))return;
     button.textContent='Suppression…';
     await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}`,{method:'DELETE'});
+    showDesktopActionSuccess(`Compte de ${username} bien supprimé.`);
     if($('adminPlayerEditor')?.dataset.accountId===accountId)$('adminPlayerEditor')?.classList.add('hidden');
     await loadAdminPlayers();await loadLeaderboard();
   }catch(error){window.alert(error.message||'Suppression impossible.');}
@@ -5595,6 +5630,7 @@ async function saveAccountUsername() {
   const button = $('accountUsernameSave');
   const message = $('accountUsernameMessage');
   if (!input || !button || !message) return;
+  if (isDesktopGameUi() && button.disabled) return;
 
   const username = input.value.trim();
   message.className = 'account-username-message';
@@ -5610,6 +5646,15 @@ async function saveAccountUsername() {
   button.textContent = '...';
 
   try {
+    if (isDesktopGameUi()) {
+      const currentName = $('accountUsername')?.textContent || 'mon compte';
+      const approved = await showAdminActionConfirmation({
+        username: currentName,
+        actionText: `Changer le pseudo en ${username}`,
+        question: `Changer le pseudo de ${currentName} en ${username} ?`
+      });
+      if (!approved) return;
+    }
     const response = await fetch('/api/account/username', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -5626,6 +5671,8 @@ async function saveAccountUsername() {
     message.textContent = '✓ Pseudo modifié avec succès.';
     message.classList.add('success');
 
+    showDesktopActionSuccess(`Ton pseudo a bien été changé en ${data.username}.`);
+
     if (me?.user) {
       // Garde toutes les zones du site synchronisées avec le nouveau pseudo.
       me.user.display_name = data.username;
@@ -5640,6 +5687,7 @@ async function saveAccountUsername() {
   } finally {
     button.disabled = false;
     button.textContent = 'Modifier';
+    if (isDesktopGameUi() && button.isConnected) button.focus();
   }
 }
 

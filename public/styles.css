@@ -6629,7 +6629,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .admin-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}.admin-confirm-actions .btn{min-width:140px}.admin-confirm-actions [data-admin-confirm-approve]{background:linear-gradient(135deg,#7136d8,#9147ff);border-color:#a86dff}
 
 /* V272 : espace d’administration séparé du compte, PC uniquement. */
-.desktop-admin-button,.desktop-admin-modal{display:none}
+.desktop-admin-button,.desktop-admin-modal,.desktop-action-success{display:none}
 @media(min-width:901px){
   .desktop-admin-button:not(.hidden){display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 13px;border:1px solid rgba(145,71,255,.5);border-radius:12px;background:rgba(145,71,255,.16);color:#eee2ff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
   .desktop-admin-modal:not(.hidden){position:fixed;inset:0;z-index:1000900;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(3,5,15,.82);backdrop-filter:blur(9px)}
@@ -6639,8 +6639,17 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   #desktopAdminContent .admin-profile-actions{gap:12px;margin-top:20px}
   #desktopAdminContent .admin-profile-actions .btn{min-height:48px;text-align:center}
   .admin-confirm-overlay{z-index:1001200!important}
+  .desktop-action-success{position:fixed;top:50%;left:50%;z-index:1001300;display:grid;justify-items:center;gap:12px;width:min(440px,calc(100vw - 48px));padding:28px 26px 24px;overflow:hidden;transform:translate(-50%,-50%);border:1px solid rgba(114,230,174,.5);border-radius:22px;background:linear-gradient(145deg,#15273a,#101528);box-shadow:0 20px 70px rgba(0,0,0,.5),0 0 36px rgba(74,222,128,.14);text-align:center;color:#fff;pointer-events:none;animation:desktop-action-success-show 2.6s ease both}
+  .desktop-action-success-check{display:grid;place-items:center;width:62px;height:62px;border:1px solid rgba(134,239,172,.45);border-radius:50%;background:rgba(74,222,128,.12);color:#86efac;font-size:36px;font-weight:900;animation:desktop-action-success-check .4s ease both}
+  .desktop-action-success strong{font-size:20px;color:#c6f6db}
+  .desktop-action-success p{margin:0;font-size:15px;line-height:1.5;overflow-wrap:anywhere}
+  .desktop-action-success-progress{position:absolute;left:0;right:0;bottom:0;height:3px;background:linear-gradient(90deg,#9147ff,#86efac);transform-origin:left;animation:desktop-action-success-progress 2.6s linear both}
+  @keyframes desktop-action-success-show{0%{opacity:0;transform:translate(-50%,-44%) scale(.94)}12%,85%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-54%) scale(.98)}}
+  @keyframes desktop-action-success-check{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:scale(1)}}
+  @keyframes desktop-action-success-progress{from{transform:scaleX(1)}to{transform:scaleX(0)}}
   .desktop-admin-button:focus-visible,.desktop-admin-panel button:focus-visible,.admin-confirm-card button:focus-visible{outline:2px solid #c89aff;outline-offset:4px}
 }
+@media(min-width:901px) and (prefers-reduced-motion:reduce){.desktop-action-success,.desktop-action-success-check,.desktop-action-success-progress{animation:none}}
 
 /* ===== V163 — Incubateur : animation des œufs + accueil sans bouton Chances ===== */
 @media (min-width: 901px){
