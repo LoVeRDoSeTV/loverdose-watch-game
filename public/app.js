@@ -966,6 +966,7 @@ function renderIncubatorSlot(slotData) {
   el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}${action}`;
 }
 
+let mobileIncubatorHelpOpen=false;
 function renderIncubatorOverview() {
   const box = $('incubatorOverview');
   if (!box || !incubatorData?.slots) return;
@@ -975,6 +976,16 @@ function renderIncubatorOverview() {
   const remaining = next ? Math.max(0, Number(incubatorData?.hatchSeconds || 21600)-Number(next.watchedSeconds||0)) : 0;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
   box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Clique sur un œuf en incubation pour voir les Lovys possibles avec leurs pourcentages d’obtention.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
+  if(isMobileGameUi()){
+    const info=box.querySelector('.incubator-info-grid');
+    if(info){
+      const fold=document.createElement('details');fold.className='mobile-info-fold';
+      fold.open=mobileIncubatorHelpOpen;
+      fold.innerHTML='<summary>ⓘ Comment ça fonctionne ?</summary>';
+      info.replaceWith(fold);fold.appendChild(info);
+      fold.addEventListener('toggle',()=>{mobileIncubatorHelpOpen=fold.open;});
+    }
+  }
 }
 
 async function refreshIncubatorLiveState() {
@@ -1367,7 +1378,14 @@ function renderNextActions() {
   if (!summary || !count) return;
   const actions = buildNextActions();
   count.textContent = String(actions.length);
-  summary.textContent = actions.length ? `${actions.length} action${actions.length > 1 ? 's' : ''} utile${actions.length > 1 ? 's' : ''} pour ton compte` : 'Tout est à jour pour le moment';
+  const quick=$('nextActionQuick');
+  if(quick){
+    const action=actions[0];
+    quick.classList.toggle('hidden',!action);
+    quick.textContent=action ? action.button : '';
+    quick.onclick=()=>list?.querySelector('[data-next-action]')?.click();
+  }
+  summary.textContent = isMobileGameUi() && actions.length ? actions[0].title : actions.length ? `${actions.length} action${actions.length > 1 ? 's' : ''} utile${actions.length > 1 ? 's' : ''} pour ton compte` : 'Tout est à jour pour le moment';
   if (!list) return;
   if (!actions.length) {
     list.innerHTML = `<div class="next-action-empty"><b>✓ Rien d’urgent</b>Continue à profiter du live et à faire progresser ton compte. Les prochaines actions apparaîtront ici automatiquement.</div>`;
@@ -2857,6 +2875,31 @@ function renderLovysActiveHero(data){
   box.innerHTML=`<div class="lovys-active-art">${artForLovys(active.creatureId,active.evolution||0,true)}<span class="lovys-active-image-badge">✓ Lovys actif</span></div>
   <div class="lovys-active-main"><div class="lovys-active-kicker">LOVYS ACTIF</div><div class="lovys-active-title"><h3>${escapeHtml(active.name)}</h3><span class="lovys-role">${escapeHtml(lovysRole(active))}</span><span class="lovys-rarity ${lovysRarityClass(active.rarity)}">${escapeHtml(active.rarity)}</span></div><div class="lovys-active-level">Niveau ${Number(active.level||1)} · ${lovysRankStars(active.rank)} <span>Rang ${Number(active.rank||1)}/5</span></div><div class="lovys-active-xp"><span style="width:${xpPct}%"></span></div><div class="lovys-xp-copy"><strong>${active.maxLevel?'Niveau maximum':`${into.toLocaleString('fr-FR')} / ${need.toLocaleString('fr-FR')} XP`}</strong><span>${milestone?`Niv. ${milestone.level} : +${milestone.power} puissance · ${milestone.label}`:'Tous les paliers de puissance atteints'}</span></div><div class="lovys-stat-grid"><div><span>PV</span><strong>${Number(st.hp||0)}</strong></div><div><span>ATQ</span><strong>${Number(st.attack||0)}</strong></div><div><span>DEF</span><strong>${Number(st.defense||0)}</strong></div><div><span>VIT</span><strong>${Number(st.speed||0)}</strong></div></div><div class="lovys-type-chips"><span>▲ Fort contre <b>${escapeHtml(typeStrong)}</b></span><span>▼ Faible face à <b>${escapeHtml(typeWeak)}</b></span></div>${advice?`<div class="lovys-zone-advice">💡 ${escapeHtml(advice)}</div>`:''}${frag.cost?`<div class="lovys-rank-explainer"><div class="lovys-rank-explainer-title">⭐ AMÉLIORATION DU RANG</div><p>Les doublons de <b>${escapeHtml(active.name)}</b> donnent des fragments. Remplis la jauge pour augmenter son rang et renforcer son talent.</p><div class="lovys-rank-progress-head"><strong>🧩 ${frag.specific}/${frag.cost} fragments</strong><span>→ Rang ${nextRank}</span></div><div class="lovys-rank-progress"><span style="width:${frag.pct}%"></span></div><div class="lovys-rank-reward">✨ Prochaine amélioration : <b>${escapeHtml(nextPreview)}</b></div>${lovysRankTimeline(active)}${frag.specific<frag.cost?`<button class="lovys-trade-fragments-btn" type="button" data-find-lovys-fragments="${active.id}">🤝 Trouver des fragments</button>`:''}</div>`:'<div class="lovys-rank-explainer max"><strong>⭐ Rang maximum atteint</strong>${lovysRankTimeline(active)}</div>'}<div class="lovys-active-actions"><button class="hub-btn primary" type="button" data-lovys-pve>⚔️ Combattre</button><div class="lovys-xp-action"><button class="hub-btn" type="button" data-transfer-lovys="${active.id}" ${Number(data.pendingXp||0)>0?'':'disabled'}>⚡ Donner de l’XP</button>${Number(data.pendingXp||0)>0?'':`<small>0 XP en réserve</small>`}</div></div></div>
   <div class="lovys-active-kit"><div class="lovys-kit-label">TALENT & COMPÉTENCES <button class="lovys-kit-info" type="button" title="Le talent passif est toujours actif. Les compétences sont utilisées en combat puis doivent se recharger." aria-label="Aide sur le talent et les compétences">?</button></div><div class="lovys-skill talent"><div class="lovys-skill-top"><strong><small>✨ TALENT PASSIF · RANG ${Number(active.rank||1)}</small>${escapeHtml(active.talent?.icon||'✨')} ${escapeHtml(active.talent?.name||'Talent')}</strong><span class="lovys-passive-badge">TOUJOURS ACTIF</span></div><p>${escapeHtml(active.talent?.description||'')}</p>${lovysTalentEvolution(active)}</div><div class="lovys-combat-kit-title">⚔️ COMPÉTENCES DE COMBAT</div>${lovysSkillMarkup(skills[0],1)}${lovysSkillMarkup(skills[1],2)}</div>`;
+
+  if(isMobileGameUi()){
+    const actions=box.querySelector('.lovys-active-actions');
+    const rank=box.querySelector('.lovys-rank-explainer');
+    if(actions && rank){
+      rank.before(actions);
+      const button=document.createElement('button');button.type='button';button.className='hub-btn mobile-rank-action';
+      button.dataset.rankLovys=String(active.id);
+      const enough=Boolean(active.canRankUp);
+      button.disabled=!enough;
+      button.textContent=frag.cost ? '⭐ Rang '+nextRank+' · '+frag.specific+'/'+frag.cost+' fragments' : '⭐ Rang maximum';
+      actions.appendChild(button);
+    }
+    const kit=box.querySelector('.lovys-active-kit');
+    if(kit){
+      const fold=document.createElement('details');fold.className='mobile-info-fold mobile-lovys-kit';
+      fold.innerHTML='<summary>✨ Talent et compétences</summary>';
+      kit.replaceWith(fold);fold.appendChild(kit);
+    }
+    if(rank){
+      const fold=document.createElement('details');fold.className='mobile-info-fold mobile-lovys-rank';
+      fold.innerHTML='<summary>⭐ Comprendre les rangs et fragments</summary>';
+      rank.replaceWith(fold);fold.appendChild(rank);
+    }
+  }
   const pending=Math.floor(Number(data.pendingXp||0));
   const readySlot=(lovysIncubatorData?.slots||[]).find(x=>x?.ready);
   const incubating=(lovysIncubatorData?.slots||[]).find(x=>x&&!x.ready&&Number(x.watchedSeconds||0)>0);
@@ -2920,6 +2963,7 @@ async function openLovysCollection(tab='collection'){
   if(isMobileGameUi()) document.body.style.overflow='hidden';
   renderLovysCollectionTabs();
   await loadLovysCollection();
+  restoreMobilePageScroll('lovysCollectionModal');
   syncMobileNavState?.();
 }
 function closeLovysCollection(){ $('lovysCollectionModal')?.classList.add('hidden'); if(isMobileGameUi())document.body.style.overflow=''; syncMobileNavState?.(); }
@@ -2967,6 +3011,7 @@ function openLovysFragmentTrades(){
     else location.hash=nextHash;
     return;
   }
+  if(isMobileGameUi()){ toggleMobilePanel('community'); return; }
   document.querySelector('[data-lobby-tab="trades"]')?.click();
 }
 function openLovysKitHelp(){
@@ -2981,8 +3026,11 @@ function openLovysKitHelp(){
   modal.classList.add('open');
 }
 
-$('lovysActiveHero')?.addEventListener('click',e=>{const help=e.target.closest('.lovys-kit-info');if(help){openLovysKitHelp();return;}const trade=e.target.closest('[data-find-lovys-fragments]');if(trade){openLovysFragmentTrades();return;}const pve=e.target.closest('[data-lovys-pve]');if(pve){$('openPve')?.click();return;}const transfer=e.target.closest('[data-transfer-lovys]');if(transfer)openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));});
-$('lovysNowStrip')?.addEventListener('click',e=>{const transfer=e.target.closest('[data-transfer-lovys]');if(transfer){openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));return;}if(e.target.closest('[data-lovys-incubator]'))$('openIncubator')?.click();});
+$('lovysActiveHero')?.addEventListener('click',e=>{const rank=e.target.closest('[data-rank-lovys]');if(rank){rankUpLovysFromButton(rank);return;}const help=e.target.closest('.lovys-kit-info');if(help){openLovysKitHelp();return;}const trade=e.target.closest('[data-find-lovys-fragments]');if(trade){openLovysFragmentTrades();return;}const pve=e.target.closest('[data-lovys-pve]');if(pve){$('openPve')?.click();return;}const transfer=e.target.closest('[data-transfer-lovys]');if(transfer)openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));});
+$('lovysNowStrip')?.addEventListener('click',e=>{const transfer=e.target.closest('[data-transfer-lovys]');if(transfer){openLovysXpTransferConfirm(Number(lovysCollectionData.pendingXp||0),null,Number(transfer.dataset.transferLovys));return;}if(e.target.closest('[data-lovys-incubator]')){
+    if(isMobileGameUi()){closeAllMobilePanels();syncMobileNavState();document.querySelector('.incubator-topbar')?.scrollIntoView({behavior:'smooth',block:'start'});}
+    else $('openIncubator')?.click();
+  }});
 $('lovysDetailPanel')?.addEventListener('click',e=>{if(e.target.closest('[data-close-lovys-detail]'))$('lovysDetailPanel')?.classList.add('hidden');});
 
 
@@ -3517,8 +3565,17 @@ function closeMobileEggDetails(){
   if(isMobileGameUi()) document.body.style.overflow='';
   syncMobileNavState();
 }
+const mobilePageScroll = new Map();
+const mobilePageIds = ['inventoryModal','playerProfileModal','progressionModal','lovysCollectionModal','desktopLobbyPage'];
+function restoreMobilePageScroll(id){
+  if(!isMobileGameUi()) return;
+  requestAnimationFrame(()=>{ const el=$(id);if(el && !el.classList.contains('hidden')) el.scrollTop=mobilePageScroll.get(id)||0; });
+}
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  mobilePageIds.forEach(id=>{const el=$(id);if(el && !el.classList.contains('hidden')) mobilePageScroll.set(id,el.scrollTop);});
+  const board=document.querySelector('.global-leaderboard');
+  if(document.body.classList.contains('mobile-leaderboard-open') && board) mobilePageScroll.set('leaderboard',board.scrollTop);
   if(except!=='leaderboard') document.body.classList.remove('mobile-leaderboard-open');
   if(except!=='community'){ document.body.classList.remove('mobile-community-open'); $('desktopLobbyPage')?.classList.add('hidden'); }
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
@@ -3531,9 +3588,14 @@ function closeAllMobilePanels(except=''){
   document.querySelector('.lobby-profile-drawer')?.classList.add('hidden');
   document.body.style.overflow='';
 }
-function toggleMobilePanel(panel){
+async function toggleMobilePanel(panel){
   if(!isMobileGameUi()) return;
-  if(isMobilePanelOpen(panel)){ syncMobileNavState(); return; }
+  if(isMobilePanelOpen(panel)){
+    if(panel==='combat'){syncMobileNavState();return;}
+    const ids={combat:'pveModal',inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',creatures:'lovysCollectionModal',community:'desktopLobbyPage'};
+    const el=panel==='leaderboard'?document.querySelector('.global-leaderboard'):$(ids[panel]);
+    el?.scrollTo({top:0,behavior:'smooth'});syncMobileNavState();return;
+  }
   closeAllMobilePanels(panel);
   if(panel==='leaderboard'){
     openMobileLeaderboard();
@@ -3541,26 +3603,28 @@ function toggleMobilePanel(panel){
     document.body.classList.add('mobile-community-open');
     $('desktopLobbyPage')?.classList.remove('hidden');
     document.body.style.overflow='hidden';
-    openLobbyTab(lobbyTab);
+    await openLobbyTab(lobbyTab);
   } else if(panel==='combat'){
     $('pveModal')?.classList.remove('hidden');
     loadPve();
   } else if(panel==='inventory'){
-    openInventory();
+    await openInventory();
   } else if(panel==='profile'){
     const selfPlayer = getSelfLeaderboardPlayer();
     if(selfPlayer) openPlayerProfile(selfPlayer);
     else document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'});
   } else if(panel==='progression'){
     $('progressionModal')?.classList.remove('hidden');
-    loadProgression();
+    await loadProgression();
   } else if(panel==='creatures'){
     if(me?.user?.creature_id){
-      openLovysCollection();
+      openLovysCollection(lovysCollectionTab);
     } else {
       openMobileEggDetails();
     }
   }
+  const pageIds={inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',community:'desktopLobbyPage'};
+  if(pageIds[panel]) restoreMobilePageScroll(pageIds[panel]);
   syncMobileNavState();
 }
 async function hatchExtraIncubatorEgg(slot){
@@ -3678,7 +3742,7 @@ $('incubatorAddModal')?.addEventListener('mousedown', event=>{ incubatorBackdrop
 $('incubatorAddModal')?.addEventListener('mouseup', event=>{ if (incubatorBackdropMouseDown && event.target.id === 'incubatorAddModal') closeIncubatorAddModal(); incubatorBackdropMouseDown=false; });
 $('mobileEggClose')?.addEventListener('click',()=>{ $('pick')?.classList.remove('egg-details-open'); document.body.style.overflow=''; syncMobileNavState?.(); });
 $('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('progression'); return; } $('progressionModal')?.classList.remove('hidden'); loadProgression(); });
-$('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; closeAllMobilePanels(''); syncMobileNavState(); document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'}); });
+$('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; const wasHome=$('mobileNavHome')?.classList.contains('active'); closeAllMobilePanels(''); syncMobileNavState(); if(wasHome)window.scrollTo({top:0,behavior:'smooth'}); });
 $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('combat'); });
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
 $('mobileNavLeaderboard')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('leaderboard'); });
@@ -3691,7 +3755,12 @@ function openMobileLeaderboard(){
   document.body.classList.add('mobile-leaderboard-open');
   document.body.style.overflow='hidden';
   setMobileNavActive('mobileNavLeaderboard');
-  loadLeaderboard();
+  loadLeaderboard().then(()=>{
+    if(document.body.classList.contains('mobile-leaderboard-open')){
+      const board=document.querySelector('.global-leaderboard');
+      if(board)board.scrollTop=mobilePageScroll.get('leaderboard')||0;
+    }
+  });
 }
 function closeMobileLeaderboard(){
   document.body.classList.remove('mobile-leaderboard-open');
@@ -3700,7 +3769,7 @@ function closeMobileLeaderboard(){
 }
 $('mobileLeaderboardOpen')?.addEventListener('click',openMobileLeaderboard);
 $('mobileLeaderboardClose')?.addEventListener('click',closeMobileLeaderboard);
-window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } });
+window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } renderIncubatorOverview(); renderLovysActiveHero(lovysCollectionData); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.body.classList.contains('mobile-leaderboard-open')) closeMobileLeaderboard(); if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');

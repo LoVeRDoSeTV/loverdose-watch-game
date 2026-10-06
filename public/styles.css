@@ -4486,7 +4486,14 @@ body:has(#pveModal:not(.hidden)){
     background-image:none;
     background-color:rgba(21,25,43,.94);
     box-shadow:none;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:10px;padding:12px 14px;border-radius:16px;
   }
+  .wallet-card .wallet-kicker,.wallet-card .wallet-label{display:none}
+  .wallet-card .wallet-icon{width:42px;height:42px;border-radius:12px}
+  .wallet-card .wallet-balance{font-size:24px;overflow-wrap:anywhere}
+  .wallet-card .wallet-currency{font-size:11px}
+  .wallet-card .wallet-shop-button{width:auto;min-height:42px;padding:9px 12px}
 }
 @media(max-width:700px){
   .reward-wheel-card{
@@ -4617,6 +4624,7 @@ body:has(#pveModal:not(.hidden)){
 }
 
 /* V104 — Tutoriel guidé, assistant "Que faire maintenant ?" et PWA */
+.next-action-quick{display:none}
 .next-actions-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:14px 0 18px;padding:14px 16px;border:1px solid rgba(157,99,255,.28);border-radius:18px;background:linear-gradient(135deg,rgba(25,22,48,.96),rgba(12,16,34,.96));box-shadow:0 14px 38px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.035)}
 .next-actions-bar-copy{display:flex;align-items:center;gap:12px;min-width:0}.next-actions-bar-icon{width:42px;height:42px;display:grid;place-items:center;flex:0 0 auto;border-radius:14px;background:linear-gradient(145deg,rgba(142,78,255,.28),rgba(83,53,154,.12));border:1px solid rgba(180,137,255,.22);font-size:20px}.next-actions-bar-copy div{display:flex;flex-direction:column;gap:3px;min-width:0}.next-actions-bar-copy strong{font-size:14px;color:#f4f1ff}.next-actions-bar-copy span:not(.next-actions-bar-icon){font-size:12px;color:#aeb5cf;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .next-actions-open{border:1px solid rgba(178,132,255,.36);background:linear-gradient(135deg,#7650d8,#5b37b7);color:#fff;border-radius:12px;padding:10px 13px;font-weight:800;cursor:pointer;white-space:nowrap;box-shadow:0 8px 22px rgba(83,46,169,.22)}.next-actions-open:hover{filter:brightness(1.08)}.next-actions-count{display:inline-grid;place-items:center;min-width:22px;height:22px;margin-left:6px;padding:0 6px;border-radius:999px;background:rgba(10,10,24,.45);font-size:11px}
@@ -4639,6 +4647,13 @@ body:has(#pveModal:not(.hidden)){
   overscroll-behavior:contain;
   -webkit-overflow-scrolling:touch;
 }
+/* Action prioritaire accessible sans ouvrir la liste. */
+.next-actions-bar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:12px}
+.next-actions-bar-copy{grid-column:1/-1}
+.next-actions-bar-copy span:not(.next-actions-bar-icon){white-space:normal;line-height:1.4}
+.next-action-quick{display:block;min-height:42px;border:1px solid #a272ed;border-radius:12px;padding:9px 12px;background:linear-gradient(135deg,#7650d8,#5b37b7);color:#fff;font:inherit;font-size:12px;font-weight:850;cursor:pointer}
+.next-action-quick.hidden{display:none}
+.next-actions-open{min-height:42px;font-size:11px;padding:9px 10px;background:rgba(145,71,255,.12)}
 #nextActionsModal .next-actions-head{
   position:sticky;top:-14px;z-index:2;
   margin-bottom:10px;padding:14px 0 10px;
@@ -5534,6 +5549,61 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
 }
 @media (min-width:901px) and (max-width:1250px){body[data-desktop-view="lovys"] .lovys-active-hero{grid-template-columns:180px 1fr}.lovys-active-kit{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr)}body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}.lovys-detail-grid{grid-template-columns:1fr 1fr}.lovys-detail-grid>div:last-child{grid-column:1/-1}}
 
+
+/* Informations repliables uniquement sur mobile. */
+.mobile-info-fold{display:contents}
+.mobile-info-fold>summary,.mobile-rank-action{display:none}
+@media(max-width:900px){
+  .mobile-info-fold{display:block;margin-top:14px;border:1px solid rgba(145,71,255,.25);border-radius:12px;background:rgba(145,71,255,.06);padding:0 12px}
+  .mobile-info-fold>summary{display:list-item;min-height:44px;padding:13px 0;font-size:12px;font-weight:800;color:#dfceff;cursor:pointer;text-align:left}
+  .mobile-info-fold[open]{padding-bottom:12px}
+  #lovysCollectionModal .lovys-active-hero{display:grid;gap:12px;margin:14px 0;padding:14px;border:1px solid rgba(145,71,255,.3);border-radius:18px;background:#101427}
+  #lovysCollectionModal .lovys-active-art{height:170px;display:grid;place-items:center;background:radial-gradient(circle,rgba(145,71,255,.17),transparent 65%)}
+  #lovysCollectionModal .lovys-active-art img{max-width:100%;max-height:165px;object-fit:contain}
+  #lovysCollectionModal .lovys-active-kicker{font-size:10px;letter-spacing:.12em;color:#b982ff;font-weight:850}
+  #lovysCollectionModal .lovys-active-title{display:flex;flex-wrap:wrap;align-items:center;gap:7px;margin:8px 0}
+  #lovysCollectionModal .lovys-active-title h3{width:100%;margin:0;font-size:23px}
+  #lovysCollectionModal .lovys-active-level{font-size:12px;line-height:1.6}
+  #lovysCollectionModal .lovys-active-level span{color:#aeb7d1}
+  #lovysCollectionModal .lovys-active-xp{height:8px;overflow:hidden;background:#292f4b;border-radius:10px;margin:10px 0}
+  #lovysCollectionModal .lovys-active-xp>span{display:block;height:100%;background:linear-gradient(90deg,#7041bd,#c89aff)}
+  #lovysCollectionModal .lovys-xp-copy{display:grid;gap:4px;font-size:11px;line-height:1.4}
+  #lovysCollectionModal .lovys-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:12px 0}
+  #lovysCollectionModal .lovys-stat-grid>div{display:grid;gap:4px;padding:9px 5px;border-radius:10px;background:#191e33;text-align:center}
+  #lovysCollectionModal .lovys-stat-grid span{font-size:10px;color:#aeb7d1}
+  #lovysCollectionModal .lovys-stat-grid strong{font-size:16px}
+  #lovysCollectionModal .lovys-type-chips{display:flex;flex-wrap:wrap;gap:6px;font-size:11px;line-height:1.5}
+  #lovysCollectionModal .lovys-zone-advice{margin-top:8px;font-size:11px;line-height:1.5}
+  #lovysCollectionModal .lovys-active-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+  #lovysCollectionModal .lovys-active-actions .hub-btn{width:100%;min-height:44px;font-size:12px;white-space:normal}
+  #lovysCollectionModal .mobile-rank-action{display:block;grid-column:1/-1}
+  #lovysCollectionModal .lovys-xp-action small{display:block;text-align:center;margin-top:4px;font-size:10px;color:#aeb7d1}
+  #lovysCollectionModal .lovys-active-kit{display:grid;gap:10px}
+  #lovysCollectionModal .lovys-skill{padding:10px;border-radius:10px;background:#0d1224;font-size:12px}
+  #lovysCollectionModal .lovys-skill-top{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px}
+  #lovysCollectionModal .lovys-skill p{font-size:12px;line-height:1.5;color:#aeb7d1}
+  #lovysCollectionModal .lovys-rank-explainer{margin:0;font-size:12px;line-height:1.5}
+  #lovysCollectionModal .lovys-now-strip{display:grid;gap:8px;margin:12px 0}
+  #lovysCollectionModal .lovys-now-title,#lovysCollectionModal .lovys-now-item{padding:10px 12px;border-radius:12px;background:#101427;font-size:12px;line-height:1.5}
+  #lovysCollectionModal .lovys-now-strip small{display:block;color:#aeb7d1;font-size:11px}
+  #lovysCollectionModal .lovys-now-strip button{min-height:40px;margin-top:8px;padding:8px 12px;border-radius:10px;border:1px solid #7445c3;background:#382258;color:#fff;font:inherit;font-size:12px}
+  #lovysCollectionModal .lovys-collection-summary{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 12px;font-size:12px}
+  #lovysCollectionModal .lovys-collection-summary strong{display:block;margin-top:4px}
+  #lovysCollectionModal .lovys-collection-summary>span{color:#aeb7d1;font-size:11px}
+  #lovysCollectionModal .lovys-collection-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  #lovysCollectionModal .lovys-collection-tab{min-height:44px;font-size:12px;padding:8px}
+  #lovysCollectionModal .lovys-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  #lovysCollectionModal .lovys-collection-card{padding:11px}
+  #lovysCollectionModal .lovys-collection-art{height:105px}
+  #lovysCollectionModal .lovys-collection-art img{height:100px;max-width:100%;object-fit:contain}
+  #lovysCollectionModal .lovys-collection-name{font-size:16px;overflow-wrap:anywhere}
+  #lovysCollectionModal .lovys-collection-actions{flex-wrap:wrap}
+  #lovysCollectionModal .lovys-collection-actions .hub-btn{min-height:42px;font-size:11px}
+  #lovysCollectionModal .lovys-collection-reserve{font-size:11px;line-height:1.5;padding:10px}
+  #lovysCollectionModal .lovys-detail-art{display:grid;place-items:center;height:160px}
+  #lovysCollectionModal .lovys-detail-art img{max-height:150px;max-width:100%;object-fit:contain}
+}
+@media(max-width:359px){#lovysCollectionModal .lovys-collection-grid{grid-template-columns:1fr}}
 
 /* V123 — Lisibilité + pédagogie Talent / Doublons / Fragments (PC uniquement) */
 @media (min-width:901px){
