@@ -505,7 +505,7 @@ function showGame() {
   authOverlay.classList.add('hidden');
   twitchScreen.classList.add('hidden');
   document.body.classList.remove('auth-locked');
-  if(isDesktopGameUi()) {refreshDesktopAdminAccess();refreshDesktopBoostStatus();}
+  if(isDesktopGameUi()) {refreshDesktopAdminAccess();refreshDesktopBoostStatus();refreshDesktopHomeLiveStatus();}
 }
 
 async function refreshAccountState() {
@@ -995,6 +995,26 @@ function renderIncubatorOverview() {
       fold.addEventListener('toggle',()=>{mobileIncubatorHelpOpen=fold.open;});
     }
   }
+}
+
+function renderDesktopHomeLiveStatus(data) {
+  if (!isDesktopGameUi()) return;
+  const live = typeof data?.live === 'boolean' ? data.live : null;
+  const dot = $('desktopHomeLiveDot');
+  dot?.classList.toggle('is-live', live === true);
+  dot?.classList.toggle('is-offline', live === false);
+  if ($('desktopHomeLiveLabel')) $('desktopHomeLiveLabel').textContent = live === null ? 'Statut du live indisponible' : live ? 'En live' : 'Hors ligne';
+  const count = data?.gamePlayerCount;
+  if ($('desktopHomeGamePlayers')) $('desktopHomeGamePlayers').textContent = Number.isSafeInteger(count) && count >= 0 ? count.toLocaleString('fr-FR') : '—';
+}
+
+async function refreshDesktopHomeLiveStatus() {
+  if (!isDesktopGameUi() || !me?.user) return;
+  try {
+    const response = await fetch('/api/game/live-status', { cache:'no-store' });
+    if (!response.ok) throw new Error('Statut indisponible');
+    renderDesktopHomeLiveStatus(await response.json());
+  } catch { renderDesktopHomeLiveStatus(null); }
 }
 
 function renderMobileHomeLiveStatus(live,presentCount){
@@ -6493,6 +6513,8 @@ function startLiveUpdates() {
   if (!window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
+  liveUpdates.addEventListener('connected', refreshDesktopHomeLiveStatus);
+  liveUpdates.addEventListener('tracker-update', refreshDesktopHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
@@ -6514,6 +6536,9 @@ if ('serviceWorker' in navigator) {
 }
 
 startLiveUpdates();
+
+refreshDesktopHomeLiveStatus();
+setInterval(refreshDesktopHomeLiveStatus, 30000);
 
 // Filet de sécurité si une connexion SSE est interrompue par le navigateur/proxy.
 setInterval(() => {

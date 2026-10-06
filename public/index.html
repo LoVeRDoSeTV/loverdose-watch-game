@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=287">
+<link rel="stylesheet" href="/styles.css?v=289">
 
 
 </head>
@@ -342,6 +342,11 @@
     <div class="trade-composer-section"><div class="trade-section-title-row"><h3>J'accepte l'une de ces propositions</h3><button id="tradeOptionAdd" class="lobby-secondary-btn" type="button">＋ Ajouter</button></div><div id="tradeOptionsList" class="trade-options-list"></div></div>
     <div id="tradeComposerRecap" class="trade-composer-recap"></div><div id="tradePublishConfirm" class="trade-publish-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tradePublishConfirmTitle"><div class="trade-publish-confirm-modal"><div id="tradePublishConfirmNormal"><div class="trade-publish-confirm-icon">🔄</div><strong id="tradePublishConfirmTitle">Confirmer la publication ?</strong><span id="tradePublishConfirmText"></span><small>L’objet proposé sera réservé immédiatement après confirmation.</small><div class="trade-publish-confirm-actions"><button id="tradePublishCancel" class="lobby-secondary-btn" type="button">Annuler</button><button id="tradePublishConfirmBtn" class="lobby-primary-btn" type="button">Confirmer la publication</button></div></div><div id="tradePublishSuccess" class="trade-publish-success hidden" aria-live="polite"><div class="trade-publish-success-check">✓</div><strong>Offre postée !</strong><span>Ton annonce est maintenant visible dans le Lobby.</span></div></div></div><div class="trade-composer-footer"><label>Durée <select id="tradeDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="tradePublish" class="lobby-primary-btn" type="button">Publier l'offre</button></div>
   </div>
+</section>
+<section class="desktop-home-live" aria-label="Live Twitch et joueurs sur le jeu">
+  <div class="desktop-home-live-channel"><span id="desktopHomeLiveDot" class="desktop-home-live-dot" aria-hidden="true"></span><div><strong id="desktopHomeLiveLabel" aria-live="polite">Vérification du live…</strong><small>LoVeRDoSeTV sur Twitch</small></div></div>
+  <div class="desktop-home-live-players"><strong id="desktopHomeGamePlayers" aria-live="polite">—</strong><span>joueurs connectés sur le jeu</span></div>
+  <a href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener noreferrer">📺 Voir la chaîne Twitch ↗</a>
 </section>
 <section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
   <div class="next-actions-bar-copy">
@@ -1140,5 +1145,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=288"></script>
+<script src="/app.js?v=289"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
