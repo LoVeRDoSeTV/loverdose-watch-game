@@ -4106,7 +4106,7 @@ function getShopItemByKey(itemKey) {
 
 function getShopActionButtons(item, { includePreview = false } = {}) {
   const buttons = [];
-  if (includePreview && !(isDesktopGameUi() && item.category === 'object')) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
+  if (includePreview && !isDesktopGameUi()) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
 
   if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
   } else if (item.comingSoon) {
@@ -4512,7 +4512,6 @@ function renderInventory() {
       action = `<button class="shop-action" type="button" data-inventory-equip="${escapeHtml(item.key)}">Équiper</button>`;
     }
 
-    if(isDesktopGameUi() && item.category!=='object') action = '';
     const possession = item.category === 'object'
       ? `<span class="inventory-qty">Quantité : ${Number(item.quantity || 0)}</span>`
       : `<span class="inventory-status">${item.equipped ? 'Équipé' : 'Possédé'}</span>`;
@@ -4525,7 +4524,7 @@ function renderInventory() {
       <div class="inventory-item-desc">${escapeHtml(item.description || '')}</div>
       <div class="inventory-item-meta">${possession}</div>
       <div class="inventory-actions">
-        ${isDesktopGameUi()&&item.category==='object'?'':`<button class="shop-action secondary" type="button" data-inventory-preview="${escapeHtml(item.key)}">👁 ${isDesktopGameUi()?'Essayer':'Prévisualiser'}</button>`}
+        ${isDesktopGameUi()?'':`<button class="shop-action secondary" type="button" data-inventory-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`}
         ${action}
       </div>
     </article>`;
