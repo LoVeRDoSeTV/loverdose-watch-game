@@ -6443,6 +6443,9 @@ app.post('/api/shop/buy', async (req, res) => {
     const item = shopItemByKey(key);
     if (!item || item.comingSoon || item.rewardOnly) return res.status(400).json({ error:'Cet article ne peut pas être acheté.' });
 
+    const quantity = req.body?.quantity === undefined ? 1 : req.body.quantity;
+    if (!Number.isSafeInteger(quantity) || quantity<1 || quantity>100 || (item.category!=='object' && quantity!==1)) return res.status(400).json({error:'Quantité invalide. Les objets s’achètent par lots de 1 à 100.'});
+    const totalCost = item.price * quantity;
     await client.query('BEGIN');
     const userResult = await client.query(`SELECT id, points FROM users WHERE twitch_id = $1 FOR UPDATE`, [req.session.user.twitchId]);
     const user = userResult.rows[0];
@@ -6454,17 +6457,17 @@ app.post('/api/shop/buy', async (req, res) => {
     }
 
     const balance = Number(user.points || 0);
-    if (balance < item.price) { await client.query('ROLLBACK'); return res.status(400).json({ error:"Pas assez de LoVeR'Cash." }); }
+    if (balance < totalCost) { await client.query('ROLLBACK'); return res.status(400).json({ error:"Pas assez de LoVeR'Cash." }); }
 
-    await client.query(`UPDATE users SET points = points - $2, lifetime_lovercash_spent = lifetime_lovercash_spent + $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [user.id, item.price]);
+    await client.query(`UPDATE users SET points = points - $2, lifetime_lovercash_spent = lifetime_lovercash_spent + $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [user.id, totalCost]);
     await client.query(
-      `INSERT INTO shop_inventory (account_id, item_key, quantity) VALUES ($1,$2,1)
-       ON CONFLICT (account_id,item_key) DO UPDATE SET quantity = shop_inventory.quantity + 1, purchased_at = CURRENT_TIMESTAMP`,
-      [req.session.account.id, key]
+      `INSERT INTO shop_inventory (account_id, item_key, quantity) VALUES ($1,$2,$3)
+       ON CONFLICT (account_id,item_key) DO UPDATE SET quantity = shop_inventory.quantity + EXCLUDED.quantity, purchased_at = CURRENT_TIMESTAMP`,
+      [req.session.account.id, key, quantity]
     );
     await client.query('COMMIT');
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
-    res.json({ ok:true, itemKey:key, balance:balance - item.price });
+    res.json({ ok:true, itemKey:key, quantity, totalCost, balance:balance - totalCost });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur achat boutique :', error);
@@ -6610,17 +6613,19 @@ app.post('/api/shop/use', async (req, res) => {
 
     let message = '';
     let acceleration = null;
+    let boostExpiresAt = null;
     if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
       if (key === 'boost_xp_x2' && !user.creature_id) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
       }
-      await client.query(
+      const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id, boost_key, expires_at)
          VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '1 hour')
-         ON CONFLICT (user_id,boost_key) DO UPDATE SET expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour'`,
+         ON CONFLICT (user_id,boost_key) DO UPDATE SET expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour' RETURNING expires_at`,
         [user.id, key]
       );
+      boostExpiresAt = boostResult.rows[0]?.expires_at || null;
       message = key === 'boost_xp_x2' ? 'Booster XP x2 activé pendant 1 heure.' : "Booster LoVeR'Cash x2 activé pendant 1 heure.";
     } else if (key === 'incubator_skip_30') {
       const requestedSlot = req.body?.slot;
@@ -6653,7 +6658,7 @@ app.post('/api/shop/use', async (req, res) => {
     await client.query(`UPDATE shop_inventory SET quantity = quantity - 1 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key]);
     await client.query('COMMIT');
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
-    res.json({ ok:true, message, acceleration });
+    res.json({ ok:true, message, acceleration, boostExpiresAt });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur utilisation objet :', error);
