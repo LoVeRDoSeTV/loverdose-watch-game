@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=110">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=276">
+<link rel="stylesheet" href="/styles.css?v=277">
 
 
 </head>
@@ -318,7 +318,6 @@
  <div class="standard-page-header-inner">
   <h2 id="standardPageHeaderTitle"></h2>
   <p id="standardPageHeaderSubtitle"></p>
-  <button id="shopInventoryButton" class="btn secondary desktop-shop-inventory" type="button" aria-controls="inventoryModal" aria-haspopup="dialog">🎒 Inventaire</button>
  </div>
 </section>
 
@@ -1012,7 +1011,10 @@
         <button class="shop-tab" type="button" data-shop-category="avatar_frame">🪞 Cadres de profil</button>
         <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
       </div>
+      <div class="shop-account-tools">
+      <button id="shopInventoryButton" class="btn secondary desktop-shop-inventory" type="button" aria-controls="inventoryModal" aria-haspopup="dialog">🎒 Inventaire</button>
       <div class="shop-balance"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
+      </div>
     </div>
     <div id="shopTitleFilterWrap" class="shop-subfilter hidden">
       <span class="shop-subfilter-label">Couleur du titre</span>
