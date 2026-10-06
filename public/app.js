@@ -6794,6 +6794,12 @@ $('gameFeedbackScreenshot')?.addEventListener('change',async()=>{
     if(version!==gameFeedbackImageVersion)return;gameFeedbackScreenshot=result;$('gameFeedbackImage').src=result;$('gameFeedbackImagePreview').classList.remove('hidden');feedbackMessage('Capture prête à être envoyée.');
   } catch(error){if(version===gameFeedbackImageVersion)feedbackMessage(error.message||'Capture illisible.',true);}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
 });
+$('gameFeedbackDescription')?.addEventListener('keydown',event=>{
+  if(event.key!=='Enter'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.isComposing)return;
+  event.preventDefault();
+  if(event.repeat||gameFeedbackSending||$('gameFeedbackForm').classList.contains('hidden'))return;
+  $('gameFeedbackForm').requestSubmit();
+});
 $('gameFeedbackForm')?.addEventListener('submit',async event=>{
   event.preventDefault();if(gameFeedbackSending)return;if(gameFeedbackImageBusy){feedbackMessage('Attends la préparation de la capture.',true);return;}
   const description=$('gameFeedbackDescription').value.trim();if(description.length<20){feedbackMessage('Décris ton message en au moins 20 caractères.',true);return;}

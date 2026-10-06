@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=313">
+<link rel="stylesheet" href="/styles.css?v=315">
 
 
 </head>
@@ -1186,7 +1186,7 @@
     <form id="gameFeedbackForm">
       <label>Que souhaites-tu partager ?<select id="gameFeedbackKind"><option value="bug">🐛 Signaler un bug</option><option value="idea">💡 Proposer une idée</option></select></label>
       <label>Page concernée<select id="gameFeedbackPage"></select></label>
-      <label><span id="gameFeedbackDescriptionLabel">Que s’est-il passé ? Comment reproduire le bug ?</span><textarea id="gameFeedbackDescription" required minlength="20" maxlength="3000" rows="5" placeholder="Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…"></textarea></label>
+      <label><span id="gameFeedbackDescriptionLabel">Que s’est-il passé ? Comment reproduire le bug ?</span><textarea id="gameFeedbackDescription" required minlength="20" maxlength="3000" rows="5" placeholder="Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…"></textarea><small>Entrée pour envoyer · Maj + Entrée pour aller à la ligne.</small></label>
       <label>📷 Capture d’écran (facultative)<input id="gameFeedbackScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG ou WebP. Évite de montrer des informations personnelles.</small></label>
       <div id="gameFeedbackImagePreview" class="hidden"><img id="gameFeedbackImage" alt="Aperçu de ta capture"><button id="gameFeedbackRemoveImage" type="button" class="btn secondary">Retirer la capture</button></div>
       <div id="gameFeedbackMessage" role="status" aria-live="polite"></div>
@@ -1202,5 +1202,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=314"></script>
+<script src="/app.js?v=315"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
