@@ -1397,6 +1397,10 @@ async function initDatabase() {
     );
   `);
 
+  // Les anciens lives restent acquis ; les nouveaux doivent atteindre l'objectif de présence.
+  await pool.query(`ALTER TABLE user_live_attendance ADD COLUMN IF NOT EXISTS badge_watch_seconds BIGINT NOT NULL DEFAULT 3600`);
+  await pool.query(`ALTER TABLE user_live_attendance ALTER COLUMN badge_watch_seconds SET DEFAULT 0`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_global_lovys_xp_rewards (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -2283,10 +2287,11 @@ async function runTrackerTick() {
         const currentStreamId = String(stream?.id || '').trim();
         if (currentStreamId) {
           await pool.query(
-            `INSERT INTO user_live_attendance (user_id, stream_id)
-             SELECT user_id, $2 FROM unnest($1::int[]) AS user_id
-             ON CONFLICT (user_id, stream_id) DO NOTHING`,
-            [matchedUserIds, currentStreamId]
+            `INSERT INTO user_live_attendance (user_id, stream_id, badge_watch_seconds)
+             SELECT user_id, $2, LEAST($3::bigint, $4::bigint) FROM unnest($1::int[]) AS user_id
+             ON CONFLICT (user_id, stream_id) DO UPDATE SET
+               badge_watch_seconds = LEAST(user_live_attendance.badge_watch_seconds + EXCLUDED.badge_watch_seconds, $4::bigint)`,
+            [matchedUserIds, currentStreamId, deltaSeconds, DAILY_CHALLENGE_LIBRARY.watch_60.goal]
           );
         }
 
@@ -5146,8 +5151,8 @@ app.get('/api/badges', async (req, res) => {
 
     const attendanceBadgeKey = 'mission:attendance:lives-assistes';
     const attendanceCountResult = await pool.query(
-      `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1`,
-      [user.id]
+      `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1 AND badge_watch_seconds >= $2`,
+      [user.id, DAILY_CHALLENGE_LIBRARY.watch_60.goal]
     );
     const liveAttendanceCount = Math.max(0, Number(attendanceCountResult.rows[0]?.count || 0));
     let attendanceStage = null;
@@ -5172,7 +5177,7 @@ app.get('/api/badges', async (req, res) => {
           `Lives assistés · ${attendanceStage.evolution}`,
           attendanceStage.image,
           attendanceStage.nextCount
-            ? `Assister à ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
+            ? `Cumuler 1 h de présence sur ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
             : 'Évolution maximale atteinte · 250 lives assistés',
           attendanceStage.tier,
           attendanceStage.count
@@ -5455,8 +5460,8 @@ app.get('/api/badges', async (req, res) => {
           badgeName: 'Présence en live',
           badgeImage: attendanceDisplayStage.image,
           badgeChallenge: attendanceStage?.nextCount
-            ? `Assister à ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
-            : (attendanceStage ? 'Évolution maximale atteinte · 250 lives assistés' : 'Assister à ton premier live'),
+            ? `Cumuler 1 h de présence sur ${attendanceStage.nextCount} lives différents pour faire évoluer le badge`
+            : (attendanceStage ? 'Évolution maximale atteinte · 250 lives assistés' : 'Cumuler 1 h de présence sur un live pour obtenir le badge'),
           gameName: `Lives assistés · ${attendanceDisplayStage.evolution}`,
           missionType: 'live-attendance',
           badgeCategory: 'twitch',
