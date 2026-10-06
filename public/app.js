@@ -995,6 +995,7 @@ async function refreshIncubatorLiveState() {
 function renderIncubatorSlots() {
   if (!incubatorData?.slots) return;
   incubatorData.slots.forEach(renderIncubatorSlot);
+  arrangeIncubatorCarousel();
   renderIncubatorOverview();
   refreshIncubatorLiveState();
 }
@@ -3585,6 +3586,34 @@ async function hatchExtraIncubatorEgg(slot){
 
 // Incubateur mobile : défilement natif, sans reconstruire les cartes lors des mises à jour.
 let incubatorCarouselIndex = 0;
+let incubatorCarouselOrder = '';
+function arrangeIncubatorCarousel(){
+  const track = $('incubatorCarousel');
+  if(!track || !incubatorData?.slots) return;
+  const mobile = isMobileGameUi();
+  const slots = new Map(incubatorData.slots.map(slot=>[Number(slot.slot),slot]));
+  const cards = [...track.querySelectorAll('[data-incubator-slot]')];
+  cards.sort((a,b)=>{
+    const aSlot = Number(a.dataset.incubatorSlot), bSlot = Number(b.dataset.incubatorSlot);
+    if(mobile){
+      const aOccupied = slots.has(aSlot) && !slots.get(aSlot).empty;
+      const bOccupied = slots.has(bSlot) && !slots.get(bSlot).empty;
+      if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
+    }
+    return aSlot - bSlot;
+  });
+  const order = (mobile ? 'mobile:' : 'pc:') + cards.map(card=>card.dataset.incubatorSlot).join(',');
+  if(order === incubatorCarouselOrder) return;
+  incubatorCarouselOrder = order;
+  // Seul l'ordre visuel change : les identifiants et actions gardent le vrai numéro du slot.
+  cards.forEach(card=>track.appendChild(card));
+  incubatorCarouselIndex = 0;
+  if(mobile){
+    track.scrollTo({left:0,behavior:'instant'});
+    updateIncubatorCarousel();
+  }
+}
+window.matchMedia('(max-width:900px)').addEventListener?.('change',arrangeIncubatorCarousel);
 function updateIncubatorCarousel(){
   const track = $('incubatorCarousel');
   if(!track || !isMobileGameUi() || !track.clientWidth) return;
