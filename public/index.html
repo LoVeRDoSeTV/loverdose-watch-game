@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=325">
+<link rel="stylesheet" href="/styles.css?v=326">
 
 
 </head>
@@ -351,6 +351,17 @@
     <div id="tradeComposerRecap" class="trade-composer-recap"></div><div id="tradePublishConfirm" class="trade-publish-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tradePublishConfirmTitle"><div class="trade-publish-confirm-modal"><div id="tradePublishConfirmNormal"><div class="trade-publish-confirm-icon">🔄</div><strong id="tradePublishConfirmTitle">Confirmer la publication ?</strong><span id="tradePublishConfirmText"></span><small>L’objet proposé sera réservé immédiatement après confirmation.</small><div class="trade-publish-confirm-actions"><button id="tradePublishCancel" class="lobby-secondary-btn" type="button">Annuler</button><button id="tradePublishConfirmBtn" class="lobby-primary-btn" type="button">Confirmer la publication</button></div></div><div id="tradePublishSuccess" class="trade-publish-success hidden" aria-live="polite"><div class="trade-publish-success-check">✓</div><strong>Offre postée !</strong><span>Ton annonce est maintenant visible dans le Lobby.</span></div></div></div><div class="trade-composer-footer"><label>Durée <select id="tradeDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="tradePublish" class="lobby-primary-btn" type="button">Publier l'offre</button></div>
   </div>
 </section>
+<div id="tradeExpiryNotice" class="trade-expiry-notice hidden" role="dialog" aria-modal="true" aria-labelledby="tradeExpiryNoticeTitle">
+  <div class="trade-expiry-card">
+    <div class="trade-expiry-icon" aria-hidden="true">⌛</div>
+    <h2 id="tradeExpiryNoticeTitle">Aucun joueur n’a accepté ton échange :(</h2>
+    <p id="tradeExpiryNoticeCount"></p>
+    <p>Mais pas d’inquiétude : essaie de changer l’objet proposé, et peut-être que tu trouveras ton bonheur !</p>
+    <p class="trade-expiry-return">Tes objets proposés ont été rendus à ton inventaire.</p>
+    <p id="tradeExpiryNoticeError" class="trade-expiry-error" role="status"></p>
+    <div class="trade-expiry-actions"><button id="tradeExpiryDismiss" class="lobby-secondary-btn" type="button">J’ai compris</button><button id="tradeExpiryCreate" class="lobby-primary-btn" type="button">Créer une nouvelle offre</button></div>
+  </div>
+</div>
 <section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
   <div class="next-actions-bar-copy">
     <span class="next-actions-bar-icon" aria-hidden="true">🎯</span>
@@ -1208,5 +1219,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=325"></script>
+<script src="/app.js?v=326"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
