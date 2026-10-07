@@ -7818,6 +7818,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #desktopAdminContent .admin-profile-actions .btn{min-height:44px}
   #adminFeedbackSection{margin-top:18px}
   #adminFeedbackSection .admin-feedback-item{display:block;width:100%;margin:12px 0;padding:14px;border:1px solid #343b5f;border-radius:12px;background:#101427;text-align:left;color:inherit}
+  #adminFeedbackSection .admin-feedback-list-entry .admin-feedback-item{margin:0}
   #adminFeedbackSection .admin-feedback-row small,#adminFeedbackSection .admin-feedback-preview{display:block;margin-top:8px;color:#aeb8d4}
   #adminFeedbackSection .admin-feedback-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
   #adminFeedbackSection .admin-feedback-detail-grid{display:grid;gap:14px;margin-top:18px}
@@ -8098,6 +8099,15 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 }
 
 /* v319 — Portefeuille, informations et retours sur mobile uniquement. */
+/* Choix explicite des retours archivés, sur PC et mobile. */
+#adminFeedbackSelectionBar:not(.hidden){display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin:14px 0;color:#c9b4ff;font-size:13px}
+#adminFeedbackPurge:disabled{opacity:.5;cursor:not-allowed}
+.admin-feedback-list-entry{display:flex;align-items:stretch;gap:10px;margin:12px 0}
+.admin-feedback-list-entry .admin-feedback-item{flex:1;min-width:0;margin:0}
+.admin-feedback-select{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:64px;padding:9px;border:1px solid #343b5f;border-radius:12px;background:#171b33;color:#d6c4ff;font-size:11px;font-weight:800;cursor:pointer}
+.admin-feedback-select input{width:22px;height:22px;margin:0;accent-color:#9147ff;cursor:pointer}
+.admin-feedback-select:has(input:checked){border-color:#a779ff;background:#241945}
+@media(max-width:900px){#adminFeedbackSelectionBar .btn{width:100%;min-height:44px}.admin-feedback-select{min-width:60px}.admin-feedback-list-entry{gap:8px}}
 @media(max-width:900px){
  body:not(.auth-locked) .desktop-game-footer{display:block;width:100%;margin:30px 0 0;background:transparent;clear:both;}
  body:not(.auth-locked) .desktop-game-footer.mobile-footer-hidden{display:none;}

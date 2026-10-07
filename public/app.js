@@ -6827,23 +6827,30 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
 });
 document.addEventListener('keydown',event=>{if($('gameFeedbackModal')?.classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeGameFeedback();}else if(event.key==='Tab')trapDesktopAdminFocus(event,$('gameFeedbackModal'));},true);
 window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches&&!gameFeedbackSending)closeGameFeedback();});
-let adminFeedbackArchive=false,adminFeedbackPage=1,adminFeedbackSelected=null,adminFeedbackGeneration=0,adminFeedbackTotal=0;
+let adminFeedbackArchive=false,adminFeedbackPage=1,adminFeedbackSelected=null,adminFeedbackGeneration=0;
+const adminFeedbackSelectedIds=new Set();
+function updateAdminFeedbackSelection(){
+  const count=adminFeedbackSelectedIds.size;
+  $('adminFeedbackSelectionBar').classList.toggle('hidden',!adminFeedbackArchive);
+  $('adminFeedbackSelectionCount').textContent=`${count} message${count>1?'s':''} sélectionné${count>1?'s':''} sur cette page`;
+  $('adminFeedbackPurge').disabled=!adminFeedbackArchive||count===0;
+}
 function feedbackStatusControl(item){return `<label>Statut <select data-feedback-status="${Number(item.id)}">${[['new','À traiter'],['in_progress','En cours'],['resolved','Résolu · traité']].map(([value,label])=>`<option value="${value}" ${item.status===value?'selected':''}>${label}</option>`).join('')}</select></label><button class="btn secondary" type="button" data-feedback-discord="${Number(item.id)}">${item.discord_status==='sent'?'Synchroniser Discord':'Réessayer l’envoi Discord'}</button>`;}
 async function loadAdminFeedback(){
   const generation=++adminFeedbackGeneration;
+  adminFeedbackSelectedIds.clear();updateAdminFeedbackSelection();
   const list=$('adminFeedbackList');list.classList.remove('hidden');$('adminFeedbackDetail').classList.add('hidden');$('adminFeedbackPagination').classList.remove('hidden');adminFeedbackSelected=null;list.innerHTML='<p class="muted">Chargement…</p>';
   $('adminFeedbackActive').classList.toggle('secondary',adminFeedbackArchive);$('adminFeedbackArchive').classList.toggle('secondary',!adminFeedbackArchive);
   try {
     const data=await adminFetch(`/api/admin/feedback?archive=${adminFeedbackArchive?1:0}&page=${adminFeedbackPage}`);if(generation!==adminFeedbackGeneration)return;
-    adminFeedbackTotal=Number(data.total)||0;
-    $('adminFeedbackPurge').classList.toggle('hidden',!adminFeedbackArchive||!adminFeedbackTotal);
     $('adminFeedbackDiscordState').textContent=data.discordConfigured?'Discord configuré : les nouveaux retours sont envoyés dans ton salon et leur statut y est mis à jour.':'Discord non configuré. Les retours restent enregistrés ici.';
-    list.innerHTML=data.items.length?data.items.map(item=>`<button type="button" class="admin-feedback-item admin-feedback-row" data-feedback-open="${Number(item.id)}"><span><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${({pc:'🖥️ PC',mobile:'📱 Mobile'})[item.platform]||'Version non précisée'} · ${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small><span class="admin-feedback-preview">${escapeHtml(item.description.slice(0,160))}${item.description.length>160?'…':''}</span></span><span>${{new:'À traiter',in_progress:'En cours',resolved:'✓ Traité'}[item.status]} →</span></button>`).join(''):`<p class="muted">${adminFeedbackArchive?'Aucun retour archivé.':'Aucun retour à traiter.'}</p>`;
+    list.innerHTML=data.items.length?data.items.map(item=>`<div class="admin-feedback-list-entry">${adminFeedbackArchive?`<label class="admin-feedback-select"><input type="checkbox" data-feedback-select="${Number(item.id)}" aria-label="Sélectionner ${item.kind==='bug'?'le bug':'l’idée'} numéro ${Number(item.id)}"><span>Choisir</span></label>`:''}<button type="button" class="admin-feedback-item admin-feedback-row" data-feedback-open="${Number(item.id)}"><span><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${({pc:'🖥️ PC',mobile:'📱 Mobile'})[item.platform]||'Version non précisée'} · ${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small><span class="admin-feedback-preview">${escapeHtml(item.description.slice(0,160))}${item.description.length>160?'…':''}</span></span><span>${{new:'À traiter',in_progress:'En cours',resolved:'✓ Traité'}[item.status]} →</span></button></div>`).join(''):`<p class="muted">${adminFeedbackArchive?'Aucun retour archivé.':'Aucun retour à traiter.'}</p>`;
     const pages=Math.max(1,Math.ceil(data.total/20));$('adminFeedbackPagination').innerHTML=`<button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage-1}" ${adminFeedbackPage<=1?'disabled':''}>← Précédent</button><span>Page ${adminFeedbackPage} / ${pages}</span><button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage+1}" ${adminFeedbackPage>=pages?'disabled':''}>Suivant →</button>`;
   }catch(error){if(generation===adminFeedbackGeneration)list.textContent=error.message;}
 }
 async function openAdminFeedbackDetail(id){
   const generation=++adminFeedbackGeneration;adminFeedbackSelected=id;
+  adminFeedbackSelectedIds.clear();updateAdminFeedbackSelection();
   $('adminFeedbackList').classList.add('hidden');$('adminFeedbackPagination').classList.add('hidden');const detail=$('adminFeedbackDetail');detail.classList.remove('hidden');detail.innerHTML='<p>Chargement du retour et du joueur…</p>';
   try{
     const data=await adminFetch(`/api/admin/feedback/${id}`);if(generation!==adminFeedbackGeneration)return;const item=data.item;
@@ -6861,24 +6868,23 @@ $('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminConten
 $('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');});
 for(const [id,archive] of [['adminFeedbackActive',false],['adminFeedbackArchive',true]])$(id)?.addEventListener('click',()=>{adminFeedbackArchive=archive;adminFeedbackPage=1;$('adminFeedbackNotice').textContent='';loadAdminFeedback();});
 $('adminFeedbackPurge')?.addEventListener('click',async()=>{
-  if(!adminFeedbackArchive||!adminFeedbackTotal)return;
-  const count=adminFeedbackTotal;
-  const approved=await showAdminActionConfirmation({username:'Bugs et idées résolus',actionText:`Supprimer ${count} archive${count>1?'s':''}`,question:`Supprimer définitivement ${count} retour${count>1?'s':''} archivé${count>1?'s':''} et leurs messages Discord associés ? Les retours non résolus restent intacts. Cette action ne peut pas être annulée.`});
+  if(!adminFeedbackArchive||!adminFeedbackSelectedIds.size)return;
+  const ids=[...adminFeedbackSelectedIds],count=ids.length;
+  const approved=await showAdminActionConfirmation({username:'Messages sélectionnés',actionText:`Supprimer ${count} archive${count>1?'s':''} : ${ids.map(id=>`#${id}`).join(', ')}`,question:`Supprimer uniquement ${count===1?'ce message archivé':'ces messages archivés'} et ${count===1?'son message Discord associé':'leurs messages Discord associés'} ? Les autres archives restent intactes. Cette action ne peut pas être annulée.`});
   if(!approved)return;
   const button=$('adminFeedbackPurge');button.disabled=true;
-  let cursor=null,deleted=0,failed=0;
   try{
-    do{
-      const data=await adminFetch(`/api/admin/feedback/archive${cursor===null?'':`?before=${cursor}`}`,{method:'DELETE'});
-      deleted+=Number(data.deleted)||0;failed+=Number(data.failed)||0;cursor=data.nextCursor;
-      $('adminFeedbackNotice').textContent=`Nettoyage en cours : ${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''}…`;
-    }while(cursor!==null);
-    adminFeedbackPage=1;await loadAdminFeedback();
-    $('adminFeedbackNotice').textContent=`✓ ${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''} ici et sur Discord quand un message était associé.${failed?` ${failed} conservée${failed>1?'s':''} : suppression Discord impossible ou ancien message sans identifiant.`:''}`;
-  }catch(error){adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackNotice').textContent=`${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''}. Nettoyage interrompu : ${error.message}`;}
-  finally{button.disabled=false;}
+    $('adminFeedbackNotice').textContent='Suppression des messages sélectionnés…';
+    const data=await adminFetch('/api/admin/feedback/archive',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
+    await loadAdminFeedback();
+    const deleted=Number(data.deleted)||0,failed=data.failedIds||[];
+    $('adminFeedbackNotice').textContent=`✓ ${deleted} message${deleted>1?'s':''} supprimé${deleted>1?'s':''}.${failed.length?` Conservé${failed.length>1?'s':''} : ${failed.map(id=>`#${id}`).join(', ')} (Discord indisponible ou ancien message sans identifiant).`:''}`;
+  }catch(error){$('adminFeedbackNotice').textContent=`Aucun message supprimé : ${error.message}. Vérifie que le serveur a bien été redéployé avec ce correctif.`;}
+  finally{updateAdminFeedbackSelection();}
 });
 $('adminFeedbackSection')?.addEventListener('change',async event=>{
+  const checked=event.target.closest('[data-feedback-select]');
+  if(checked){const id=Number(checked.dataset.feedbackSelect);if(checked.checked)adminFeedbackSelectedIds.add(id);else adminFeedbackSelectedIds.delete(id);updateAdminFeedbackSelection();return;}
   const select=event.target.closest('[data-feedback-status]');if(!select)return;
   select.disabled=true;const id=Number(select.dataset.feedbackStatus);const status=select.value;
   try{
