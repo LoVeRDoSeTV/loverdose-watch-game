@@ -1,6 +1,7 @@
 import express from 'express';
 
 export const FEEDBACK_PAGES = ['Accueil','Lovys','Incubateur','PvE','Communauté','Classement','Progression','Boutique','Inventaire','Mon compte','Autre'];
+export const FEEDBACK_PLATFORMS = ['pc','mobile'];
 export function decodeFeedbackScreenshot(value) {
   if (!value) return null;
   if (typeof value !== 'string') throw new Error('Capture invalide.');
@@ -43,7 +44,7 @@ export function buildDiscordFeedbackPayload(row, mentionId) {
       author:{name:'LoVeR Watch Game · Retours des joueurs'},
       title:bug?'🐛 Nouveau signalement de bug':'💡 Nouvelle suggestion pour le jeu',
       color:row.status==='resolved'?0x53e6a8:row.status==='in_progress'?0xf3c85b:bug?0xe47788:0x9147ff,
-      description:`**👤 Envoyé par :** ${plain(row.player_name).slice(0,200)}\n**📍 Page concernée :** ${plain(row.page)}\n**📋 Suivi :** ${status}\n\n**${bug?'💬 Description du problème':'💬 Idée proposée'}**\n${plain(row.description).slice(0,3400)}${plain(row.description).length>3400?'… (suite dans l’Admin)':''}\n\n**📷 Capture d’écran**\n${capture}`,
+      description:`**👤 Envoyé par :** ${plain(row.player_name).slice(0,200)}\n**🎮 Version du jeu :** ${{pc:'PC',mobile:'Mobile'}[row.platform] || 'Non précisée'}\n**📍 Page concernée :** ${plain(row.page)}\n**📋 Suivi :** ${status}\n\n**${bug?'💬 Description du problème':'💬 Idée proposée'}**\n${plain(row.description).slice(0,3400)}${plain(row.description).length>3400?'… (suite dans l’Admin)':''}\n\n**📷 Capture d’écran**\n${capture}`,
       footer:{text:`${bug?'Bug':'Idée'} n°${row.id} · Administration → Bugs et idées des joueurs`},
       timestamp:new Date(row.created_at).toISOString()
     }]
@@ -119,8 +120,8 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
   const router=express.Router();
   router.post('/feedback',async(req,res)=>{
     if (!req.session.account?.id || !req.session.user?.twitchId) return res.status(401).json({error:'Connecte-toi au jeu pour envoyer un message.'});
-    const {kind,page,description,screenshot}=req.body || {};
-    if (!['bug','idea'].includes(kind) || !FEEDBACK_PAGES.includes(page) || typeof description !== 'string' || description.trim().length < 20 || description.trim().length > 3000) return res.status(400).json({error:'Choisis une page et décris ton message en 20 à 3 000 caractères.'});
+    const {kind,page,platform,description,screenshot}=req.body || {};
+    if (!['bug','idea'].includes(kind) || !FEEDBACK_PAGES.includes(page) || !FEEDBACK_PLATFORMS.includes(platform) || typeof description !== 'string' || description.trim().length < 20 || description.trim().length > 3000) return res.status(400).json({error:'Choisis PC ou Mobile, une page et décris ton message en 20 à 3 000 caractères.'});
     let image;
     try { image=decodeFeedbackScreenshot(screenshot); } catch(error) { return res.status(400).json({error:error.message}); }
     let client;
@@ -128,7 +129,7 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
       client=await pool.connect();await client.query('BEGIN');
       const account=(await client.query('SELECT id,username FROM accounts WHERE id=$1 FOR UPDATE',[req.session.account.id])).rows[0];
       if (!account) {await client.query('ROLLBACK');return res.status(401).json({error:'Compte introuvable.'});}
-      const row=(await client.query(`INSERT INTO game_feedback(account_id,player_name,kind,page,description,screenshot,screenshot_mime) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id`,[account.id,account.username,kind,page,description.trim(),image?.bytes || null,image?.mime || null])).rows[0];
+      const row=(await client.query(`INSERT INTO game_feedback(account_id,player_name,kind,page,platform,description,screenshot,screenshot_mime) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,[account.id,account.username,kind,page,platform,description.trim(),image?.bytes || null,image?.mime || null])).rows[0];
       await client.query('COMMIT');client.release();client=null;
       // L'enregistrement reste disponible dans l'Admin même si Discord échoue.
       try {await deliverFeedbackToDiscord(pool,row.id);} catch { /* Ne pas faire renvoyer un message déjà enregistré. */ }
@@ -139,11 +140,11 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
     try {if (!await getBroadcasterAccount(req)) return res.status(403).json({error:'Accès réservé au diffuseur.'});next();} catch {res.status(500).json({error:'Vérification impossible.'});}
   });
   router.get('/admin/feedback',async(req,res)=>{
-    try {const archived=req.query?.archive==='1';const page=Math.max(1,Math.min(100000,Number.parseInt(req.query?.page,10)||1));const rows=await pool.query(`SELECT id,account_id,player_name,kind,page,description,status,discord_status,discord_error,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot,COUNT(*) OVER() total_count FROM game_feedback WHERE (status='resolved')=$1 ORDER BY created_at DESC LIMIT 20 OFFSET $2`,[archived,(page-1)*20]);res.json({ok:true,items:rows.rows,page,total:Number(rows.rows[0]?.total_count||0),discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
+    try {const archived=req.query?.archive==='1';const page=Math.max(1,Math.min(100000,Number.parseInt(req.query?.page,10)||1));const rows=await pool.query(`SELECT id,account_id,player_name,kind,page,platform,description,status,discord_status,discord_error,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot,COUNT(*) OVER() total_count FROM game_feedback WHERE (status='resolved')=$1 ORDER BY created_at DESC LIMIT 20 OFFSET $2`,[archived,(page-1)*20]);res.json({ok:true,items:rows.rows,page,total:Number(rows.rows[0]?.total_count||0),discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
   });
   router.get('/admin/feedback/:id',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
-    try{const row=(await pool.query('SELECT id,account_id,player_name,kind,page,description,status,discord_status,discord_error,created_at,screenshot IS NOT NULL has_screenshot FROM game_feedback WHERE id=$1',[id])).rows[0];if(!row)return res.sendStatus(404);res.json({ok:true,item:row});}catch{res.status(500).json({error:'Retour indisponible.'});}
+    try{const row=(await pool.query('SELECT id,account_id,player_name,kind,page,platform,description,status,discord_status,discord_error,created_at,screenshot IS NOT NULL has_screenshot FROM game_feedback WHERE id=$1',[id])).rows[0];if(!row)return res.sendStatus(404);res.json({ok:true,item:row});}catch{res.status(500).json({error:'Retour indisponible.'});}
   });
   router.get('/admin/feedback/:id/screenshot',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
