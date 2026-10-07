@@ -6814,7 +6814,9 @@ function openGameFeedback(){
   $('gameFeedbackPage').innerHTML=gameFeedbackPages.map(page=>`<option>${escapeHtml(page)}</option>`).join('');
   $('gameFeedbackPage').value=({home:'Accueil',lovys:'Lovys',incubator:'Incubateur',pve:'PvE',lobby:'Communauté',leaderboard:'Classement',progression:'Progression',shop:commerceTab==='inventory'?'Inventaire':'Boutique',account:'Mon compte'})[desktopView]||'Autre';
   if(isMobileGameUi())$('gameFeedbackPage').value=currentMobileFeedbackPage();
-  $('gameFeedbackSubmit').disabled=false;$('gameFeedbackSubmit').textContent='Envoyer mon message';$('gameFeedbackModal').classList.remove('hidden');$('gameFeedbackKind').dispatchEvent(new Event('change'));$('gameFeedbackKind').focus();
+  $('gameFeedbackSubmit').disabled=false;$('gameFeedbackSubmit').textContent='Envoyer mon message';$('gameFeedbackModal').classList.remove('hidden');$('gameFeedbackKind').dispatchEvent(new Event('change'));
+  if(isMobileGameUi())$('gameFeedbackClose').focus({preventScroll:true});
+  else $('gameFeedbackKind').focus();
 }
 $('gameFeedbackOpen')?.addEventListener('click',openGameFeedback);
 $('gameFeedbackClose')?.addEventListener('click',closeGameFeedback);
