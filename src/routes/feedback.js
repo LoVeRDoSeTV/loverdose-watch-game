@@ -142,6 +142,43 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
   router.get('/admin/feedback',async(req,res)=>{
     try {const archived=req.query?.archive==='1';const page=Math.max(1,Math.min(100000,Number.parseInt(req.query?.page,10)||1));const rows=await pool.query(`SELECT id,account_id,player_name,kind,page,platform,description,status,discord_status,discord_error,created_at,discord_sent_at,screenshot IS NOT NULL has_screenshot,COUNT(*) OVER() total_count FROM game_feedback WHERE (status='resolved')=$1 ORDER BY created_at DESC LIMIT 20 OFFSET $2`,[archived,(page-1)*20]);res.json({ok:true,items:rows.rows,page,total:Number(rows.rows[0]?.total_count||0),discordConfigured:Boolean(feedbackWebhookUrl()),discordMentionConfigured:Boolean(await feedbackMentionUserId(pool))});} catch {res.status(500).json({error:'Messages indisponibles.'});}
   });
+  router.delete('/admin/feedback/archive',async(req,res)=>{
+    const ids=req.body?.ids;
+    if(!Array.isArray(ids)||!ids.length||ids.length>20||ids.some(id=>!Number.isSafeInteger(id)||id<1)||new Set(ids).size!==ids.length)return res.status(400).json({error:'Sélectionne entre 1 et 20 archives de cette page.'});
+    try{
+      let deleted=0;const failedIds=[];
+      // Chaque retour reste verrouillé jusqu'à la réponse de Discord : un changement
+      // de statut simultané ne peut pas supprimer un dossier redevenu actif.
+      for(let start=0;start<ids.length;start+=5){
+        await Promise.all(ids.slice(start,start+5).map(async id=>{
+          const client=await pool.connect();
+          try{
+            await client.query('BEGIN');
+            const row=(await client.query(`SELECT discord_message_id,discord_status,discord_sent_at FROM game_feedback WHERE id=$1 AND status='resolved' FOR UPDATE`,[id])).rows[0];
+            if(!row){failedIds.push(id);await client.query('ROLLBACK');return;}
+            const messageId=String(row.discord_message_id||'');
+            if(messageId){
+              const webhook=feedbackWebhookUrl();
+              if(!webhook||!/^\d{17,20}$/.test(messageId)){failedIds.push(id);await client.query('ROLLBACK');return;}
+              let response;
+              try{response=await fetch(`${webhook}/messages/${messageId}`,{method:'DELETE',redirect:'error',signal:AbortSignal.timeout(12000)});}catch{failedIds.push(id);await client.query('ROLLBACK');return;}
+              // Seul le code 10008 confirme qu'un message n'existe plus. Un
+              // webhook supprimé renvoie aussi 404, sans permettre le nettoyage.
+              const missingMessage=response.status===404&&Number((await response.json().catch(()=>({}))).code)===10008;
+              if(!response.ok&&!missingMessage){failedIds.push(id);await client.query('ROLLBACK');return;}
+            }else if(row.discord_status==='sent'||row.discord_sent_at){
+              // Les anciens envois sans identifiant ne sont pas supprimables par webhook.
+              failedIds.push(id);await client.query('ROLLBACK');return;
+            }
+            await client.query(`DELETE FROM game_feedback WHERE id=$1 AND status='resolved'`,[id]);
+            await client.query('COMMIT');deleted++;
+          }catch(error){failedIds.push(id);try{await client.query('ROLLBACK');}catch{}console.warn(`[Feedback ${id}] Nettoyage des archives impossible :`,error);}
+          finally{client.release();}
+        }));
+      }
+      res.json({ok:true,deleted,failedIds});
+    }catch{res.status(500).json({error:'Impossible de nettoyer les archives.'});}
+  });
   router.get('/admin/feedback/:id',async(req,res)=>{
     const id=Number(req.params.id);if(!Number.isSafeInteger(id)||id<1)return res.sendStatus(400);
     try{const row=(await pool.query('SELECT id,account_id,player_name,kind,page,platform,description,status,discord_status,discord_error,created_at,screenshot IS NOT NULL has_screenshot FROM game_feedback WHERE id=$1',[id])).rows[0];if(!row)return res.sendStatus(404);res.json({ok:true,item:row});}catch{res.status(500).json({error:'Retour indisponible.'});}
