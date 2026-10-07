@@ -1,0 +1,1212 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LoVeR Watch Game</title>
+<meta name="theme-color" content="#0f1020">
+<meta name="application-name" content="LoVeR Watch Game">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LoVeR Watch Game">
+<link rel="manifest" href="/manifest.webmanifest?v=308">
+<link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
+<link rel="apple-touch-icon" href="/pwa-icon-192.webp">
+<link rel="stylesheet" href="/styles.css?v=324">
+
+
+</head>
+<body class="auth-locked">
+  <div id="authOverlay" class="auth-overlay">
+
+  <div class="auth-home">
+    <div class="home-shell">
+      <div class="home-brand">
+  <svg class="home-twitch-logo" viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/>
+    <path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/>
+  </svg>
+
+  <span>LoVeR Watch Game</span>
+
+  <small>JEU COMMUNAUTAIRE TWITCH</small>
+</div>
+      <h1 class="home-title">Regarde. Gagne. <span>Évolue.</span></h1>
+      <p class="home-subtitle">Lie ton compte Twitch, fais éclore ton œuf et fais progresser ton compagnon pendant les lives.</p>
+
+      <div class="home-carousel" aria-label="Présentation des monstres">
+        <button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Monstre précédent">‹</button>
+
+        <div id="carouselCard" class="carousel-card">
+          <img loading="lazy" decoding="async" id="carouselMonster" class="carousel-monster" src="/Flamby.webp" alt="Flamby">
+          <div id="carouselName" class="carousel-name">Flamby</div>
+          <div id="carouselType" class="carousel-type">Cendre</div>
+          <div id="carouselDrop" class="carousel-drop">Rare • 8 %</div>
+          <p id="carouselDescription" class="carousel-description">Un petit compagnon ardent qui transforme chaque combat en étincelles.</p>
+        </div>
+
+        <button id="carouselNext" class="carousel-arrow" type="button" aria-label="Monstre suivant">›</button>
+      </div>
+
+      <div id="carouselDots" class="carousel-dots" aria-label="Choisir un monstre"></div>
+
+      <div class="auth-home-buttons">
+        <button id="showRegister" class="auth-main-button" type="button">Inscription</button>
+        <button id="showLogin" class="auth-main-button secondary" type="button">Connexion</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- ECRAN DE CHARGEMENT -->
+
+    <div id="loadingScreen" class="auth-screen hidden">
+
+      <div class="auth-box loading-box">
+
+        <div class="loading-spinner"></div>
+
+        <h2 id="loadingTitle">Connexion en cours...</h2>
+
+        <p id="loadingMessage" class="loading-message">
+          Vérification de ton compte
+        </p>
+
+      </div>
+
+    </div>
+
+    <!-- PAGE CONNEXION TWITCH -->
+
+<div id="twitchScreen" class="auth-screen hidden">
+
+  <div class="auth-box">
+
+    <h2>Connecte ton compte Twitch</h2>
+
+    <p id="twitchMessage" style="text-align:center;color:#c7cbe0;margin-bottom:20px;">
+      Ton compte est connecté.
+      Il reste à lier ton compte Twitch pour continuer.
+    </p>
+
+    <a
+      href="/auth/twitch"
+      class="auth-submit"
+      style="display:block;text-align:center;text-decoration:none;"
+    >
+      Se connecter avec Twitch
+    </a>
+
+  </div>
+
+</div>
+
+    <!-- FENETRE DE CONFIRMATION -->
+
+<div id="successScreen" class="auth-screen hidden">
+
+  <div class="auth-box success-box">
+
+    <div class="success-icon">✓</div>
+
+    <h2 id="successTitle">C'est réussi !</h2>
+
+    <p id="successMessage" class="success-message">
+      Ton action a bien été prise en compte.
+    </p>
+
+    <button
+      id="successAction"
+      class="auth-submit"
+      type="button"
+    >
+      Continuer
+    </button>
+
+  </div>
+
+</div>
+    
+  <!-- PAGE INSCRIPTION -->
+
+  <div id="registerScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Créer mon compte</h2>
+
+      <form id="registerForm">
+
+        <div class="auth-field">
+          <label for="registerUsername">Pseudo</label>
+          <input
+            id="registerUsername"
+            type="text"
+            minlength="3"
+            maxlength="24"
+            autocomplete="username"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerEmail">Adresse e-mail</label>
+          <input
+            id="registerEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="registerPassword">Mot de passe</label>
+          <div class="password-input-wrap">
+            <input
+              id="registerPassword"
+              type="password"
+              minlength="8"
+              maxlength="72"
+              autocomplete="new-password"
+              required
+            >
+            <button
+              class="password-toggle"
+              type="button"
+              data-password-target="registerPassword"
+              aria-label="Afficher le mot de passe"
+              aria-pressed="false"
+              title="Afficher le mot de passe"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 5c5.5 0 9.5 5.2 9.7 5.4a1 1 0 0 1 0 1.2C21.5 11.8 17.5 17 12 17S2.5 11.8 2.3 11.6a1 1 0 0 1 0-1.2C2.5 10.2 6.5 5 12 5Zm0 2c-3.7 0-6.8 3-7.6 4 .8 1 3.9 4 7.6 4s6.8-3 7.6-4c-.8-1-3.9-4-7.6-4Zm0 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Créer mon compte
+        </button>
+
+      </form>
+
+      <div id="registerError" class="auth-error"></div>
+
+      <button
+        id="backFromRegister"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- PAGE CONNEXION -->
+
+  <div id="loginScreen" class="auth-screen hidden">
+
+    <div class="auth-box">
+
+      <h2>Connexion</h2>
+
+      <form id="loginForm">
+
+        <div class="auth-field">
+          <label for="loginEmail">Adresse e-mail</label>
+          <input
+            id="loginEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+
+        <div class="auth-field">
+          <label for="loginPassword">Mot de passe</label>
+          <div class="password-input-wrap">
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              required
+            >
+            <button
+              class="password-toggle"
+              type="button"
+              data-password-target="loginPassword"
+              aria-label="Afficher le mot de passe"
+              aria-pressed="false"
+              title="Afficher le mot de passe"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="currentColor" d="M12 5c5.5 0 9.5 5.2 9.7 5.4a1 1 0 0 1 0 1.2C21.5 11.8 17.5 17 12 17S2.5 11.8 2.3 11.6a1 1 0 0 1 0-1.2C2.5 10.2 6.5 5 12 5Zm0 2c-3.7 0-6.8 3-7.6 4 .8 1 3.9 4 7.6 4s6.8-3 7.6-4c-.8-1-3.9-4-7.6-4Zm0 1.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <button class="auth-submit" type="submit">
+          Se connecter
+        </button>
+
+      </form>
+
+      <div id="loginError" class="auth-error"></div>
+
+      <button
+        id="backFromLogin"
+        class="auth-back"
+        type="button"
+      >
+        ← Retour
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+ <aside class="global-leaderboard">
+  <button id="mobileLeaderboardClose" class="mobile-leaderboard-close" type="button" aria-label="Fermer le classement">×</button>
+  <h2>🏆 Classement</h2>
+  <div class="leaderboard-search-wrap">
+    <input id="leaderboardSearch" class="leaderboard-search" type="search" maxlength="32" autocomplete="off" placeholder="🔎 Rechercher un joueur..." aria-label="Rechercher un joueur dans le classement">
+  </div>
+
+  <div id="leaderboard">
+    Chargement...
+  </div>
+</aside><div class="wrap">
+<div class="top">
+  <div class="game-brand">
+    <div class="logo">🐾 LoVeR Watch Game</div>
+    <a class="desktop-home-live" href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener noreferrer" title="Ouvrir la chaîne Twitch LoVeRDoSeTV">
+      <span id="desktopHomeLiveDot" class="desktop-home-live-dot" aria-hidden="true"></span>
+      <strong id="desktopHomeLiveLabel" aria-live="polite">Vérification du live…</strong>
+      <span class="desktop-home-live-separator" aria-hidden="true">·</span>
+      <span>👥 <strong id="desktopHomeGamePlayers" aria-live="polite">—</strong> joueurs sur le jeu</span>
+    </a>
+  </div>
+  <div class="account-access">
+    <button id="desktopAdminButton" class="desktop-admin-button hidden" type="button" aria-haspopup="dialog" aria-controls="desktopAdminModal">🛠️ Administration</button>
+    <button id="desktopAccountButton" class="desktop-account-button" type="button" aria-label="Ouvrir mon compte" title="Mon compte"><span>👤</span><b>Mon compte</b></button>
+    <button id="infoButton" class="account-icon-button" type="button" aria-label="Voir les informations du jeu" title="Comment jouer">ⓘ</button>
+  </div>
+</div>
+<a id="mobileHomeLiveStatus" class="mobile-home-live-status" href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir la chaîne Twitch LoVeRDoSeTV">
+  <span class="mobile-home-live-dot" aria-hidden="true"></span>
+  <span><strong id="mobileHomeLiveLabel" aria-live="polite">Statut du live…</strong><small id="mobileHomeLiveAction">LoVeRDoSeTV sur Twitch</small></span>
+  <span aria-hidden="true">↗</span>
+</a>
+<div id="auth" class="card hidden"></div>
+<div id="app" class="hidden">
+<nav id="mobileGameNav" class="mobile-game-nav" aria-label="Navigation du jeu">
+  <button id="mobileNavHome" class="mobile-game-nav-btn active" type="button"><span>🏠</span><b>Accueil</b></button>
+  <button id="mobileNavCombat" class="mobile-game-nav-btn" type="button"><span>⚔️</span><b>Combat</b></button>
+  <button id="mobileNavLeaderboard" class="mobile-game-nav-btn" type="button"><span>🏆</span><b>Classement</b></button>
+  <button id="mobileNavCreatures" class="mobile-game-nav-btn mobile-game-nav-main" type="button"><span>🐉</span><b>Lovys</b></button>
+  <button id="mobileNavCommunity" class="mobile-game-nav-btn" type="button"><span>🤝</span><b>Communauté</b><i id="mobileLobbyNavBadge" class="mobile-nav-badge hidden">0</i></button>
+  <button id="mobileNavInventory" class="mobile-game-nav-btn" type="button"><span>🎒</span><b>Inventaire</b></button>
+  <button id="mobileNavProfile" class="mobile-game-nav-btn" type="button"><span>👤</span><b>Profil</b></button>
+</nav>
+<nav id="desktopGameNav" class="desktop-game-nav" aria-label="Navigation principale PC">
+  <a class="desktop-game-nav-btn active" href="#accueil" data-desktop-view="home"><span>🏠</span>Accueil</a>
+  <a class="desktop-game-nav-btn" href="#lovys" data-desktop-view="lovys"><span>🐉</span>Lovys</a>
+  <a class="desktop-game-nav-btn" href="#incubateur" data-desktop-view="incubator"><span>🥚</span>Incubateur</a>
+  <a class="desktop-game-nav-btn" href="#pve" data-desktop-view="pve"><span>⚔️</span>PvE</a>
+  <a class="desktop-game-nav-btn" href="#lobby" data-desktop-view="lobby"><span>🤝</span>Communauté <b id="lobbyNavBadge" class="lobby-nav-badge hidden">0</b></a>
+  <a class="desktop-game-nav-btn" href="#classement" data-desktop-view="leaderboard"><span>🏆</span>Classement</a>
+  <a class="desktop-game-nav-btn" href="#progression" data-desktop-view="progression"><span>📈</span>Progression</a>
+  <a class="desktop-game-nav-btn" href="#boutique" data-desktop-view="shop"><span>🛒</span>Boutique</a>
+</nav>
+<section id="standardPageHeader" class="standard-page-header" aria-hidden="true">
+ <div class="standard-page-header-inner">
+  <h2 id="standardPageHeaderTitle"></h2>
+  <p id="standardPageHeaderSubtitle"></p>
+ </div>
+</section>
+
+<section id="desktopLobbyPage" class="desktop-lobby-page hidden" aria-label="Lobby communautaire">
+  <div class="desktop-lobby-shell">
+    <div class="desktop-page-head"><div><div class="desktop-page-kicker"></div><h2>🤝 Communauté</h2><p>La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs.</p></div><div id="lobbyPresenceSummary" class="lobby-presence-summary">Chargement…</div></div>
+    <div class="lobby-howto">1. Crée une offre <span>→</span> 2. Un joueur te répond <span>→</span> 3. L’échange est sécurisé</div><div class="lobby-tabs" role="tablist"><button class="lobby-tab active" type="button" data-lobby-tab="trades">🔄 Échanges <b>0</b></button><button class="lobby-tab" type="button" data-lobby-tab="mine">📜 Mes offres <b>0</b></button><button class="lobby-tab" type="button" data-lobby-tab="wishes">💜 Souhaits</button><button class="lobby-tab" type="button" data-lobby-tab="players">👥 Joueurs</button><button class="lobby-tab" type="button" data-lobby-tab="history">🕘 Historique</button></div>
+    <div id="lobbyTradesPanel" class="lobby-panel"><div class="lobby-trade-toolbar"><div><strong>Bourse d'échanges</strong><span>Repère immédiatement ce qui est proposé, ce qui est demandé et le temps restant.</span></div><button id="tradeCreateOpen" class="lobby-primary-btn" type="button">＋ Créer une offre</button></div><div class="lobby-trade-filters"><button class="active" type="button" data-trade-filter="all">Toutes</button><button type="button" data-trade-filter="possible">Ce que je peux accepter</button><button type="button" data-trade-filter="fragment">Fragments</button><button type="button" data-trade-filter="egg">Œufs</button><select id="lobbyTradeCreatureFilter"><option value="all">Tous les Lovys</option><option value="plant">Mossy</option><option value="water">Nyméa</option><option value="voltis">Voltis</option><option value="brumee">Brumee</option><option value="flamby">Flamby</option><option value="nocty">Nocty</option></select></div><div id="lobbyTradesGrid" class="lobby-trades-grid"></div><div id="lobbyActivityBox" class="lobby-activity-box hidden"><strong>✨ Activité récente</strong><div id="lobbyActivityFeed"></div></div></div>
+    <div id="lobbyMinePanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Mes offres</strong><span>Suis tes annonces actives et leurs expirations.</span></div><button id="tradeCreateOpenMine" class="lobby-primary-btn" type="button">＋ Nouvelle offre</button></div><div id="lobbyMineGrid" class="lobby-trades-grid"></div></div>
+    <div id="lobbyWishesPanel" class="lobby-panel hidden"><div id="lobbyWishesGrid"></div></div>
+    <div id="lobbyPlayersPanel" class="lobby-panel hidden"><div class="lobby-toolbar"><input id="lobbyPlayerSearch" type="search" maxlength="32" placeholder="🔎 Rechercher un joueur…"></div><div id="lobbyPlayersGrid" class="lobby-player-grid"></div></div>
+    <div id="lobbyHistoryPanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Historique des échanges</strong><span>Retrouve les échanges terminés auxquels tu as participé.</span></div></div><div id="lobbyHistoryGrid" class="lobby-trades-grid"></div></div>
+    <div class="lobby-community-footer"><div class="lobby-community-actions"><button class="lobby-secondary-btn" type="button" id="lobbyInviteFriend">🔗 Inviter un ami</button></div></div>
+  </div>
+  <aside id="lobbyProfileDrawer" class="lobby-profile-drawer hidden"><div class="lobby-profile-drawer-head"><strong>Profil joueur</strong><button id="lobbyProfileDrawerClose" type="button">×</button></div><div id="lobbyProfileDrawerBody"></div></aside>
+</section>
+<section id="tradeComposer" class="trade-composer hidden" aria-label="Créer une offre d'échange">
+  <div class="trade-composer-card">
+    <div class="trade-composer-head"><div><div class="desktop-page-kicker">NOUVELLE ANNONCE</div><h2>🔄 Créer une offre</h2><p>Les objets proposés sont réservés immédiatement. Ils te sont rendus si tu annules ou si l'annonce expire.</p></div><button id="tradeComposerClose" type="button" aria-label="Fermer">×</button></div>
+    <div class="trade-limit-line"><span id="tradeActiveLimit">Offres actives : — / 3</span><span>Niveau global 3 minimum · 20 échanges/jour max</span></div><div id="tradeComposerMessage" class="trade-composer-message"></div>
+    <div class="trade-composer-section"><h3>Je propose</h3><div class="trade-asset-row"><select id="tradeOfferType"><option value="fragment">🧩 Fragments d'un Lovys</option><option value="egg">🥚 Œuf mystère</option></select><select id="tradeOfferCreature" data-trade-creature></select><div id="tradeOfferPreview" class="trade-selected-preview"></div><input id="tradeOfferQuantity" type="number" min="1" max="999" value="10" inputmode="numeric"></div><div id="tradeOfferBalance" class="trade-balance"></div></div>
+    <div class="trade-composer-section"><div class="trade-section-title-row"><h3>J'accepte l'une de ces propositions</h3><button id="tradeOptionAdd" class="lobby-secondary-btn" type="button">＋ Ajouter</button></div><div id="tradeOptionsList" class="trade-options-list"></div></div>
+    <div id="tradeComposerRecap" class="trade-composer-recap"></div><div id="tradePublishConfirm" class="trade-publish-confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="tradePublishConfirmTitle"><div class="trade-publish-confirm-modal"><div id="tradePublishConfirmNormal"><div class="trade-publish-confirm-icon">🔄</div><strong id="tradePublishConfirmTitle">Confirmer la publication ?</strong><span id="tradePublishConfirmText"></span><small>L’objet proposé sera réservé immédiatement après confirmation.</small><div class="trade-publish-confirm-actions"><button id="tradePublishCancel" class="lobby-secondary-btn" type="button">Annuler</button><button id="tradePublishConfirmBtn" class="lobby-primary-btn" type="button">Confirmer la publication</button></div></div><div id="tradePublishSuccess" class="trade-publish-success hidden" aria-live="polite"><div class="trade-publish-success-check">✓</div><strong>Offre postée !</strong><span>Ton annonce est maintenant visible dans le Lobby.</span></div></div></div><div class="trade-composer-footer"><label>Durée <select id="tradeDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="tradePublish" class="lobby-primary-btn" type="button">Publier l'offre</button></div>
+  </div>
+</section>
+<section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
+  <div class="next-actions-bar-copy">
+    <span class="next-actions-bar-icon" aria-hidden="true">🎯</span>
+    <div><strong>Que faire maintenant ?</strong><span id="nextActionsSummary">On regarde ton compte…</span></div>
+  </div>
+  <button id="nextActionQuick" class="next-action-quick hidden" type="button"></button>
+  <button id="nextActionsOpen" class="next-actions-open" type="button">Voir mes actions <span id="nextActionsCount" class="next-actions-count">0</span></button>
+</section>
+<div class="dashboard-head-grid">
+  <div class="dashboard-left-stack">
+  <section class="player-visit-card" aria-label="Carte de visite du joueur">
+    <div class="player-card-kicker">🪪 Carte joueur</div>
+    <div id="playerCardRank" class="player-card-rank">#—</div>
+    <div class="player-card-main">
+      <div id="playerCardAvatar" class="player-card-avatar"><span class="egg-inline-icon egg-inline-icon-avatar" aria-hidden="true"></span></div>
+      <div class="player-card-identity">
+        <div class="player-card-name-row">
+          <div id="playerCardName" class="player-card-name">Joueur</div>
+          <div id="playerCardSubZone" class="player-sub-zone"></div>
+        </div>
+        <div id="playerCardTitle" class="player-card-title"></div>
+        <div id="playerCardLevel" class="player-card-level"><span id="playerGradeEmblem" class="level-emblem">◆</span><span id="playerCardLevelValue">Niveau : 1 · Recrue</span><span id="playerCardCreatureLevelValue" class="hidden"></span><button id="playerCardProgressionMobile" class="player-card-progress-mobile" type="button">📈 Progression</button></div>
+      </div>
+    </div>
+    <div id="playerCardBadgesTrigger" class="player-card-rankbadges" role="button" tabindex="0" aria-label="Ouvrir mes badges" title="Ouvrir mes badges">
+      <div class="player-card-rank-label">Mes badges</div>
+      <div id="playerCardBadge1" class="player-card-rankbadge empty" title="Badge de classement 1">＋</div>
+      <div id="playerCardBadge2" class="player-card-rankbadge empty" title="Badge de classement 2">＋</div>
+    </div>
+    <div class="player-card-actions">
+      <button id="playerCardCollection" class="player-card-action" type="button">🏆 Mes badges</button>
+      <button id="playerCardInventory" class="player-card-action" type="button" aria-haspopup="dialog">🎒 Inventaire</button>
+      <button id="playerCardAccount" class="player-card-action player-card-account-action" type="button" aria-haspopup="dialog">👤 Mon compte</button>
+    </div>
+  </section>
+  <aside class="card wallet-card" aria-label="Portefeuille LoVeR'Cash">
+    <div class="wallet-kicker">👛 Portefeuille</div>
+    <div class="wallet-balance-row">
+      <div class="wallet-icon"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt="LoVeR'Cash"></div>
+      <div>
+        <div class="wallet-label">Solde actuel</div>
+        <div id="walletBalance" class="wallet-balance">0</div>
+        <div class="wallet-currency">LoVeR'Cash</div>
+      </div>
+    </div>
+    <button id="playerCardShop" class="player-card-action wallet-shop-button" type="button">🛒 Boutique</button>
+  </aside>
+  <section id="desktopBoostStatus" class="desktop-boost-status" aria-label="Mes boosts">
+    <div class="home-boost-heading"><h3>⚡ Mes boosts</h3><button id="homeBoostObjects" type="button">🎁 Mes objets</button></div>
+    <div id="desktopBoostList" class="home-boost-list" aria-live="polite"><p class="home-boost-empty">Aucun boost actif pour le moment.</p></div>
+  </section>
+  </div>
+<div class="dashboard-side-stack">
+<section id="dailyChallengesCard" class="daily-challenges-card" aria-label="Défis journaliers">
+  <div class="daily-challenges-head">
+    <div>
+      <h2>🎯 Défis du jour</h2>
+      <div class="daily-challenges-subtitle">3 petits objectifs pour progresser sans accélérer trop vite le jeu.</div>
+    </div>
+    <div id="dailyChallengesReset" class="daily-challenges-reset">Renouvellement à 00h00</div>
+  </div>
+  <div id="dailyChallengesSummary" class="daily-challenges-summary">Chargement…</div>
+  <div class="daily-carousel-controls" aria-label="Navigation des défis">
+    <button id="dailyChallengePrev" class="daily-carousel-arrow" type="button" aria-label="Défi précédent">‹</button>
+    <div id="dailyCarouselPosition" class="daily-carousel-position">1 / 3</div>
+    <button id="dailyChallengeNext" class="daily-carousel-arrow" type="button" aria-label="Défi suivant">›</button>
+  </div>
+  <div id="dailyChallengesGrid" class="daily-challenges-grid"></div>
+  <div id="dailyChallengesMessage" class="daily-challenges-message"></div>
+  <div class="daily-challenges-note">Tous les défis sont vérifiés automatiquement par le jeu.</div>
+</section>
+
+<section id="rewardWheelCard" class="reward-wheel-card" aria-label="Roues de récompenses">
+  <div class="reward-wheel-head">
+    <div><div class="reward-wheel-title">🎡 Roue des récompenses</div><div class="reward-wheel-sub">Un petit bonus chaque jour, puis une roue premium après 7 lives différents assistés.</div></div>
+  </div>
+  <div class="reward-wheel-gift" aria-hidden="true"><span class="reward-wheel-gift-box"></span><span class="reward-wheel-gift-lid"></span><span class="reward-wheel-gift-ribbon-v"></span><span class="reward-wheel-gift-ribbon-h"></span><span class="reward-wheel-gift-bow"></span><span class="reward-wheel-gift-crown">♛</span></div>
+  <div class="reward-wheel-tabs">
+    <button id="rewardWheelDailyTab" class="reward-wheel-tab active" type="button">☀️ Quotidienne</button>
+    <button id="rewardWheelWeeklyTab" class="reward-wheel-tab weekly" type="button">👑 7 lives</button>
+  </div>
+  <div class="reward-wheel-streak">
+    <div class="reward-wheel-streak-top"><span>🔥 Lives assistés</span><strong id="rewardWheelStreakText">0 / 7</strong></div>
+    <div id="rewardWheelStreakDots" class="reward-wheel-dots"></div>
+  </div>
+  <div class="reward-wheel-stage">
+    <div class="reward-wheel-pointer" aria-hidden="true"></div>
+    <div id="rewardWheelDisc" class="reward-wheel-disc" aria-hidden="true"></div>
+  </div>
+  <div class="reward-wheel-actions">
+    <button id="rewardWheelSpin" class="reward-wheel-spin" type="button" disabled>Chargement…</button>
+    <div id="rewardWheelStatus" class="reward-wheel-status"></div>
+    <div id="rewardWheelResult" class="reward-wheel-result"></div>
+    <button id="rewardWheelOddsToggle" class="reward-wheel-odds-toggle" type="button">Voir les récompenses & chances</button>
+    <div id="rewardWheelOdds" class="reward-wheel-odds"></div>
+  </div>
+</section>
+
+</div>
+<section class="card incubator-topbar" aria-label="Incubateur">
+  <div class="incubator-topbar-head">
+    <div>
+      <div class="incubator-topbar-title"><span class="egg-inline-icon title-inline-icon" aria-hidden="true"></span>Incubateur</div>
+      <div id="topIncubatorSubtitle" class="muted incubator-topbar-subtitle">Tes emplacements d’incubation.</div>
+    </div>
+  </div>
+  <div id="incubatorCarousel" class="incubator-slots">
+    <div id="topIncubatorEgg" class="incubator-slot active" data-incubator-slot="1">
+      <div id="topIncubatorEggArt" class="incubator-slot-egg">
+        <div class="incubator-egg-mini" aria-hidden="true"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
+      </div>
+      
+      <div id="topIncubatorTitle" class="incubator-slot-title">Œuf en incubation</div>
+      <div class="incubator-slot-progress"><div id="topIncubatorProgressBar" class="incubator-progress-bar"></div></div>
+      <div id="topIncubatorTime" class="incubator-time">0 h 00 / 6 h 00</div>
+      <div id="topIncubatorStatus" class="incubator-status">Ton œuf commence son incubation.</div>
+      <div id="topIncubatorPendingWrap" class="incubator-pending">⚡ XP en attente : <strong id="topIncubatorPendingXp">0 XP</strong></div>
+    </div>
+    <div id="topIncubatorSlot2" class="incubator-slot empty" data-incubator-slot="2">
+      <div class="incubator-slot-plus">＋</div>
+      <div class="incubator-slot-title">Emplacement libre</div>
+      <div class="incubator-slot-note">Cliquer pour ajouter un œuf</div>
+    </div>
+    <div id="topIncubatorSlot3" class="incubator-slot empty" data-incubator-slot="3">
+      <div class="incubator-slot-plus">＋</div>
+      <div class="incubator-slot-title">Emplacement libre</div>
+      <div class="incubator-slot-note">Cliquer pour ajouter un œuf</div>
+    </div>
+  </div>
+  <div class="incubator-carousel-controls" aria-label="Emplacements de l’incubateur">
+    <button id="incubatorCarouselPrev" class="incubator-carousel-arrow" type="button" aria-label="Emplacement précédent" aria-controls="incubatorCarousel" disabled>‹</button>
+    <div class="incubator-carousel-dots">
+      <button class="incubator-carousel-dot" type="button" data-incubator-slide="0" aria-label="Voir l’emplacement 1" aria-pressed="true" aria-controls="incubatorCarousel"></button>
+      <button class="incubator-carousel-dot" type="button" data-incubator-slide="1" aria-label="Voir l’emplacement 2" aria-pressed="false" aria-controls="incubatorCarousel"></button>
+      <button class="incubator-carousel-dot" type="button" data-incubator-slide="2" aria-label="Voir l’emplacement 3" aria-pressed="false" aria-controls="incubatorCarousel"></button>
+    </div>
+    <span id="incubatorCarouselCount" class="incubator-carousel-count" aria-live="polite">1 / 3</span>
+    <button id="incubatorCarouselNext" class="incubator-carousel-arrow" type="button" aria-label="Emplacement suivant" aria-controls="incubatorCarousel">›</button>
+  </div>
+  <div id="incubatorOverview" class="incubator-overview" aria-live="polite"></div>
+</section>
+
+</div>
+
+
+<div id="rewardWheelWinPopup" class="reward-wheel-win-popup hidden" role="dialog" aria-modal="true" aria-labelledby="rewardWheelWinTitle">
+  <div class="reward-wheel-win-card">
+    <div id="rewardWheelWinKicker" class="reward-wheel-win-kicker">🎡 Roue quotidienne</div>
+    <div id="rewardWheelWinTitle" class="reward-wheel-win-title">Félicitations !</div>
+    <div id="rewardWheelWinIcon" class="reward-wheel-win-icon">🎁</div>
+    <div class="reward-wheel-win-copy">Tu as gagné :</div>
+    <div id="rewardWheelWinReward" class="reward-wheel-win-reward">Récompense</div>
+    <div id="rewardWheelWinNote" class="reward-wheel-win-note">Ta récompense a été ajoutée automatiquement à ton compte.</div>
+    <button id="rewardWheelWinOk" class="reward-wheel-win-ok" type="button">OK, récupérer ma récompense</button>
+  </div>
+</div>
+
+<div id="rewardWheelOddsPopup" class="reward-wheel-odds-popup hidden" role="dialog" aria-modal="true" aria-labelledby="rewardWheelOddsPopupTitle">
+  <div class="reward-wheel-odds-popup-card">
+    <button id="rewardWheelOddsPopupClose" class="reward-wheel-odds-popup-close" type="button" aria-label="Fermer">×</button>
+    <div id="rewardWheelOddsPopupKicker" class="reward-wheel-odds-popup-kicker">🎡 Roue quotidienne</div>
+    <div id="rewardWheelOddsPopupTitle" class="reward-wheel-odds-popup-title">Récompenses & chances</div>
+    <div class="reward-wheel-odds-popup-sub">Voici toutes les récompenses possibles et leur probabilité de tomber.</div>
+    <div id="rewardWheelOddsPopupList" class="reward-wheel-odds-popup-list"></div>
+    <div class="reward-wheel-odds-popup-note">Le résultat du tirage est déterminé côté serveur selon ces probabilités.</div>
+  </div>
+</div>
+
+<div id="dailyChallengeDetailModal" class="daily-challenge-detail-modal hidden" role="dialog" aria-modal="true" aria-labelledby="dailyChallengeDetailTitle">
+  <div id="dailyChallengeDetailPanel" class="daily-challenge-detail-panel">
+    <div class="daily-challenge-detail-head">
+      <div>
+        <div id="dailyChallengeDetailIcon" class="daily-challenge-detail-icon">🎯</div>
+        <div id="dailyChallengeDetailTitle" class="daily-challenge-detail-title">Défi du jour</div>
+        <div id="dailyChallengeDetailDesc" class="daily-challenge-detail-desc"></div>
+      </div>
+      <button id="dailyChallengeDetailClose" class="daily-challenge-detail-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="dailyChallengeDetailRewards" class="daily-challenge-detail-rewards"></div>
+    <div class="daily-challenge-detail-progress"><span id="dailyChallengeDetailProgressBar" style="width:0%"></span></div>
+    <div class="daily-challenge-detail-progress-text"><span id="dailyChallengeDetailProgressText">0 / 0</span><span id="dailyChallengeDetailState">En cours</span></div>
+    <div id="dailyChallengeDetailActions" class="daily-challenge-detail-actions"></div>
+  </div>
+</div>
+<section class="desktop-lovys-hub" aria-label="Mes Lovys sur ordinateur"><div class="desktop-lovys-card lovys-overview-card"><div class="lovys-card-head"><div><div class="hub-title">🐉 Mes Lovys</div><div class="hub-sub">Retrouve ton compagnon actif, sa progression et ses informations clés, comme sur mobile mais optimisé pour le PC.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button id="openLovysCollection" class="lovys-collection-open" type="button">🐉 Ma collection</button><button id="hubFragments" class="fragment-pill" data-open-fragment-shop type="button" title="Ouvrir la boutique de fragments"><span class="fragment-pill-value"><span class="fragment-inline-icon fragment-inline-icon-lg" aria-hidden="true"></span>0</span><span class="fragment-pill-label">Fragments d’œuf</span></button></div></div><div id="desktopLovysOverview" class="lovys-overview-main"></div></div><div class="desktop-lovys-card lovys-pve-card"><div class="lovys-card-head"><div><div class="hub-title">⚔️ Aventure PvE</div><div class="hub-sub">Prépare tes combats, consulte l’état actuel de ton Lovys et récupère tes récompenses de première victoire.</div></div></div><div id="desktopLovysPveState" class="lovys-pve-state"></div><div class="lovys-hub-actions"><button id="openProgression" class="hub-btn lovys-home-btn" type="button">📈 Voir ma progression</button><button id="openPve" class="hub-btn lovys-home-btn primary" type="button">⚔️ Combattre</button></div></div></section>
+
+<div id="pick" class="card egg-panel">
+  <button id="mobileEggClose" class="mobile-egg-close" type="button" aria-label="Fermer">×</button>
+  <h2>Œuf en incubation</h2>
+  <p class="muted">Ton premier compagnon éclora après <b>6 heures de présence cumulée</b> pendant les lives.</p>
+  <div class="egg-visual" aria-label="Œuf en incubation"><div class="egg-aura"></div><div class="egg-shell"></div><div class="egg-sparkles"></div></div>
+  <div class="egg-progress-wrap">
+    <div class="egg-progress"><div id="eggProgressBar" class="egg-progress-bar"></div></div>
+    <div id="eggTime" class="egg-time">0 h 00 / 6 h 00</div>
+    <p id="eggStatus" class="muted">Ton œuf commence son incubation.</p>
+    <div id="eggPendingXp" class="egg-pending-xp">⚡ XP obtenus : <strong id="eggPendingXpValue">0 XP</strong><small>Les XP gagnés grâce aux défis seront ajoutés à ton compagnon lors de l’éclosion.</small></div>
+  </div>
+  <button id="hatchEgg" class="btn egg-hatch-button" type="button" disabled>Faire éclore l'œuf</button>
+
+  <div class="egg-rates">
+    <h3>Chances de l'œuf</h3>
+    <div class="egg-rarity-grid">
+      <div class="egg-rarity common">Commun<strong>70 %</strong></div>
+      <div class="egg-rarity rare">Rare<strong>22 %</strong></div>
+      <div class="egg-rarity epic">Épique<strong>7 %</strong></div>
+      <div class="egg-rarity mythic">Mythique<strong>1 %</strong></div>
+    </div>
+    <div class="egg-drop-list">
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Mossy.webp" alt="Mossy"><span class="egg-drop-name">Mossy · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Nymea.webp" alt="Nyméa"><span class="egg-drop-name">Nyméa · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Voltis.webp" alt="Voltis"><span class="egg-drop-name">Voltis · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row common"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Brumee.webp" alt="Brumee"><span class="egg-drop-name">Brumee · Commun</span></div><b>17,5 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Flamby.webp" alt="Flamby"><span class="egg-drop-name">Flamby · Rare</span></div><b>8 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Crysal.webp" alt="Crysal"><span class="egg-drop-name">Crysal · Rare</span></div><b>7 %</b></div>
+      <div class="egg-drop-row rare"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Ferox.webp" alt="Ferox"><span class="egg-drop-name">Ferox · Rare</span></div><b>7 %</b></div>
+      <div class="egg-drop-row epic"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Nocty.webp" alt="Nocty"><span class="egg-drop-name">Nocty · Épique</span></div><b>3,5 %</b></div>
+      <div class="egg-drop-row epic"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Solka.webp" alt="Solka"><span class="egg-drop-name">Solka · Épique</span></div><b>3,5 %</b></div>
+      <div class="egg-drop-row mythic"><div class="egg-drop-main"><img loading="lazy" decoding="async" class="egg-drop-thumb" src="/Mimo.webp" alt="Mimo"><span class="egg-drop-name">Mimo · Mythique</span></div><b>1 %</b></div>
+    </div>
+  </div>
+</div>
+
+<div id="game" class="hidden">
+  <div class="card"><div class="level"><div><h2 id="creatureTitle">Ton Lovys</h2><div id="evolution" class="muted"></div></div><span id="subBadge" class="pill hidden">⭐ SUB +20 % XP & LoVeR'Cash</span></div><div class="creature-art" id="mainCreature"></div><div class="progress"><div id="xpbar" class="bar"></div></div><p id="levelText" class="muted"></p></div>
+  <div class="grid"><div class="card"><div class="muted">XP totale</div><div id="xp" class="stat">0</div></div><div class="card"><div class="muted">LoVeR'Cash</div><div id="loverCash" class="stat">0</div></div><div class="card"><div class="muted">Temps regardé</div><div id="watch" class="stat">0 <small>min</small></div></div></div>
+</div>
+
+</div></div>
+
+
+<div id="hatchCinematic" class="hatch-cinematic hidden" role="dialog" aria-modal="true" aria-labelledby="hatchCinematicName">
+  <div class="hatch-scene">
+    <div id="hatchTopline" class="hatch-topline">Quelque chose se passe…</div>
+    <div class="hatch-stage">
+      <div class="hatch-ring"></div>
+      <div id="hatchEggWrap" class="hatch-egg-wrap"></div>
+      <div class="hatch-cracks" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+      <div id="hatchParticles" class="hatch-particles" aria-hidden="true"></div>
+      <div class="hatch-flash" aria-hidden="true"></div>
+      <div class="hatch-creature-wrap">
+        <div id="hatchCreatureArt" class="hatch-creature-art"></div>
+      </div>
+    </div>
+    <div class="hatch-copy">
+      <div id="hatchRarity" class="hatch-rarity">Lovys</div>
+      <div id="hatchCinematicName" class="hatch-name">Un Lovys est né !</div>
+      <div id="hatchCinematicMeta" class="hatch-meta"></div>
+      <div id="hatchCinematicMessage" class="hatch-message">Il rejoint ta collection.</div>
+    </div>
+    <button id="hatchContinue" class="hatch-continue" type="button">Découvrir mon Lovys</button>
+    <button id="hatchSkip" class="hatch-skip" type="button">Passer l’animation</button>
+  </div>
+</div>
+
+<!-- TUTORIEL GUIDE -->
+<div id="gameIntroModal" class="game-intro-modal tutorial-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameIntroTitle">
+  <div class="game-intro-panel tutorial-panel">
+    <div class="tutorial-progress"><span id="tutorialProgressBar"></span></div>
+    <div id="tutorialStepLabel" class="tutorial-step-label">Étape 1 / 7</div>
+    <div id="tutorialIcon" class="game-intro-icon tutorial-icon">👋</div>
+    <h2 id="gameIntroTitle">Bienvenue dans LoVeR Watch Game !</h2>
+    <p id="tutorialText">On va te montrer l’essentiel en quelques étapes.</p>
+    <div id="tutorialTip" class="tutorial-tip"></div>
+    <div class="tutorial-actions">
+      <button id="tutorialSkip" class="tutorial-skip" type="button">Passer le tutoriel</button>
+      <div class="tutorial-nav-actions">
+        <button id="tutorialPrev" class="tutorial-nav secondary" type="button">← Retour</button>
+        <button id="gameIntroClose" class="tutorial-nav" type="button">Suivant →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUE FAIRE MAINTENANT -->
+<div id="nextActionsModal" class="next-actions-modal hidden" role="dialog" aria-modal="true" aria-labelledby="nextActionsTitle">
+  <div class="next-actions-panel">
+    <div class="next-actions-head">
+      <div><div class="next-actions-kicker">🎯 Assistant de progression</div><h2 id="nextActionsTitle">Que faire maintenant ?</h2><p>Les actions utiles sont calculées selon ton compte et se mettent à jour automatiquement.</p></div>
+      <button id="nextActionsClose" class="next-actions-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="nextActionsList" class="next-actions-list"></div>
+    <div class="next-actions-install">
+      <div><strong>📱 Installer le jeu</strong><span id="pwaInstallStatus">Tu peux aussi ajouter LoVeR Watch Game à ton écran d’accueil.</span></div>
+      <button id="pwaInstallButton" class="next-action-button secondary" type="button">Installer</button>
+    </div>
+  </div>
+</div>
+
+<div id="pwaHelpModal" class="next-actions-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pwaHelpTitle">
+  <div class="next-actions-panel pwa-help-panel">
+    <div class="next-actions-head"><div><div class="next-actions-kicker">📱 Installation mobile</div><h2 id="pwaHelpTitle">Installer LoVeR Watch Game</h2></div><button id="pwaHelpClose" class="next-actions-close" type="button" aria-label="Fermer">×</button></div>
+    <div id="pwaHelpContent" class="pwa-help-content"></div>
+  </div>
+</div>
+
+<!-- AVANTAGES SUB TWITCH -->
+<div id="subBenefitsModal" class="sub-benefits-modal hidden" role="dialog" aria-modal="true" aria-labelledby="subBenefitsTitle">
+  <div class="sub-benefits-panel">
+    <div class="sub-benefits-head">
+      <h2 id="subBenefitsTitle">⭐ Avantages Abonné Twitch</h2>
+      <button id="subBenefitsClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="sub-benefits-intro">Être abonné à LoVeRDoSeTV accélère ta progression pendant les lives et débloque des avantages exclusifs.</p>
+    <div class="sub-benefits-list">
+      <div class="sub-benefit-row"><div class="sub-benefit-icon">⚡</div><div class="sub-benefit-copy"><strong>+20 % d’XP</strong><span>120 XP par heure au lieu de 100 XP/h.</span></div></div>
+      <div class="sub-benefit-row"><div class="sub-benefit-icon">💰</div><div class="sub-benefit-copy"><strong>+20 % de LoVeR'Cash</strong><span>12 LoVeR'Cash par heure au lieu de 10 LoVeR'Cash/h.</span></div></div>
+      <div class="sub-benefit-row"><div class="sub-benefit-icon">🏅</div><div class="sub-benefit-copy"><strong>Badge exclusif Soutien Absolu</strong><span>Débloqué automatiquement avec +500 XP Lovys en réserve, +250 XP globale et +100 LoVeR'Cash.</span></div></div>
+      <div class="sub-benefit-row"><div class="sub-benefit-icon">⭐</div><div class="sub-benefit-copy"><strong>Statut Sub</strong><span>Ton statut d’abonné est visible directement dans LoVeR Watch Game.</span></div></div>
+    </div>
+    <p id="subBenefitsNote" class="sub-benefits-note">Les bonus sont appliqués automatiquement par le tracker lorsque tu es présent pendant un live.</p>
+    <a id="subBenefitsSubscribe" class="sub-benefits-subscribe hidden" href="https://www.twitch.tv/subs/loverdosetv" target="_blank" rel="noopener noreferrer">⭐ S’abonner à LoVeRDoSeTV sur Twitch</a>
+  </div>
+</div>
+
+<!-- COLLECTION DE BADGES -->
+<div id="badgeCollectionModal" class="badge-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="badgeCollectionTitle">
+  <div class="badge-collection-panel">
+    <div class="badge-collection-head">
+      <h2 id="badgeCollectionTitle">🏆 Collection de badges</h2>
+      <button id="badgeCollectionClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="badge-collection-help">Tes badges sont organisés par catégorie : Visionnage, Réseaux sociaux, Soutien et Spéciaux.</p>
+
+    <div class="badge-modal-section-title badge-collection-title">Ma collection</div>
+    <div id="badgeCollectionContent"></div>
+  </div>
+</div>
+
+<!-- GESTION DU COMPTE -->
+<div id="accountModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
+  <div class="account-panel">
+    <div class="account-panel-head unified-page-head">
+      <h2 id="accountModalTitle">👤 Mon compte</h2>
+      <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="account-info-row account-identity-card">
+      <span class="account-info-label">Pseudo du joueur</span>
+      <div id="accountUsername" class="account-info-value">—</div>
+      <div class="account-username-edit">
+        <input id="accountUsernameInput" type="text" minlength="3" maxlength="24" autocomplete="off" placeholder="Nouveau pseudo">
+        <button id="accountUsernameSave" class="btn account-username-save" type="button">Modifier</button>
+      </div>
+      <div id="accountUsernameMessage" class="account-username-message"></div>
+    </div>
+    <div class="account-info-row account-email-card">
+      <span class="account-info-label">Adresse e-mail</span>
+      <div id="accountEmail" class="account-info-value">—</div>
+    </div>
+    <div class="account-info-row account-twitch-card">
+      <span class="account-info-label">Compte Twitch</span>
+      <div id="accountTwitch" class="account-info-value">—</div>
+      <div class="discord-connect-row">
+        <span id="accountTwitchHelp" class="account-edit-help">Reconnecte Twitch pour actualiser ton profil et tes autorisations sans perdre ta progression.</span>
+        <a id="accountTwitchConnect" class="btn secondary discord-connect-button" href="/auth/twitch">Reconnecter Twitch</a>
+      </div>
+    </div>
+
+    <div class="account-info-row account-discord-card">
+      <span class="account-info-label">Discord</span>
+      <div id="accountDiscord" class="account-info-value">—</div>
+      <div class="discord-connect-row">
+        <span id="accountDiscordHelp" class="account-edit-help">Connecte Discord pour vérifier automatiquement que tu as rejoint le serveur.</span>
+        <a id="accountDiscordConnect" class="btn secondary discord-connect-button" href="/auth/discord">Connecter Discord</a>
+      </div>
+    </div>
+
+    <div id="trackerAdminSection" class="tracker-admin hidden">
+      <span class="account-info-label">Tracker Twitch · diffuseur</span>
+      <div id="trackerStatus" class="tracker-status">Non configuré</div>
+      <p id="trackerDetail" class="tracker-help">Le tracker compte la présence des comptes liés dans le chat Twitch pendant les lives.</p>
+      <div class="tracker-actions admin-profile-actions">
+        <a id="trackerConnect" class="btn" href="/auth/twitch/tracker">Configurer le tracker</a>
+        <button id="trackerTest" class="btn secondary" type="button">Tester maintenant</button>
+        <button id="trackerDetectedButton" class="btn secondary" type="button">👥 Comptes détectés</button>
+        <button id="adminDashboardButton" class="btn secondary" type="button">📊 Dashboard</button>
+        <button id="adminPlayersButton" class="btn secondary" type="button">👥 Joueurs</button>
+        <button id="adminEconomyButton" class="btn secondary" type="button">💰 Économie</button>
+        <button id="eventsButton" class="btn secondary" type="button">🗓 Événements</button>
+        <button id="adminTrackerButton" class="btn secondary" type="button">📺 Twitch</button>
+        <button id="adminHistoryButton" class="btn secondary" type="button">📜 Historique</button>
+      </div>
+    </div>
+
+    <div class="account-actions">
+      <span class="account-session-label">Session du joueur</span>
+      <button id="accountLogout" class="btn secondary" type="button">Déconnexion</button>
+    </div>
+
+    <div class="account-danger-zone">
+      <h3 class="account-danger-title">Gestion du jeu et du compte</h3>
+      <p class="account-danger-text">La réinitialisation garde ton compte et ton lien Twitch. La suppression du compte efface définitivement ton compte LoVeR Watch Game et toute sa progression.</p>
+      <div class="account-actions">
+        <button id="resetGameButton" class="btn warning" type="button">↻ Réinitialiser le jeu</button>
+        <button id="deleteAccountButton" class="btn danger" type="button">🗑 Supprimer mon compte</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Administration PC : les contrôles existants y sont déplacés sans duplication. -->
+<div id="desktopAdminModal" class="desktop-admin-modal hidden" role="dialog" aria-modal="true" aria-labelledby="desktopAdminTitle">
+  <div class="desktop-admin-panel">
+    <div class="admin-players-head">
+      <div><h2 id="desktopAdminTitle">🛠️ Administration</h2><div class="muted admin-subtitle">Tes outils de gestion de LoVeR Watch Game.</div></div>
+      <button id="desktopAdminClose" class="account-close" type="button" aria-label="Fermer l’administration">×</button>
+    </div>
+    <button id="adminFeedbackOpen" class="btn secondary" type="button">📬 Bugs et idées des joueurs</button>
+    <section id="adminFeedbackSection" class="hidden">
+      <button id="adminFeedbackBack" class="btn secondary" type="button">← Administration</button>
+      <h3>📬 Bugs et idées des joueurs</h3>
+      <div class="admin-feedback-actions"><button id="adminFeedbackActive" class="btn" type="button">À traiter / En cours</button><button id="adminFeedbackArchive" class="btn secondary" type="button">✓ Archives</button></div>
+      <div id="adminFeedbackSelectionBar" class="admin-feedback-selection-bar hidden"><span id="adminFeedbackSelectionCount">0 message sélectionné</span><button id="adminFeedbackPurge" class="btn danger" type="button" disabled>🗑 Supprimer la sélection</button></div>
+      <p id="adminFeedbackDiscordState" class="muted"></p><p id="adminFeedbackNotice" role="status"></p>
+      <div id="adminFeedbackList"></div><div id="adminFeedbackDetail" class="hidden"></div>
+      <div id="adminFeedbackPagination" class="admin-feedback-actions"></div>
+    </section>
+    <div id="desktopAdminContent"></div>
+  </div>
+</div>
+
+<!-- ADMIN - JOUEURS INSCRITS -->
+<div id="adminPlayersModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminPlayersTitle">
+  <div class="admin-players-panel">
+    <div class="admin-players-head">
+      <div>
+        <h2 id="adminPlayersTitle">👥 Joueurs inscrits</h2>
+        <div class="muted" style="font-size:12px;margin-top:5px">Gestion réservée au diffuseur.</div>
+      </div>
+      <button id="adminPlayersClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="admin-players-toolbar">
+      <input id="adminPlayersSearch" class="admin-players-search" type="search" placeholder="🔎 Rechercher un pseudo, Twitch, Discord ou e-mail..." autocomplete="off">
+      <div id="adminPlayersTotal" class="admin-players-total">0 joueur</div>
+    </div>
+    <div id="adminPlayersList" class="admin-player-list">
+      <div class="admin-players-empty">Chargement…</div>
+    </div>
+    <div id="adminPlayerEditor" class="admin-player-editor hidden"></div>
+  </div>
+</div>
+
+<!-- ADMIN - DASHBOARD -->
+<div id="adminDashboardModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminDashboardTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminDashboardTitle">📊 Dashboard admin</h2><div class="muted admin-subtitle">Vue d’ensemble de LoVeR Watch Game sans quitter ton compte joueur.</div></div><button id="adminDashboardClose" class="account-close" type="button">×</button></div>
+    <div id="adminDashboardContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ADMIN - ECONOMIE -->
+<div id="adminEconomyModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminEconomyTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminEconomyTitle">💰 Économie du jeu</h2><div class="muted admin-subtitle">Soldes et flux globaux pour surveiller l’équilibre.</div></div><button id="adminEconomyClose" class="account-close" type="button">×</button></div>
+    <div id="adminEconomyContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+
+<!-- ADMIN - TWITCH -->
+<div id="adminTrackerModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminTrackerTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminTrackerTitle">📺 Tracker Twitch</h2><div class="muted admin-subtitle">État technique du suivi de présence.</div></div><button id="adminTrackerClose" class="account-close" type="button">×</button></div>
+    <div id="adminTrackerContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+
+<!-- TRACKER - COMPTES DETECTES -->
+<div id="trackerDetectedModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="trackerDetectedTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="trackerDetectedTitle">👥 Comptes détectés</h2><div class="muted admin-subtitle">Présence Twitch et comptes LoVeR Watch Game reconnus.</div></div><button id="trackerDetectedClose" class="account-close" type="button">×</button></div>
+    <div id="trackerDetectedContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- ADMIN - HISTORIQUE -->
+<div id="adminHistoryModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminHistoryTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminHistoryTitle">📜 Historique admin</h2><div class="muted admin-subtitle">Corrections et actions sensibles effectuées depuis le panel.</div></div><button id="adminHistoryClose" class="account-close" type="button">×</button></div>
+    <div id="adminHistoryContent" class="admin-history-list"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
+
+<!-- EVENEMENTS / MODES SPECIAUX -->
+<div id="eventsModal" class="events-modal hidden" role="dialog" aria-modal="true" aria-labelledby="eventsModalTitle">
+  <div class="events-panel">
+    <div class="events-head">
+      <div>
+        <h2 id="eventsModalTitle">🗓 Événements</h2>
+      </div>
+      <button id="eventsClose" class="account-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <p class="events-help">Vue rapide des modes spéciaux. Laisse cette fenêtre ouverte pour vérifier tes boutons Stream Deck en direct, même hors live.</p>
+    <div id="eventsLiveState" class="events-live-state">⏳ Chargement de l'état…</div>
+    <div id="eventsGrid" class="events-grid">
+      <div id="eventZombieCard" class="event-mode-card">
+        <div class="event-mode-icon">🧟</div>
+        <div>
+          <div class="event-mode-name">Mode Zombie</div>
+          <div class="event-mode-sub">Mode spécial Stream Deck</div>
+          <div id="eventZombieState" class="event-mode-state">🔴 OFF</div>
+        </div>
+        <button id="eventZombieToggle" class="event-toggle" type="button">Passer ON</button>
+      </div>
+
+      <div id="eventXpBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">⚡</div>
+        <div><div class="event-mode-name">XP Lovys ×2</div><div class="event-mode-sub">Gains de visionnage pendant 60 min.</div><div id="eventXpBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="xp">Activer 60 min</button>
+      </div>
+      <div id="eventCashBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">💰</div>
+        <div><div class="event-mode-name">LoVeR'Cash ×2</div><div class="event-mode-sub">Gains du tracker pendant 60 min.</div><div id="eventCashBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="cash">Activer 60 min</button>
+      </div>
+      <div id="eventGlobalXpBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">⭐</div>
+        <div><div class="event-mode-name">XP globale ×2</div><div class="event-mode-sub">Gains du tracker pendant 60 min.</div><div id="eventGlobalXpBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="global_xp">Activer 60 min</button>
+      </div>
+      <div id="eventAllBoostCard" class="event-mode-card admin-live-boost-card">
+        <div class="event-mode-icon">🔥</div>
+        <div><div class="event-mode-name">Boost live complet ×2</div><div class="event-mode-sub">XP Lovys + Cash + XP globale pendant 60 min.</div><div id="eventAllBoostState" class="event-mode-state">INACTIF</div></div>
+        <button class="event-toggle" type="button" data-live-boost="all">Activer 60 min</button>
+      </div>
+      <div class="event-mode-card admin-live-boost-stop">
+        <div class="event-mode-icon">⏹️</div>
+        <div><div class="event-mode-name">Arrêter les boosts</div><div class="event-mode-sub">Coupe uniquement les multiplicateurs live du panel admin.</div><div class="event-mode-state">MANUEL</div></div>
+        <button class="event-toggle" type="button" data-live-boost="off">Désactiver</button>
+      </div>
+
+      <div class="event-mode-card disabled">
+        <div class="event-mode-icon">🎮</div>
+        <div>
+          <div class="event-mode-name">Mode à venir</div>
+          <div class="event-mode-sub">Prochain mode spécial.</div>
+          <div class="event-mode-state">BIENTÔT</div>
+        </div>
+        <button class="event-toggle" type="button" disabled>À venir</button>
+      </div>
+
+      <div class="event-mode-card disabled">
+        <div class="event-mode-icon">⚡</div>
+        <div>
+          <div class="event-mode-name">Mode à venir</div>
+          <div class="event-mode-sub">Emplacement réservé.</div>
+          <div class="event-mode-state">BIENTÔT</div>
+        </div>
+        <button class="event-toggle" type="button" disabled>À venir</button>
+      </div>
+    </div>
+    <div id="eventsUpdated" class="events-updated">—</div>
+  </div>
+</div>
+
+<!-- CONFIRMATION ACTION COMPTE -->
+<div id="confirmAccountModal" class="confirm-modal hidden" role="dialog" aria-modal="true" aria-labelledby="confirmAccountTitle">
+  <div class="confirm-panel">
+    <div id="confirmAccountIcon" class="confirm-icon">⚠️</div>
+    <h2 id="confirmAccountTitle">Confirmation</h2>
+    <p id="confirmAccountMessage"></p>
+    <div id="confirmAccountError" class="confirm-error"></div>
+    <div class="confirm-actions">
+      <button id="confirmAccountCancel" class="btn secondary" type="button">Annuler</button>
+      <button id="confirmAccountAction" class="btn danger" type="button">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+
+<div id="playerProfileModal" class="player-profile-modal hidden" role="dialog" aria-modal="true" aria-labelledby="playerProfileModalTitle">
+  <div class="player-profile-panel">
+    <div class="player-profile-head">
+      <div><h2 id="playerProfileModalTitle">👤 Profil joueur</h2><div class="muted" style="font-size:12px;margin-top:5px">Progression et informations publiques de LoVeR Watch Game.</div></div>
+      <button id="playerProfileClose" class="player-profile-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="mobileSelfProfileActions" class="mobile-self-profile-actions hidden">
+      <button id="mobileProfileAccount" class="btn secondary" type="button">👤 Mon compte</button>
+      <button id="mobileProfileAdmin" class="btn secondary hidden" type="button" aria-haspopup="dialog" aria-controls="desktopAdminModal">🛠️ Administration</button>
+    </div>
+    <div id="playerProfileContent"></div>
+  </div>
+</div>
+
+<div id="incubatorAddModal" class="incubator-add-modal hidden" role="dialog" aria-modal="true" aria-labelledby="incubatorAddTitle">
+  <div class="incubator-add-panel">
+    <div class="incubator-add-head">
+      <div><h2 id="incubatorAddTitle"><span class="egg-inline-icon title-inline-icon title-inline-icon-lg" aria-hidden="true"></span>Ajouter un œuf</h2><div id="incubatorAddSubtitle" class="hub-sub">Choisis un œuf à placer dans cet emplacement.</div></div>
+      <div class="incubator-add-head-actions"><button id="incubatorAddClose" class="incubator-add-close" type="button" aria-label="Fermer">×</button></div>
+    </div>
+    <div id="incubatorAddContent"></div>
+  </div>
+</div>
+<div id="progressionModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">📈 Ma progression</h2><div class="hub-sub">Niveau global, Prestige et progression du Lovys.</div></div><button id="progressionClose" class="game-close">×</button></div><div id="progressionContent"></div></div></div>
+<div id="lovysXpTransferModal" class="lovys-xp-transfer-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysXpTransferTitle"><div class="lovys-xp-transfer-panel"><div class="lovys-xp-transfer-icon">⚡</div><div id="lovysXpTransferTitle" class="lovys-xp-transfer-title">Transférer l’XP Lovys</div><div id="lovysXpTransferCopy" class="lovys-xp-transfer-copy"></div><div id="lovysXpTransferAmount" class="lovys-xp-transfer-amount">0 XP en réserve</div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferTarget">Lovys destinataire</label><select id="lovysXpTransferTarget"></select></div><div class="lovys-xp-transfer-field"><label for="lovysXpTransferValue">Quantité d’XP à transférer</label><input id="lovysXpTransferValue" type="number" min="1" step="1" inputmode="numeric"></div><div class="lovys-xp-transfer-actions"><button id="lovysXpTransferCancel" class="hub-btn" type="button">Annuler</button><button id="lovysXpTransferConfirm" class="hub-btn lovys-xp-transfer-confirm" type="button">⚡ Confirmer le transfert</button></div></div></div>
+<div id="lovysCollectionModal" class="lovys-collection-modal hidden" role="dialog" aria-modal="true" aria-labelledby="lovysCollectionTitle"><div class="lovys-collection-panel"><div class="lovys-collection-head unified-page-head"><div><h2 id="lovysCollectionTitle">🐉 Mes Lovys</h2><div class="hub-sub">Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.</div></div><button id="lovysCollectionClose" class="game-close" type="button" aria-label="Fermer">×</button></div><div id="lovysCollectionReserve" class="lovys-collection-reserve">⚡ 0 XP Lovys en réserve · 🧩 0 fragments universels</div><section id="lovysActiveHero" class="lovys-active-hero"></section><section id="lovysNowStrip" class="lovys-now-strip"></section><div class="lovys-collection-summary"><div><span class="lovys-section-kicker">COLLECTION</span><strong id="lovysDiscoveredCount">0/10 découverts</strong></div><span>Choisis ton équipe et prépare le prochain combat.</span></div><div class="lovys-collection-tabs" role="tablist" aria-label="Gestion des Lovys"><button id="lovysCollectionTabCollection" class="lovys-collection-tab active" type="button" role="tab" aria-selected="true" data-lovys-tab="collection">🐉 Collection <span id="lovysCollectionCount" class="lovys-tab-count">0</span></button><button id="lovysCollectionTabFragments" class="lovys-collection-tab" type="button" role="tab" aria-selected="false" data-lovys-tab="fragments">🧩 Fragments <span id="lovysFragmentsCount" class="lovys-tab-count">0</span></button></div><div id="lovysCollectionGrid" class="lovys-collection-grid" role="tabpanel"></div><section id="lovysDetailPanel" class="lovys-detail-panel hidden"></section><div id="lovysFragmentsPanel" class="lovys-fragments-panel hidden" role="tabpanel"><div id="lovysUniversalFragments" class="lovys-universal-fragments"></div><div id="lovysFragmentsGrid" class="lovys-fragments-grid"></div></div></div></div>
+
+
+<div id="fragmentShopModal" class="fragment-shop-modal hidden" role="dialog" aria-modal="true" aria-label="Boutique de fragments d’œuf">
+  <div class="fragment-shop-panel">
+    <div class="fragment-shop-head">
+      <div><div class="fragment-shop-title"><span class="egg-inline-icon title-inline-icon title-inline-icon-lg" aria-hidden="true"></span>Boutique de fragments</div><div class="fragment-shop-sub">Échange tes Fragments d’œuf gagnés en PvE contre des œufs supplémentaires à placer dans l’incubateur.</div></div>
+      <button id="fragmentShopClose" class="fragment-shop-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="fragment-shop-balance"><div><div class="fragment-shop-balance-label">Tes fragments</div><div id="fragmentShopBalance" class="fragment-shop-balance-value">0</div></div><div><span class="fragment-inline-icon" aria-hidden="true" style="width:34px;height:34px"></span></div></div>
+    <div class="fragment-shop-item">
+      <div class="fragment-shop-egg"><div class="fragment-shop-egg-premium" aria-hidden="true"></div></div>
+      <div><div class="fragment-shop-item-name">Œuf mystère</div><div class="fragment-shop-item-copy">Ajoute un œuf à ton inventaire. Tu pourras ensuite le placer dans un emplacement libre de ton incubateur.</div><div class="fragment-shop-price"><span class="fragment-inline-icon" aria-hidden="true"></span> 10 fragments / œuf</div></div>
+    </div>
+    <div class="fragment-shop-qty"><div><div class="fragment-shop-balance-label">Quantité</div><div class="fragment-shop-stepper"><button id="fragmentShopMinus" type="button">−</button><strong id="fragmentShopQty">1</strong><button id="fragmentShopPlus" type="button">+</button></div></div><div class="fragment-shop-total">Total : <b id="fragmentShopTotal">10</b> fragments</div></div>
+    <button id="fragmentShopBuy" class="fragment-shop-buy" type="button">Acheter 1 œuf</button>
+    <div id="fragmentShopMessage" class="fragment-shop-message"></div>
+  </div>
+</div>
+
+<div id="pveBattleOverlay" class="pve-battle-overlay hidden" role="dialog" aria-modal="true" aria-label="Combat en cours">
+  <div class="pve-battle-stage">
+    <div class="pve-battle-head"><div><div id="pveBattleTitle" class="pve-battle-title">⚔️ Combat tactique</div><div id="pveBattleRound" class="pve-battle-round">Tour 1</div></div><button id="pveBattleAbandon" class="pve-battle-skip" type="button">Abandonner</button></div>
+    <div class="pve-battle-arena">
+      <div id="pveBattlePlayer" class="pve-combatant player"><div id="pveBattlePlayerSprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattlePlayerName">Lovys</strong><span id="pveBattlePlayerStats"></span></div><div class="pve-hp-track"><div id="pveBattlePlayerHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattlePlayerHpText"></span><span>PV</span></div></div><div id="pveBattlePlayerDamage" class="pve-damage"></div></div>
+      <div class="pve-battle-vs">VS</div>
+      <div id="pveBattleEnemy" class="pve-combatant enemy"><div id="pveBattleEnemySprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattleEnemyName">Ennemi</strong><span id="pveBattleEnemyStats"></span></div><div class="pve-hp-track"><div id="pveBattleEnemyHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattleEnemyHpText"></span><span>PV</span></div></div><div id="pveBattleEnemyDamage" class="pve-damage enemy-hit"></div></div>
+    </div>
+    <div id="pveBattleEffects" class="pve-battle-effects"></div>
+    <div id="pveBattleLog" class="pve-battle-log">Choisis ton action.</div>
+    <div class="pve-battle-auto-row"><button id="pveAutoBattle" class="pve-auto-btn" type="button" aria-pressed="false">▶️ <strong>Combat auto</strong></button><span>Utilise automatiquement la meilleure compétence disponible.</span></div><div id="pveBattleActions" class="pve-battle-actions"><button id="pveBasicAttack" class="pve-action-btn basic" type="button" data-battle-action="basic" data-cooldown="0"><span>⚔️</span><strong>Attaque</strong><small>Attaque normale</small></button><button id="pveSkill1" class="pve-action-btn" type="button"></button><button id="pveSkill2" class="pve-action-btn" type="button"></button></div>
+    <div id="pveBattleResult" class="pve-battle-result"><div class="pve-battle-result-card"><div id="pveBattleResultIcon" class="pve-battle-result-icon">🏆</div><div id="pveBattleResultTitle" class="pve-battle-result-title">Victoire !</div><div id="pveBattleResultCopy" class="pve-battle-result-copy"></div><div id="pveBattleResultReward" class="pve-battle-result-reward"></div><button id="pveBattleContinue" class="hub-btn pve-battle-continue" type="button">Continuer</button></div></div>
+  </div>
+</div>
+<div id="pveModal" class="game-modal hidden" role="dialog" aria-modal="true"><div class="game-panel"><div class="game-head unified-page-head"><div><h2 style="margin:0">⚔️ Aventure PvE</h2><div class="hub-sub">Les récompenses importantes sont données à la première victoire.</div></div><button id="pveClose" class="game-close">×</button></div><div id="pveContent"></div><div id="combatResult"></div></div></div>
+
+<div id="inventoryModal" class="inventory-modal hidden" role="dialog" aria-modal="true" aria-labelledby="inventoryTitle">
+  <div class="inventory-panel">
+    <div class="inventory-head">
+      <div><h2 id="inventoryTitle">🎒 Inventaire</h2><div class="inventory-subtitle">Retrouve et gère tous tes achats de la boutique.</div></div>
+      <button id="inventoryClose" class="inventory-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <section id="inventoryVisitPreview" class="desktop-inventory-preview" aria-label="Prévisualisation de ma carte de visite">
+      <div class="inventory-preview-heading"><div><h3>🪪 Ma carte de visite</h3><p id="inventoryPreviewStatus" aria-live="polite">Ton équipement actuel</p></div></div>
+      <div id="inventoryVisitPreviewVisual"></div>
+      <div class="commerce-outfit-actions"><button id="inventoryOutfitEquip" class="shop-action" type="button">Équiper cette tenue</button><button id="inventoryPreviewReset" class="shop-action secondary" type="button">Annuler</button></div>
+      <div id="inventoryOutfitMessage" class="commerce-outfit-message" role="status"></div>
+      <h4>Équipement actuel</h4><div id="inventoryCurrentEquipment" class="commerce-equipment"></div>
+    </section>
+    <div class="inventory-tabs" role="tablist" aria-label="Catégories de l’inventaire">
+      <button class="inventory-tab active" type="button" data-inventory-category="title">🏷️ Titres</button>
+      <button class="inventory-tab" type="button" data-inventory-category="background">🖼️ Fonds</button>
+      <button class="inventory-tab" type="button" data-inventory-category="frame">✨ Encadrements</button>
+      <button class="inventory-tab" type="button" data-inventory-category="avatar_frame">🪞 Cadres de profil</button>
+      <button class="inventory-tab" type="button" data-inventory-category="object">🎁 Objets</button>
+    </div>
+    <div id="inventoryTitleFilterWrap" class="shop-subfilter hidden">
+      <span class="shop-subfilter-label">Couleur du titre</span>
+      <select id="inventoryTitleFilter" class="shop-subfilter-select">
+        <option value="all">Toutes les couleurs</option>
+        <option value="gold">Or</option>
+        <option value="silver">Argent / Blanc</option>
+        <option value="violet">Violet</option>
+        <option value="blue">Bleu</option>
+        <option value="green">Vert</option>
+        <option value="pink">Rose</option>
+        <option value="red">Rouge</option>
+      </select>
+    </div>
+    <div id="inventoryCount" class="inventory-count"></div>
+    <div id="inventoryGrid" class="inventory-grid"></div>
+  </div>
+</div>
+
+<div id="shopModal" class="shop-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopTitle">
+  <div class="shop-panel">
+    <div class="shop-head unified-page-head">
+      <div><h2 id="shopTitle">🛒 Boutique</h2><div class="shop-subtitle">Personnalise ton profil et utilise ton LoVeR'Cash.</div></div>
+      <button id="shopClose" class="shop-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div id="shopMessage" class="shop-message"></div>
+    <div id="commerceTopline" class="commerce-topline">
+    <nav id="commerceTabs" class="commerce-tabs" aria-label="Boutique et inventaire"><button id="commerceShopTab" type="button" aria-pressed="true">🛒 Boutique</button><button id="commerceInventoryTab" type="button" aria-pressed="false">🎒 Inventaire</button></nav>
+
+    </div>
+    <div class="commerce-layout"><div id="commerceCatalog" class="commerce-catalog"><div class="commerce-shop-catalog">
+    <div class="shop-toolbar">
+      <label class="mobile-shop-category" for="shopMobileCategory"><span>Catégorie</span><select id="shopMobileCategory">
+        <option value="title">🏷️ Titres</option>
+        <option value="background">🖼️ Fonds</option>
+        <option value="frame">✨ Encadrements</option>
+        <option value="avatar_frame">🪞 Cadres de profil</option>
+        <option value="object">🎁 Objets</option>
+      </select></label>
+      <div class="shop-tabs" role="tablist" aria-label="Catégories de la boutique">
+        <button class="shop-tab active" type="button" data-shop-category="title">🏷️ Titres</button>
+        <button class="shop-tab" type="button" data-shop-category="background">🖼️ Fonds</button>
+        <button class="shop-tab" type="button" data-shop-category="frame">✨ Encadrements</button>
+        <button class="shop-tab" type="button" data-shop-category="avatar_frame">🪞 Cadres de profil</button>
+        <button class="shop-tab" type="button" data-shop-category="object">🎁 Objets</button>
+      </div>
+
+      <div id="shopAccountTools" class="shop-account-tools">
+      <button id="shopInventoryButton" class="btn secondary desktop-shop-inventory" type="button" aria-controls="inventoryModal" aria-haspopup="dialog">🎒 Inventaire</button>
+      <div class="shop-balance"><img loading="lazy" decoding="async" src="lovercash-logo.webp" alt=""><span>Solde :</span><strong id="shopBalance">0</strong><span>LoVeR'Cash</span></div>
+      </div>
+    </div>
+    <div id="shopTitleFilterWrap" class="shop-subfilter hidden">
+      <span class="shop-subfilter-label">Couleur du titre</span>
+      <select id="shopTitleFilter" class="shop-subfilter-select">
+        <option value="all">Toutes les couleurs</option>
+        <option value="gold">Or</option>
+        <option value="silver">Argent / Blanc</option>
+        <option value="violet">Violet</option>
+        <option value="blue">Bleu</option>
+        <option value="green">Vert</option>
+        <option value="pink">Rose</option>
+        <option value="red">Rouge</option>
+      </select>
+    </div>
+    <div id="shopBackgroundFilterWrap" class="shop-subfilter hidden">
+      <span class="shop-subfilter-label">Type de fond</span>
+      <select id="shopBackgroundFilter" class="shop-subfilter-select">
+        <option value="all">Tous</option>
+        <option value="classic">Classiques</option>
+        <option value="special">Spéciaux</option>
+        <option value="animated">Animés</option>
+      </select>
+    </div>
+    <div id="shopFrameFilterWrap" class="shop-subfilter hidden">
+      <span class="shop-subfilter-label">Type d’encadrement</span>
+      <select id="shopFrameFilter" class="shop-subfilter-select">
+        <option value="all">Tous</option>
+        <option value="classic">Classiques</option>
+        <option value="special">Spéciaux</option>
+        <option value="animated">Animés</option>
+      </select>
+    </div>
+    <div id="shopAvatarFrameFilterWrap" class="shop-subfilter hidden">
+      <span class="shop-subfilter-label">Type de cadre de profil</span>
+      <select id="shopAvatarFrameFilter" class="shop-subfilter-select">
+        <option value="all">Tous</option>
+        <option value="classic">Classiques</option>
+        <option value="special">Spéciaux</option>
+        <option value="animated">Animés</option>
+      </select>
+    </div>
+    <div id="shopMobileSummary" class="mobile-shop-summary" aria-live="polite"></div>
+    <div id="shopGrid" class="shop-grid"></div>
+    <nav id="shopMobilePagination" class="mobile-shop-pagination hidden" aria-label="Pages de la boutique">
+      <button id="shopMobilePrevious" type="button" aria-controls="shopGrid">‹ Précédent</button>
+      <span id="shopMobilePageLabel" aria-live="polite">Page 1 / 1</span>
+      <button id="shopMobileNext" type="button" aria-controls="shopGrid">Suivant ›</button>
+    </nav>
+    </div></div><aside id="commercePreviewSlot" class="commerce-preview-slot"></aside></div>
+  </div>
+</div>
+
+
+<div id="shopPurchaseConfirmModal" class="shop-modal shop-purchase-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopPurchaseConfirmTitle">
+  <div class="shop-purchase-card">
+    <button id="shopPurchaseConfirmClose" class="shop-close shop-purchase-close" type="button" aria-label="Fermer">×</button>
+    <div class="shop-purchase-kicker">Confirmation d’achat</div>
+    <h2 id="shopPurchaseConfirmTitle">Confirmer ton achat</h2>
+    <div id="shopPurchaseConfirmVisual" class="shop-purchase-visual"></div>
+    <div id="shopPurchaseConfirmName" class="shop-purchase-name"></div>
+    <div id="shopPurchaseConfirmText" class="shop-purchase-copy"></div>
+    <div id="shopPurchaseQuantityWrap" class="shop-purchase-quantity"><label for="shopPurchaseQuantity">Quantité</label><div><button id="shopPurchaseQuantityMinus" type="button" aria-label="Réduire la quantité">−</button><input id="shopPurchaseQuantity" type="number" min="1" max="100" step="1" value="1" inputmode="numeric"><button id="shopPurchaseQuantityPlus" type="button" aria-label="Augmenter la quantité">＋</button></div><small id="shopPurchaseUnitPrice"></small></div>
+    <div id="shopPurchaseConfirmError" class="shop-purchase-error" role="status"></div>
+    <div class="shop-purchase-summary"><span>Prix <strong id="shopPurchaseConfirmPrice"></strong></span><span>Ton solde <strong id="shopPurchaseConfirmBalance"></strong></span></div>
+    <div class="shop-purchase-actions"><button id="shopPurchaseConfirmCancel" class="shop-action secondary" type="button">Annuler</button><button id="shopPurchaseConfirmButton" class="shop-action" type="button">Confirmer l’achat</button></div>
+    <div id="shopPaymentWaiting" class="shop-payment-waiting hidden" aria-live="polite">
+      <div class="shop-payment-card-anim" aria-hidden="true"><div class="shop-payment-card-chip"></div><div class="shop-payment-card-mark">L♥</div></div>
+      <div class="shop-payment-wait-title">Paiement en cours…</div>
+      <div class="shop-payment-wait-steps"><span class="is-active">Vérification</span><span>Paiement</span><span>Validation</span></div>
+      <div class="shop-payment-wait-bar"><i></i></div>
+    </div>
+  </div>
+</div>
+
+<div id="shopPurchaseSuccessModal" class="shop-modal shop-purchase-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopPurchaseSuccessTitle">
+  <div id="shopPurchaseSuccessCard" class="shop-purchase-card shop-purchase-success">
+    <button id="shopPurchaseSuccessClose" class="shop-close shop-purchase-close" type="button" aria-label="Fermer">×</button>
+    <div class="shop-payment-orbit"><span>💰</span><i></i><i></i><i></i></div>
+    <div class="shop-purchase-kicker success">Paiement validé</div>
+    <h2 id="shopPurchaseSuccessTitle">Achat réussi !</h2>
+    <div id="shopPurchaseSuccessVisual" class="shop-purchase-visual"></div>
+    <div id="shopPurchaseSuccessName" class="shop-purchase-name"></div>
+    <div class="shop-purchase-success-message">🎒 Récupère ton objet dans ton inventaire !</div>
+    <div class="shop-purchase-balance-after">Nouveau solde : <strong id="shopPurchaseSuccessBalance"></strong></div>
+    <div class="shop-purchase-actions"><button id="shopPurchaseSuccessContinue" class="shop-action secondary" type="button">Continuer mes achats</button><button id="shopPurchaseSuccessInventory" class="shop-action" type="button">Voir mon inventaire</button></div>
+  </div>
+</div>
+<div id="shopItemPreviewModal" class="shop-modal shop-preview-modal hidden" role="dialog" aria-modal="true" aria-labelledby="shopItemPreviewTitle">
+  <div class="shop-preview-panel">
+    <div class="shop-head">
+      <div><h2 id="shopItemPreviewTitle">👁 Prévisualisation</h2><div id="shopItemPreviewSubtitle" class="shop-subtitle">Découvre l’article avant de dépenser ton LoVeR'Cash.</div></div>
+      <button id="shopItemPreviewClose" class="shop-close" type="button" aria-label="Fermer">×</button>
+    </div>
+    <div class="shop-preview-body">
+      <div id="shopItemPreviewVisual" class="shop-preview-stage"></div>
+      <div class="shop-preview-info">
+        <div id="shopItemPreviewKicker" class="shop-preview-kicker"></div>
+        <div id="shopItemPreviewName" class="shop-preview-name"></div>
+        <div id="shopItemPreviewDesc" class="shop-preview-desc"></div>
+        <div id="shopItemPreviewMeta" class="shop-preview-meta"></div>
+        <div id="shopItemPreviewOwned" class="shop-preview-ownedline"></div>
+        <div id="shopItemPreviewEffect" class="shop-preview-effect hidden"></div>
+        <div id="shopItemPreviewActions" class="shop-preview-actions"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer id="desktopGameFooter" class="desktop-game-footer" aria-label="Informations et conditions du jeu">
+  <div class="desktop-game-footer-bar" aria-hidden="true"></div>
+  <div class="desktop-game-footer-inner">
+  <div class="desktop-game-footer-main">
+    <div><strong>🐉 LoVeR Watch Game</strong><p>Jeu totalement gratuit · Aucun paiement en argent réel pour jouer.</p></div>
+    <span class="desktop-game-footer-free">✓ 100 % gratuit</span>
+  </div>
+  <button id="gameFeedbackOpen" class="desktop-game-footer-feedback" type="button">🐛 Bug ou 💡 idée ?</button>
+  <details class="desktop-game-footer-terms">
+    <summary>Conditions générales d’utilisation</summary>
+    <div class="desktop-game-footer-terms-copy">
+      <h3>Les règles du jeu</h3>
+      <p><strong>Accès gratuit.</strong> Le jeu et sa boutique fonctionnent sans paiement en argent réel. Aucun abonnement Twitch n’est nécessaire pour jouer.</p>
+      <p><strong>Monnaie et objets virtuels.</strong> Le LoVeR’Cash, les Lovys, les fragments et les objets servent uniquement dans le jeu. Ils ne sont pas convertibles en argent réel.</p>
+      <p><strong>Respect des joueurs.</strong> Joue dans le respect de la communauté. La triche, l’exploitation volontaire de bugs et les échanges frauduleux sont interdits.</p>
+      <p><strong>Jeu en développement.</strong> Les fonctionnalités et l’équilibrage peuvent évoluer. Si tu rencontres un bug, signale-le plutôt que d’en profiter.</p>
+    </div>
+  </details>
+  </div>
+</footer>
+
+<div id="gameFeedbackModal" class="feedback-modal hidden" role="dialog" aria-modal="true" aria-labelledby="gameFeedbackTitle">
+  <div class="feedback-panel">
+    <button id="gameFeedbackClose" class="account-close feedback-close" type="button" aria-label="Fermer">×</button>
+    <div class="feedback-kicker">🐛 Bug ou 💡 idée ?</div><h2 id="gameFeedbackTitle">Améliorons le jeu ensemble</h2>
+    <p id="gameFeedbackIntro" class="muted">Un bug ou une idée ? Ton message sera envoyé à l’administrateur du jeu.</p>
+    <form id="gameFeedbackForm">
+      <label>Que souhaites-tu partager ?<select id="gameFeedbackKind"><option value="bug">🐛 Signaler un bug</option><option value="idea">💡 Proposer une idée</option></select></label>
+      <label>Version du jeu concernée<select id="gameFeedbackPlatform" required><option value="pc">🖥️ PC</option><option value="mobile">📱 Mobile</option></select></label>
+      <label>Page concernée<select id="gameFeedbackPage"></select></label>
+      <label><span id="gameFeedbackDescriptionLabel">Que s’est-il passé ? Comment reproduire le bug ?</span><textarea id="gameFeedbackDescription" required minlength="20" maxlength="3000" rows="5" placeholder="Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…"></textarea><small>Entrée pour envoyer · Maj + Entrée pour aller à la ligne.</small></label>
+      <label>📷 Capture d’écran (facultative)<input id="gameFeedbackScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPEG ou WebP. Évite de montrer des informations personnelles.</small></label>
+      <div id="gameFeedbackImagePreview" class="hidden"><img id="gameFeedbackImage" alt="Aperçu de ta capture"><button id="gameFeedbackRemoveImage" type="button" class="btn secondary">Retirer la capture</button></div>
+      <div id="gameFeedbackMessage" role="status" aria-live="polite"></div>
+      <button id="gameFeedbackSubmit" class="btn" type="submit">Envoyer mon message</button>
+    </form>
+    <section id="gameFeedbackSuccess" class="feedback-success hidden" role="status" aria-live="polite">
+      <div id="gameFeedbackSuccessEmoji" class="feedback-success-emoji" aria-hidden="true"></div>
+      <h3 id="gameFeedbackSuccessTitle"></h3>
+      <p id="gameFeedbackSuccessText"></p>
+      <small id="gameFeedbackSuccessReference"></small>
+      <button id="gameFeedbackSuccessClose" class="btn" type="button">C’est compris !</button>
+    </section>
+  </div>
+</div>
+
+<script src="/app.js?v=323"></script>
+<script src="/auth-fallback.js?v=108"></script></body></html>
