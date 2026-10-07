@@ -7806,6 +7806,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(max-width:900px){
   :root{--mobile-page-bottom:var(--mobile-nav-height,calc(55px + env(safe-area-inset-bottom)))}
   #playerCardAccount{display:none!important}
+  #playerCardInventory{display:none!important}
   .mobile-self-profile-actions:not(.hidden){display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
   .mobile-self-profile-actions .btn{min-height:44px;flex:1 1 145px}
   .mobile-self-profile-actions .btn.hidden{display:none!important}
