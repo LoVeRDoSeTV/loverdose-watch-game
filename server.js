@@ -1560,6 +1560,10 @@ async function initDatabase() {
   await pool.query(`CREATE INDEX IF NOT EXISTS trade_offer_options_offer_idx ON trade_offer_options(offer_id, position)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS trade_wishes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, creature_id TEXT NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(user_id,creature_id))`);
   await pool.query(`CREATE TABLE IF NOT EXISTS trade_notifications (id BIGSERIAL PRIMARY KEY,user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,message TEXT NOT NULL,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,read_at TIMESTAMPTZ)`);
+  await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS event_type TEXT`);
+  await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS offer_id BIGINT REFERENCES trade_offers(id) ON DELETE CASCADE`);
+  await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS popup_seen_at TIMESTAMPTZ`);
+  await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS trade_notifications_expired_offer_idx ON trade_notifications(offer_id) WHERE event_type='offer_expired'`);
 
 
   await pool.query(`
@@ -6849,6 +6853,7 @@ async function restoreExpiredTrades(client=pool) {
     const asset={type:offer.offer_type,creatureId:offer.offer_creature_id,quantity:Number(offer.offer_quantity)};
     await changeTradeAsset(client,ctx,asset,asset.quantity);
     await client.query(`UPDATE trade_offers SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='open'`,[offer.id]);
+    await client.query(`INSERT INTO trade_notifications(user_id,message,event_type,offer_id) VALUES($1,$2,'offer_expired',$3) ON CONFLICT DO NOTHING`,[ctx.userId,`Ton offre #${offer.id} a expiré sans être acceptée. Tes objets ont été rendus.`,offer.id]);
   }
 }
 
@@ -6895,7 +6900,7 @@ app.get('/api/trades',async(req,res)=>{
     const ctx=await tradeContext(client,req);if(!ctx)return res.status(404).json({error:'Profil introuvable.'});
     const mine=String(req.query.mine||'')==='1';
     const params=mine?[ctx.userId]:[];
-    const where=mine?`o.creator_user_id=$1`:`o.status='open' AND o.expires_at>CURRENT_TIMESTAMP`;
+    const where=mine?`o.creator_user_id=$1 AND o.status<>'expired'`:`o.status='open' AND o.expires_at>CURRENT_TIMESTAMP`;
     const offers=await client.query(`
       SELECT o.*,COALESCE(a.username,u.display_name,u.login) creator_name,u.profile_image_url,
              COALESCE(accept_a.username,accept_u.display_name,accept_u.login) accepted_by_name
@@ -6973,9 +6978,30 @@ app.get('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(p
 app.post('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const id=String(req.body?.creatureId||'');if(!creatures.some(c=>c.id===id))return res.status(400).json({error:'Lovys invalide.'});if(req.body?.wanted)await pool.query(`INSERT INTO trade_wishes(user_id,creature_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[ctx.userId,id]);else await pool.query(`DELETE FROM trade_wishes WHERE user_id=$1 AND creature_id=$2`,[ctx.userId,id]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de modifier le souhait.'});}});
 
 
-app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
-app.get('/api/trades/notifications',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT id,message,created_at,read_at FROM trade_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[ctx.userId]);res.json({ok:true,unread:q.rows.filter(x=>!x.read_at).length,items:q.rows});}catch(e){res.status(500).json({error:'Notifications indisponibles.'});}});
+app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
+app.get('/api/trades/notifications',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT id,message,event_type,created_at,read_at FROM trade_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[ctx.userId]);res.json({ok:true,unread:q.rows.filter(x=>!x.read_at).length,items:q.rows});}catch(e){res.status(500).json({error:'Notifications indisponibles.'});}});
 app.post('/api/trades/notifications/read',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});await pool.query(`UPDATE trade_notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND read_at IS NULL`,[ctx.userId]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de marquer les notifications.'});}});
+app.get('/api/trades/expiry-notices',async(req,res)=>{
+  if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  let client,transaction=false;
+  try{
+    client=await pool.connect();await client.query('BEGIN');transaction=true;
+    await restoreExpiredTrades(client);await client.query('COMMIT');transaction=false;
+    const ctx=await tradeContext(client,req);if(!ctx)return res.status(404).json({error:'Profil introuvable.'});
+    const notices=await client.query(`SELECT id,offer_id FROM trade_notifications WHERE user_id=$1 AND event_type='offer_expired' AND popup_seen_at IS NULL ORDER BY id LIMIT 20`,[ctx.userId]);
+    res.json({ok:true,items:notices.rows.map(row=>({id:Number(row.id),offerId:Number(row.offer_id)}))});
+  }catch(error){if(transaction)try{await client.query('ROLLBACK');}catch{};console.error('Erreur avis d’expiration :',error);res.status(500).json({error:'Avis d’expiration indisponibles.'});}
+  finally{client?.release();}
+});
+app.post('/api/trades/expiry-notices/seen',async(req,res)=>{
+  try{
+    const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});
+    const ids=req.body?.ids;
+    if(!Array.isArray(ids)||!ids.length||ids.length>20||ids.some(id=>!Number.isSafeInteger(id)||id<1))return res.status(400).json({error:'Avis invalides.'});
+    await pool.query(`UPDATE trade_notifications SET popup_seen_at=CURRENT_TIMESTAMP WHERE id=ANY($1::bigint[]) AND user_id=$2 AND event_type='offer_expired' AND popup_seen_at IS NULL`,[ids,ctx.userId]);
+    res.json({ok:true});
+  }catch(error){res.status(500).json({error:'Impossible de confirmer les avis.'});}
+});
 
 /* =========================================
    CLASSEMENT
