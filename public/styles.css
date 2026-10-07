@@ -2076,7 +2076,7 @@ html, body{
   body[data-desktop-view="inventory"] .inventory-head h2{font-size:34px}
   body[data-desktop-view="inventory"] .inventory-close{font-size:0;border-radius:12px;width:auto;flex:none;padding:0 16px}
   body[data-desktop-view="inventory"] .inventory-close::after{content:'← Boutique';font-size:13px;font-weight:800}
-  .desktop-inventory-preview{display:block;margin:24px 0 28px;scroll-margin-top:24px}
+  .desktop-inventory-preview{margin:24px 0 28px;scroll-margin-top:24px}
   .inventory-preview-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:16px}
   .inventory-preview-heading h3{margin:0;font-size:20px}
   .inventory-preview-heading p{margin:8px 0 0;color:#aeb8d4;font-size:13px}
