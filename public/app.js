@@ -4010,6 +4010,10 @@ function openPlayerProfile(playerData) {
   if (!playerData) return;
   const content = $('playerProfileContent');
   if (!content) return;
+  const isOwnMobileProfile=isMobileGameUi() && Boolean(me?.user?.twitch_id) && String(playerData.twitch_id||'')===String(me.user.twitch_id);
+  $('mobileSelfProfileActions')?.classList.toggle('hidden',!isOwnMobileProfile);
+  $('mobileProfileAdmin')?.classList.toggle('hidden',!isOwnMobileProfile || !desktopAdminAuthorized);
+  if(isOwnMobileProfile)refreshDesktopAdminAccess();
 
   const creature = playerData.creature_id ? creatureById(playerData.creature_id) : null;
   const avatarFrame = profileAvatarFrameStyle(playerData.cosmetic_avatar_frame);
@@ -4084,6 +4088,8 @@ $('leaderboard')?.addEventListener('keydown', event => {
 });
 
 $('playerProfileClose')?.addEventListener('click', closePlayerProfile);
+$('mobileProfileAccount')?.addEventListener('click',()=>{if(isMobileGameUi())openAccountModal();});
+$('mobileProfileAdmin')?.addEventListener('click',()=>{if(isMobileGameUi())openDesktopAdmin();});
 $('playerProfileContent')?.addEventListener('click', event => {
   if (!isMobileGameUi()) return;
   const badge = event.target.closest('.player-profile-badge');
@@ -5326,7 +5332,7 @@ function syncDesktopAdminPlacement(){
     desktopAdminOrigin=document.createComment('tracker-admin-account-origin');
     section.parentNode.insertBefore(desktopAdminOrigin,section);
   }
-  if(isDesktopGameUi()){
+  if(isDesktopGameUi() || isMobileGameUi()){
     if(section.parentNode!==content)content.appendChild(section);
     section.classList.toggle('hidden',!desktopAdminAuthorized);
   }else{
@@ -5339,11 +5345,11 @@ function syncDesktopAdminPlacement(){
 function setDesktopAdminAccess(allowed){
   desktopAdminAuthorized=Boolean(allowed);
   $('desktopAdminButton')?.classList.toggle('hidden',!desktopAdminAuthorized);
+  $('mobileProfileAdmin')?.classList.toggle('hidden',!desktopAdminAuthorized || !isMobileGameUi() || $('mobileSelfProfileActions')?.classList.contains('hidden'));
   if(!desktopAdminAuthorized){closeDesktopAdmin();if(isDesktopGameUi())desktopAdminConfirmationCancel?.();}
-  if(isDesktopGameUi())syncDesktopAdminPlacement();
+  syncDesktopAdminPlacement();
 }
 async function refreshDesktopAdminAccess(){
-  if(!isDesktopGameUi())return false;
   try{
     const response=await fetch('/api/account/me',{cache:'no-store'});
     const data=await response.json();
@@ -5352,8 +5358,7 @@ async function refreshDesktopAdminAccess(){
   return desktopAdminAuthorized;
 }
 async function openDesktopAdmin(){
-  if(!isDesktopGameUi() || !await refreshDesktopAdminAccess())return;
-  if(!isDesktopGameUi())return;
+  if(!(isDesktopGameUi()||isMobileGameUi()) || !await refreshDesktopAdminAccess())return;
   syncDesktopAdminPlacement();
   const modal=$('desktopAdminModal');
   if(!modal || !modal.classList.contains('hidden'))return;
@@ -5369,12 +5374,13 @@ function closeDesktopAdmin(){
   modal.classList.add('hidden');
   document.body.style.overflow=desktopAdminPreviousOverflow;
   if(isDesktopGameUi())$('desktopAdminButton')?.focus();
+  else if(isMobileGameUi())$('mobileProfileAdmin')?.focus();
 }
 $('desktopAdminButton')?.addEventListener('click',openDesktopAdmin);
 $('desktopAdminClose')?.addEventListener('click',closeDesktopAdmin);
 $('desktopAdminModal')?.addEventListener('click',event=>{if(event.target===$('desktopAdminModal'))closeDesktopAdmin();});
 document.addEventListener('keydown',event=>{
-  if(!isDesktopGameUi() || $('desktopAdminModal')?.classList.contains('hidden'))return;
+  if($('desktopAdminModal')?.classList.contains('hidden'))return;
   if(document.querySelector('[data-admin-confirm-overlay]'))return;
   if(['adminPlayersModal','adminDashboardModal','adminEconomyModal','adminTrackerModal','trackerDetectedModal','adminHistoryModal','eventsModal'].some(id=>!$(id)?.classList.contains('hidden')))return;
   if(event.key==='Escape'){event.preventDefault();closeDesktopAdmin();}

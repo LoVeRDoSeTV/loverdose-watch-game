@@ -7805,6 +7805,25 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
    La Communauté PC est réutilisée avec une mise en page mobile dédiée. */
 @media(max-width:900px){
   :root{--mobile-page-bottom:var(--mobile-nav-height,calc(55px + env(safe-area-inset-bottom)))}
+  #playerCardAccount{display:none!important}
+  .mobile-self-profile-actions:not(.hidden){display:flex;flex-wrap:wrap;gap:10px;margin:0 0 18px}
+  .mobile-self-profile-actions .btn{min-height:44px;flex:1 1 145px}
+  .mobile-self-profile-actions .btn.hidden{display:none!important}
+  .desktop-admin-modal:not(.hidden){display:block;position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000060;overflow-y:auto;overscroll-behavior:contain;background:#0d1122}
+  .desktop-admin-panel{min-height:100%;padding:calc(18px + env(safe-area-inset-top)) 14px 30px}
+  .desktop-admin-panel .admin-players-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  #desktopAdminTitle{margin:0;font-size:24px}
+  #desktopAdminContent .tracker-admin{margin-top:18px}
+  #desktopAdminContent .admin-profile-actions .btn{min-height:44px}
+  #adminFeedbackSection{margin-top:18px}
+  #adminFeedbackSection .admin-feedback-item{display:block;width:100%;margin:12px 0;padding:14px;border:1px solid #343b5f;border-radius:12px;background:#101427;text-align:left;color:inherit}
+  #adminFeedbackSection .admin-feedback-row small,#adminFeedbackSection .admin-feedback-preview{display:block;margin-top:8px;color:#aeb8d4}
+  #adminFeedbackSection .admin-feedback-description{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}
+  #adminFeedbackSection .admin-feedback-detail-grid{display:grid;gap:14px;margin-top:18px}
+  #adminFeedbackSection .admin-feedback-item img{max-width:100%;max-height:260px;object-fit:contain}
+  #adminFeedbackSection .admin-feedback-actions{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+  #adminFeedbackSection .admin-feedback-actions select{min-height:44px;background:#0b1020;color:white;border:1px solid #343b5f;border-radius:8px}
+  #adminFeedbackNotice{color:#c9b4ff;white-space:pre-wrap}
 
   /* 7 destinations stables dans la même barre. */
   .mobile-game-nav{
