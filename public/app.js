@@ -6936,3 +6936,12 @@ function syncMobileFooterPlacement(){
   window.matchMedia('(max-width:900px)').addEventListener('change',syncMobileFooterPlacement);
   syncMobileFooterPlacement();
 })();
+// À l'ouverture, afficher immédiatement le début des CGU dans la page courante.
+// scrollIntoView suit aussi le conteneur de défilement des pages mobiles.
+document.querySelector('.desktop-game-footer-terms')?.addEventListener('toggle',event=>{
+  const terms=event.currentTarget;
+  if(!terms.open)return;
+  requestAnimationFrame(()=>{
+    if(terms.open)terms.querySelector('.desktop-game-footer-terms-copy h3')?.scrollIntoView({behavior:'auto',block:'start',inline:'nearest'});
+  });
+});
