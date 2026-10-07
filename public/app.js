@@ -6827,7 +6827,7 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
 });
 document.addEventListener('keydown',event=>{if($('gameFeedbackModal')?.classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeGameFeedback();}else if(event.key==='Tab')trapDesktopAdminFocus(event,$('gameFeedbackModal'));},true);
 window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches&&!gameFeedbackSending)closeGameFeedback();});
-let adminFeedbackArchive=false,adminFeedbackPage=1,adminFeedbackSelected=null,adminFeedbackGeneration=0;
+let adminFeedbackArchive=false,adminFeedbackPage=1,adminFeedbackSelected=null,adminFeedbackGeneration=0,adminFeedbackTotal=0;
 function feedbackStatusControl(item){return `<label>Statut <select data-feedback-status="${Number(item.id)}">${[['new','À traiter'],['in_progress','En cours'],['resolved','Résolu · traité']].map(([value,label])=>`<option value="${value}" ${item.status===value?'selected':''}>${label}</option>`).join('')}</select></label><button class="btn secondary" type="button" data-feedback-discord="${Number(item.id)}">${item.discord_status==='sent'?'Synchroniser Discord':'Réessayer l’envoi Discord'}</button>`;}
 async function loadAdminFeedback(){
   const generation=++adminFeedbackGeneration;
@@ -6835,6 +6835,8 @@ async function loadAdminFeedback(){
   $('adminFeedbackActive').classList.toggle('secondary',adminFeedbackArchive);$('adminFeedbackArchive').classList.toggle('secondary',!adminFeedbackArchive);
   try {
     const data=await adminFetch(`/api/admin/feedback?archive=${adminFeedbackArchive?1:0}&page=${adminFeedbackPage}`);if(generation!==adminFeedbackGeneration)return;
+    adminFeedbackTotal=Number(data.total)||0;
+    $('adminFeedbackPurge').classList.toggle('hidden',!adminFeedbackArchive||!adminFeedbackTotal);
     $('adminFeedbackDiscordState').textContent=data.discordConfigured?'Discord configuré : les nouveaux retours sont envoyés dans ton salon et leur statut y est mis à jour.':'Discord non configuré. Les retours restent enregistrés ici.';
     list.innerHTML=data.items.length?data.items.map(item=>`<button type="button" class="admin-feedback-item admin-feedback-row" data-feedback-open="${Number(item.id)}"><span><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${({pc:'🖥️ PC',mobile:'📱 Mobile'})[item.platform]||'Version non précisée'} · ${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small><span class="admin-feedback-preview">${escapeHtml(item.description.slice(0,160))}${item.description.length>160?'…':''}</span></span><span>${{new:'À traiter',in_progress:'En cours',resolved:'✓ Traité'}[item.status]} →</span></button>`).join(''):`<p class="muted">${adminFeedbackArchive?'Aucun retour archivé.':'Aucun retour à traiter.'}</p>`;
     const pages=Math.max(1,Math.ceil(data.total/20));$('adminFeedbackPagination').innerHTML=`<button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage-1}" ${adminFeedbackPage<=1?'disabled':''}>← Précédent</button><span>Page ${adminFeedbackPage} / ${pages}</span><button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage+1}" ${adminFeedbackPage>=pages?'disabled':''}>Suivant →</button>`;
@@ -6858,6 +6860,24 @@ async function openAdminFeedbackDetail(id){
 $('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminContent').classList.add('hidden');$('adminFeedbackOpen').classList.add('hidden');$('adminFeedbackSection').classList.remove('hidden');$('adminFeedbackNotice').textContent='';adminFeedbackArchive=false;adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
 $('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');});
 for(const [id,archive] of [['adminFeedbackActive',false],['adminFeedbackArchive',true]])$(id)?.addEventListener('click',()=>{adminFeedbackArchive=archive;adminFeedbackPage=1;$('adminFeedbackNotice').textContent='';loadAdminFeedback();});
+$('adminFeedbackPurge')?.addEventListener('click',async()=>{
+  if(!adminFeedbackArchive||!adminFeedbackTotal)return;
+  const count=adminFeedbackTotal;
+  const approved=await showAdminActionConfirmation({username:'Bugs et idées résolus',actionText:`Supprimer ${count} archive${count>1?'s':''}`,question:`Supprimer définitivement ${count} retour${count>1?'s':''} archivé${count>1?'s':''} et leurs messages Discord associés ? Les retours non résolus restent intacts. Cette action ne peut pas être annulée.`});
+  if(!approved)return;
+  const button=$('adminFeedbackPurge');button.disabled=true;
+  let cursor=null,deleted=0,failed=0;
+  try{
+    do{
+      const data=await adminFetch(`/api/admin/feedback/archive${cursor===null?'':`?before=${cursor}`}`,{method:'DELETE'});
+      deleted+=Number(data.deleted)||0;failed+=Number(data.failed)||0;cursor=data.nextCursor;
+      $('adminFeedbackNotice').textContent=`Nettoyage en cours : ${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''}…`;
+    }while(cursor!==null);
+    adminFeedbackPage=1;await loadAdminFeedback();
+    $('adminFeedbackNotice').textContent=`✓ ${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''} ici et sur Discord quand un message était associé.${failed?` ${failed} conservée${failed>1?'s':''} : suppression Discord impossible ou ancien message sans identifiant.`:''}`;
+  }catch(error){adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackNotice').textContent=`${deleted} archive${deleted>1?'s':''} supprimée${deleted>1?'s':''}. Nettoyage interrompu : ${error.message}`;}
+  finally{button.disabled=false;}
+});
 $('adminFeedbackSection')?.addEventListener('change',async event=>{
   const select=event.target.closest('[data-feedback-status]');if(!select)return;
   select.disabled=true;const id=Number(select.dataset.feedbackStatus);const status=select.value;

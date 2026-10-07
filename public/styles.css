@@ -7810,6 +7810,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .mobile-self-profile-actions .btn{min-height:44px;flex:1 1 145px}
   .mobile-self-profile-actions .btn.hidden{display:none!important}
   .desktop-admin-modal:not(.hidden){display:block;position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000060;overflow-y:auto;overscroll-behavior:contain;background:#0d1122}
+  .admin-confirm-overlay{z-index:1001200}
   .desktop-admin-panel{min-height:100%;padding:calc(18px + env(safe-area-inset-top)) 14px 30px}
   .desktop-admin-panel .admin-players-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
   #desktopAdminTitle{margin:0;font-size:24px}
