@@ -3656,6 +3656,7 @@ function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches
 function setMobileNavActive(id){
   document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id));
   if(isMobileGameUi()) document.body.style.overflow=id==='mobileNavHome'?'':'hidden';
+  if(syncMobileFooterPlacement.ready)syncMobileFooterPlacement();
 }
 // La hauteur mesurée comprend la zone sûre iOS et suit les rotations / zooms.
 function updateMobileNavHeight(){
@@ -6769,10 +6770,12 @@ function feedbackMessage(text,error=false){$('gameFeedbackMessage').textContent=
 function clearFeedbackImage(){gameFeedbackImageVersion++;gameFeedbackScreenshot=null;gameFeedbackImageBusy=false;$('gameFeedbackScreenshot').value='';$('gameFeedbackImage').removeAttribute('src');$('gameFeedbackImagePreview').classList.add('hidden');}
 function closeGameFeedback(){if(gameFeedbackSending)return;$('gameFeedbackModal').classList.add('hidden');gameFeedbackPreviousFocus?.focus();}
 function openGameFeedback(){
-  if(!isDesktopGameUi()||!me?.user)return;
+  if(!me?.user)return;
   gameFeedbackPreviousFocus=document.activeElement;$('gameFeedbackSuccess').classList.add('hidden');$('gameFeedbackForm').classList.remove('hidden');$('gameFeedbackForm').style.removeProperty('display');$('gameFeedbackSubmit').style.removeProperty('display');$('gameFeedbackIntro').classList.remove('hidden');$('gameFeedbackTitle').textContent='Améliorons le jeu ensemble';$('gameFeedbackForm').reset();clearFeedbackImage();feedbackMessage('');
+  $('gameFeedbackPlatform').value=isMobileGameUi()?'mobile':'pc';
   $('gameFeedbackPage').innerHTML=gameFeedbackPages.map(page=>`<option>${escapeHtml(page)}</option>`).join('');
   $('gameFeedbackPage').value=({home:'Accueil',lovys:'Lovys',incubator:'Incubateur',pve:'PvE',lobby:'Communauté',leaderboard:'Classement',progression:'Progression',shop:commerceTab==='inventory'?'Inventaire':'Boutique',account:'Mon compte'})[desktopView]||'Autre';
+  if(isMobileGameUi())$('gameFeedbackPage').value=currentMobileFeedbackPage();
   $('gameFeedbackSubmit').disabled=false;$('gameFeedbackSubmit').textContent='Envoyer mon message';$('gameFeedbackModal').classList.remove('hidden');$('gameFeedbackKind').dispatchEvent(new Event('change'));$('gameFeedbackKind').focus();
 }
 $('gameFeedbackOpen')?.addEventListener('click',openGameFeedback);
@@ -6806,7 +6809,7 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
   const submittedKind=$('gameFeedbackKind').value;
   gameFeedbackSending=true;const button=$('gameFeedbackSubmit');button.disabled=true;feedbackMessage('');
   try {
-    const response=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:submittedKind,page:$('gameFeedbackPage').value,description,screenshot:gameFeedbackScreenshot})});const data=await response.json();if(!response.ok)throw Error(data.error||'Envoi impossible.');
+    const response=await fetch('/api/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind:submittedKind,page:$('gameFeedbackPage').value,platform:$('gameFeedbackPlatform').value,description,screenshot:gameFeedbackScreenshot})});const data=await response.json();if(!response.ok)throw Error(data.error||'Envoi impossible.');
     const bug=submittedKind==='bug';
     $('gameFeedbackSuccessEmoji').textContent=bug?'🛠️':'💡✨';
     $('gameFeedbackTitle').textContent='Message bien reçu';
@@ -6827,7 +6830,7 @@ async function loadAdminFeedback(){
   try {
     const data=await adminFetch(`/api/admin/feedback?archive=${adminFeedbackArchive?1:0}&page=${adminFeedbackPage}`);if(generation!==adminFeedbackGeneration)return;
     $('adminFeedbackDiscordState').textContent=data.discordConfigured?'Discord configuré : les nouveaux retours sont envoyés dans ton salon et leur statut y est mis à jour.':'Discord non configuré. Les retours restent enregistrés ici.';
-    list.innerHTML=data.items.length?data.items.map(item=>`<button type="button" class="admin-feedback-item admin-feedback-row" data-feedback-open="${Number(item.id)}"><span><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small><span class="admin-feedback-preview">${escapeHtml(item.description.slice(0,160))}${item.description.length>160?'…':''}</span></span><span>${{new:'À traiter',in_progress:'En cours',resolved:'✓ Traité'}[item.status]} →</span></button>`).join(''):`<p class="muted">${adminFeedbackArchive?'Aucun retour archivé.':'Aucun retour à traiter.'}</p>`;
+    list.innerHTML=data.items.length?data.items.map(item=>`<button type="button" class="admin-feedback-item admin-feedback-row" data-feedback-open="${Number(item.id)}"><span><strong>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)} · ${escapeHtml(item.player_name)}</strong><small>${({pc:'🖥️ PC',mobile:'📱 Mobile'})[item.platform]||'Version non précisée'} · ${escapeHtml(item.page)} · ${new Date(item.created_at).toLocaleString('fr-FR')}</small><span class="admin-feedback-preview">${escapeHtml(item.description.slice(0,160))}${item.description.length>160?'…':''}</span></span><span>${{new:'À traiter',in_progress:'En cours',resolved:'✓ Traité'}[item.status]} →</span></button>`).join(''):`<p class="muted">${adminFeedbackArchive?'Aucun retour archivé.':'Aucun retour à traiter.'}</p>`;
     const pages=Math.max(1,Math.ceil(data.total/20));$('adminFeedbackPagination').innerHTML=`<button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage-1}" ${adminFeedbackPage<=1?'disabled':''}>← Précédent</button><span>Page ${adminFeedbackPage} / ${pages}</span><button class="btn secondary" type="button" data-feedback-page="${adminFeedbackPage+1}" ${adminFeedbackPage>=pages?'disabled':''}>Suivant →</button>`;
   }catch(error){if(generation===adminFeedbackGeneration)list.textContent=error.message;}
 }
@@ -6836,7 +6839,7 @@ async function openAdminFeedbackDetail(id){
   $('adminFeedbackList').classList.add('hidden');$('adminFeedbackPagination').classList.add('hidden');const detail=$('adminFeedbackDetail');detail.classList.remove('hidden');detail.innerHTML='<p>Chargement du retour et du joueur…</p>';
   try{
     const data=await adminFetch(`/api/admin/feedback/${id}`);if(generation!==adminFeedbackGeneration)return;const item=data.item;
-    detail.innerHTML=`<button class="btn secondary" type="button" data-feedback-return>← Liste des retours</button><div class="admin-feedback-detail-grid"><article class="admin-feedback-item"><h3>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)}</h3><p><strong>${escapeHtml(item.player_name)}</strong> · ${escapeHtml(item.page)}<br><small>${new Date(item.created_at).toLocaleString('fr-FR')}</small></p><p class="admin-feedback-description">${escapeHtml(item.description)}</p>${item.has_screenshot?`<a href="/api/admin/feedback/${id}/screenshot" target="_blank" rel="noopener"><img src="/api/admin/feedback/${id}/screenshot" alt="Capture du retour"></a>`:'<p class="muted">Aucune capture jointe.</p>'}<div class="admin-feedback-actions">${feedbackStatusControl(item)}</div>${item.discord_error?`<p class="muted">⚠️ ${escapeHtml(item.discord_error)}</p>`:''}<p class="muted">« Résolu · traité » archive ce retour. Le statut peut être remis à « À traiter » depuis les archives.</p></article><aside id="adminFeedbackPlayer" class="admin-feedback-item"><p>Chargement du profil…</p></aside></div>`;
+    detail.innerHTML=`<button class="btn secondary" type="button" data-feedback-return>← Liste des retours</button><div class="admin-feedback-detail-grid"><article class="admin-feedback-item"><h3>${item.kind==='bug'?'🐛 Bug':'💡 Idée'} #${Number(item.id)}</h3><p><strong>${escapeHtml(item.player_name)}</strong> · ${({pc:'🖥️ PC',mobile:'📱 Mobile'})[item.platform]||'Version non précisée'} · ${escapeHtml(item.page)}<br><small>${new Date(item.created_at).toLocaleString('fr-FR')}</small></p><p class="admin-feedback-description">${escapeHtml(item.description)}</p>${item.has_screenshot?`<a href="/api/admin/feedback/${id}/screenshot" target="_blank" rel="noopener"><img src="/api/admin/feedback/${id}/screenshot" alt="Capture du retour"></a>`:'<p class="muted">Aucune capture jointe.</p>'}<div class="admin-feedback-actions">${feedbackStatusControl(item)}</div>${item.discord_error?`<p class="muted">⚠️ ${escapeHtml(item.discord_error)}</p>`:''}<p class="muted">« Résolu · traité » archive ce retour. Le statut peut être remis à « À traiter » depuis les archives.</p></article><aside id="adminFeedbackPlayer" class="admin-feedback-item"><p>Chargement du profil…</p></aside></div>`;
     const profile=$('adminFeedbackPlayer');
     if(!item.account_id){profile.textContent='Le compte du joueur a été supprimé. Son message reste disponible.';return;}
     try{
@@ -6866,3 +6869,38 @@ $('adminFeedbackSection')?.addEventListener('click',async event=>{
   const button=event.target.closest('[data-feedback-discord]');if(!button)return;button.disabled=true;
   try{const data=await adminFetch(`/api/admin/feedback/${Number(button.dataset.feedbackDiscord)}/discord`,{method:'POST'});const notice={sent:'✓ Message envoyé sur Discord.',synced:'✓ Statut Discord synchronisé.',legacy:'Cet ancien message Discord n’a pas d’identifiant enregistré : synchronisation indisponible.',not_sent:'Le message n’a pas encore été envoyé sur Discord.',unchanged:'Ce message a déjà été envoyé. Change son statut pour le synchroniser.',failed:'Envoi Discord échoué.',not_configured:'Discord non configuré.'}[data.status]||'Envoi terminé.';if(adminFeedbackSelected)await openAdminFeedbackDetail(Number(button.dataset.feedbackDiscord));$('adminFeedbackNotice').textContent=notice+(data.detail?' '+data.detail:'');}catch(error){$('adminFeedbackNotice').textContent=error.message;}finally{button.disabled=false;}
 });
+
+// Le même pied de page suit la zone de défilement mobile et retrouve sa place PC.
+function currentMobileFeedbackPage(){
+  if(document.body.classList.contains('mobile-leaderboard-open'))return 'Classement';
+  if(document.body.classList.contains('mobile-community-open'))return 'Communauté';
+  for(const [id,label] of [['shopModal','Boutique'],['inventoryModal','Inventaire'],['playerProfileModal','Mon compte'],['lovysCollectionModal','Lovys'],['progressionModal','Progression'],['pveModal','PvE']])if($(id)&&!$(id).classList.contains('hidden'))return label;
+  return isMobileEggDetailsOpen()?'Incubateur':'Accueil';
+}
+function syncMobileFooterPlacement(){
+  if(!syncMobileFooterPlacement.ready)return;
+  const {footer,origin}=syncMobileFooterPlacement;
+  if(!isMobileGameUi()){
+    footer.classList.remove('mobile-footer-hidden');
+    if(origin.parentNode&&footer.previousSibling!==origin)origin.after(footer);
+    return;
+  }
+  let host=$('app');
+  if(document.body.classList.contains('mobile-leaderboard-open'))host=document.querySelector('.global-leaderboard');
+  else if(document.body.classList.contains('mobile-community-open'))host=$('desktopLobbyPage')?.querySelector('.desktop-lobby-shell');
+  else for(const id of ['shopModal','inventoryModal','playerProfileModal','lovysCollectionModal','progressionModal']){
+    const page=$(id);if(page&&!page.classList.contains('hidden')){host=page.firstElementChild;break;}
+  }
+  if(isMobileEggDetailsOpen())host=$('pick');
+  footer.classList.toggle('mobile-footer-hidden',Boolean($('pveModal')&&!$('pveModal').classList.contains('hidden')));
+  if(host&&footer.parentNode!==host)host.appendChild(footer);
+}
+(function initMobileFooter(){
+  const footer=$('desktopGameFooter');if(!footer)return;
+  const origin=document.createComment('game-footer-original-position');footer.before(origin);
+  Object.assign(syncMobileFooterPlacement,{footer,origin,ready:true});
+  const observer=new MutationObserver(syncMobileFooterPlacement);
+  for(const node of [document.body,$('app'),$('pick'),...['shopModal','inventoryModal','playerProfileModal','lovysCollectionModal','progressionModal','pveModal','desktopLobbyPage'].map($)].filter(Boolean))observer.observe(node,{attributes:true,attributeFilter:['class']});
+  window.matchMedia('(max-width:900px)').addEventListener('change',syncMobileFooterPlacement);
+  syncMobileFooterPlacement();
+})();

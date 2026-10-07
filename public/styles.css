@@ -4594,18 +4594,20 @@ body:has(#pveModal:not(.hidden)){
 .reward-wheel-card::after{display:none}
 @media(max-width:900px){
   .wallet-card{
-    background-image:none;
-    background-color:rgba(21,25,43,.94);
-    box-shadow:none;
+    background:linear-gradient(115deg,rgba(54,33,94,.92),rgba(23,25,49,.97) 58%,rgba(12,16,33,.98));
+    box-shadow:0 12px 32px rgba(0,0,0,.24),inset 0 0 24px rgba(145,71,255,.09);
+    border-color:rgba(177,124,255,.48);
     grid-template-columns:minmax(0,1fr) auto;
-    gap:10px;padding:12px 14px;border-radius:16px;
+    gap:12px;padding:18px;border-radius:16px;
   }
-  .wallet-card .wallet-kicker,.wallet-card .wallet-label{display:none}
-  .wallet-card .wallet-icon{width:42px;height:42px;border-radius:12px}
-  .wallet-card .wallet-balance{font-size:24px;overflow-wrap:anywhere}
-  .wallet-card .wallet-currency{font-size:11px}
-  .wallet-card .wallet-shop-button{width:auto;min-height:42px;padding:9px 12px}
+  .wallet-card .wallet-kicker{display:block;font-size:16px}
+  .wallet-card .wallet-label{display:block;font-size:11px}
+  .wallet-card .wallet-icon{width:54px;height:54px;border-radius:16px}
+  .wallet-card .wallet-balance{font-size:31px;overflow-wrap:anywhere}
+  .wallet-card .wallet-currency{font-size:13px}
+  .wallet-card .wallet-shop-button{grid-column:2;justify-self:end;width:auto;min-width:105px;min-height:44px;padding:9px 12px}
 }
+@media(max-width:370px){.wallet-card .wallet-shop-button{grid-column:1/-1;justify-self:stretch;width:100%}}
 @media(max-width:700px){
   .reward-wheel-card{
     background-size:100% 100%,100% 100%;
@@ -8073,4 +8075,43 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  .admin-feedback-avatar{width:80px!important;height:80px;object-fit:cover;border-radius:18px;}
  #adminFeedbackNotice{color:#c9b4ff;white-space:pre-wrap;}
  #adminFeedbackPagination{margin-top:18px;}
+}
+
+/* v319 — Portefeuille, informations et retours sur mobile uniquement. */
+@media(max-width:900px){
+ body:not(.auth-locked) .desktop-game-footer{display:block;width:100%;margin:30px 0 0;background:transparent;clear:both;}
+ body:not(.auth-locked) .desktop-game-footer.mobile-footer-hidden{display:none;}
+ .desktop-game-footer-bar{height:2px;background:linear-gradient(90deg,#6f35d9,#b47aff,#6f35d9);}
+ .desktop-game-footer-inner{display:grid;gap:16px;padding:20px 14px 24px;}
+ .desktop-game-footer-main{display:grid;gap:10px;}
+ .desktop-game-footer-main strong{font-size:14px;color:#dce0ef;}
+ .desktop-game-footer-main p{margin:6px 0 0;font-size:12px;line-height:1.6;color:#a8b3d0;}
+ .desktop-game-footer-free{font-size:12px;color:#cba9ff;font-weight:750;}
+ .desktop-game-footer-feedback{min-height:44px;text-align:left;padding:9px 0;background:transparent;border:0;color:#cba9ff;font:inherit;font-size:14px;}
+ .desktop-game-footer-terms summary{min-height:44px;padding:10px 0;font-size:13px;line-height:1.6;color:#a8b3d0;cursor:pointer;}
+ .desktop-game-footer-terms-copy{padding-top:10px;font-size:12px;line-height:1.7;color:#a8b3d0;}
+ .desktop-game-footer-terms-copy h3{font-size:14px;color:#f7f7fb;}
+  .feedback-modal:not(.hidden){position:fixed;inset:0;z-index:1000200;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(3,5,15,.8);backdrop-filter:blur(6px)}
+  .feedback-panel{position:relative;width:min(600px,100%);max-height:calc(100dvh - 24px);overflow-y:auto;padding:24px 18px;border:1px solid rgba(145,71,255,.4);border-radius:20px;background:linear-gradient(155deg,#19152e,#0e1224);box-shadow:0 24px 70px #0006}
+  .feedback-close{position:absolute;right:16px;top:16px}
+  .feedback-panel h2{font-size:23px;margin:8px 45px 10px 0}
+  .feedback-kicker{color:#b995ff;font-size:11px;letter-spacing:1.5px;font-weight:900}
+  .feedback-panel>.muted{font-size:13px;line-height:1.6}
+  #gameFeedbackForm:not(.hidden){display:grid;gap:14px;margin-top:20px}
+  #gameFeedbackForm label{display:grid;gap:7px;font-size:12px;font-weight:750}
+  #gameFeedbackForm :is(select,textarea,input){width:100%;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:#0b1020;color:#fff;font:inherit;font-size:16px}
+  #gameFeedbackScreenshot::file-selector-button{padding:9px 14px;margin-right:12px;border:1px solid #a779ff;border-radius:8px;background:linear-gradient(135deg,#8850df,#6639bf);color:#fff;font:inherit;font-weight:750;cursor:pointer;}
+  #gameFeedbackScreenshot::file-selector-button:hover{background:#9357ef;}
+  #gameFeedbackForm textarea{resize:vertical;min-height:120px}
+  #gameFeedbackForm small{color:#9da7c6;font-weight:400;line-height:1.5}
+  #gameFeedbackImage{display:block;width:100%;max-height:220px;object-fit:contain;margin-bottom:8px;border-radius:8px}
+  #gameFeedbackMessage{font-size:13px;line-height:1.6;color:#d1baff}
+  #gameFeedbackMessage.error{color:#ff9caa}
+  .feedback-success{text-align:center;padding:18px 8px 6px;}
+  .feedback-success-emoji{font-size:46px;margin-bottom:18px;}
+  .feedback-success h3{font-size:21px;color:#eee4ff;margin:0 0 14px;}
+  .feedback-success p{font-size:15px;line-height:1.75;color:#c7cfe4;margin:0 0 18px;}
+  .feedback-success small{display:block;color:#aab6d4;font-size:12px;}
+  .feedback-success .btn{display:block;width:100%;margin-top:24px;}
+
 }
