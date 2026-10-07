@@ -1071,6 +1071,7 @@ async function initDatabase() {
   )`);
   await pool.query(`ALTER TABLE game_feedback ADD COLUMN IF NOT EXISTS discord_message_id TEXT`);
   await pool.query(`ALTER TABLE game_feedback ADD COLUMN IF NOT EXISTS discord_error TEXT`);
+  await pool.query(`ALTER TABLE game_feedback ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'unknown'`);
   await pool.query(`CREATE INDEX IF NOT EXISTS game_feedback_account_date ON game_feedback(account_id,created_at)`);
 
   // Les comptes déjà existants sont considérés comme ayant déjà vu l'introduction.
