@@ -5040,7 +5040,7 @@ body:has(#pveModal:not(.hidden)){
    Mobile <= 900px volontairement inchangé.
 ========================================================= */
 @media (min-width:901px){
-  body{padding-left:0!important;background:radial-gradient(circle at 50% -10%,#1a1530 0,#0b0d18 42%,#080a13 100%)}
+  body{padding-left:0!important;min-height:100vh;min-height:100dvh;background-color:#080a13;background-image:radial-gradient(circle at 50% -10%,#1a1530 0,#0b0d18 42%,#080a13 100%);background-repeat:no-repeat;background-attachment:fixed;background-size:100% 100vh}
   .wrap{max-width:1500px;padding:18px 30px 46px}
   .top{min-height:54px;padding:0 4px}.logo{font-size:24px;letter-spacing:-.02em}
   .global-leaderboard{display:none!important}
@@ -5078,7 +5078,7 @@ body:has(#pveModal:not(.hidden)){
   body[data-desktop-view="incubator"] .incubator-slot-egg{height:126px}body[data-desktop-view="incubator"] .incubator-egg-mini{transform:scale(1.55)}body[data-desktop-view="incubator"] .incubator-slot-title{font-size:18px}body[data-desktop-view="incubator"] .incubator-time{font-size:13px}body[data-desktop-view="incubator"] .incubator-status{font-size:11px}
 
   /* Les grandes fonctions deviennent de vrais écrans PC et non des popups. */
-  #pveModal,.lovys-collection-modal,#progressionModal,.shop-modal{top:126px!important;bottom:0!important;left:0!important;right:0!important;inset:auto 0 0!important;z-index:1000020!important;align-items:flex-start!important;justify-content:center!important;padding:20px 30px 44px!important;background:#090c17!important;backdrop-filter:none!important;overflow:auto!important}
+  #pveModal,.lovys-collection-modal,#progressionModal,.shop-modal{top:126px!important;bottom:0!important;left:0!important;right:0!important;inset:auto 0 0!important;z-index:1000020!important;align-items:flex-start!important;justify-content:center!important;padding:20px 30px 44px!important;background:transparent!important;backdrop-filter:none!important;overflow:auto!important}
   #pveModal .game-panel,.lovys-collection-panel,#progressionModal .game-panel,.shop-panel{width:min(1420px,100%)!important;max-width:1420px!important;max-height:none!important;min-height:calc(100vh - 190px);overflow:visible!important;border-radius:24px!important;padding:24px 26px!important;background:linear-gradient(180deg,#12172c,#0d1122)!important;box-shadow:0 22px 70px rgba(0,0,0,.24)!important}
   #pveModal .game-close,.lovys-collection-panel>.lovys-collection-head .game-close,#progressionModal .game-close,.shop-panel>.shop-head .shop-close{display:none!important}
   .lovys-collection-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}.lovys-collection-card{border-radius:18px}.lovys-collection-art{height:180px}.lovys-collection-art img{height:175px;max-width:180px}
@@ -5102,7 +5102,7 @@ body:has(#pveModal:not(.hidden)){
   #pveModal.desktop-battle-mode .pve-battle-arena{min-height:520px}
 
   /* Lobby */
-  .desktop-lobby-page{position:fixed;z-index:1000020;top:126px;left:0;right:0;bottom:0;padding:20px 30px 44px;overflow:auto;background:#090c17}.desktop-lobby-page.hidden{display:none}
+  .desktop-lobby-page{position:fixed;z-index:1000020;top:126px;left:0;right:0;bottom:0;padding:20px 30px 44px;overflow:auto;background:transparent}.desktop-lobby-page.hidden{display:none}
   .desktop-lobby-shell{width:min(1420px,100%);min-height:calc(100vh - 190px);margin:auto;padding:26px;border:1px solid rgba(145,71,255,.22);border-radius:24px;background:linear-gradient(180deg,#12172c,#0d1122);box-shadow:0 22px 70px rgba(0,0,0,.24)}
   .desktop-page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:24px}.desktop-page-head h2,.trade-composer-head h2{margin:4px 0 0;font-size:30px}.desktop-page-head p,.trade-composer-head p{max-width:720px;margin:7px 0 0;color:#9ea7c6;font-size:12px;line-height:1.55}.desktop-page-kicker{font-size:9px;font-weight:1000;letter-spacing:.14em;color:#a98cff}.lobby-presence-summary{padding:9px 12px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:11px;font-weight:900}
   .lobby-tabs{display:flex;gap:6px;margin-top:24px;padding-bottom:12px;border-bottom:1px solid rgba(255,255,255,.07)}.lobby-tab{padding:10px 14px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:12px;font-weight:900;cursor:pointer}.lobby-tab.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
@@ -5317,7 +5317,7 @@ body:has(#pveModal:not(.hidden)){
     display:block!important;
     padding:0 42px 64px!important;
     overflow-y:auto!important;
-    background:#090c17!important;
+    background:transparent!important;
     backdrop-filter:none!important;
   }
   body[data-desktop-view="shop"] #shopModal.hidden{display:none!important}
@@ -6798,12 +6798,12 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .desktop-admin-button,.desktop-admin-modal,.desktop-action-success{display:none}
 @media(min-width:901px){
   .desktop-admin-button:not(.hidden){display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 13px;border:1px solid rgba(145,71,255,.5);border-radius:12px;background:rgba(145,71,255,.16);color:#eee2ff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
-  .desktop-admin-modal:not(.hidden){position:relative;inset:auto;z-index:auto;display:block;width:100%;max-width:1040px;margin:28px auto 0;padding:0 0 32px;background:transparent;backdrop-filter:none}
+  .desktop-admin-modal:not(.hidden){position:relative;inset:auto;z-index:auto;display:block;width:100%;max-width:1652px;margin:28px auto 0;padding:0 0 32px;background:transparent;backdrop-filter:none}
   .desktop-admin-panel{width:100%;max-height:none;overflow:visible;padding:0 0 32px;border:0;border-radius:0;background:transparent;box-shadow:none}
   #desktopAdminClose{display:none}
   .account-page-subtitle{display:block;margin:8px 0 0;color:#aeb7d1;font-size:14px;font-weight:400}
-  .desktop-admin-tabs{display:flex;flex-wrap:nowrap;align-items:center;gap:18px;min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#9147ff transparent;padding:0 4px 14px;margin-bottom:24px;border-bottom:1px solid rgba(145,71,255,.22)}
-  .desktop-admin-tabs>.btn{flex:0 0 auto;width:auto;white-space:nowrap;min-height:42px;padding:8px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#aeb7d1;font-size:14px}
+  .desktop-admin-tabs{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:clamp(4px,.8vw,16px);min-width:0;width:100%;padding:0 0 14px;margin-bottom:24px;border-bottom:1px solid rgba(145,71,255,.22)}
+  .desktop-admin-tabs>.btn{flex:0 0 auto;width:auto;white-space:nowrap;min-height:42px;padding:8px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#aeb7d1;font-size:clamp(10px,.8vw,14px)}
   .desktop-admin-tabs>.btn[aria-current]{color:#e9dcff;border-bottom:2px solid #a86dff}
   #desktopAdminPageSlot{display:block}
   #desktopAdminPageSlot>div:not(.hidden){display:block;position:static!important;inset:auto!important;z-index:auto!important;padding:0;background:transparent;backdrop-filter:none;width:100%;max-width:none}
