@@ -1074,6 +1074,8 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE game_feedback ADD COLUMN IF NOT EXISTS platform TEXT NOT NULL DEFAULT 'unknown'`);
   await pool.query(`CREATE INDEX IF NOT EXISTS game_feedback_account_date ON game_feedback(account_id,created_at)`);
 
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS community_intro_seen BOOLEAN NOT NULL DEFAULT FALSE`);
+
   // Les comptes déjà existants sont considérés comme ayant déjà vu l'introduction.
   // Les nouvelles inscriptions passent explicitement cette valeur à FALSE.
   await pool.query(`
@@ -3063,6 +3065,7 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
         discordVerifiedAt: account.discord_verified_at || null,
         gameReady,
         showGameIntro: Boolean(account.twitch_id) && !account.game_intro_seen,
+        showCommunityIntro: !account.community_intro_seen,
         isBroadcaster: Boolean(account.twitch_id) && account.twitch_id === String(process.env.TWITCH_BROADCASTER_ID || '')
       }
     });
@@ -3097,6 +3100,7 @@ app.get('/api/account/me', async (req, res) => {
         username,
         twitch_id,
         game_intro_seen,
+        community_intro_seen,
         discord_user_id,
         discord_username,
         discord_member_verified,
@@ -3133,6 +3137,7 @@ app.get('/api/account/me', async (req, res) => {
         discordVerifiedAt: account.discord_verified_at || null,
         gameReady,
         showGameIntro: Boolean(account.twitch_id) && !account.game_intro_seen,
+        showCommunityIntro: !account.community_intro_seen,
         isBroadcaster: Boolean(account.twitch_id) && account.twitch_id === String(process.env.TWITCH_BROADCASTER_ID || '')
       }
     });
@@ -3150,6 +3155,14 @@ app.get('/api/account/me', async (req, res) => {
 /* =========================================
    COMPTE - INTRODUCTION VUE
 ========================================= */
+
+app.post('/api/account/community-intro-seen', async (req,res) => {
+  try {
+    if(!req.session.account)return res.status(401).json({error:'Connexion requise.'});
+    await pool.query('UPDATE accounts SET community_intro_seen=TRUE,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[req.session.account.id]);
+    res.json({ok:true});
+  }catch(error){console.error('Introduction communauté :',error);res.status(500).json({error:'Impossible de sauvegarder la présentation.'});}
+});
 
 app.post('/api/account/intro-seen', async (req, res) => {
   try {
