@@ -5041,7 +5041,10 @@ body:has(#pveModal:not(.hidden)){
 ========================================================= */
 @media (min-width:901px){
   body{padding-left:0!important;min-height:100vh;min-height:100dvh;background-color:#080a13;background-image:radial-gradient(circle at 50% -10%,#1a1530 0,#0b0d18 42%,#080a13 100%);background-repeat:no-repeat;background-attachment:fixed;background-size:100% 100vh}
-  .wrap{max-width:1500px;padding:18px 30px 46px}
+  /* Les pages courtes repoussent le pied de page au bas de la fenêtre. */
+  body:not(.auth-locked){display:flex;flex-direction:column}
+  body:not(.auth-locked)>*{flex-shrink:0}
+  .wrap{width:100%;max-width:1500px;margin:0 auto;padding:18px 30px 46px}
   .top{min-height:54px;padding:0 4px}.logo{font-size:24px;letter-spacing:-.02em}
   .global-leaderboard{display:none!important}
   body.desktop-leaderboard-open .global-leaderboard{display:block!important;position:fixed;z-index:1000025;top:126px;left:50%;transform:translateX(-50%);width:min(1180px,calc(100vw - 64px));height:calc(100vh - 146px);padding:28px 30px;border:1px solid rgba(145,71,255,.24);border-radius:24px;background:linear-gradient(180deg,#12172c,#0d1122);box-shadow:0 30px 90px rgba(0,0,0,.42)}
@@ -8047,7 +8050,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 /* PC — Pied de page sobre et pleine largeur, hors PvE. */
 .desktop-game-footer{display:none}
 @media(min-width:901px){
-  body:not(.auth-locked):not([data-desktop-view="pve"]) .desktop-game-footer{display:block;width:100%;margin:42px 0 0;background:transparent}
+  body:not(.auth-locked):not([data-desktop-view="pve"]) .desktop-game-footer{display:block;width:100%;margin:auto 0 0;padding-top:42px;background:transparent}
   .desktop-game-footer-bar{height:2px;background:linear-gradient(90deg,#6f35d9,#b47aff,#6f35d9)}
   .desktop-game-footer-inner{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:18px 26px;width:min(1500px,calc(100% - 84px));margin:0 auto;padding:24px 0 28px}
   .desktop-game-footer-main{display:contents}
