@@ -4842,7 +4842,7 @@ body:has(#pveModal:not(.hidden)){
  .desktop-home-live-dot.is-live{background:#4ade80;box-shadow:0 0 10px #4ade8055}
  .desktop-home-live-dot.is-offline{background:#f87171}
  .desktop-home-live-separator{color:#81778f}
- #desktopHomeGamePlayers{color:#c6abff}
+ #desktopHomeGamePlayers,#desktopHomeViewers{color:#c6abff}
  .desktop-home-live:hover{color:#ece2ff}
  .desktop-home-live:focus-visible{outline:2px solid #c89aff;outline-offset:4px}
  #playerCardInventory{display:none}

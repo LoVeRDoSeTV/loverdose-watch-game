@@ -1020,6 +1020,9 @@ function renderDesktopHomeLiveStatus(data) {
   if ($('desktopHomeLiveLabel')) $('desktopHomeLiveLabel').textContent = live === null ? 'Statut du live indisponible' : live ? 'En live' : 'Hors ligne';
   const count = data?.gamePlayerCount;
   if ($('desktopHomeGamePlayers')) $('desktopHomeGamePlayers').textContent = Number.isSafeInteger(count) && count >= 0 ? count.toLocaleString('fr-FR') : '—';
+  if ($('desktopHomeViewerGroup')) $('desktopHomeViewerGroup').hidden = live !== true;
+  const viewers = data?.twitchViewerCount;
+  if ($('desktopHomeViewers')) $('desktopHomeViewers').textContent = Number.isSafeInteger(viewers) && viewers >= 0 ? viewers.toLocaleString('fr-FR') : '—';
 }
 
 async function refreshDesktopHomeLiveStatus() {
@@ -1035,17 +1038,28 @@ async function refreshDesktopHomeLiveStatus() {
   } catch { renderDesktopHomeLiveStatus(null); }
 }
 
-function renderMobileHomeLiveStatus(live,presentCount){
+function renderMobileHomeLiveStatus(data){
   const button=$('mobileHomeLiveStatus');
   if(!button || !isMobileGameUi())return;
-  button.classList.toggle('is-live',live);
-  button.classList.toggle('is-offline',!live);
-  const value=Number(presentCount);
-  const count=presentCount!=null && Number.isFinite(value)?Math.max(0,Math.floor(value)):null;
-  const players=count===null?'':`${count.toLocaleString('fr-FR')} joueur${count===1?'':'s'} présent${count===1?'':'s'} dans le jeu`;
-  if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live?`En live${players?' · '+players:''}`:'Hors ligne';
-  if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live?'Regarder LoVeRDoSeTV sur Twitch':'Voir la chaîne Twitch';
-  button.setAttribute('aria-label',live?`LoVeRDoSeTV est en live.${players?' '+players+'.':''} Regarder sur Twitch.`:'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.');
+  const live=typeof data?.live==='boolean'?data.live:null;
+  button.classList.toggle('is-live',live===true);
+  button.classList.toggle('is-offline',live===false);
+  const gameCount=data?.gamePlayerCount,viewerCount=data?.twitchViewerCount;
+  const players=Number.isSafeInteger(gameCount)&&gameCount>=0?gameCount.toLocaleString('fr-FR'):'—';
+  const viewers=Number.isSafeInteger(viewerCount)&&viewerCount>=0?viewerCount.toLocaleString('fr-FR'):'—';
+  const counts=`${players} joueurs sur le jeu · ${viewers} spectateurs sur Twitch`;
+  if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live===null?'Statut du live indisponible':live?'En live':'Hors ligne';
+  if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live===true?counts:'Voir la chaîne Twitch';
+  button.setAttribute('aria-label',live===true?`LoVeRDoSeTV est en live. ${counts}. Ouvrir la chaîne Twitch.`:live===false?'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.':'Voir la chaîne Twitch. Statut du live indisponible.');
+}
+
+async function refreshMobileHomeLiveStatus(){
+  if(!isMobileGameUi() || !me?.user)return;
+  try{
+    const response=await fetch('/api/game/live-status',{cache:'no-store'});
+    if(!response.ok)throw new Error('Statut indisponible');
+    renderMobileHomeLiveStatus(await response.json());
+  }catch{renderMobileHomeLiveStatus(null);}
 }
 
 async function refreshIncubatorLiveState() {
@@ -1054,7 +1068,7 @@ async function refreshIncubatorLiveState() {
     const data = await response.json();
     if (!response.ok) return;
     const live = Boolean(data.live);
-    renderMobileHomeLiveStatus(live,data.presentCount);
+    refreshMobileHomeLiveStatus();
     document.querySelectorAll('[data-incubator-live]').forEach(el => {
       el.textContent = live ? '🟢 En progression · Live en cours' : '⏸️ En pause · Reprendra au prochain live';
       el.classList.toggle('is-live', live);
@@ -6783,6 +6797,7 @@ startLiveUpdates();
 
 refreshDesktopHomeLiveStatus();
 setInterval(refreshDesktopHomeLiveStatus, 30000);
+setInterval(refreshMobileHomeLiveStatus, 30000);
 
 // Filet de sécurité si une connexion SSE est interrompue par le navigateur/proxy.
 setInterval(() => {
