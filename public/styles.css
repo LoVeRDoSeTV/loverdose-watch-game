@@ -5455,15 +5455,18 @@ body:has(#pveModal:not(.hidden)){
   #accountModal .account-danger-zone .btn{flex:0 1 auto;min-height:42px;padding:10px 18px}
   #accountModal button:focus-visible,#accountModal a:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
 
-  /* Mon compte devient lui aussi une destination de page. */
+  .desktop-account-button[aria-current]{background:rgba(145,71,255,.24);border-color:#9147ff}
+
+  /* Mon compte reste dans le flux de la page, sous la navigation PC. */
   body[data-desktop-view="account"] #accountModal{
-    position:fixed!important;
-    top:126px!important;right:0!important;bottom:0!important;left:0!important;
-    z-index:1000020!important;
+    position:relative!important;
+    inset:auto!important;
+    z-index:auto!important;
     display:block!important;
-    padding:28px 42px 64px!important;
-    overflow-y:auto!important;
-    background:#090c17!important;
+    width:100%;max-width:1040px;margin:28px auto 0;
+    padding:0 0 32px!important;
+    overflow:visible!important;
+    background:transparent!important;
     backdrop-filter:none!important;
   }
   body[data-desktop-view="account"] #accountModal.hidden{display:none!important}

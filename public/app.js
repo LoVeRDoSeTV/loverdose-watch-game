@@ -6070,6 +6070,13 @@ function showDiscordCallbackMessage() {
 showDiscordCallbackMessage();
 
 async function openAccountModal() {
+  // Sur PC, tous les accès au compte ouvrent la destination de navigation.
+  if (isDesktopGameUi() && document.body.dataset.desktopView !== 'account') {
+    if (location.hash === '#compte') return openDesktopView('account');
+    location.hash = '#compte';
+    return;
+  }
+  syncAccountPagePlacement();
   const modal = $('accountModal');
   const usernameValue = $('accountUsername');
   const usernameInput = $('accountUsernameInput');
@@ -6412,6 +6419,24 @@ function closeDesktopPrimaryPages(except=''){
   if(except!=='lobby')$('desktopLobbyPage')?.classList.add('hidden');
   if(except!=='leaderboard')document.body.classList.remove('desktop-leaderboard-open');
 }
+let accountPageOrigin = null;
+function syncAccountPagePlacement() {
+  const page = $('accountModal'), header = $('standardPageHeader');
+  if (!page || !header) return;
+  if (!accountPageOrigin) {
+    accountPageOrigin = document.createComment('account-mobile-origin');
+    page.parentNode.insertBefore(accountPageOrigin, page);
+  }
+  if (isDesktopGameUi()) {
+    header.after(page);
+    page.setAttribute('role', 'region');
+    page.removeAttribute('aria-modal');
+  } else {
+    accountPageOrigin.parentNode.insertBefore(page, accountPageOrigin.nextSibling);
+    page.setAttribute('role', 'dialog');
+    page.setAttribute('aria-modal', 'true');
+  }
+}
 let desktopLeaderboardPlaceholder=null;
 function syncDesktopLeaderboardPlacement(){
   const board=document.querySelector('.global-leaderboard');
@@ -6432,7 +6457,9 @@ async function openDesktopView(view='home'){
   if(view==='inventory') return openInventory();
   syncDesktopLeaderboardPlacement();
   syncInventoryPagePlacement();
+  syncAccountPagePlacement();
   desktopView=view;setDesktopNavActive(view);
+  $('desktopAccountButton')?.toggleAttribute('aria-current', view === 'account');
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
@@ -6471,7 +6498,7 @@ document.querySelectorAll('[data-desktop-view]').forEach(link=>link.addEventList
   else location.hash=nextHash;
 }));
 window.addEventListener('hashchange',syncDesktopViewFromUrl);
-window.addEventListener('resize',()=>{syncDesktopLeaderboardPlacement();if(isDesktopGameUi())syncDesktopViewFromUrl();});
+window.addEventListener('resize',()=>{syncAccountPagePlacement();syncDesktopLeaderboardPlacement();if(isDesktopGameUi())syncDesktopViewFromUrl();});
 if(isDesktopGameUi()){syncDesktopLeaderboardPlacement();syncDesktopViewFromUrl();}
 
 function lobbyRelativeSeen(value){if(!value)return 'Hors ligne';const sec=Math.max(0,Math.floor((Date.now()-new Date(value).getTime())/1000));if(sec<120)return 'Vu à l’instant';if(sec<3600)return `Vu il y a ${Math.floor(sec/60)} min`;if(sec<86400)return `Vu il y a ${Math.floor(sec/3600)} h`;return `Vu il y a ${Math.floor(sec/86400)} j`;}
@@ -6759,7 +6786,7 @@ $('playerCardAccount')?.addEventListener('click', () => openAccountModal());
 // ===== V113 — contrôle PC Mon compte =====
 (function initDesktopAccountControl(){
   const accountButton = document.getElementById('desktopAccountButton');
-  accountButton?.addEventListener('click', () => { if(isDesktopGameUi()){ location.hash='#compte'; } else openAccountModal(); });
+  accountButton?.addEventListener('click', () => { if(!isDesktopGameUi()) openAccountModal(); });
 })();
 // ===== /V113 =====
 
