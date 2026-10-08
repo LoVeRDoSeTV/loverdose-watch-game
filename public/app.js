@@ -1929,6 +1929,107 @@ function renderBadgeShowcase() {
   }).join('');
 }
 
+function badgeCategoryOf(challenge) {
+  const category = String(challenge.badgeCategory || '').toLowerCase();
+  const mission = String(challenge.missionType || '').toLowerCase();
+  if (category === 'social' || ['discord', 'instagram', 'tiktok'].includes(mission)) return 'social';
+  if (category === 'support' || category === 'soutien' || mission === 'subscription') return 'support';
+  if (category === 'special' || category === 'special-mode' || mission === 'special-mode') return 'special';
+  return 'watch';
+}
+
+function badgeMobileProgress(challenge) {
+  const type = String(challenge.missionType || '');
+  if (type === 'live-attendance') {
+    const current = Math.max(0, Number(challenge.attendanceCount || 0));
+    const target = Math.max(1, Number(challenge.targetCount || 1));
+    return { percent: Math.min(100, current / target * 100), label: `${current} / ${target} lives`, remaining: `${Math.max(0, target - current)} live(s) restant(s)` };
+  }
+  const target = Number(challenge.targetHours || 0);
+  if (target > 0) {
+    const seconds = Math.max(0, Number(challenge.watchSeconds || 0));
+    const remainingMinutes = Math.ceil(Math.max(0, target * 3600 - seconds) / 60);
+    const remaining = remainingMinutes >= 60 ? `${Math.floor(remainingMinutes / 60)} h ${String(remainingMinutes % 60).padStart(2, '0')}` : `${remainingMinutes} min`;
+    return { percent: Math.min(100, seconds / (target * 3600) * 100), label: `${(seconds / 3600).toFixed(1).replace('.', ',')} h / ${target} h`, remaining: `${remaining} de visionnage restant` };
+  }
+  return { percent: challenge.unlocked ? 100 : 0, label: challenge.unlocked ? 'Obtenu' : 'Action à accomplir', remaining: 'Action à accomplir' };
+}
+
+function renderMobileNextBadges(challenges) {
+  if (!isMobileGameUi()) return '';
+  const next = challenges.filter(challenge => !challenge.maxed && (!challenge.unlocked || ['global-evolution', 'live-attendance'].includes(challenge.missionType)))
+    .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
+    .sort((a, b) => b.progress.percent - a.progress.percent)
+    .slice(0, 3);
+  return `<section class="badge-mobile-next" aria-label="Mes prochains badges">
+    <h3>✨ Mes prochains badges</h3>
+    ${next.length ? next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
+      ${badgeVisual(challenge)}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
+    </button>`).join('') : '<p>Tous les badges disponibles sont obtenus !</p>'}
+  </section>`;
+}
+
+async function activateBadgeSocialMission(challenge) {
+  const url = challenge?.socialActionUrl;
+  if (!url) return;
+  if (challenge.socialNetwork === 'discord') {
+    window.location.href = url;
+    return;
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
+  try {
+    const response = await fetch('/api/badges/social-click', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ network: challenge.socialNetwork })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Impossible de débloquer le badge.');
+    await loadGame();
+    await loadLeaderboard();
+  } catch (error) {
+    console.error('Erreur mission réseau social :', error);
+  }
+}
+
+function closeMobileBadgeDetail() {
+  $('badgeMobileDetail')?.classList.add('hidden');
+  $('badgeCollectionContent')?.classList.remove('hidden');
+  document.querySelector('.badge-collection-panel')?.classList.remove('mobile-detail-open');
+}
+
+function openMobileBadgeDetail(key) {
+  if (!isMobileGameUi()) return;
+  const challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
+  const owned = (badgeData.badges || []).find(item => item.badgeKey === key);
+  const badge = challenge || owned;
+  if (!badge) return;
+  const category = badgeCategoryOf(badge);
+  const label = { watch: 'Visionnage', social: 'Réseaux sociaux', support: 'Soutien', special: 'Spéciaux' }[category];
+  const progress = challenge ? badgeMobileProgress(challenge) : null;
+  const unlocked = Boolean(challenge?.unlocked || owned);
+  const rewards = challenge ? [
+    Number(challenge.rewardLovysXp || challenge.rewardXp || 0) > 0 ? `🐉 +${Number(challenge.rewardLovysXp || challenge.rewardXp)} XP Lovys` : '',
+    Number(challenge.rewardGlobalXp || 0) > 0 ? `⭐ +${Number(challenge.rewardGlobalXp)} XP globale` : '',
+    Number(challenge.rewardCash || 0) > 0 ? `💰 +${Number(challenge.rewardCash)} LoVeR'Cash` : '',
+    challenge.rewardTitle ? `🏷️ Titre « ${challenge.rewardTitle} »` : ''
+  ].filter(Boolean) : [];
+  $('badgeMobileDetailBody').innerHTML = `
+    <div class="badge-mobile-detail-hero">${badgeVisual(badge)}<span class="badge-mobile-detail-category">${label}</span>
+      <h3>${escapeHtml(badge.badgeName || badge.gameName || 'Badge')}</h3>
+      <span class="badge-mobile-detail-state">${unlocked ? '✅ Débloqué' : '🔒 À débloquer'}</span>
+    </div>
+    <div class="badge-mobile-detail-section"><h4>Comment l’obtenir</h4><p>${escapeHtml(badge.badgeChallenge || 'Mission à venir')}</p>
+      ${progress ? `<div class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></div><small>${escapeHtml(progress.label)}${challenge.maxed ? ' · Évolution maximale' : ''}</small>` : ''}</div>
+    ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>Récompense</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
+    ${!unlocked && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
+  `;
+  $('badgeCollectionContent')?.classList.add('hidden');
+  $('badgeMobileDetail')?.classList.remove('hidden');
+  document.querySelector('.badge-collection-panel')?.classList.add('mobile-detail-open');
+  document.querySelector('.badge-collection-panel')?.scrollTo({ top: 0 });
+  $('badgeMobileDetailBack')?.focus();
+}
+
 function renderBadgeCollection() {
   const container = $('badgeCollectionContent');
   if (!container) return;
@@ -1938,15 +2039,7 @@ function renderBadgeCollection() {
   const challengeKeys = new Set(challenges.map(challenge => challenge.badgeKey));
   const extraBadges = badges.filter(badge => !challengeKeys.has(badge.badgeKey));
 
-  const categoryOf = challenge => {
-    const badgeCategory = String(challenge.badgeCategory || '').toLowerCase();
-    const missionType = String(challenge.missionType || '').toLowerCase();
-
-    if (badgeCategory === 'social' || ['discord', 'instagram', 'tiktok'].includes(missionType)) return 'social';
-    if (badgeCategory === 'support' || badgeCategory === 'soutien' || missionType === 'subscription') return 'support';
-    if (badgeCategory === 'special' || badgeCategory === 'special-mode' || missionType === 'special-mode') return 'special';
-    return 'watch';
-  };
+  const categoryOf = badgeCategoryOf;
 
   const categoryMeta = {
     watch: { label: 'Visionnage', icon: '👀' },
@@ -2078,6 +2171,7 @@ function renderBadgeCollection() {
         ${isSocialMission ? `<div class="badge-challenge-bottom"><span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span></div>` : ''}
         ${rewardBlock}
         ${actions}
+        <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Voir le détail →</button>
       </div>`;
   }
 
@@ -2147,11 +2241,12 @@ function renderBadgeCollection() {
           ${badgeVisual(badge)}
           <div class="badge-card-title">${escapeHtml(badge.badgeName || badge.gameName || 'Badge')}</div>
           ${badge.gameName ? `<div class="badge-card-sub">${escapeHtml(badge.gameName)}</div>` : ''}
+          <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(badge.badgeKey)}">Voir le détail →</button>
         </div>`).join('')}
     </div>` : '';
 
   const selectedHtml = badgeCollectionView === 'locked' ? lockedHtml : unlockedHtml;
-  container.innerHTML = filterTabs + selectedHtml;
+  container.innerHTML = renderMobileNextBadges(challenges) + filterTabs + selectedHtml;
 
   if (badgeCollectionView === 'unlocked' && extraHtml) container.insertAdjacentHTML('beforeend', extraHtml);
 
@@ -2178,42 +2273,15 @@ function renderBadgeCollection() {
     const challengeKey = card.getAttribute('data-badge-key');
     const challenge = (badgeData.challenges || []).find(item => item.badgeKey === challengeKey);
 
-    const openSocial = async () => {
-      const url = card.dataset.socialAction;
-      if (!url || !challenge) return;
-
-      if (challenge.socialNetwork === 'discord') {
-        window.location.href = url;
-        return;
-      }
-
-      // Instagram / TikTok : le clic est la condition de la mission.
-      // On ouvre immédiatement le réseau dans un nouvel onglet puis on enregistre le badge.
-      window.open(url, '_blank', 'noopener,noreferrer');
-
-      try {
-        const response = await fetch('/api/badges/social-click', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ network: challenge.socialNetwork })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Impossible de débloquer le badge.');
-
-        // Rafraîchit immédiatement toute l'interface après une mission sociale :
-        // XP, badge, progression du joueur et classement, sans F5 manuel.
-        await loadGame();
-        await loadLeaderboard();
-      } catch (error) {
-        console.error('Erreur mission réseau social :', error);
-      }
-    };
+    const openSocial = () => activateBadgeSocialMission(challenge);
 
     card.addEventListener('click', event => {
+      if (isMobileGameUi()) return;
       if (event.target.closest('button')) return;
       openSocial();
     });
     card.addEventListener('keydown', event => {
+      if (isMobileGameUi()) return;
       if (event.key === 'Enter' || event.key === ' ') {
         event.preventDefault();
         openSocial();
@@ -2306,6 +2374,7 @@ async function unequipLeaderboardBadge(slot) {
 }
 
 function openBadgeShowcaseModal() {
+  closeMobileBadgeDetail();
   renderBadgeShowcase();
   renderBadgeCollection();
   $('badgeCollectionModal')?.classList.remove('hidden');
@@ -2322,7 +2391,17 @@ $('playerCardBadgesTrigger')?.addEventListener('keydown', event => {
 });
 
 $('badgeCollectionClose')?.addEventListener('click', () => {
+  closeMobileBadgeDetail();
   $('badgeCollectionModal')?.classList.add('hidden');
+});
+$('badgeMobileDetailBack')?.addEventListener('click', closeMobileBadgeDetail);
+$('badgeMobileDetailBody')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-mobile-social-mission]');
+  if (!button) return;
+  const challenge = (badgeData.challenges || []).find(item => item.badgeKey === button.dataset.mobileSocialMission);
+  if (!challenge) return;
+  closeMobileBadgeDetail();
+  activateBadgeSocialMission(challenge);
 });
 
 
@@ -2334,12 +2413,21 @@ $('badgeCollectionModal')?.addEventListener('mousedown', event => {
 
 $('badgeCollectionModal')?.addEventListener('mouseup', event => {
   if (badgeBackdropMouseDown && event.target.id === 'badgeCollectionModal') {
+    closeMobileBadgeDetail();
     $('badgeCollectionModal')?.classList.add('hidden');
   }
   badgeBackdropMouseDown = false;
 });
 
 $('badgeCollectionContent')?.addEventListener('click', event => {
+  if (isMobileGameUi()) {
+    const detailButton = event.target.closest('[data-mobile-badge-detail]');
+    const badgeCard = event.target.closest('.badge-challenge-card[data-badge-key]');
+    if (detailButton || (badgeCard && !event.target.closest('button'))) {
+      openMobileBadgeDetail(detailButton?.dataset.mobileBadgeDetail || badgeCard.dataset.badgeKey);
+      return;
+    }
+  }
   const showcaseButton = event.target.closest('[data-showcase-badge]');
   if (showcaseButton) {
     equipBadge(showcaseButton.dataset.showcaseBadge);
