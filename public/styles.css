@@ -4837,6 +4837,7 @@ body:has(#pveModal:not(.hidden)){
  .game-brand{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
  body:not(.auth-locked) .desktop-home-live{display:flex;align-items:center;flex-wrap:wrap;gap:7px;color:#bdb7cf;font-size:12px;line-height:1.5;text-decoration:none;border-radius:5px}
  .desktop-home-live>strong{color:#ede8fa;font-size:12px}
+ .desktop-live-twitch-logo{width:14px;height:14px;fill:#a970ff;flex:0 0 14px}
  .desktop-home-live-dot{width:8px;height:8px;border-radius:50%;background:#8b8b9e;flex-shrink:0}
  .desktop-home-live-dot.is-live{background:#4ade80;box-shadow:0 0 10px #4ade8055}
  .desktop-home-live-dot.is-offline{background:#f87171}
