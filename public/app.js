@@ -2,6 +2,13 @@ let me = null;
 let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
+const desktopAdminLayoutOrigins = new Map();
+const DESKTOP_ADMIN_PAGES = {
+  adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
+  adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal',
+  trackerDetectedButton:'trackerDetectedModal', adminHistoryButton:'adminHistoryModal',
+  eventsButton:'eventsModal'
+};
 let desktopAdminConfirmationCancel = null;
 let desktopActionSuccessTimer = null;
 let dailyChallengesData = null;
@@ -5369,6 +5376,7 @@ async function openDesktopAdmin(){
   }
   syncAccountPagePlacement();
   syncDesktopAdminPlacement();
+  syncDesktopAdminPageLayout();
   const modal=$('desktopAdminModal');
   if(!modal || !modal.classList.contains('hidden'))return;
   if (!isDesktopGameUi()) {
@@ -5377,6 +5385,7 @@ async function openDesktopAdmin(){
     modal.dataset.scrollLocked='true';
   }
   modal.classList.remove('hidden');
+  if (isDesktopGameUi()) $('desktopAdminOverview')?.click();
   if (!isDesktopGameUi()) $('desktopAdminClose')?.focus();
   await loadTrackerStatus();
 }
@@ -6437,6 +6446,7 @@ function closeDesktopPrimaryPages(except=''){
 }
 const desktopProfilePageOrigins = new Map();
 function syncAccountPagePlacement() {
+  syncDesktopAdminPageLayout();
   const header = $('standardPageHeader');
   if (!header) return;
   let previous = header;
@@ -6951,7 +6961,7 @@ async function openAdminFeedbackDetail(id){
     }catch(error){if(generation===adminFeedbackGeneration)profile.textContent=error.message;}
   }catch(error){if(generation===adminFeedbackGeneration)detail.innerHTML=`<button class="btn secondary" data-feedback-return type="button">← Liste des retours</button><p>${escapeHtml(error.message)}</p>`;}
 }
-$('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminContent').classList.add('hidden');$('adminFeedbackOpen').classList.add('hidden');$('adminFeedbackSection').classList.remove('hidden');$('adminFeedbackNotice').textContent='';adminFeedbackArchive=false;adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
+$('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminContent').classList.add('hidden');if(!isDesktopGameUi())$('adminFeedbackOpen').classList.add('hidden');$('adminFeedbackSection').classList.remove('hidden');$('adminFeedbackNotice').textContent='';adminFeedbackArchive=false;adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
 $('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');});
 for(const [id,archive] of [['adminFeedbackActive',false],['adminFeedbackArchive',true]])$(id)?.addEventListener('click',()=>{adminFeedbackArchive=archive;adminFeedbackPage=1;$('adminFeedbackNotice').textContent='';loadAdminFeedback();});
 $('adminFeedbackPurge')?.addEventListener('click',async()=>{
@@ -7032,3 +7042,34 @@ document.querySelector('.desktop-game-footer-terms')?.addEventListener('toggle',
     if(terms.open)terms.querySelector('.desktop-game-footer-terms-copy h3')?.scrollIntoView({behavior:'auto',block:'start',inline:'nearest'});
   });
 });
+
+// PC : les mêmes outils se présentent en onglets, sans dupliquer les contrôles.
+
+function syncDesktopAdminPageLayout() {
+  const tabs=$('desktopAdminTabs'), slot=$('desktopAdminPageSlot');
+  if(!tabs || !slot)return;
+  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES)]) {
+    const node=$(id); if(!node)continue;
+    if(!desktopAdminLayoutOrigins.has(id)) {
+      const origin=document.createComment(id+'-mobile-origin');
+      node.parentNode.insertBefore(origin,node);desktopAdminLayoutOrigins.set(id,origin);
+    }
+    if(isDesktopGameUi()) {
+      (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
+      if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','region');node.removeAttribute('aria-modal');}
+    } else {
+      const origin=desktopAdminLayoutOrigins.get(id);origin.parentNode.insertBefore(node,origin.nextSibling);
+      if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','dialog');node.setAttribute('aria-modal','true');}
+      if(id==='adminFeedbackOpen')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
+    }
+  }
+}
+$('desktopAdminTabs')?.addEventListener('click',event=>{
+  const button=event.target.closest('button');if(!button || !isDesktopGameUi())return;
+  for(const id of Object.values(DESKTOP_ADMIN_PAGES))$(id)?.classList.add('hidden');
+  $('adminFeedbackSection')?.classList.add('hidden');
+  $('desktopAdminContent')?.classList.toggle('hidden',button.id!=='desktopAdminOverview');
+  $('adminFeedbackOpen')?.classList.remove('hidden');
+  $('desktopAdminTabs').querySelectorAll('button').forEach(node=>node.toggleAttribute('aria-current',node===button));
+},true);
+$('desktopAdminOverview')?.addEventListener('click',()=>{if(isDesktopGameUi())loadTrackerStatus();});

@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=330">
+<link rel="stylesheet" href="/styles.css?v=331">
 
 
 </head>
@@ -694,7 +694,7 @@
 <div id="accountModal" class="account-modal hidden" role="dialog" aria-modal="true" aria-labelledby="accountModalTitle">
   <div class="account-panel">
     <div class="account-panel-head unified-page-head">
-      <h2 id="accountModalTitle">👤 Mon compte</h2>
+      <div><h2 id="accountModalTitle">👤 Mon compte</h2><p class="account-page-subtitle">Tes informations et tes connexions, au même endroit.</p></div>
       <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
     </div>
 
@@ -770,6 +770,8 @@
       <div><h2 id="desktopAdminTitle">🛠️ Administration</h2><div class="muted admin-subtitle">Tes outils de gestion de LoVeR Watch Game.</div></div>
       <button id="desktopAdminClose" class="account-close" type="button" aria-label="Fermer l’administration">×</button>
     </div>
+    <nav id="desktopAdminTabs" class="desktop-admin-tabs" aria-label="Rubriques de l’administration"><button id="desktopAdminOverview" type="button" class="btn secondary">📺 Vue d’ensemble</button></nav>
+    <div id="desktopAdminPageSlot"></div>
     <button id="adminFeedbackOpen" class="btn secondary" type="button">📬 Bugs et idées des joueurs</button>
     <section id="adminFeedbackSection" class="hidden">
       <button id="adminFeedbackBack" class="btn secondary" type="button">← Administration</button>
@@ -1219,5 +1221,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=330"></script>
+<script src="/app.js?v=331"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
