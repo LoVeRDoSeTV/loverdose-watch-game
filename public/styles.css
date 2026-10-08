@@ -8212,6 +8212,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  .player-bundle-section>h3{margin:0 0 12px}
  .player-bundle-section>p{color:#aeb6ce;line-height:1.7;margin:0 0 24px;max-width:920px}
  .player-bundle-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+ .player-bundle-columns.player-bundle-wizard{grid-template-columns:minmax(0,1fr);max-width:860px}
+ .player-bundle-step-label{color:#cba9ff;font-weight:800;margin:0 0 20px}
+ .player-bundle-recap{color:#c6c9de;line-height:1.7;padding-bottom:18px;margin:0 0 18px;border-bottom:1px solid #693eb366}
+ .player-bundle-footer .hidden{display:none}
  .player-bundle-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
  .player-bundle-heading h4{margin:0;color:#cba9ff;font-size:16px}
  .player-bundle-rows{display:grid;gap:12px}
@@ -8238,4 +8242,24 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  .player-trade-confirm-card{width:min(540px,100%);max-height:calc(100dvh - 48px);overflow:auto;padding:28px;border:1px solid #7948c2;border-radius:20px;background:#141327;box-shadow:0 24px 70px #0007;line-height:1.7}
  .player-trade-confirm-card h3{margin:0 0 20px}
  .player-trade-confirm-card>div{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}
+}
+
+/* PC — Guide de la communauté, sans modifier le tutoriel de l'accueil. */
+.community-guide-open,.community-guide-modal{display:none}
+@media(min-width:901px){
+ .community-guide-open{display:inline-flex;margin:0 0 16px}
+ .community-guide-modal:not(.hidden){position:fixed;inset:0;z-index:1001200;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(3,5,15,.78);backdrop-filter:blur(4px)}
+ .community-guide-panel{width:min(590px,100%);max-height:calc(100dvh - 56px);overflow:auto;border:1px solid #7948c2;border-radius:22px;background:linear-gradient(145deg,#1c1733,#111426);box-shadow:0 24px 80px #0008;padding:26px 30px}
+ .community-guide-top{display:flex;align-items:center;justify-content:space-between;gap:16px;color:#bea1f4;font-size:12px;font-weight:800}
+ .community-guide-top button{font-size:22px;padding:3px 12px}
+ .community-guide-progress{height:4px;background:#34304c;border-radius:4px;margin:18px 0;overflow:hidden}
+ .community-guide-progress span{display:block;height:100%;background:linear-gradient(90deg,#9147ff,#c08cff);transition:width .2s}
+ .community-guide-icon{font-size:36px;margin:0 0 12px}
+ .community-guide-panel h2{font-size:25px;line-height:1.3;margin:0 0 12px;outline:none}
+ .community-guide-panel>p{color:#c2c5da;line-height:1.7;margin:0 0 20px;font-size:15px}
+ #communityGuideDetails{padding:14px 18px;border:1px solid #6e429344;border-radius:14px;background:#8250c010}
+ #communityGuideDetails p{color:#bbc0d7;font-size:14px;line-height:1.65;margin:10px 0}
+ #communityGuideDetails strong{color:#eee5ff}
+ .community-guide-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:22px}
+ .community-guide-actions>div{display:flex;gap:10px}
 }

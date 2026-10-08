@@ -22,6 +22,9 @@ let rewardWheelSpinning = false;
 let rewardWheelRotation = 0;
 let rewardWheelCountdownTimer = null;
 let shouldShowGameIntro = false;
+let shouldShowCommunityIntro = false;
+let communityGuideStepIndex = 0;
+let communityGuidePreviousFocus = null;
 let latestPveData = null;
 let tutorialStepIndex = 0;
 let deferredPwaInstallPrompt = null;
@@ -540,6 +543,7 @@ async function refreshAccountState() {
     }
 
     shouldShowGameIntro = Boolean(data.account.showGameIntro);
+    shouldShowCommunityIntro = Boolean(data.account.showCommunityIntro);
 
     showGame();
     await loadGame();
@@ -6492,6 +6496,7 @@ function syncDesktopLeaderboardPlacement(){
 async function openDesktopView(view='home'){
   if(!isDesktopGameUi())return;
   if(view==='inventory') return openInventory();
+  if(view!=='lobby' && !$('communityGuideModal')?.classList.contains('hidden'))closeCommunityGuide();
   syncDesktopLeaderboardPlacement();
   syncInventoryPagePlacement();
   syncAccountPagePlacement();
@@ -6519,7 +6524,7 @@ async function openDesktopView(view='home'){
   if(view==='progression'){$('progressionModal')?.classList.remove('hidden');await loadProgression();return;}
   if(view==='shop'){await openShop();return;}
   if(view==='leaderboard'){document.body.classList.add('desktop-leaderboard-open');await loadLeaderboard();return;}
-  if(view==='lobby'){$('desktopLobbyPage')?.classList.remove('hidden');await openLobbyTab(lobbyTab);}
+  if(view==='lobby'){$('desktopLobbyPage')?.classList.remove('hidden');await openLobbyTab(lobbyTab);if(desktopView==='lobby' && shouldShowCommunityIntro)openCommunityGuide();}
 }
 
 const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique',inventory:'inventaire',account:'compte',admin:'administration'};
@@ -7118,8 +7123,14 @@ async function openPlayerCollection(userId) {
     playerCollectionData=collection;playerTradeInventory=inventory;
     const player=collection.player,isSelf=Number(player.userId)===Number(collection.selfUserId);
     const cards=collection.lovys.map(l=>`<article class="player-collection-lovys"><img src="${escapeHtml(l.image)}" alt="${escapeHtml(l.name)}" loading="lazy"><h3>${escapeHtml(l.name)}</h3><span>${escapeHtml(l.rarity||'')} · Niv. ${Number(l.level)}</span><span class="player-collection-stars">${'⭐'.repeat(Math.max(1,Math.min(5,Number(l.rank)||1)))}</span><strong>🧩 ${Number(l.fragments)} fragments disponibles</strong></article>`).join('');
-    body.innerHTML=`<div class="player-collection-head">${player.profileImageUrl?`<img class="player-collection-avatar" src="${escapeHtml(player.profileImageUrl)}" alt="">`:''}<div><h2>${escapeHtml(player.username)}</h2><p>Niveau global ${Number(player.level)} · 🐉 ${collection.lovys.length}/${Number(collection.totalLovys)} Lovys obtenus</p></div><div class="player-collection-eggs"><strong>🥚 ${Number(collection.eggs)} œufs disponibles</strong><span>${Number(collection.incubatingEggs)} œufs dans les incubateurs</span></div></div><div class="player-collection-grid">${cards || '<p class="muted">Ce joueur n’a pas encore fait éclore de Lovys.</p>'}</div>${isSelf?'<p class="muted">C’est ta collection. Choisis un autre joueur pour proposer un échange.</p>':`<section class="player-bundle-section"><h3>🔄 Proposer un échange à ${escapeHtml(player.username)}</h3><p>Choisis jusqu’à trois éléments de chaque côté. Tous seront échangés ensemble si le joueur accepte. Les fragments concernent les Lovys déjà obtenus par les deux joueurs ; les œufs disponibles peuvent aussi être échangés.</p><form id="playerBundleForm"><div class="player-bundle-columns"><section><div class="player-bundle-heading"><h4>Je propose</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="offered">＋ Ajouter</button></div><div id="playerBundleOffered" class="player-bundle-rows"></div></section><section><div class="player-bundle-heading"><h4>Je voudrais</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="requested">＋ Ajouter</button></div><div id="playerBundleRequested" class="player-bundle-rows"></div></section></div><div class="player-bundle-footer"><label>Durée <select id="playerBundleDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button class="lobby-primary-btn" type="submit">Vérifier ma proposition</button></div><p id="playerBundleMessage" role="status"></p><div id="playerBundleConfirmation" class="hidden"></div></form></section>`}`;
-    if(!isSelf){addPlayerBundleRow('offered');addPlayerBundleRow('requested');}
+    body.innerHTML=`<div class="player-collection-head">${player.profileImageUrl?`<img class="player-collection-avatar" src="${escapeHtml(player.profileImageUrl)}" alt="">`:''}<div><h2>${escapeHtml(player.username)}</h2><p>Niveau global ${Number(player.level)} · 🐉 ${collection.lovys.length}/${Number(collection.totalLovys)} Lovys obtenus</p></div><div class="player-collection-eggs"><strong>🥚 ${Number(collection.eggs)} œufs disponibles</strong><span>${Number(collection.incubatingEggs)} œufs dans les incubateurs</span></div></div><div class="player-collection-grid">${cards || '<p class="muted">Ce joueur n’a pas encore fait éclore de Lovys.</p>'}</div>${isSelf?'<p class="muted">C’est ta collection. Choisis un autre joueur pour proposer un échange.</p>':`<section class="player-bundle-section"><h3>🔄 Proposer un échange à ${escapeHtml(player.username)}</h3><p>Commence par choisir de 1 à 3 éléments à proposer, puis valide pour choisir de 1 à 3 éléments à demander. Tous seront échangés ensemble si le joueur accepte. Les fragments concernent les Lovys déjà obtenus par les deux joueurs ; les œufs disponibles peuvent aussi être échangés.</p><form id="playerBundleForm"><p id="playerBundleStepLabel" class="player-bundle-step-label">Étape 1 / 2 · Je propose entre 1 et 3 éléments</p><div class="player-bundle-columns player-bundle-wizard"><section id="playerBundleOfferedStep"><div class="player-bundle-heading"><h4>Je propose</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="offered">＋ Ajouter</button></div><div id="playerBundleOffered" class="player-bundle-rows"></div></section><section id="playerBundleRequestedStep" class="hidden"><p id="playerBundleOfferedRecap" class="player-bundle-recap"></p><div class="player-bundle-heading"><h4>Je voudrais</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="requested">＋ Ajouter</button></div><div id="playerBundleRequested" class="player-bundle-rows"></div></section></div><div class="player-bundle-footer"><button id="playerBundleBackStep" class="lobby-secondary-btn hidden" type="button" data-bundle-back>← Modifier ce que je propose</button><label id="playerBundleDurationLabel" class="hidden">Durée <select id="playerBundleDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="playerBundleContinue" class="lobby-primary-btn" type="button" data-bundle-continue>Valider et choisir ce que je voudrais →</button><button id="playerBundleReview" class="lobby-primary-btn hidden" type="submit">Vérifier mon échange</button></div><p id="playerBundleMessage" role="status"></p><div id="playerBundleConfirmation" class="hidden"></div></form></section>`}`;
+    if(!isSelf){
+      for(const side of ['offered','requested']){
+        if(playerBundleChoices(side).length)addPlayerBundleRow(side);
+        else $(side==='offered'?'playerBundleOffered':'playerBundleRequested').innerHTML=`<p class="muted">${side==='offered'?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'Ce joueur n’a aucun fragment disponible pour tes Lovys, ni œuf disponible à demander.'}</p>`;
+      }
+      syncPlayerBundleControls();
+    }
     $('lobbyPlayerCollectionPage')?.scrollIntoView({block:'start',behavior:'auto'});
   }catch(error){if(generation===playerCollectionGeneration)body.innerHTML=`<p role="status">${escapeHtml(error.message)}</p>`;}
 }
@@ -7141,6 +7152,8 @@ function addPlayerBundleRow(side) {
 }
 function syncPlayerBundleControls() {
   const form=$('playerBundleForm');if(!form)return;
+  form.querySelector('[type=submit]').disabled=playerTradeBusy || !playerBundleChoices('offered').length || !playerBundleChoices('requested').length;
+  $('playerBundleContinue').disabled=playerTradeBusy || !playerBundleChoices('offered').length;
   form.querySelectorAll('[data-bundle-add]').forEach(button=>{const list=$(button.dataset.bundleAdd==='offered'?'playerBundleOffered':'playerBundleRequested');button.disabled=playerTradeBusy || list.children.length>=3 || !playerBundleChoices(button.dataset.bundleAdd).length;});
   form.querySelectorAll('[data-bundle-remove]').forEach(button=>button.disabled=playerTradeBusy || button.parentElement.parentElement.children.length<=1);
 }
@@ -7153,6 +7166,19 @@ function readPlayerBundle(side) {
     if(seen.has(value))throw new Error('Choisis chaque élément une seule fois et ajuste sa quantité.');seen.add(value);
     return {type:value==='egg'?'egg':'fragment',creatureId:value==='egg'?null:value.slice(9),quantity};
   });
+}
+function showPlayerBundleStage(stage,offered=[]) {
+  clearPlayerBundleConfirmation();
+  $('playerBundleMessage').textContent='';
+  $('playerBundleOfferedStep').classList.toggle('hidden',stage!==1);
+  $('playerBundleRequestedStep').classList.toggle('hidden',stage!==2);
+  $('playerBundleContinue').classList.toggle('hidden',stage!==1);
+  for(const id of ['playerBundleBackStep','playerBundleDurationLabel','playerBundleReview'])$(id).classList.toggle('hidden',stage!==2);
+  $('playerBundleStepLabel').textContent=stage===1?'Étape 1 / 2 · Je propose entre 1 et 3 éléments':'Étape 2 / 2 · Je voudrais entre 1 et 3 éléments';
+  if(stage===2)$('playerBundleOfferedRecap').textContent='Tu proposes : '+playerBundleSummary(offered);
+  const active=$(stage===1?'playerBundleOfferedStep':'playerBundleRequestedStep');
+  active.querySelector('select')?.focus();
+  syncPlayerBundleControls();
 }
 function playerBundleSummary(assets) {
   const catalog=playerTradeInventory?.catalog || [];
@@ -7177,6 +7203,12 @@ $('lobbyPlayerCollectionBody')?.addEventListener('submit',event=>{
 $('lobbyPlayerCollectionBody')?.addEventListener('click',async event=>{
   const add=event.target.closest('[data-bundle-add]'),remove=event.target.closest('[data-bundle-remove]');
   if(playerTradeBusy)return;
+  if(event.target.closest('[data-bundle-continue]')){
+    try{const offered=readPlayerBundle('offered');showPlayerBundleStage(2,offered);}
+    catch(error){$('playerBundleMessage').textContent=error.message;}
+    return;
+  }
+  if(event.target.closest('[data-bundle-back]')){showPlayerBundleStage(1);return;}
   if(add){clearPlayerBundleConfirmation();addPlayerBundleRow(add.dataset.bundleAdd);return;}
   if(remove){clearPlayerBundleConfirmation();if(remove.parentElement.parentElement.children.length>1)remove.parentElement.remove();syncPlayerBundleControls();return;}
   if(event.target.closest('[data-bundle-edit]')){clearPlayerBundleConfirmation();return;}
@@ -7234,3 +7266,49 @@ $('playerTradeInbox')?.addEventListener('click',async event=>{
   }catch(error){await loadPlayerTradeInbox();if($('playerTradeNotice'))$('playerTradeNotice').textContent=error.message;}
   finally{playerTradeBusy=false;button.disabled=false;syncPlayerBundleControls();}
 });
+
+
+// PC — Présentation de la communauté, mémorisée sur le compte.
+const communityGuideSteps = [
+ {icon:'🤝',title:'Bienvenue dans la Communauté !',text:'Ici, les joueurs échangent des fragments de Lovys et des œufs mystère disponibles.',details:'<p><strong>🔄 Échanges :</strong> trouve les offres publiques.</p><p><strong>📜 Mes offres :</strong> suis ou annule tes annonces.</p><p><strong>👥 Joueurs :</strong> découvre les collections et propose un échange à une personne précise.</p><p><strong>💜 Souhaits :</strong> indique les Lovys que tu recherches.</p><p><strong>🕘 Historique :</strong> retrouve les échanges publics terminés.</p>'},
+ {icon:'🧩',title:'Quels fragments peux-tu échanger ?',text:'Les doublons donnent des fragments. Tu échanges ces fragments : ton Lovys reste dans ta collection.',details:'<p><strong>Les deux joueurs doivent déjà posséder le Lovys correspondant.</strong></p><p>Exemple : pour échanger des fragments Voltis, vous devez tous les deux avoir Voltis.</p><p>Les œufs mystère disponibles peuvent aussi être échangés. Les œufs en incubation restent dans leurs incubateurs.</p>'},
+ {icon:'👥',title:'Je propose / Je voudrais',text:'Clique sur le rectangle d’un joueur pour voir ses Lovys avec leurs photos, ses fragments et ses œufs.',details:'<p><strong>Je propose :</strong> tes fragments compatibles et tes œufs disponibles.</p><p><strong>Je voudrais :</strong> les fragments que ce joueur possède pour tes Lovys, et ses œufs disponibles.</p><p>D’abord, choisis <strong>1 à 3 éléments dans Je propose</strong> et valide cette étape. Ensuite, choisis <strong>1 à 3 éléments dans Je voudrais</strong>. La confirmation finale récapitule les deux côtés avant l’envoi.</p><p><strong>Aucun choix ?</strong> Le joueur doit avoir du stock compatible : posséder un Lovys ne suffit pas pour demander des fragments qu’il n’a pas.</p>'},
+ {icon:'✅',title:'Confirmer et suivre ton échange',text:'Relis les quantités avant d’envoyer. Tes objets proposés sont réservés jusqu’à la réponse du joueur.',details:'<p><strong>Proposition ciblée :</strong> le destinataire accepte ou refuse dans <strong>Joueurs</strong>. Tu peux y annuler ta proposition.</p><p><strong>Offre publique :</strong> propose un élément contre une des alternatives. Un joueur choisit une seule contrepartie pour accepter.</p><p>En cas de refus, d’annulation ou d’expiration, les objets réservés sont rendus. L’acceptation transfère les éléments ensemble.</p><p>Échanges accessibles au <strong>niveau global 3</strong> : maximum 3 offres actives et 20 échanges réalisés par jour.</p>'}
+];
+function renderCommunityGuide(){
+ const step=communityGuideSteps[communityGuideStepIndex];
+ $('communityGuideStep').textContent=`Étape ${communityGuideStepIndex+1} / ${communityGuideSteps.length}`;
+ $('communityGuideProgress').style.width=`${(communityGuideStepIndex+1)/communityGuideSteps.length*100}%`;
+ $('communityGuideIcon').textContent=step.icon;
+ $('communityGuideTitle').textContent=step.title;
+ $('communityGuideText').textContent=step.text;
+ $('communityGuideDetails').innerHTML=step.details;
+ $('communityGuidePrev').disabled=communityGuideStepIndex===0;
+ $('communityGuideNext').textContent=communityGuideStepIndex===communityGuideSteps.length-1?'J’ai compris ✓':'Suivant →';
+ $('communityGuideTitle').focus({preventScroll:true});
+ $('communityGuideModal').querySelector('.community-guide-panel').scrollTop=0;
+}
+function openCommunityGuide(){
+ if(!isDesktopGameUi() || !$('communityGuideModal').classList.contains('hidden') || !$('gameIntroModal')?.classList.contains('hidden'))return;
+ communityGuidePreviousFocus=document.activeElement;communityGuideStepIndex=0;
+ $('communityGuideModal').classList.remove('hidden');renderCommunityGuide();
+}
+async function closeCommunityGuide(){
+ if($('communityGuideModal').classList.contains('hidden'))return;
+ $('communityGuideModal').classList.add('hidden');
+ if(communityGuidePreviousFocus?.isConnected)communityGuidePreviousFocus.focus({preventScroll:true});
+ if(!shouldShowCommunityIntro)return;
+ shouldShowCommunityIntro=false;
+ try{const response=await fetch('/api/account/community-intro-seen',{method:'POST'});if(!response.ok)throw new Error('Présentation non enregistrée.');}
+ catch(error){console.error(error);}
+}
+$('communityGuideOpen')?.addEventListener('click',openCommunityGuide);
+['communityGuideClose','communityGuideSkip'].forEach(id=>$(id)?.addEventListener('click',closeCommunityGuide));
+$('communityGuidePrev')?.addEventListener('click',()=>{if(communityGuideStepIndex>0){communityGuideStepIndex--;renderCommunityGuide();}});
+$('communityGuideNext')?.addEventListener('click',()=>{if(communityGuideStepIndex<communityGuideSteps.length-1){communityGuideStepIndex++;renderCommunityGuide();}else closeCommunityGuide();});
+document.addEventListener('keydown',event=>{
+ const modal=$('communityGuideModal');if(!modal || modal.classList.contains('hidden'))return;
+ if(event.key==='Escape'){event.preventDefault();closeCommunityGuide();}
+ if(event.key==='Tab')trapDesktopAdminFocus(event,modal);
+});
+window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closeCommunityGuide();});
