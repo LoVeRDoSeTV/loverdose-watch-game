@@ -3,6 +3,7 @@ let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
 const desktopAdminLayoutOrigins = new Map();
+let desktopTrackerButtonMarkup = null;
 const DESKTOP_ADMIN_PAGES = {
   adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
   adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal',
@@ -5385,7 +5386,7 @@ async function openDesktopAdmin(){
     modal.dataset.scrollLocked='true';
   }
   modal.classList.remove('hidden');
-  if (isDesktopGameUi()) $('desktopAdminOverview')?.click();
+  if (isDesktopGameUi()) $('adminTrackerButton')?.click();
   if (!isDesktopGameUi()) $('desktopAdminClose')?.focus();
   await loadTrackerStatus();
 }
@@ -5985,7 +5986,7 @@ $('trackerDetectedButton')?.addEventListener('click',()=>openAdminModal('tracker
 $('trackerDetectedClose')?.addEventListener('click',()=>$('trackerDetectedModal')?.classList.add('hidden'));
 $('trackerDetectedModal')?.addEventListener('click',e=>{if(e.target?.id==='trackerDetectedModal')$('trackerDetectedModal')?.classList.add('hidden');});
 
-$('adminTrackerButton')?.addEventListener('click',()=>openAdminModal('adminTrackerModal',loadAdminTrackerPanel));
+$('adminTrackerButton')?.addEventListener('click',()=>{openAdminModal('adminTrackerModal',loadAdminTrackerPanel);if(isDesktopGameUi())loadTrackerStatus();});
 $('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
 [['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
   $(closeId)?.addEventListener('click',()=>closeAdminModal(modalId));
@@ -7048,18 +7049,26 @@ document.querySelector('.desktop-game-footer-terms')?.addEventListener('toggle',
 function syncDesktopAdminPageLayout() {
   const tabs=$('desktopAdminTabs'), slot=$('desktopAdminPageSlot');
   if(!tabs || !slot)return;
-  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES)]) {
+  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES), 'desktopAdminContent']) {
     const node=$(id); if(!node)continue;
     if(!desktopAdminLayoutOrigins.has(id)) {
       const origin=document.createComment(id+'-mobile-origin');
       node.parentNode.insertBefore(origin,node);desktopAdminLayoutOrigins.set(id,origin);
     }
     if(isDesktopGameUi()) {
-      (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
+      if(id==='desktopAdminContent') $('adminTrackerContent')?.before(node);
+      else (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
+      if(id==='adminTrackerButton') {
+        if(desktopTrackerButtonMarkup===null)desktopTrackerButtonMarkup=node.innerHTML;
+        const logo=document.querySelector('.home-twitch-logo')?.cloneNode(true);
+        if(logo){logo.setAttribute('class','admin-twitch-logo');node.replaceChildren(logo,document.createTextNode(' Twitch'));}
+      }
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','region');node.removeAttribute('aria-modal');}
     } else {
       const origin=desktopAdminLayoutOrigins.get(id);origin.parentNode.insertBefore(node,origin.nextSibling);
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','dialog');node.setAttribute('aria-modal','true');}
+      if(id==='adminTrackerButton' && desktopTrackerButtonMarkup!==null)node.innerHTML=desktopTrackerButtonMarkup;
+      if(id==='desktopAdminContent')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
       if(id==='adminFeedbackOpen')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
     }
   }
@@ -7068,8 +7077,8 @@ $('desktopAdminTabs')?.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button || !isDesktopGameUi())return;
   for(const id of Object.values(DESKTOP_ADMIN_PAGES))$(id)?.classList.add('hidden');
   $('adminFeedbackSection')?.classList.add('hidden');
-  $('desktopAdminContent')?.classList.toggle('hidden',button.id!=='desktopAdminOverview');
+  $('desktopAdminContent')?.classList.toggle('hidden',button.id!=='adminTrackerButton');
   $('adminFeedbackOpen')?.classList.remove('hidden');
   $('desktopAdminTabs').querySelectorAll('button').forEach(node=>node.toggleAttribute('aria-current',node===button));
 },true);
-$('desktopAdminOverview')?.addEventListener('click',()=>{if(isDesktopGameUi())loadTrackerStatus();});
+
