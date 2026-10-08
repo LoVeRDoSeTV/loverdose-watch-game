@@ -1312,6 +1312,7 @@ async function initDatabase() {
     ALTER TABLE twitch_tracker_auth
     ADD COLUMN IF NOT EXISTS special_mode TEXT;
   `);
+  await pool.query(`ALTER TABLE twitch_tracker_auth ADD COLUMN IF NOT EXISTS last_viewer_count INTEGER NOT NULL DEFAULT 0`);
 
 
   await pool.query(`
@@ -2254,6 +2255,7 @@ async function runTrackerTick() {
             last_success_at = CURRENT_TIMESTAMP,
             last_live = FALSE,
             last_chatter_count = 0,
+            last_viewer_count = 0,
             last_matched_count = 0,
             special_mode = CASE WHEN $1 THEN NULL ELSE special_mode END,
             last_error = NULL,
@@ -2591,11 +2593,12 @@ async function runTrackerTick() {
           last_live = TRUE,
           last_chatter_count = $1,
           last_matched_count = $2,
+          last_viewer_count = $3,
           last_error = NULL,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = 1
       `,
-      [rawChatterCount, matched]
+      [rawChatterCount, matched, Math.max(0, Number(stream.viewer_count || 0))]
     );
 
     if (deltaSeconds > 0 && matched > 0) {
@@ -3688,9 +3691,14 @@ app.get('/api/game/live-status', async (req, res) => {
   if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
   if (req.session.user.twitchId) GAME_STATUS_PRESENCE.set(String(req.session.user.twitchId), Date.now());
   try {
-    const tracker = (await pool.query('SELECT last_live FROM twitch_tracker_auth WHERE id=1')).rows[0];
+    const tracker = (await pool.query('SELECT last_live, last_viewer_count, last_success_at, last_error FROM twitch_tracker_auth WHERE id=1')).rows[0];
+    // Le tracker interroge Twitch toutes les 15 s ; éviter d'afficher un ancien chiffre en cas de panne.
+    const viewersUpdatedRecently = tracker?.last_success_at && Date.now() - new Date(tracker.last_success_at).getTime() < 120000;
+    const twitchViewerCount = !tracker ? null : tracker.last_live
+      ? (!tracker.last_error && viewersUpdatedRecently ? Number(tracker.last_viewer_count) : null)
+      : 0;
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ live:tracker ? Boolean(tracker.last_live) : null, gamePlayerCount:connectedGamePlayerCount() });
+    res.json({ live:tracker ? Boolean(tracker.last_live) : null, gamePlayerCount:connectedGamePlayerCount(), twitchViewerCount });
   } catch (error) {
     console.error('Erreur statut accueil :', error);
     res.status(500).json({ error:'Statut indisponible.' });
