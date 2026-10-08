@@ -6426,6 +6426,8 @@ let lobbyTab='trades';
 let lobbyAutoRefreshTimer=null;
 let tradeCreatureFilter='all';
 let lobbyPlayers=[];
+let playerCollectionData=null,playerTradeInventory=null,playerCollectionGeneration=0,playerTradeBusy=false;
+let playerTradeOffers=[],playerTradeSelfId=0,pendingPlayerTradePayload=null;
 let tradeOffers=[];
 let myTradeOffers=[];
 let tradeInventory={eggs:0,lovys:[]};
@@ -6542,7 +6544,7 @@ function lobbyRelativeSeen(value){if(!value)return 'Hors ligne';const sec=Math.m
 function lobbyPlayerMarkup(player){
   const active=player.lovys;const avatar=player.profileImageUrl?`<img loading="lazy" decoding="async" src="${escapeHtml(player.profileImageUrl)}" alt="">`:'👤';
   const status=player.present?'🟢 En ligne':`⚪ ${lobbyRelativeSeen(player.lastSeenAt)}`;const offers=Number(player.activeOffers||0);
-  return `<article class="lobby-player-card ${player.present?'present':''}" data-lobby-user="${Number(player.userId)}"><div class="lobby-player-avatar">${avatar}<span class="lobby-presence-dot"></span></div><div class="lobby-player-copy"><div class="lobby-player-name">${escapeHtml(player.username)}</div><div class="lobby-player-meta">${status} · Niveau ${Number(player.level||1)}${Number(player.prestige||0)>0?` · Prestige ${Number(player.prestige)}`:''}</div>${active?`<div class="lobby-player-lovys">🐉 ${escapeHtml(active.name)} · Niv. ${Number(active.level||1)} · ${'⭐'.repeat(Math.max(1,Number(active.rank||1)))}</div>`:'<div class="lobby-player-lovys muted">Aucun Lovys actif</div>'}${offers?`<div class="lobby-player-offers">🔄 ${offers} offre${offers>1?'s':''} active${offers>1?'s':''}</div>`:''}</div><div class="lobby-player-actions"><button class="lobby-secondary-btn" type="button" data-lobby-profile="${escapeHtml(player.twitchId||'')}">Voir le profil</button><button class="lobby-primary-btn" type="button" data-lobby-trade-user="${Number(player.userId)}">Échanger</button></div></article>`;
+  return `<article class="lobby-player-card ${player.present?'present':''}" data-lobby-user="${Number(player.userId)}" ${isDesktopGameUi()?'tabindex="0" role="button" aria-label="Voir la collection de '+escapeHtml(player.username)+'"':''}><div class="lobby-player-avatar">${avatar}<span class="lobby-presence-dot"></span></div><div class="lobby-player-copy"><div class="lobby-player-name">${escapeHtml(player.username)}</div><div class="lobby-player-meta">${status} · Niveau ${Number(player.level||1)}${Number(player.prestige||0)>0?` · Prestige ${Number(player.prestige)}`:''}</div>${active?`<div class="lobby-player-lovys">🐉 ${escapeHtml(active.name)} · Niv. ${Number(active.level||1)} · ${'⭐'.repeat(Math.max(1,Number(active.rank||1)))}</div>`:'<div class="lobby-player-lovys muted">Aucun Lovys actif</div>'}${offers?`<div class="lobby-player-offers">🔄 ${offers} offre${offers>1?'s':''} active${offers>1?'s':''}</div>`:''}</div><div class="lobby-player-actions">${isDesktopGameUi()?'<span class="player-collection-link">Voir la collection →</span>':`<button class="lobby-secondary-btn" type="button" data-lobby-profile="${escapeHtml(player.twitchId||'')}">Voir le profil</button><button class="lobby-primary-btn" type="button" data-lobby-trade-user="${Number(player.userId)}">Échanger</button>`}</div></article>`;
 }
 async function loadLobbyPlayers(){
   const grid=$('lobbyPlayersGrid');if(grid)grid.innerHTML='<div class="lobby-empty">Chargement du lobby…</div>';
@@ -6577,7 +6579,7 @@ function renderTrades(mine=false){
 async function openLobbyTab(tab='trades'){
   lobbyTab=['players','trades','mine','history','wishes'].includes(tab)?tab:'trades';document.querySelectorAll('.lobby-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.lobbyTab===lobbyTab));
   ['Players','Trades','Mine','History','Wishes'].forEach(n=>$(`lobby${n}Panel`)?.classList.toggle('hidden',lobbyTab!==n.toLowerCase()));
-  if(lobbyTab==='players')await loadLobbyPlayers();else if(lobbyTab==='history')await loadTradeHistory();else if(lobbyTab==='wishes')await loadTradeWishes();else await loadTrades(lobbyTab==='mine');
+  if(lobbyTab==='players'){await loadLobbyPlayers();if(isDesktopGameUi())await loadPlayerTradeInbox();}else if(lobbyTab==='history')await loadTradeHistory();else if(lobbyTab==='wishes')await loadTradeWishes();else await loadTrades(lobbyTab==='mine');
   refreshLobbyCounts();if(lobbyTab==='trades')loadLobbyActivity();markLobbyNotificationsRead();checkTradeExpiryNotices();
 }
 let tradeExpiryChecking=false,tradeExpiryClosing=false,tradeExpiryItems=[];
@@ -6617,8 +6619,8 @@ async function loadTradeHistory(){const box=$('lobbyHistoryGrid');if(!box)return
 async function loadTradeWishes(){const box=$('lobbyWishesGrid');if(!box)return;box.innerHTML='<div class="lobby-empty">Chargement…</div>';try{await loadTradeInventory();const r=await fetch('/api/trades/wishes',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Souhaits indisponibles.');const mine=new Set(d.mine||[]),catalog=tradeInventory.catalog||[],owned=new Map((tradeInventory.lovys||[]).map(l=>[l.creatureId,l]));const cards=catalog.map(c=>{const o=owned.get(c.creatureId),wanted=mine.has(c.creatureId);return `<button class="wishlist-card ${wanted?'wanted':''}" type="button" data-wish-toggle="${escapeHtml(c.creatureId)}" aria-pressed="${wanted}"><img src="${escapeHtml(tradeCreatureImageUrl(c))}" alt=""><span><strong>${escapeHtml(c.name)}</strong><small>${escapeHtml(c.rarity||'')}</small></span><b>${wanted?'♥':'♡'}</b></button>`;}).join('');const doubles=[...owned.values()].filter(l=>Number(l.fragments||0)>0);const summaries=(d.summary||[]).map(x=>`<div><strong>${escapeHtml(x.name)}</strong><span>${Number(x.wishCount||0)} joueur${Number(x.wishCount||0)>1?'s':''} cherche${Number(x.wishCount||0)>1?'nt':''} · ${Number(x.offerCount||0)} offre${Number(x.offerCount||0)>1?'s':''}</span></div>`).join('');const matches=(d.matches||[]).filter(m=>Number(owned.get(m.creatureId)?.fragments||0)>0).slice(0,6).map(m=>`<div class="wishlist-match"><span>💞 <b>${escapeHtml(m.username)}</b> cherche ${escapeHtml(catalog.find(c=>c.creatureId===m.creatureId)?.name||m.creatureId)}</span><button class="lobby-primary-btn" type="button" data-wish-trade-user="${Number(m.userId)}" data-wish-trade-creature="${escapeHtml(m.creatureId)}">Échanger</button></div>`).join('');box.innerHTML=`<div class="wishlist-editor"><h3>💜 Mes fragments recherchés</h3><p>Ajoute un cœur aux Lovys que tu recherches. Tous les Lovys sont visibles, même ceux que tu n’as pas encore découverts.</p><div class="wishlist-grid">${cards}</div></div><div class="wishlist-editor wishlist-doubles"><h3>🧩 Mes doublons à proposer</h3><p>${doubles.length?'Ces fragments peuvent servir à créer rapidement une offre.':'Tu n’as aucun fragment en double disponible pour le moment.'}</p><div class="wishlist-double-grid">${doubles.map(l=>`<button type="button" data-wish-trade-creature="${escapeHtml(l.creatureId)}"><img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${Number(l.fragments)} fragments · ${escapeHtml(l.rarity||'')}</small></span></button>`).join('')}</div></div>${matches?`<div class="wishlist-editor"><h3>✨ Correspondances</h3><div class="wishlist-matches">${matches}</div></div>`:''}<div class="wishlist-community">${summaries||'<div class="lobby-empty">Aucune demande communautaire pour le moment.</div>'}</div>`;}catch(e){box.innerHTML=`<div class="lobby-empty">${escapeHtml(e.message)}</div>`;}}
 document.querySelectorAll('.lobby-tab').forEach(btn=>btn.addEventListener('click',()=>openLobbyTab(btn.dataset.lobbyTab)));
 $('lobbyPlayerSearch')?.addEventListener('input',renderLobbyPlayers);
-$('lobbyPlayersGrid')?.addEventListener('click',e=>{const trade=e.target.closest('[data-lobby-trade-user]');if(trade){openTradeComposer();return;}const btn=e.target.closest('[data-lobby-profile]');if(!btn)return;const p=lobbyPlayers.find(x=>String(x.twitchId||'')===String(btn.dataset.lobbyProfile||''));if(p)openLobbySideProfile(p);});
-function openLobbySideProfile(p){const drawer=$('lobbyProfileDrawer'),body=$('lobbyProfileDrawerBody');if(!drawer||!body)return;body.innerHTML=lobbyPlayerMarkup(p);drawer.classList.remove('hidden');}
+$('lobbyPlayersGrid')?.addEventListener('click',e=>{if(isDesktopGameUi()){const card=e.target.closest('[data-lobby-user]');if(card){openPlayerCollection(Number(card.dataset.lobbyUser));return;}}const trade=e.target.closest('[data-lobby-trade-user]');if(trade){openTradeComposer();return;}const btn=e.target.closest('[data-lobby-profile]');if(!btn)return;const p=lobbyPlayers.find(x=>String(x.twitchId||'')===String(btn.dataset.lobbyProfile||''));if(p)openLobbySideProfile(p);});
+function openLobbySideProfile(p){if(isDesktopGameUi())return openPlayerCollection(Number(p.userId));const drawer=$('lobbyProfileDrawer'),body=$('lobbyProfileDrawerBody');if(!drawer||!body)return;body.innerHTML=lobbyPlayerMarkup(p);drawer.classList.remove('hidden');}
 $('lobbyProfileDrawerClose')?.addEventListener('click',()=>$('lobbyProfileDrawer')?.classList.add('hidden'));
 document.querySelectorAll('[data-trade-filter]').forEach(btn=>btn.addEventListener('click',()=>{tradeFilter=btn.dataset.tradeFilter||'all';document.querySelectorAll('[data-trade-filter]').forEach(b=>b.classList.toggle('active',b===btn));renderTrades(false);}));
 $('lobbyTradeCreatureFilter')?.addEventListener('change',e=>{tradeCreatureFilter=e.target.value||'all';renderTrades(false);});
@@ -7082,3 +7084,153 @@ $('desktopAdminTabs')?.addEventListener('click',event=>{
   $('desktopAdminTabs').querySelectorAll('button').forEach(node=>node.toggleAttribute('aria-current',node===button));
 },true);
 
+
+// PC — Collections publiques et échanges ciblés de lots (maximum trois éléments par côté).
+async function playerTradeApi(url, options={}) {
+  const response=await fetch(url,{cache:'no-store',...options});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error || 'Action impossible.');
+  return data;
+}
+function closePlayerCollection() {
+  playerCollectionGeneration++;
+  playerCollectionData=null;pendingPlayerTradePayload=null;
+  $('lobbyPlayerCollectionPage')?.classList.add('hidden');
+  $('lobbyPlayersDirectory')?.classList.remove('hidden');
+}
+$('lobbyPlayerCollectionBack')?.addEventListener('click',()=>{closePlayerCollection();$('lobbyPlayerSearch')?.focus();});
+$('lobbyPlayersGrid')?.addEventListener('keydown',event=>{
+  if(!isDesktopGameUi() || !['Enter',' '].includes(event.key))return;
+  const card=event.target.closest('[data-lobby-user]');
+  if(card){event.preventDefault();openPlayerCollection(Number(card.dataset.lobbyUser));}
+});
+window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closePlayerCollection();});
+async function openPlayerCollection(userId) {
+  if(!isDesktopGameUi())return;
+  const generation=++playerCollectionGeneration;
+  pendingPlayerTradePayload=null;
+  $('lobbyPlayersDirectory')?.classList.add('hidden');
+  $('lobbyPlayerCollectionPage')?.classList.remove('hidden');
+  const body=$('lobbyPlayerCollectionBody');body.innerHTML='<p class="muted">Chargement de la collection…</p>';
+  try {
+    const [collection,inventory]=await Promise.all([playerTradeApi('/api/lobby/players/'+userId),playerTradeApi('/api/trades/inventory')]);
+    if(generation!==playerCollectionGeneration || !isDesktopGameUi())return;
+    playerCollectionData=collection;playerTradeInventory=inventory;
+    const player=collection.player,isSelf=Number(player.userId)===Number(collection.selfUserId);
+    const cards=collection.lovys.map(l=>`<article class="player-collection-lovys"><img src="${escapeHtml(l.image)}" alt="${escapeHtml(l.name)}" loading="lazy"><h3>${escapeHtml(l.name)}</h3><span>${escapeHtml(l.rarity||'')} · Niv. ${Number(l.level)}</span><span class="player-collection-stars">${'⭐'.repeat(Math.max(1,Math.min(5,Number(l.rank)||1)))}</span><strong>🧩 ${Number(l.fragments)} fragments disponibles</strong></article>`).join('');
+    body.innerHTML=`<div class="player-collection-head">${player.profileImageUrl?`<img class="player-collection-avatar" src="${escapeHtml(player.profileImageUrl)}" alt="">`:''}<div><h2>${escapeHtml(player.username)}</h2><p>Niveau global ${Number(player.level)} · 🐉 ${collection.lovys.length}/${Number(collection.totalLovys)} Lovys obtenus</p></div><div class="player-collection-eggs"><strong>🥚 ${Number(collection.eggs)} œufs disponibles</strong><span>${Number(collection.incubatingEggs)} œufs dans les incubateurs</span></div></div><div class="player-collection-grid">${cards || '<p class="muted">Ce joueur n’a pas encore fait éclore de Lovys.</p>'}</div>${isSelf?'<p class="muted">C’est ta collection. Choisis un autre joueur pour proposer un échange.</p>':`<section class="player-bundle-section"><h3>🔄 Proposer un échange à ${escapeHtml(player.username)}</h3><p>Choisis jusqu’à trois éléments de chaque côté. Tous seront échangés ensemble si le joueur accepte. Les fragments concernent les Lovys déjà obtenus par les deux joueurs ; les œufs disponibles peuvent aussi être échangés.</p><form id="playerBundleForm"><div class="player-bundle-columns"><section><div class="player-bundle-heading"><h4>Je propose</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="offered">＋ Ajouter</button></div><div id="playerBundleOffered" class="player-bundle-rows"></div></section><section><div class="player-bundle-heading"><h4>Je voudrais</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="requested">＋ Ajouter</button></div><div id="playerBundleRequested" class="player-bundle-rows"></div></section></div><div class="player-bundle-footer"><label>Durée <select id="playerBundleDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button class="lobby-primary-btn" type="submit">Vérifier ma proposition</button></div><p id="playerBundleMessage" role="status"></p><div id="playerBundleConfirmation" class="hidden"></div></form></section>`}`;
+    if(!isSelf){addPlayerBundleRow('offered');addPlayerBundleRow('requested');}
+    $('lobbyPlayerCollectionPage')?.scrollIntoView({block:'start',behavior:'auto'});
+  }catch(error){if(generation===playerCollectionGeneration)body.innerHTML=`<p role="status">${escapeHtml(error.message)}</p>`;}
+}
+function playerBundleChoices(side) {
+  const source=side==='offered'?playerTradeInventory:playerCollectionData;
+  const receiver=side==='offered'?playerCollectionData:playerTradeInventory;
+  if(!source || !receiver)return [];
+  const receiverIds=new Set(receiver.lovys.map(l=>l.creatureId));
+  const assets=source.lovys.filter(l=>receiverIds.has(l.creatureId) && Number(l.fragments)>0).map(l=>({value:'fragment:'+l.creatureId,label:'🧩 '+l.name+' · '+Number(l.fragments)+' disponibles',quantity:Number(l.fragments),image:l.image}));
+  if(Number(source.eggs)>0)assets.push({value:'egg',label:'🥚 Œuf mystère · '+Number(source.eggs)+' disponibles',quantity:Number(source.eggs)});
+  return assets;
+}
+function addPlayerBundleRow(side) {
+  const list=$(side==='offered'?'playerBundleOffered':'playerBundleRequested');if(!list || list.children.length>=3)return;
+  const choices=playerBundleChoices(side);
+  const row=document.createElement('div');row.className='player-bundle-row';row.dataset.bundleSide=side;
+  row.innerHTML=`<div class="player-bundle-asset-preview" aria-hidden="true"></div><label>Élément<select data-bundle-asset required><option value="">Choisir un élément…</option>${choices.map(a=>`<option value="${escapeHtml(a.value)}">${escapeHtml(a.label)}</option>`).join('')}</select></label><label>Quantité<input data-bundle-quantity type="number" min="1" max="999" value="1" required inputmode="numeric"></label><button type="button" data-bundle-remove aria-label="Retirer cet élément">×</button>`;
+  list.appendChild(row);syncPlayerBundleControls();
+}
+function syncPlayerBundleControls() {
+  const form=$('playerBundleForm');if(!form)return;
+  form.querySelectorAll('[data-bundle-add]').forEach(button=>{const list=$(button.dataset.bundleAdd==='offered'?'playerBundleOffered':'playerBundleRequested');button.disabled=playerTradeBusy || list.children.length>=3 || !playerBundleChoices(button.dataset.bundleAdd).length;});
+  form.querySelectorAll('[data-bundle-remove]').forEach(button=>button.disabled=playerTradeBusy || button.parentElement.parentElement.children.length<=1);
+}
+function clearPlayerBundleConfirmation() {pendingPlayerTradePayload=null;$('playerBundleConfirmation')?.classList.add('hidden');}
+function readPlayerBundle(side) {
+  const rows=[...$(side==='offered'?'playerBundleOffered':'playerBundleRequested').children],choices=playerBundleChoices(side),seen=new Set();
+  return rows.map(row=>{
+    const value=row.querySelector('[data-bundle-asset]').value,quantity=Number(row.querySelector('[data-bundle-quantity]').value),choice=choices.find(c=>c.value===value);
+    if(!choice||!Number.isSafeInteger(quantity)||quantity<1||quantity>999||quantity>choice.quantity)throw new Error('Vérifie les éléments et les quantités disponibles de chaque côté.');
+    if(seen.has(value))throw new Error('Choisis chaque élément une seule fois et ajuste sa quantité.');seen.add(value);
+    return {type:value==='egg'?'egg':'fragment',creatureId:value==='egg'?null:value.slice(9),quantity};
+  });
+}
+function playerBundleSummary(assets) {
+  const catalog=playerTradeInventory?.catalog || [];
+  return assets.map(asset=>`${asset.quantity} × ${asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
+}
+$('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy)clearPlayerBundleConfirmation();});
+$('lobbyPlayerCollectionBody')?.addEventListener('change',event=>{
+  if(playerTradeBusy)return;clearPlayerBundleConfirmation();
+  const row=event.target.closest('[data-bundle-side]');if(!row)return;
+  const choice=playerBundleChoices(row.dataset.bundleSide).find(c=>c.value===row.querySelector('[data-bundle-asset]').value);
+  row.querySelector('[data-bundle-quantity]').max=String(Math.min(999,choice?.quantity || 999));
+  row.querySelector('.player-bundle-asset-preview').innerHTML=choice?.image?`<img src="${escapeHtml(choice.image)}" alt="">`:choice?.value==='egg'?'🥚':'🧩';
+});
+$('lobbyPlayerCollectionBody')?.addEventListener('submit',event=>{
+  if(event.target.id!=='playerBundleForm')return;event.preventDefault();if(playerTradeBusy)return;
+  try {
+    pendingPlayerTradePayload={targetUserId:playerCollectionData.player.userId,offered:readPlayerBundle('offered'),requested:readPlayerBundle('requested'),durationDays:Number($('playerBundleDuration').value)};
+    $('playerBundleMessage').textContent='';
+    const box=$('playerBundleConfirmation');box.innerHTML=`<h4>Envoyer cette proposition à ${escapeHtml(playerCollectionData.player.username)} ?</h4><p><strong>Tu proposes :</strong> ${escapeHtml(playerBundleSummary(pendingPlayerTradePayload.offered))}</p><p><strong>Tu voudrais :</strong> ${escapeHtml(playerBundleSummary(pendingPlayerTradePayload.requested))}</p><p>Seuls tes objets proposés seront réservés. Le joueur pourra accepter ou refuser.</p><button class="lobby-primary-btn" type="button" data-bundle-send>Oui, envoyer la proposition</button> <button class="lobby-secondary-btn" type="button" data-bundle-edit>Non, modifier</button>`;box.classList.remove('hidden');box.querySelector('[data-bundle-send]').focus();
+  }catch(error){$('playerBundleMessage').textContent=error.message;}
+});
+$('lobbyPlayerCollectionBody')?.addEventListener('click',async event=>{
+  const add=event.target.closest('[data-bundle-add]'),remove=event.target.closest('[data-bundle-remove]');
+  if(playerTradeBusy)return;
+  if(add){clearPlayerBundleConfirmation();addPlayerBundleRow(add.dataset.bundleAdd);return;}
+  if(remove){clearPlayerBundleConfirmation();if(remove.parentElement.parentElement.children.length>1)remove.parentElement.remove();syncPlayerBundleControls();return;}
+  if(event.target.closest('[data-bundle-edit]')){clearPlayerBundleConfirmation();return;}
+  if(!event.target.closest('[data-bundle-send]') || !pendingPlayerTradePayload)return;
+  const payload=pendingPlayerTradePayload,generation=playerCollectionGeneration;
+  playerTradeBusy=true;$('playerBundleForm').querySelectorAll('button,input,select').forEach(node=>node.disabled=true);
+  try {
+    const data=await playerTradeApi('/api/player-trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    pendingPlayerTradePayload=null;
+    await loadPlayerTradeInbox();
+    if($('playerTradeNotice'))$('playerTradeNotice').textContent='✓ '+data.message;
+    if(generation===playerCollectionGeneration)await openPlayerCollection(payload.targetUserId);
+  }catch(error){if(generation===playerCollectionGeneration)$('playerBundleMessage').textContent=error.message;}
+  finally{playerTradeBusy=false;if(generation===playerCollectionGeneration)$('playerBundleForm')?.querySelectorAll('button,input,select').forEach(node=>node.disabled=false);syncPlayerBundleControls();}
+});
+function playerTradeOfferMarkup(offer) {
+  const received=Number(offer.targetUserId)===playerTradeSelfId;
+  const give=received?offer.requested:offer.offered,get=received?offer.offered:offer.requested;
+  const items=assets=>assets.map(a=>`<span>${a.image?`<img src="${escapeHtml(a.image)}" alt="">`:'🥚'} ${Number(a.quantity)} × ${escapeHtml(a.name)}</span>`).join('');
+  return `<article class="player-trade-offer"><div class="player-trade-offer-head"><strong>${received?'📥 De '+escapeHtml(offer.creatorName):'📤 Pour '+escapeHtml(offer.targetName)}</strong><small>${formatTradeRemaining(offer.expiresAt)}</small></div><div class="player-bundle-columns"><div><h4>Tu proposes</h4>${items(give)}</div><div><h4>Tu reçois</h4>${items(get)}</div></div><div class="player-trade-offer-actions">${received?`<button class="lobby-primary-btn" type="button" data-player-trade-action="accept" data-player-trade-id="${offer.id}">Accepter cet échange</button><button class="lobby-secondary-btn" type="button" data-player-trade-action="decline" data-player-trade-id="${offer.id}">Refuser</button>`:`<button class="lobby-secondary-btn" type="button" data-player-trade-action="cancel" data-player-trade-id="${offer.id}">Annuler ma proposition</button>`}</div></article>`;
+}
+async function loadPlayerTradeInbox() {
+  if(!isDesktopGameUi())return;
+  try {
+    const data=await playerTradeApi('/api/player-trades');playerTradeOffers=data.offers || [];playerTradeSelfId=Number(data.selfUserId);
+    $('playerTradeInbox').innerHTML=`<div class="player-trade-inbox-head"><h3>Propositions entre joueurs${playerTradeOffers.length?' · '+playerTradeOffers.length:''}</h3><p id="playerTradeNotice" role="status"></p></div>${playerTradeOffers.length?playerTradeOffers.map(playerTradeOfferMarkup).join(''):'<p class="muted">Tes propositions envoyées et celles reçues apparaîtront ici.</p>'}`;
+  }catch(error){$('playerTradeInbox').innerHTML=`<p id="playerTradeNotice" role="status">${escapeHtml(error.message)}</p>`;}
+}
+function confirmPlayerTrade(offer,action) {
+  const received=Number(offer.targetUserId)===playerTradeSelfId;
+  const give=received?offer.requested:offer.offered,get=received?offer.offered:offer.requested;
+  return new Promise(resolve=>{
+    const previous=document.activeElement,overlay=document.createElement('div');overlay.className='player-trade-confirm-overlay';
+    const question=action==='accept'?'Accepter cet échange ?':action==='decline'?'Refuser cette proposition ?':'Annuler ta proposition ?';
+    overlay.innerHTML=`<div class="player-trade-confirm-card" role="dialog" aria-modal="true" aria-labelledby="playerTradeConfirmTitle"><h3 id="playerTradeConfirmTitle">${question}</h3><p>${action==='accept'?`<strong>Tu donnes :</strong> ${escapeHtml(give.map(a=>a.quantity+' × '+a.name).join(' + '))}</p><p><strong>Tu reçois :</strong> ${escapeHtml(get.map(a=>a.quantity+' × '+a.name).join(' + '))}`:'Tous les objets réservés seront rendus au joueur qui les a proposés.'}</p><div><button class="lobby-secondary-btn" type="button" data-direct-no>Non, revenir</button><button class="lobby-primary-btn" type="button" data-direct-yes>Oui, confirmer</button></div></div>`;
+    document.body.appendChild(overlay);
+    const finish=value=>{overlay.remove();document.removeEventListener('keydown',key);if(previous?.isConnected)previous.focus();resolve(value);};
+    const key=event=>{if(event.key==='Escape'){event.preventDefault();finish(false);}if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    document.addEventListener('keydown',key);
+    overlay.addEventListener('click',event=>{if(event.target===overlay || event.target.closest('[data-direct-no]'))finish(false);else if(event.target.closest('[data-direct-yes]'))finish(true);});
+    overlay.querySelector('[data-direct-no]').focus();
+  });
+}
+$('playerTradeInbox')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-player-trade-action]');if(!button || playerTradeBusy)return;
+  const offer=playerTradeOffers.find(o=>Number(o.id)===Number(button.dataset.playerTradeId));if(!offer)return;
+  playerTradeBusy=true;
+  try {
+    if(!await confirmPlayerTrade(offer,button.dataset.playerTradeAction))return;
+    button.disabled=true;
+    const data=await playerTradeApi(`/api/player-trades/${offer.id}/${button.dataset.playerTradeAction}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+    await loadPlayerTradeInbox();if($('playerTradeNotice'))$('playerTradeNotice').textContent='✓ '+data.message;
+    if(playerCollectionData)await openPlayerCollection(playerCollectionData.player.userId);
+    await loadGame();
+  }catch(error){await loadPlayerTradeInbox();if($('playerTradeNotice'))$('playerTradeNotice').textContent=error.message;}
+  finally{playerTradeBusy=false;button.disabled=false;syncPlayerBundleControls();}
+});

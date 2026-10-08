@@ -6798,7 +6798,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .admin-confirm-actions{display:flex;justify-content:center;gap:10px;margin-top:20px}.admin-confirm-actions .btn{min-width:140px}.admin-confirm-actions [data-admin-confirm-approve]{background:linear-gradient(135deg,#7136d8,#9147ff);border-color:#a86dff}
 
 /* V272 : espace d’administration séparé du compte, PC uniquement. */
-.account-page-subtitle,.desktop-admin-tabs,#desktopAdminPageSlot{display:none}
+.account-page-subtitle,.desktop-admin-tabs,#desktopAdminPageSlot,.admin-tracker-title-logo{display:none}
 .desktop-admin-button,.desktop-admin-modal,.desktop-action-success{display:none}
 @media(min-width:901px){
   .desktop-admin-button:not(.hidden){display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 13px;border:1px solid rgba(145,71,255,.5);border-radius:12px;background:rgba(145,71,255,.16);color:#eee2ff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
@@ -6808,6 +6808,8 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .account-page-subtitle{display:block;margin:8px 0 0;color:#aeb7d1;font-size:14px;font-weight:400}
   .desktop-admin-tabs{display:flex;flex-wrap:nowrap;align-items:center;justify-content:space-between;gap:clamp(4px,.8vw,16px);min-width:0;width:100%;padding:0 0 14px;margin-bottom:24px;border-bottom:1px solid rgba(145,71,255,.22)}
   .desktop-admin-tabs>.btn{flex:0 0 auto;width:auto;white-space:nowrap;min-height:42px;padding:8px 0;border:0;border-radius:0;background:transparent;box-shadow:none;color:#aeb7d1;font-size:clamp(10px,.8vw,14px)}
+  .admin-tracker-title-tv{display:none}
+  .admin-tracker-title-logo{display:inline-block}
   .admin-twitch-logo{width:1.1em;height:1.1em;fill:#a970ff;vertical-align:-.15em}
   #adminTrackerModal #desktopAdminContent{margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid rgba(145,71,255,.20)}
   .desktop-admin-tabs>.btn[aria-current]{color:#e9dcff;border-bottom:2px solid #a86dff}
@@ -8181,4 +8183,59 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .feedback-success small{display:block;color:#aab6d4;font-size:12px;}
   .feedback-success .btn{display:block;width:100%;margin-top:24px;}
 
+}
+.player-trade-inbox{display:none}
+@media(min-width:901px){
+ .lobby-player-card[role="button"]{cursor:pointer}
+ .lobby-player-card[role="button"]:focus-visible{outline:2px solid #b47aff;outline-offset:4px}
+ .player-collection-link{color:#cba9ff;font-weight:750;font-size:13px}
+ .player-trade-inbox{display:grid;gap:16px;margin-bottom:28px}
+ .player-trade-inbox-head{display:flex;align-items:center;justify-content:space-between;gap:20px}
+ .player-trade-inbox-head h3{margin:0}
+ #playerTradeNotice{color:#cba9ff;margin:0;line-height:1.6}
+ #lobbyPlayerCollectionPage{scroll-margin-top:110px}
+ #lobbyPlayerCollectionBack{margin-bottom:24px}
+ .player-collection-head{display:flex;align-items:center;gap:18px;padding-bottom:24px;border-bottom:1px solid #693eb366}
+ .player-collection-head h2{margin:0 0 8px}
+ .player-collection-head p{margin:0;color:#aeb6ce}
+ .player-collection-avatar{width:64px;height:64px;border-radius:18px;object-fit:cover}
+ .player-collection-eggs{margin-left:auto;display:grid;gap:8px;text-align:right}
+ .player-collection-eggs span{color:#aeb6ce;font-size:13px}
+ .player-collection-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:20px;margin:26px 0 34px}
+ .player-collection-lovys{display:flex;flex-direction:column;align-items:center;text-align:center;gap:9px;padding:16px 10px;min-width:0}
+ .player-collection-lovys img{width:125px;height:125px;object-fit:contain;filter:drop-shadow(0 6px 18px #7745c333)}
+ .player-collection-lovys h3{margin:0;font-size:18px}
+ .player-collection-lovys>span{color:#aeb6ce;font-size:13px}
+ .player-collection-lovys .player-collection-stars{color:#e4be52;letter-spacing:2px}
+ .player-collection-lovys strong{color:#cba9ff;font-size:13px}
+ .player-bundle-section{border-top:1px solid #693eb366;padding-top:24px}
+ .player-bundle-section>h3{margin:0 0 12px}
+ .player-bundle-section>p{color:#aeb6ce;line-height:1.7;margin:0 0 24px;max-width:920px}
+ .player-bundle-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+ .player-bundle-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+ .player-bundle-heading h4{margin:0;color:#cba9ff;font-size:16px}
+ .player-bundle-rows{display:grid;gap:12px}
+ .player-bundle-row{display:grid;grid-template-columns:38px minmax(0,1fr) 76px 30px;gap:10px;align-items:end}
+ .player-bundle-row label{display:grid;gap:7px;min-width:0;font-size:12px;color:#aeb6ce}
+ .player-bundle-row :is(select,input),#playerBundleDuration{width:100%;min-width:0;border:1px solid #43405c;border-radius:9px;padding:10px 8px;background:#111427;color:#fff;font:inherit}
+ .player-bundle-asset-preview{height:40px;display:grid;place-items:center;font-size:25px}
+ .player-bundle-asset-preview img{width:38px;height:38px;object-fit:contain}
+ .player-bundle-row>button{height:40px;border:0;background:transparent;color:#cba9ff;font-size:25px;cursor:pointer}
+ .player-bundle-row button:disabled{opacity:.35;cursor:default}
+ .player-bundle-footer{display:flex;align-items:end;justify-content:space-between;gap:20px;margin:24px 0}
+ .player-bundle-footer label{display:grid;gap:8px;color:#aeb6ce;font-size:13px;min-width:150px}
+ #playerBundleMessage{color:#eacbff;line-height:1.6}
+ #playerBundleConfirmation{border:1px solid #7948c2;border-radius:14px;padding:20px;margin-top:20px;line-height:1.7}
+ #playerBundleConfirmation h4{margin:0 0 16px}
+ .player-trade-offer{border-bottom:1px solid #693eb366;padding:18px 0 22px}
+ .player-trade-offer-head{display:flex;justify-content:space-between;gap:16px;margin-bottom:14px}
+ .player-trade-offer-head small{color:#aeb6ce}
+ .player-trade-offer h4{margin:0 0 10px;color:#aeb6ce;font-size:13px}
+ .player-trade-offer .player-bundle-columns>div>span{display:flex;align-items:center;gap:10px;margin:6px 0;font-size:14px}
+ .player-trade-offer img{width:32px;height:32px;object-fit:contain}
+ .player-trade-offer-actions{display:flex;gap:12px;margin-top:18px}
+ .player-trade-confirm-overlay{position:fixed;inset:0;z-index:1001200;display:flex;align-items:center;justify-content:center;padding:24px;background:#030510cc;backdrop-filter:blur(5px)}
+ .player-trade-confirm-card{width:min(540px,100%);max-height:calc(100dvh - 48px);overflow:auto;padding:28px;border:1px solid #7948c2;border-radius:20px;background:#141327;box-shadow:0 24px 70px #0007;line-height:1.7}
+ .player-trade-confirm-card h3{margin:0 0 20px}
+ .player-trade-confirm-card>div{display:flex;justify-content:flex-end;gap:12px;margin-top:24px}
 }

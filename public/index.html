@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=336">
+<link rel="stylesheet" href="/styles.css?v=338">
 
 
 </head>
@@ -340,7 +340,11 @@
     <div id="lobbyTradesPanel" class="lobby-panel"><div class="lobby-trade-toolbar"><div><strong>Bourse d'échanges</strong><span>Repère immédiatement ce qui est proposé, ce qui est demandé et le temps restant.</span></div><button id="tradeCreateOpen" class="lobby-primary-btn" type="button">＋ Créer une offre</button></div><div class="lobby-trade-filters"><button class="active" type="button" data-trade-filter="all">Toutes</button><button type="button" data-trade-filter="possible">Ce que je peux accepter</button><button type="button" data-trade-filter="fragment">Fragments</button><button type="button" data-trade-filter="egg">Œufs</button><select id="lobbyTradeCreatureFilter"><option value="all">Tous les Lovys</option><option value="plant">Mossy</option><option value="water">Nyméa</option><option value="voltis">Voltis</option><option value="brumee">Brumee</option><option value="flamby">Flamby</option><option value="nocty">Nocty</option></select></div><div id="lobbyTradesGrid" class="lobby-trades-grid"></div><div id="lobbyActivityBox" class="lobby-activity-box hidden"><strong>✨ Activité récente</strong><div id="lobbyActivityFeed"></div></div></div>
     <div id="lobbyMinePanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Mes offres</strong><span>Suis tes annonces actives et leurs expirations.</span></div><button id="tradeCreateOpenMine" class="lobby-primary-btn" type="button">＋ Nouvelle offre</button></div><div id="lobbyMineGrid" class="lobby-trades-grid"></div></div>
     <div id="lobbyWishesPanel" class="lobby-panel hidden"><div id="lobbyWishesGrid"></div></div>
-    <div id="lobbyPlayersPanel" class="lobby-panel hidden"><div class="lobby-toolbar"><input id="lobbyPlayerSearch" type="search" maxlength="32" placeholder="🔎 Rechercher un joueur…"></div><div id="lobbyPlayersGrid" class="lobby-player-grid"></div></div>
+    <div id="lobbyPlayersPanel" class="lobby-panel hidden">
+      <div id="playerTradeInbox" class="player-trade-inbox"></div>
+      <div id="lobbyPlayersDirectory"><div class="lobby-toolbar"><input id="lobbyPlayerSearch" type="search" maxlength="32" placeholder="🔎 Rechercher un joueur…"></div><div id="lobbyPlayersGrid" class="lobby-player-grid"></div></div>
+      <section id="lobbyPlayerCollectionPage" class="hidden" aria-label="Collection du joueur"><button id="lobbyPlayerCollectionBack" class="lobby-secondary-btn" type="button">← Joueurs</button><div id="lobbyPlayerCollectionBody"></div></section>
+    </div>
     <div id="lobbyHistoryPanel" class="lobby-panel hidden"><div class="lobby-trade-toolbar"><div><strong>Historique des échanges</strong><span>Retrouve les échanges terminés auxquels tu as participé.</span></div></div><div id="lobbyHistoryGrid" class="lobby-trades-grid"></div></div>
     <div class="lobby-community-footer"><div class="lobby-community-actions"><button class="lobby-secondary-btn" type="button" id="lobbyInviteFriend">🔗 Inviter un ami</button></div></div>
   </div>
@@ -831,7 +835,10 @@
 <!-- ADMIN - TWITCH -->
 <div id="adminTrackerModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminTrackerTitle">
   <div class="admin-players-panel admin-overview-panel">
-    <div class="admin-players-head"><div><h2 id="adminTrackerTitle">📺 Tracker Twitch</h2><div class="muted admin-subtitle">État technique du suivi de présence.</div></div><button id="adminTrackerClose" class="account-close" type="button">×</button></div>
+    <div class="admin-players-head"><div><h2 id="adminTrackerTitle"><span class="admin-tracker-title-tv" aria-hidden="true">📺</span><svg class="admin-tracker-title-logo admin-twitch-logo" viewBox="0 0 16 16" aria-hidden="true">
+    <path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/>
+    <path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/>
+  </svg> Tracker Twitch</h2><div class="muted admin-subtitle">État technique du suivi de présence.</div></div><button id="adminTrackerClose" class="account-close" type="button">×</button></div>
     <div id="adminTrackerContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
   </div>
 </div>
@@ -1225,5 +1232,5 @@
   </div>
 </div>
 
-<script src="/app.js?v=335"></script>
+<script src="/app.js?v=338"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
