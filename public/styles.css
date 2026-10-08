@@ -5417,7 +5417,9 @@ body:has(#pveModal:not(.hidden)){
   body[data-desktop-view="shop"] #shopModal .shop-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 }
 /* ===== /V115 ===== */
-\n\n/* =========================================================
+
+
+/* =========================================================
    V117 — PC : NAVIGATION PRINCIPALE EN VRAIES PAGES
    Aucun clic sur le fond ne ferme Lovys/PvE/Progression/Boutique/Compte.
    Le bouton ⓘ reste une vraie popup. Mobile inchangé.
@@ -6791,8 +6793,11 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 .desktop-admin-button,.desktop-admin-modal,.desktop-action-success{display:none}
 @media(min-width:901px){
   .desktop-admin-button:not(.hidden){display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 13px;border:1px solid rgba(145,71,255,.5);border-radius:12px;background:rgba(145,71,255,.16);color:#eee2ff;font:inherit;font-size:11px;font-weight:900;cursor:pointer}
-  .desktop-admin-modal:not(.hidden){position:fixed;inset:0;z-index:1000900;display:flex;align-items:center;justify-content:center;padding:28px;background:rgba(3,5,15,.82);backdrop-filter:blur(9px)}
-  .desktop-admin-panel{width:min(820px,100%);max-height:calc(100dvh - 56px);overflow-y:auto;padding:26px;border:1px solid rgba(145,71,255,.38);border-radius:22px;background:linear-gradient(180deg,#15192d,#0d1122);box-shadow:0 26px 90px rgba(0,0,0,.55)}
+  .desktop-admin-modal:not(.hidden){position:relative;inset:auto;z-index:auto;display:block;width:100%;max-width:1040px;margin:28px auto 0;padding:0 0 32px;background:transparent;backdrop-filter:none}
+  .desktop-admin-panel{width:100%;max-height:none;overflow:visible;padding:0 0 32px;border:0;border-radius:0;background:transparent;box-shadow:none}
+  #desktopAdminClose{display:none}
+  .desktop-admin-panel>.admin-players-head{padding-bottom:20px;margin-bottom:22px;border-bottom:1px solid rgba(145,71,255,.22)}
+  .desktop-admin-button[aria-current]{background:rgba(145,71,255,.24);border-color:#9147ff}
   #desktopAdminTitle{margin:0;font-size:26px}
   #desktopAdminContent .tracker-admin{margin-top:20px;padding:0;border:0;background:transparent}
   #desktopAdminContent .admin-profile-actions{gap:12px;margin-top:20px}

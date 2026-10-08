@@ -5358,29 +5358,44 @@ async function refreshDesktopAdminAccess(){
   return desktopAdminAuthorized;
 }
 async function openDesktopAdmin(){
-  if(!(isDesktopGameUi()||isMobileGameUi()) || !await refreshDesktopAdminAccess())return;
+  if (isDesktopGameUi() && document.body.dataset.desktopView !== 'admin') {
+    if (location.hash === '#administration') return openDesktopView('admin');
+    location.hash = '#administration';
+    return;
+  }
+  if(!(isDesktopGameUi()||isMobileGameUi()) || !await refreshDesktopAdminAccess()) {
+    if (isDesktopGameUi() && document.body.dataset.desktopView === 'admin') location.hash = '#accueil';
+    return;
+  }
+  syncAccountPagePlacement();
   syncDesktopAdminPlacement();
   const modal=$('desktopAdminModal');
   if(!modal || !modal.classList.contains('hidden'))return;
-  desktopAdminPreviousOverflow=document.body.style.overflow;
-  document.body.style.overflow='hidden';
+  if (!isDesktopGameUi()) {
+    desktopAdminPreviousOverflow=document.body.style.overflow;
+    document.body.style.overflow='hidden';
+    modal.dataset.scrollLocked='true';
+  }
   modal.classList.remove('hidden');
-  $('desktopAdminClose')?.focus();
+  if (!isDesktopGameUi()) $('desktopAdminClose')?.focus();
   await loadTrackerStatus();
 }
 function closeDesktopAdmin(){
   const modal=$('desktopAdminModal');
   if(!modal || modal.classList.contains('hidden'))return;
   modal.classList.add('hidden');
-  document.body.style.overflow=desktopAdminPreviousOverflow;
-  if(isDesktopGameUi())$('desktopAdminButton')?.focus();
+  if (modal.dataset.scrollLocked === 'true') {
+    document.body.style.overflow=desktopAdminPreviousOverflow;
+    delete modal.dataset.scrollLocked;
+  }
+  if(isDesktopGameUi()) return;
   else if(isMobileGameUi())$('mobileProfileAdmin')?.focus();
 }
 $('desktopAdminButton')?.addEventListener('click',openDesktopAdmin);
-$('desktopAdminClose')?.addEventListener('click',closeDesktopAdmin);
-$('desktopAdminModal')?.addEventListener('click',event=>{if(event.target===$('desktopAdminModal'))closeDesktopAdmin();});
+$('desktopAdminClose')?.addEventListener('click',()=>{if(isDesktopGameUi())location.hash='#accueil';else closeDesktopAdmin();});
+$('desktopAdminModal')?.addEventListener('click',event=>{if(!isDesktopGameUi() && event.target===$('desktopAdminModal'))closeDesktopAdmin();});
 document.addEventListener('keydown',event=>{
-  if($('desktopAdminModal')?.classList.contains('hidden'))return;
+  if(isDesktopGameUi() || $('desktopAdminModal')?.classList.contains('hidden'))return;
   if(document.querySelector('[data-admin-confirm-overlay]'))return;
   if(['adminPlayersModal','adminDashboardModal','adminEconomyModal','adminTrackerModal','trackerDetectedModal','adminHistoryModal','eventsModal'].some(id=>!$(id)?.classList.contains('hidden')))return;
   if(event.key==='Escape'){event.preventDefault();closeDesktopAdmin();}
@@ -6412,6 +6427,7 @@ function setDesktopNavActive(view){document.querySelectorAll('.desktop-game-nav-
 function closeDesktopPrimaryPages(except=''){
   if(except!=='shop')$('inventoryModal')?.classList.add('hidden');
   if(except!=='account')$('accountModal')?.classList.add('hidden');
+  if(except!=='admin')closeDesktopAdmin();
   if(except!=='lovys')$('lovysCollectionModal')?.classList.add('hidden');
   if(except!=='pve'){$('pveModal')?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}
   if(except!=='progression')$('progressionModal')?.classList.add('hidden');
@@ -6419,22 +6435,30 @@ function closeDesktopPrimaryPages(except=''){
   if(except!=='lobby')$('desktopLobbyPage')?.classList.add('hidden');
   if(except!=='leaderboard')document.body.classList.remove('desktop-leaderboard-open');
 }
-let accountPageOrigin = null;
+const desktopProfilePageOrigins = new Map();
 function syncAccountPagePlacement() {
-  const page = $('accountModal'), header = $('standardPageHeader');
-  if (!page || !header) return;
-  if (!accountPageOrigin) {
-    accountPageOrigin = document.createComment('account-mobile-origin');
-    page.parentNode.insertBefore(accountPageOrigin, page);
-  }
-  if (isDesktopGameUi()) {
-    header.after(page);
-    page.setAttribute('role', 'region');
-    page.removeAttribute('aria-modal');
-  } else {
-    accountPageOrigin.parentNode.insertBefore(page, accountPageOrigin.nextSibling);
-    page.setAttribute('role', 'dialog');
-    page.setAttribute('aria-modal', 'true');
+  const header = $('standardPageHeader');
+  if (!header) return;
+  let previous = header;
+  for (const id of ['accountModal', 'desktopAdminModal']) {
+    const page = $(id);
+    if (!page) continue;
+    if (!desktopProfilePageOrigins.has(id)) {
+      const origin = document.createComment(id + '-mobile-origin');
+      page.parentNode.insertBefore(origin, page);
+      desktopProfilePageOrigins.set(id, origin);
+    }
+    if (isDesktopGameUi()) {
+      previous.after(page);
+      previous = page;
+      page.setAttribute('role', 'region');
+      page.removeAttribute('aria-modal');
+    } else {
+      const origin = desktopProfilePageOrigins.get(id);
+      origin.parentNode.insertBefore(page, origin.nextSibling);
+      page.setAttribute('role', 'dialog');
+      page.setAttribute('aria-modal', 'true');
+    }
   }
 }
 let desktopLeaderboardPlaceholder=null;
@@ -6460,6 +6484,7 @@ async function openDesktopView(view='home'){
   syncAccountPagePlacement();
   desktopView=view;setDesktopNavActive(view);
   $('desktopAccountButton')?.toggleAttribute('aria-current', view === 'account');
+  $('desktopAdminButton')?.toggleAttribute('aria-current', view === 'admin');
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
@@ -6475,6 +6500,7 @@ async function openDesktopView(view='home'){
   window.scrollTo({top:0,behavior:'auto'});
   if(view==='home'||view==='incubator')return;
   if(view==='account'){await openAccountModal();return;}
+  if(view==='admin'){await openDesktopAdmin();return;}
   if(view==='lovys'){await openLovysCollection('collection');return;}
   if(view==='pve'){$('pveModal')?.classList.remove('hidden');await loadPve();return;}
   if(view==='progression'){$('progressionModal')?.classList.remove('hidden');await loadProgression();return;}
@@ -6483,7 +6509,7 @@ async function openDesktopView(view='home'){
   if(view==='lobby'){$('desktopLobbyPage')?.classList.remove('hidden');await openLobbyTab(lobbyTab);}
 }
 
-const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique',inventory:'inventaire',account:'compte'};
+const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve:'pve',lobby:'lobby',leaderboard:'classement',progression:'progression',shop:'boutique',inventory:'inventaire',account:'compte',admin:'administration'};
 const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
 function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
 function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
