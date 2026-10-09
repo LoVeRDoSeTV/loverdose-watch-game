@@ -5015,6 +5015,17 @@ body:has(#pveModal:not(.hidden)){
 .admin-dashboard-section{margin-top:14px;padding:14px;border:1px solid rgba(255,255,255,.08);background:rgba(7,10,22,.48)}
 .admin-dashboard-section h3{margin:0 0 10px;font-size:14px}
 .admin-health{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);font-size:12px}
+.wizebot-settings{padding-top:20px;border-top:1px solid rgba(145,71,255,.25)}
+.wizebot-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.wizebot-heading .btn{white-space:nowrap;min-height:44px}
+.wizebot-settings .admin-player-meta{line-height:1.7}
+.wizebot-setup,.wizebot-preview{margin-top:16px}
+.wizebot-settings summary{padding:8px 0;cursor:pointer;color:#cfb5ff;font-size:13px}
+.wizebot-setup ol{padding-left:22px;font-size:13px;line-height:1.8;color:#bbc3db}
+.wizebot-script{display:block;box-sizing:border-box;width:100%;height:230px;margin:14px 0;padding:12px;background:#0d1120;color:#d7dcef;border:1px solid #343b5f;border-radius:8px;font:12px/1.6 monospace;resize:vertical}
+.wizebot-preview p{font-size:13px;line-height:1.7;color:#bbc3db;overflow-wrap:anywhere}
+.wizebot-preview small{display:block;color:#8f99b3;font-size:11px}
+.wizebot-settings [role="status"]{color:#cba9ff;font-size:13px;line-height:1.7}
 .admin-health.good{border-color:rgba(76,217,130,.28);background:rgba(38,132,82,.08)}
 .admin-health.bad{border-color:rgba(255,102,120,.35);background:rgba(162,55,70,.09)}
 .admin-history-list{display:grid;gap:8px;margin-top:18px}
