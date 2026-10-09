@@ -5579,6 +5579,12 @@ async function loadTrackerStatus() {
 let eventsRefreshTimer = null;
 let currentSpecialMode = null;
 
+function renderEventModeStatus(element,enabled,remainingMinutes=null){
+  if(!element)return;
+  element.closest('.event-mode-card')?.classList.toggle('active',Boolean(enabled));
+  element.innerHTML=`<span class="event-status-badge">${enabled?'🟢 ON':'🔴 OFF'}</span>${enabled && remainingMinutes!==null?`<small class="event-status-remaining">Encore ${Math.max(1,Math.ceil(Number(remainingMinutes)||0))} min</small>`:''}`;
+}
+
 function renderEventsState(data) {
   const zombieCard = $('eventZombieCard');
   const zombieState = $('eventZombieState');
@@ -5590,8 +5596,7 @@ function renderEventsState(data) {
   currentSpecialMode = String(data?.specialMode || '').toLowerCase() || null;
   const zombieActive = currentSpecialMode === 'zombie';
 
-  zombieCard.classList.toggle('active', zombieActive);
-  zombieState.textContent = zombieActive ? '🟢 ON' : '🔴 OFF';
+  renderEventModeStatus(zombieState,zombieActive);
   zombieToggle.textContent = zombieActive ? 'Passer OFF' : 'Passer ON';
   zombieToggle.classList.toggle('active', zombieActive);
 
@@ -5611,9 +5616,10 @@ function renderEventsState(data) {
   boostStates.forEach(([id, active]) => {
     const el=$(id); if(!el) return;
     const enabled=Boolean(active && boostActive);
-    el.closest('.event-mode-card')?.classList.toggle('active',enabled);
-    el.textContent = enabled ? `🟢 ACTIF · ${remaining} min` : 'INACTIF';
+    renderEventModeStatus(el,enabled,remaining);
   });
+
+  renderEventModeStatus($('eventBoostStopState'),Boolean(boostActive && [boosts.xp,boosts.cash,boosts.globalXp].some(value=>Number(value||1)>1)),remaining);
 
   updated.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
 }
