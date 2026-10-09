@@ -7211,6 +7211,9 @@ app.get(
   async (req, res) => {
     try {
       const search = String(req.query.search || '').trim().slice(0, 32);
+      const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
+      // Identification par ID Twitch ; login de la chaîne uniquement si l'ID n'est pas configuré.
+      const broadcasterMatch = `(($2::text <> '' AND u.twitch_id = $2::text) OR ($2::text = '' AND LOWER(COALESCE(u.login, '')) = $3::text))`;
       const requestedMetric = String(req.query.metric || 'watch').trim().toLowerCase();
       const metric = ['watch', 'level', 'pve', 'collection'].includes(requestedMetric) ? requestedMetric : 'watch';
       const orderByMetric = {
@@ -7229,6 +7232,7 @@ app.get(
           u.id,
           u.twitch_id,
           u.login,
+          ${broadcasterMatch} AS excluded_from_ranking,
           COALESCE(a.username, u.display_name, u.login) AS game_username,
           u.display_name,
           u.is_sub,
@@ -7254,6 +7258,7 @@ app.get(
         FROM users u
         LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
         WHERE u.twitch_id IS NOT NULL
+          AND ($1::text <> '' OR NOT ${broadcasterMatch})
           AND (
             $1::text = ''
             OR COALESCE(a.username, u.display_name, u.login) ILIKE '%' || $1::text || '%'
@@ -7263,7 +7268,7 @@ app.get(
         ORDER BY ${orderByMetric}
         LIMIT 50
         `,
-        [search]
+        [search, broadcasterId, CHANNEL.trim()]
       );
 
       const playerIds = playersResult.rows.map(row => Number(row.id)).filter(Number.isFinite);
@@ -7318,13 +7323,15 @@ app.get(
         );
       }
 
-      const leaderboard = playersResult.rows.map((player, index) => {
+      let visibleRank = 0;
+      const leaderboard = playersResult.rows.map(player => {
         const hatched = Boolean(player.creature_id);
         const watched = Math.max(0, Number(player.watch_seconds) || 0);
         const eggWatched = Math.min(watched, EGG_HATCH_SECONDS);
 
         return {
-          rank: index + 1,
+          rank: player.excluded_from_ranking ? null : ++visibleRank,
+          excluded_from_ranking: Boolean(player.excluded_from_ranking),
           twitch_id: player.twitch_id,
           login: player.login,
           display_name: player.game_username || player.display_name || player.login || 'Joueur',
