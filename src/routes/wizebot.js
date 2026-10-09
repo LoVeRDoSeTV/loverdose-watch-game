@@ -67,7 +67,7 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
       const login=String(egg.login||'').toLowerCase();
       if(!/^[a-z0-9_]{1,25}$/.test(login))continue;
       await insertAlert(client,settings,egg.event_key,'egg',egg.user_id,baseline?null:{
-        message:`🥚 @${login}, ton œuf de l’emplacement ${egg.slot} est prêt à éclore ! Retrouve-le dans LoVeR Watch Game.`,
+        message:`🥚 @${login}, ton œuf est prêt à éclore ! ✨ Vite, rejoins LoVeR Watch Game pour découvrir quel Lovys se cache à l’intérieur !`,
         eggId:egg.egg_id,slot:egg.slot
       },baseline?null:new Date(Date.now()+300000));
     }
@@ -134,7 +134,7 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
         WHERE payload IS NOT NULL AND generation=$1 ORDER BY id DESC LIMIT 5`,[settings.generation])).rows;
       res.json({ok:true,enabled:settings.enabled,lastPollAt:settings.last_poll_at,
         script:wizebotRelayScript(baseUrl,settings.relay_token),recent,
-        examples:['🥚 @joueur, ton œuf de l’emplacement 2 est prêt à éclore ! Retrouve-le dans LoVeR Watch Game.',
+        examples:['🥚 @joueur, ton œuf est prêt à éclore ! ✨ Vite, rejoins LoVeR Watch Game pour découvrir quel Lovys se cache à l’intérieur !',
           '⏳ @joueur, ton double XP se termine dans 5 min !','⌛ @joueur, ton double XP est terminé.']});
     }catch {res.status(500).json({error:'Impossible de charger Wizebot.'});}
   });
