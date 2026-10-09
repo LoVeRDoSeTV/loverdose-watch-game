@@ -6748,26 +6748,188 @@ function tradeCreatureImageUrl(l){
   return aliases[id]||aliases[name]||String(l.image||'');
 }
 function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
-function tradeCreatureMenuMarkup(){return `<div class="trade-creature-menu">${(tradeInventory.lovys||[]).map(l=>`<button type="button" data-trade-creature-choice="${escapeHtml(l.creatureId)}"><img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span></button>`).join('')}</div>`;}
+function tradeCreatureMenuMarkup(row) {
+  const offered = isDesktopGameUi() && row?.classList.contains('trade-asset-row');
+  const requested = isDesktopGameUi() && row?.hasAttribute('data-trade-option-row');
+  const choices = (tradeInventory.lovys || []).filter(item => !offered || Number(item.fragments) > 0);
+  return `<div class="trade-creature-menu">${choices.map(item => `<button type="button" data-trade-creature-choice="${escapeHtml(item.creatureId)}"><img src="${escapeHtml(tradeCreatureImageUrl(item))}" alt=""><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.rarity || '')} · ${requested ? 'Fragments à recevoir' : `${Number(item.fragments || 0)} fragments disponibles`}</small></span></button>`).join('')}</div>`;
+}
 
 function tradeCreaturePreviewMarkup(creatureId,egg=false){if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span><b class="trade-select-chevron">⌄</b>`;}
-function setupTradeVisualSelector(row){const type=row.querySelector('[data-trade-type]')?.value||'fragment',select=row.querySelector('[data-trade-creature]'),preview=row.querySelector('[data-trade-preview]');if(!preview||!select)return;preview.classList.toggle('is-selectable',type!=='egg');preview.dataset.tradeVisualSelector=type!=='egg'?'1':'0';}
+function setupTradeVisualSelector(row){const type=row.querySelector('[data-trade-type]')?.value||'fragment',select=row.querySelector('[data-trade-creature]'),preview=row.querySelector('[data-trade-preview]');if(!preview||!select)return;preview.classList.toggle('is-selectable',type!=='egg');preview.dataset.tradeVisualSelector=type!=='egg'?'1':'0';if(isDesktopGameUi()){if(type!=='egg'){preview.tabIndex=0;preview.setAttribute('role','button');preview.setAttribute('aria-label','Choisir un Lovys');}else{preview.removeAttribute('tabindex');preview.removeAttribute('role');preview.removeAttribute('aria-label');}}}
 
-function syncTradeAssetRow(row){const type=row.querySelector('[data-trade-type]')?.value||'fragment',creature=row.querySelector('[data-trade-creature]'),preview=row.querySelector('[data-trade-preview]');if(creature){creature.classList.toggle('hidden',type==='egg');creature.disabled=type==='egg';}if(preview)preview.innerHTML=tradeCreaturePreviewMarkup(creature?.value,type==='egg');setupTradeVisualSelector(row);}
+function syncTradeAssetRow(row) {
+  const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
+  const creature = row.querySelector('[data-trade-creature]'), preview = row.querySelector('[data-trade-preview]');
+  if (creature) { creature.classList.toggle('hidden', type === 'egg'); creature.disabled = type === 'egg'; }
+  if (preview) {
+    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg');
+    if (isDesktopGameUi() && type !== 'egg') {
+      const detail = preview.querySelector('small');
+      if (detail) detail.textContent = `${tradeLovysById(creature?.value)?.rarity || 'Lovys'} · Fragments à recevoir`;
+    }
+  }
+  if (isDesktopGameUi()) {
+    const quantity = row.querySelector('[data-trade-quantity]');
+    if (type === 'egg' && row.dataset.quantityType !== 'egg') quantity.value = '1';
+    row.dataset.quantityType = type;
+    setupDesktopTradeQuantity(quantity);
+  }
+  setupTradeVisualSelector(row);
+}
 function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
-function syncTradeOfferFields(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature');if(creature){creature.classList.toggle('hidden',type==='egg');creature.disabled=type==='egg';}const preview=$('tradeOfferPreview');if(preview)preview.innerHTML=tradeCreaturePreviewMarkup(creature?.value,type==='egg');setupTradeVisualSelector($('tradeOfferType')?.closest('.trade-asset-row')||document);const asset=type==='egg'?{type:'egg'}:{type:'fragment',creatureId:creature?.value};const balance=tradeBalanceFor(asset);if($('tradeOfferBalance'))$('tradeOfferBalance').textContent=type==='egg'?`Disponible : ${balance} œuf${balance>1?'s':''}`:`Disponible : ${balance} fragment${balance>1?'s':''}`;}
+function syncTradeOfferFields() {
+  const type = $('tradeOfferType')?.value || 'fragment', creature = $('tradeOfferCreature');
+  if (creature) { creature.classList.toggle('hidden', type === 'egg'); creature.disabled = type === 'egg'; }
+  const preview = $('tradeOfferPreview');
+  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg');
+  setupTradeVisualSelector($('tradeOfferType')?.closest('.trade-asset-row') || document);
+  const balance = tradeBalanceFor({ type, creatureId: creature?.value });
+  if (isDesktopGameUi()) {
+    const input = $('tradeOfferQuantity');
+    input.max = String(Math.max(1, Math.min(999, balance)));
+    input.value = String(Math.max(1, Math.min(Number(input.value || 1), Number(input.max))));
+  }
+  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
+}
+let desktopTradeComposerStep = 1;
+
+function tradeComposerAssets() {
+  const type = $('tradeOfferType').value;
+  const offer = { type, creatureId: type === 'fragment' ? $('tradeOfferCreature').value : null, quantity: Number($('tradeOfferQuantity').value || 0) };
+  const options = [...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row => {
+    const type = row.querySelector('[data-trade-type]').value;
+    return { type, creatureId: type === 'fragment' ? row.querySelector('[data-trade-creature]').value : null, quantity: Number(row.querySelector('[data-trade-quantity]').value || 0) };
+  });
+  return { offer, options, durationDays: Number($('tradeDuration').value || 3) };
+}
+
+function desktopTradeAssetLabel(asset) {
+  if (asset.type === 'egg') return `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère`;
+  return `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${tradeLovysById(asset.creatureId)?.name || 'Lovys'}`;
+}
+
+function validateDesktopTradeComposer(includeRequests = false) {
+  const { offer, options, durationDays } = tradeComposerAssets();
+  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (asset.type === 'egg' || Boolean(tradeLovysById(asset.creatureId)));
+  if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
+  const balance = tradeBalanceFor(offer);
+  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
+  if (!includeRequests) return '';
+  if (!options.length || options.length > 3 || options.some(asset => !valid(asset))) return 'Choisis de 1 à 3 alternatives avec des quantités entières entre 1 et 999.';
+  const key = asset => `${asset.type}:${asset.creatureId || ''}:${asset.quantity}`;
+  if (new Set(options.map(key)).size !== options.length) return 'Deux alternatives sont identiques. Modifie ou retire le doublon.';
+  if (options.some(asset => key(asset) === key(offer))) return 'Une demande est identique à ce que tu proposes. Choisis un autre objet ou une autre quantité.';
+  if (![1, 3, 7].includes(durationDays)) return 'Choisis une durée de 24 heures, 3 jours ou 7 jours.';
+  return '';
+}
+
+function desktopTradeRecapAsset(asset) {
+  const creature = asset.type === 'fragment' ? tradeLovysById(asset.creatureId) : null;
+  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : '<span class="trade-recap-egg">🥚</span>';
+  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+}
+
+function renderDesktopTradeRecap() {
+  const { offer, options, durationDays } = tradeComposerAssets();
+  const requests = desktopTradeComposerStep === 2
+    ? options.map((asset, index) => `${index ? '<span class="trade-recap-or">OU</span>' : ''}${desktopTradeRecapAsset(asset)}`).join('')
+    : '<p class="trade-recap-placeholder">Tu choisiras ce que tu souhaites recevoir à l’étape suivante.</p>';
+  return `<h3>Ton offre d’échange</h3><div class="trade-recap-label">TU PROPOSES</div>${desktopTradeRecapAsset(offer)}<div class="trade-recap-divider">⇄</div><div class="trade-recap-label">TU VOUDRAIS</div>${requests}<p class="trade-recap-footnote">${desktopTradeComposerStep === 2 ? 'Une seule alternative sera échangée contre ta proposition.' : 'Tes objets restent disponibles tant que tu n’as pas confirmé.'}</p><div class="trade-recap-duration">⏳ ${durationDays === 1 ? '24 heures' : `${durationDays} jours`}</div>`;
+}
+
+function showDesktopTradeComposerStep(step) {
+  if (!isDesktopGameUi()) return;
+  desktopTradeComposerStep = step;
+  $('tradeComposer').dataset.step = String(step);
+  document.querySelectorAll('[data-trade-step]').forEach(item => {
+    const active = Number(item.dataset.tradeStep) === step;
+    item.classList.toggle('active', active);
+    if (active) item.setAttribute('aria-current', 'step'); else item.removeAttribute('aria-current');
+  });
+  $('tradeComposerMessage').textContent = '';
+  $('tradeComposerMessage').classList.remove('error');
+  updateTradeComposerRecap();
+  $('tradeComposer').querySelector('.trade-composer-card')?.scrollTo({ top: 0 });
+}
+
+function setupDesktopTradeQuantity(input, offered = false) {
+  if (!isDesktopGameUi() || !input) return;
+  input.setAttribute('aria-label', offered ? 'Quantité à proposer' : 'Quantité à demander');
+  if (input.parentElement.classList.contains('trade-quantity-control')) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'trade-quantity-control';
+  input.before(wrapper);
+  wrapper.innerHTML = `<span>Quantité</span><div><button type="button" data-trade-quantity-step="-1" aria-label="Diminuer la quantité">−</button><button type="button" data-trade-quantity-step="1" aria-label="Augmenter la quantité">＋</button></div>${offered ? '<button type="button" class="trade-quantity-max" data-trade-quantity-max>Tout proposer</button>' : ''}`;
+  wrapper.querySelector('div').insertBefore(input, wrapper.querySelector('[data-trade-quantity-step="1"]'));
+}
+
+function setupDesktopTradeComposer() {
+  const composer = $('tradeComposer');
+  composer.classList.toggle('desktop-trade-wizard', isDesktopGameUi());
+  if (!isDesktopGameUi()) return;
+  $('tradeOfferType').setAttribute('data-trade-type', '');
+  $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments Lovys';
+  $('tradeOfferPreview').setAttribute('data-trade-preview', '');
+  const stocked = (tradeInventory.lovys || []).filter(item => Number(item.fragments) > 0);
+  const current = $('tradeOfferCreature').value;
+  $('tradeOfferCreature').innerHTML = stocked.map(item => `<option value="${escapeHtml(item.creatureId)}">${escapeHtml(item.name)}</option>`).join('');
+  if (stocked.some(item => item.creatureId === current)) $('tradeOfferCreature').value = current;
+  $('tradeOfferType').querySelector('[value="fragment"]').disabled = !stocked.length;
+  $('tradeOfferType').querySelector('[value="egg"]').disabled = Number(tradeInventory.eggs || 0) < 1;
+  if (!stocked.length) $('tradeOfferType').value = 'egg';
+  const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
+  $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
+  $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
+  setupDesktopTradeQuantity($('tradeOfferQuantity'), true);
+  const firstRequest = $('tradeOptionsList').querySelector('[data-trade-option-row]');
+  if (firstRequest) {
+    const other = (tradeInventory.lovys || []).find(item => item.creatureId !== offer.creatureId);
+    if (other) firstRequest.querySelector('[data-trade-creature]').value = other.creatureId;
+    else if (offer.type === 'fragment') firstRequest.querySelector('[data-trade-type]').value = 'egg';
+    syncTradeAssetRow(firstRequest);
+  }
+  showDesktopTradeComposerStep(1);
+}
+
+$('tradeComposerNext')?.addEventListener('click', () => {
+  const error = validateDesktopTradeComposer();
+  if (error) {
+    $('tradeComposerMessage').textContent = error;
+    $('tradeComposerMessage').classList.add('error');
+    $('tradeOfferQuantity').focus();
+    return;
+  }
+  showDesktopTradeComposerStep(2);
+  $('tradeOptionsList').querySelector('[data-trade-type]')?.focus();
+});
+$('tradeComposerBack')?.addEventListener('click', () => {
+  hideTradePublishConfirmation();
+  showDesktopTradeComposerStep(1);
+  $('tradeOfferType').focus();
+});
+$('tradeComposer')?.addEventListener('click', event => {
+  if (!isDesktopGameUi()) return;
+  const button = event.target.closest('[data-trade-quantity-step],[data-trade-quantity-max]');
+  if (!button) return;
+  const input = button.closest('.trade-quantity-control')?.querySelector('input');
+  if (!input) return;
+  const max = Math.max(1, Number(input.max || 999));
+  input.value = String(button.hasAttribute('data-trade-quantity-max') ? max : Math.min(max, Math.max(1, Math.trunc(Number(input.value || 1)) + Number(button.dataset.tradeQuantityStep))));
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+});
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':'egg';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();syncTradeOfferFields();updateTradeComposerRecap();$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':'egg';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
-$('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();});
+$('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}});
 function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
-function updateTradeComposerRecap(){const el=$('tradeComposerRecap');if(el)el.textContent=tradeComposerSummary();}
+function updateTradeComposerRecap(){const el=$('tradeComposerRecap');if(!el)return;if(isDesktopGameUi())el.innerHTML=renderDesktopTradeRecap();else el.textContent=tradeComposerSummary();}
 $('tradeComposer')?.addEventListener('input',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});$('tradeComposer')?.addEventListener('change',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});
 $('tradeOptionsList')?.addEventListener('change',e=>{const row=e.target.closest('[data-trade-option-row]');if(row)syncTradeAssetRow(row);});
-$('tradeOptionsList')?.addEventListener('click',e=>{if(!e.target.closest('[data-trade-remove]')||tradeOptionCount<=1)return;const rows=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')],idx=rows.indexOf(e.target.closest('[data-trade-option-row]'));if(idx>=0){rows[idx].remove();tradeOptionCount--;[...$('tradeOptionsList').querySelectorAll('.trade-option-number')].forEach((n,i)=>n.textContent=String(i+1));$('tradeOptionAdd').disabled=false;}});
+$('tradeOptionsList')?.addEventListener('click',e=>{if(!e.target.closest('[data-trade-remove]')||tradeOptionCount<=1)return;const rows=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')],idx=rows.indexOf(e.target.closest('[data-trade-option-row]'));if(idx>=0){rows[idx].remove();tradeOptionCount--;[...$('tradeOptionsList').querySelectorAll('.trade-option-number')].forEach((n,i)=>n.textContent=String(i+1));$('tradeOptionAdd').disabled=false;if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}}});
 
 document.addEventListener('click',e=>{
   const choice=e.target.closest('[data-trade-creature-choice]');
@@ -6779,15 +6941,44 @@ document.addEventListener('click',e=>{
   const preview=e.target.closest('[data-trade-preview][data-trade-visual-selector="1"]');
   if(preview){
     const wasOpen=!!preview.querySelector('.trade-creature-menu');document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
-    if(!wasOpen)preview.insertAdjacentHTML('beforeend',tradeCreatureMenuMarkup());e.stopPropagation();return;
+    if(!wasOpen)preview.insertAdjacentHTML('beforeend',tradeCreatureMenuMarkup(preview.closest('.trade-asset-row,[data-trade-option-row]')));e.stopPropagation();return;
   }
   document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
+});
+document.addEventListener('keydown', event => {
+  if (!isDesktopGameUi() || $('tradeComposer')?.classList.contains('hidden')) return;
+  if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-trade-preview][data-trade-visual-selector="1"]')) {
+    event.preventDefault();event.target.click();
+  }
+  if (event.key === 'Escape' && $('tradePublishConfirm')?.classList.contains('hidden')) {
+    const menus = document.querySelectorAll('.trade-creature-menu');
+    if (menus.length) menus.forEach(menu => menu.remove()); else closeTradeComposer();
+  }
+});
+window.matchMedia('(min-width:901px)').addEventListener('change', event => {
+  if (!event.matches) {
+    closeTradeComposer();
+    $('tradeComposer')?.classList.remove('desktop-trade-wizard');
+    document.querySelectorAll('#tradeComposer .trade-quantity-control').forEach(wrapper => {
+      const input = wrapper.querySelector('input');
+      wrapper.before(input);wrapper.remove();
+    });
+    $('tradeOfferQuantity').max = '999';
+    $('tradeOfferType').querySelectorAll('option').forEach(option => option.disabled = false);
+    $('tradeOfferType').removeAttribute('data-trade-type');
+    $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments d’un Lovys';
+    $('tradeOfferPreview').removeAttribute('data-trade-preview');
+    $('tradeOfferPreview').removeAttribute('tabindex');
+    $('tradeOfferPreview').removeAttribute('role');
+    $('tradeOfferPreview').removeAttribute('aria-label');
+  }
 });
 let pendingTradePublication=null;
 function hideTradePublishConfirmation(){const box=$('tradePublishConfirm'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(box)box.classList.add('hidden');if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');pendingTradePublication=null;}
 $('tradePublish')?.addEventListener('click',()=>{
+  if(isDesktopGameUi()){const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
   const offerType=$('tradeOfferType').value;const offer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
-  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
+  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`:tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
 $('tradePublishCancel')?.addEventListener('click',hideTradePublishConfirmation);
 $('tradePublishConfirm')?.addEventListener('click',e=>{if(e.target===$('tradePublishConfirm'))hideTradePublishConfirmation();});
