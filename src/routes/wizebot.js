@@ -155,6 +155,24 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
     finally {client.release();}
   });
 
+  router.post('/admin/wizebot/test',async(req,res)=>{
+    let client;
+    try {
+      client=await pool.connect();
+      await client.query('BEGIN');
+      const settings=(await client.query('SELECT * FROM wizebot_alert_settings WHERE id=1 FOR UPDATE')).rows[0];
+      const recent=(await client.query(`SELECT 1 FROM wizebot_game_alerts WHERE kind='test'
+        AND created_at>CURRENT_TIMESTAMP-INTERVAL '15 seconds' LIMIT 1`)).rowCount;
+      if(recent){await client.query('ROLLBACK');return res.status(429).json({error:'Attends 15 secondes avant de préparer un autre test.'});}
+      const message='🧪 Test LoVeR Watch Game : les alertes Wizebot fonctionnent ! 🥚✨';
+      await insertAlert(client,settings,'test:'+crypto.randomUUID(),'test',req.wizebotAdmin.id,{message},new Date(Date.now()+120000));
+      await logAdminAction(req.wizebotAdmin.id,null,'wizebot_test','Préparer un message de test dans le chat Twitch',{},client);
+      await client.query('COMMIT');
+      res.json({ok:true,message:'Test prêt pendant 2 minutes. Hors live, tape !lwg_alertes dans le chat Twitch pour le recevoir. En live, le prochain passage automatique peut aussi le récupérer.'});
+    }catch {if(client)try{await client.query('ROLLBACK');}catch{}res.status(500).json({error:'Impossible de préparer le message de test.'});}
+    finally {client?.release();}
+  });
+
   const relayLimit=rateLimit({windowMs:60000,limit:30,standardHeaders:'draft-7',legacyHeaders:false,message:{enabled:false,events:[]}});
   router.get('/wizebot/alerts',relayLimit,async(req,res)=>{
     res.set('Cache-Control','no-store');
@@ -164,19 +182,19 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
       await pool.query('UPDATE wizebot_alert_settings SET last_poll_at=CURRENT_TIMESTAMP WHERE id=1');
       const live=(await pool.query(`SELECT 1 FROM twitch_tracker_auth WHERE id=1 AND last_live=TRUE
         AND last_error IS NULL AND last_success_at>CURRENT_TIMESTAMP-INTERVAL '90 seconds'`)).rowCount;
-      if(!settings.enabled||!live)return res.json({enabled:false,generation:settings.generation,events:[]});
+      const automaticEnabled=Boolean(settings.enabled&&live);
       const after=Number(req.query.generation)===settings.generation&&/^\d{1,15}$/.test(String(req.query.after||''))?Number(req.query.after):0;
       const events=(await pool.query(`SELECT n.id,n.kind,n.payload FROM wizebot_game_alerts n
         WHERE n.generation=$1 AND n.id>$2 AND n.payload IS NOT NULL
-          AND EXISTS(SELECT 1 FROM wizebot_alert_settings s WHERE s.id=1 AND s.enabled=TRUE AND s.generation=n.generation) AND n.valid_until>CURRENT_TIMESTAMP
+          AND (n.kind='test' OR ($4::boolean AND EXISTS(SELECT 1 FROM wizebot_alert_settings s WHERE s.id=1 AND s.enabled=TRUE AND s.generation=n.generation))) AND n.valid_until>CURRENT_TIMESTAMP
           AND n.created_at>CURRENT_TIMESTAMP-INTERVAL '5 minutes'
           AND (n.kind<>'egg' OR (n.payload->>'eggId' IS NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=n.user_id AND u.creature_id IS NULL AND u.watch_seconds >= $3))
             OR EXISTS(SELECT 1 FROM user_incubator_eggs e WHERE e.id::text=n.payload->>'eggId' AND e.status='ready'))
           AND (n.kind NOT IN ('boost-soon','boost-end') OR EXISTS(SELECT 1 FROM user_active_boosts b WHERE b.user_id=n.user_id
             AND b.boost_key=n.payload->>'boostKey' AND b.expires_at=(n.payload->>'expiresAt')::timestamptz))
           AND (n.kind<>'live-boost' OR EXISTS(SELECT 1 FROM admin_live_boosts b WHERE b.id=1 AND b.expires_at=(n.payload->>'expiresAt')::timestamptz))
-        ORDER BY n.id LIMIT 3`,[settings.generation,after,eggHatchSeconds])).rows;
-      res.json({enabled:true,generation:settings.generation,events:events.map(e=>{
+        ORDER BY n.id LIMIT 3`,[settings.generation,after,eggHatchSeconds,automaticEnabled])).rows;
+      res.json({enabled:automaticEnabled||events.length>0,generation:settings.generation,events:events.map(e=>{
         let message=e.payload.message;
         if(e.kind==='boost-soon'||(e.kind==='live-boost'&&e.payload.soon)){
           const minutes=Math.max(1,Math.ceil((new Date(e.payload.expiresAt)-Date.now())/60000));
