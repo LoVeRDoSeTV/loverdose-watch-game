@@ -7014,6 +7014,7 @@ async function inviteFriendToWatchGame(){
   overlay.querySelector('[data-share-discord]').onclick=async()=>{await navigator.clipboard?.writeText(`${shareData.text} ${shareUrl}`);window.open('https://discord.com/channels/@me','_blank','noopener');};
 }
 $('lobbyInviteFriend')?.addEventListener('click',inviteFriendToWatchGame);
+$('gameInviteFriend')?.addEventListener('click',inviteFriendToWatchGame);
 
 window.addEventListener('resize',()=>{if(!isDesktopGameUi()){document.body.dataset.desktopView='';document.body.classList.remove('desktop-leaderboard-open');$('desktopLobbyPage')?.classList.add('hidden');}else if(!document.body.dataset.desktopView){openDesktopView('home');}});
 if(isDesktopGameUi())syncDesktopViewFromUrl();
