@@ -5017,7 +5017,9 @@ body:has(#pveModal:not(.hidden)){
 .admin-health{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);font-size:12px}
 .wizebot-settings{padding-top:20px;border-top:1px solid rgba(145,71,255,.25)}
 .wizebot-heading{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
-.wizebot-heading .btn{white-space:nowrap;min-height:44px}
+.wizebot-actions{display:flex;flex-direction:column;gap:10px;max-width:100%}
+.wizebot-actions .btn{white-space:normal}
+.wizebot-heading .btn{min-height:44px}
 .wizebot-settings .admin-player-meta{line-height:1.7}
 .wizebot-setup,.wizebot-preview{margin-top:16px}
 .wizebot-settings summary{padding:8px 0;cursor:pointer;color:#cfb5ff;font-size:13px}
