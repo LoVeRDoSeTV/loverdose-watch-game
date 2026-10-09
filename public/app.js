@@ -6857,7 +6857,7 @@ function showDesktopTradeComposerStep(step) {
 function setupDesktopTradeQuantity(input, offered = false) {
   if (!isDesktopGameUi() || !input) return;
   input.setAttribute('aria-label', offered ? 'Quantité à proposer' : 'Quantité à demander');
-  if (input.parentElement.classList.contains('trade-quantity-control')) return;
+  if (input.closest('.trade-quantity-control')) return;
   const wrapper = document.createElement('div');
   wrapper.className = 'trade-quantity-control';
   input.before(wrapper);
