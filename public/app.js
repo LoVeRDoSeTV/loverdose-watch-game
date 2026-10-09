@@ -5610,7 +5610,9 @@ function renderEventsState(data) {
   ];
   boostStates.forEach(([id, active]) => {
     const el=$(id); if(!el) return;
-    el.textContent = active && boostActive ? `🟢 ACTIF · ${remaining} min` : 'INACTIF';
+    const enabled=Boolean(active && boostActive);
+    el.closest('.event-mode-card')?.classList.toggle('active',enabled);
+    el.textContent = enabled ? `🟢 ACTIF · ${remaining} min` : 'INACTIF';
   });
 
   updated.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
