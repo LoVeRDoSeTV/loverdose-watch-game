@@ -11,6 +11,7 @@ import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRate
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
+import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -1516,6 +1517,7 @@ async function initDatabase() {
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC)`);
+  await initWizebotAlerts(pool);
 
   // V107 — boosts live globaux pilotés depuis le panneau Événements.
   await pool.query(`CREATE TABLE IF NOT EXISTS admin_live_boosts (
@@ -2601,6 +2603,8 @@ async function runTrackerTick() {
       [rawChatterCount, matched, Math.max(0, Number(stream.viewer_count || 0))]
     );
 
+    // Enregistrer les alertes avant de prévenir les navigateurs des œufs prêts.
+    await wizebotAlerts.collect();
     if (deltaSeconds > 0 && matched > 0) {
       pushLiveUpdate('tracker-update', {
         matched,
@@ -6041,6 +6045,8 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
 ========================================= */
 
 app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
+const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:EGG_HATCH_SECONDS});
+app.use('/api',wizebotAlerts.router);
 
 app.get('/api/admin/players', async (req, res) => {
   try {
@@ -6774,6 +6780,7 @@ app.post('/api/shop/use', async (req, res) => {
 
     await client.query(`UPDATE shop_inventory SET quantity = quantity - 1 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key]);
     await client.query('COMMIT');
+    await wizebotAlerts.collect();
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
     res.json({ ok:true, message, acceleration, boostExpiresAt });
   } catch (error) {
@@ -7400,6 +7407,9 @@ async function start() {
       runTrackerTick().catch(error => console.error('Tracker Twitch :', error));
     }, TRACKER_INTERVAL_MS);
 
+
+    // Collecte silencieuse des fins de boosters, y compris sans navigateur ouvert.
+    setInterval(() => { wizebotAlerts.collect(); }, 15000);
 
     app.listen(
       PORT,
