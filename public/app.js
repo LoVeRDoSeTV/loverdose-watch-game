@@ -7404,6 +7404,61 @@ $('lobbyPlayersGrid')?.addEventListener('keydown',event=>{
   if(card){event.preventDefault();openPlayerCollection(Number(card.dataset.lobbyUser));}
 });
 window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closePlayerCollection();});
+let playerBundleStage = 1;
+
+function playerBundleComposerMarkup(player) {
+  return `<section class="player-bundle-section">
+    <div class="player-bundle-recipient">${player.profileImageUrl ? `<img src="${escapeHtml(player.profileImageUrl)}" alt="">` : '<span>👤</span>'}<div><small>ÉCHANGE PRIVÉ</small><h3>Proposer un échange à ${escapeHtml(player.username)}</h3></div></div>
+    <p>Choisis jusqu’à 3 éléments de chaque côté. Tous seront échangés ensemble si ${escapeHtml(player.username)} accepte.</p>
+    <form id="playerBundleForm" class="desktop-trade-wizard">
+      <div class="trade-pc-steps" aria-label="Étapes de l’échange privé"><span data-player-bundle-step="1" class="active" aria-current="step"><b>1</b> Je propose</span><i>→</i><span data-player-bundle-step="2"><b>2</b> Je voudrais</span><i>→</i><span><b>3</b> Confirmation</span></div>
+      <p id="playerBundleStepLabel" class="player-bundle-step-label">Étape 1 / 2 · Je propose entre 1 et 3 éléments</p>
+      <div class="trade-composer-workspace"><div class="player-bundle-columns player-bundle-wizard">
+        <section id="playerBundleOfferedStep"><div class="player-bundle-heading"><h4>Je propose</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="offered">＋ Ajouter</button></div><p class="player-bundle-help">Tes fragments compatibles avec ce joueur et tes œufs disponibles.</p><div id="playerBundleOffered" class="player-bundle-rows"></div></section>
+        <section id="playerBundleRequestedStep" class="hidden"><p id="playerBundleOfferedRecap" class="player-bundle-recap"></p><div class="player-bundle-heading"><h4>Je voudrais</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="requested">＋ Ajouter</button></div><p class="player-bundle-help">Les fragments et œufs disponibles de ${escapeHtml(player.username)}. Choisis de 1 à 3 éléments à recevoir ensemble.</p><div id="playerBundleRequested" class="player-bundle-rows"></div></section>
+      </div><aside class="trade-composer-aside" aria-label="Récapitulatif de l’échange privé"><div id="playerBundleLiveRecap" class="trade-composer-recap" aria-live="polite"></div></aside></div>
+      <p id="playerBundleAvailability" class="player-bundle-availability hidden" role="status"></p>
+      <div class="player-bundle-footer"><button id="playerBundleBackStep" class="lobby-secondary-btn hidden" type="button" data-bundle-back>← Modifier ce que je propose</button><label id="playerBundleDurationLabel" class="hidden">Durée <select id="playerBundleDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="playerBundleContinue" class="lobby-primary-btn" type="button" data-bundle-continue>Choisir ce que je voudrais →</button><button id="playerBundleReview" class="lobby-primary-btn hidden" type="submit">Vérifier mon échange</button></div>
+      <p id="playerBundleMessage" role="status"></p><div id="playerBundleConfirmation" class="hidden"></div>
+    </form></section>`;
+}
+
+function playerBundleDraft(side) {
+  const list = $(side === 'offered' ? 'playerBundleOffered' : 'playerBundleRequested');
+  return [...(list?.children || [])].map(row => {
+    const value = row.querySelector('[data-bundle-asset]')?.value;
+    if (!value) return null;
+    return { type: value === 'egg' ? 'egg' : 'fragment', creatureId: value === 'egg' ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
+  }).filter(Boolean);
+}
+
+function playerBundleAssetMarkup(asset) {
+  const creature = (playerTradeInventory?.catalog || []).find(item => item.creatureId === asset.creatureId) || (playerCollectionData?.lovys || []).find(item => item.creatureId === asset.creatureId);
+  const image = creature?.image;
+  const name = asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
+  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+}
+
+function playerBundleGroupMarkup(assets) {
+  return assets.map((asset, index) => `${index ? '<span class="trade-recap-or">＋</span>' : ''}${playerBundleAssetMarkup(asset)}`).join('');
+}
+
+function renderPlayerBundleRecap() {
+  const box = $('playerBundleLiveRecap');
+  if (!box || !isDesktopGameUi()) return;
+  const offered = playerBundleDraft('offered'), requested = playerBundleDraft('requested');
+  box.innerHTML = `<h3>Ton échange privé</h3><div class="trade-recap-label">TU PROPOSES · ${offered.length} / 3</div>${offered.length ? playerBundleGroupMarkup(offered) : '<p class="trade-recap-placeholder">Choisis ce que tu souhaites donner.</p>'}<div class="trade-recap-divider">⇄</div><div class="trade-recap-label">TU VOUDRAIS · ${playerBundleStage === 2 ? requested.length : 0} / 3</div>${playerBundleStage === 2 && requested.length ? playerBundleGroupMarkup(requested) : '<p class="trade-recap-placeholder">Les éléments à recevoir se choisissent à l’étape suivante.</p>'}<p class="trade-recap-footnote">Tous les éléments seront échangés ensemble. ${escapeHtml(playerCollectionData?.player?.username || 'Le joueur')} pourra accepter ou refuser.</p><div class="trade-recap-duration">⏳ ${Number($('playerBundleDuration')?.value) === 1 ? '24 heures' : `${Number($('playerBundleDuration')?.value || 3)} jours`}</div>`;
+}
+
+function syncPlayerBundleRow(row) {
+  const choice = playerBundleChoices(row.dataset.bundleSide).find(item => item.value === row.querySelector('[data-bundle-asset]').value);
+  const input = row.querySelector('[data-bundle-quantity]');
+  input.max = String(Math.min(999, choice?.quantity || 999));
+  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'egg' ? '🥚' : '🧩';
+  const stock = row.querySelector('.player-bundle-stock');
+  if (stock) stock.textContent = choice ? `${choice.quantity} disponible${choice.quantity > 1 ? 's' : ''}` : 'Choisis un élément';
+}
+
 async function openPlayerCollection(userId) {
   if(!isDesktopGameUi())return;
   const generation=++playerCollectionGeneration;
@@ -7414,14 +7469,14 @@ async function openPlayerCollection(userId) {
   try {
     const [collection,inventory]=await Promise.all([playerTradeApi('/api/lobby/players/'+userId),playerTradeApi('/api/trades/inventory')]);
     if(generation!==playerCollectionGeneration || !isDesktopGameUi())return;
-    playerCollectionData=collection;playerTradeInventory=inventory;
+    playerCollectionData=collection;playerTradeInventory=inventory;playerBundleStage=1;
     const player=collection.player,isSelf=Number(player.userId)===Number(collection.selfUserId);
     const cards=collection.lovys.map(l=>`<article class="player-collection-lovys"><img src="${escapeHtml(l.image)}" alt="${escapeHtml(l.name)}" loading="lazy"><h3>${escapeHtml(l.name)}</h3><span>${escapeHtml(l.rarity||'')} · Niv. ${Number(l.level)}</span><span class="player-collection-stars">${'⭐'.repeat(Math.max(1,Math.min(5,Number(l.rank)||1)))}</span><strong>🧩 ${Number(l.fragments)} fragments disponibles</strong></article>`).join('');
-    body.innerHTML=`<div class="player-collection-head">${player.profileImageUrl?`<img class="player-collection-avatar" src="${escapeHtml(player.profileImageUrl)}" alt="">`:''}<div><h2>${escapeHtml(player.username)}</h2><p>Niveau global ${Number(player.level)} · 🐉 ${collection.lovys.length}/${Number(collection.totalLovys)} Lovys obtenus</p></div><div class="player-collection-eggs"><strong>🥚 ${Number(collection.eggs)} œufs disponibles</strong><span>${Number(collection.incubatingEggs)} œufs dans les incubateurs</span></div></div><div class="player-collection-grid">${cards || '<p class="muted">Ce joueur n’a pas encore fait éclore de Lovys.</p>'}</div>${isSelf?'<p class="muted">C’est ta collection. Choisis un autre joueur pour proposer un échange.</p>':`<section class="player-bundle-section"><h3>🔄 Proposer un échange à ${escapeHtml(player.username)}</h3><p>Commence par choisir de 1 à 3 éléments à proposer, puis valide pour choisir de 1 à 3 éléments à demander. Tous seront échangés ensemble si le joueur accepte. Les fragments concernent les Lovys déjà obtenus par les deux joueurs ; les œufs disponibles peuvent aussi être échangés.</p><form id="playerBundleForm"><p id="playerBundleStepLabel" class="player-bundle-step-label">Étape 1 / 2 · Je propose entre 1 et 3 éléments</p><div class="player-bundle-columns player-bundle-wizard"><section id="playerBundleOfferedStep"><div class="player-bundle-heading"><h4>Je propose</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="offered">＋ Ajouter</button></div><div id="playerBundleOffered" class="player-bundle-rows"></div></section><section id="playerBundleRequestedStep" class="hidden"><p id="playerBundleOfferedRecap" class="player-bundle-recap"></p><div class="player-bundle-heading"><h4>Je voudrais</h4><button class="lobby-secondary-btn" type="button" data-bundle-add="requested">＋ Ajouter</button></div><div id="playerBundleRequested" class="player-bundle-rows"></div></section></div><div class="player-bundle-footer"><button id="playerBundleBackStep" class="lobby-secondary-btn hidden" type="button" data-bundle-back>← Modifier ce que je propose</button><label id="playerBundleDurationLabel" class="hidden">Durée <select id="playerBundleDuration"><option value="1">24 heures</option><option value="3" selected>3 jours</option><option value="7">7 jours</option></select></label><button id="playerBundleContinue" class="lobby-primary-btn" type="button" data-bundle-continue>Valider et choisir ce que je voudrais →</button><button id="playerBundleReview" class="lobby-primary-btn hidden" type="submit">Vérifier mon échange</button></div><p id="playerBundleMessage" role="status"></p><div id="playerBundleConfirmation" class="hidden"></div></form></section>`}`;
+    body.innerHTML=`<div class="player-collection-head">${player.profileImageUrl?`<img class="player-collection-avatar" src="${escapeHtml(player.profileImageUrl)}" alt="">`:''}<div><h2>${escapeHtml(player.username)}</h2><p>Niveau global ${Number(player.level)} · 🐉 ${collection.lovys.length}/${Number(collection.totalLovys)} Lovys obtenus</p></div><div class="player-collection-eggs"><strong>🥚 ${Number(collection.eggs)} œufs disponibles</strong><span>${Number(collection.incubatingEggs)} œufs dans les incubateurs</span></div></div><div class="player-collection-grid">${cards || '<p class="muted">Ce joueur n’a pas encore fait éclore de Lovys.</p>'}</div>${isSelf?'<p class="muted">C’est ta collection. Choisis un autre joueur pour proposer un échange.</p>':playerBundleComposerMarkup(player)}`;
     if(!isSelf){
       for(const side of ['offered','requested']){
         if(playerBundleChoices(side).length)addPlayerBundleRow(side);
-        else $(side==='offered'?'playerBundleOffered':'playerBundleRequested').innerHTML=`<p class="muted">${side==='offered'?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'Ce joueur n’a aucun fragment disponible pour tes Lovys, ni œuf disponible à demander.'}</p>`;
+        else $(side==='offered'?'playerBundleOffered':'playerBundleRequested').innerHTML=`<div class="player-bundle-empty"><span>🧩</span><strong>Aucun élément disponible</strong><p>${side==='offered'?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'Ce joueur n’a aucun fragment disponible pour tes Lovys, ni œuf disponible à demander.'}</p></div>`;
       }
       syncPlayerBundleControls();
     }
@@ -7440,20 +7495,39 @@ function playerBundleChoices(side) {
 function addPlayerBundleRow(side) {
   const list=$(side==='offered'?'playerBundleOffered':'playerBundleRequested');if(!list || list.children.length>=3)return;
   const choices=playerBundleChoices(side);
+  const used=new Set([...list.children].map(row=>row.querySelector('[data-bundle-asset]')?.value));
+  const selected=choices.find(choice=>!used.has(choice.value));
+  if(!selected)return;
   const row=document.createElement('div');row.className='player-bundle-row';row.dataset.bundleSide=side;
-  row.innerHTML=`<div class="player-bundle-asset-preview" aria-hidden="true"></div><label>Élément<select data-bundle-asset required><option value="">Choisir un élément…</option>${choices.map(a=>`<option value="${escapeHtml(a.value)}">${escapeHtml(a.label)}</option>`).join('')}</select></label><label>Quantité<input data-bundle-quantity type="number" min="1" max="999" value="1" required inputmode="numeric"></label><button type="button" data-bundle-remove aria-label="Retirer cet élément">×</button>`;
-  list.appendChild(row);syncPlayerBundleControls();
+  row.innerHTML=`<div class="player-bundle-asset-preview" aria-hidden="true"></div><label>Élément<select data-bundle-asset required><option value="">Choisir un élément…</option>${choices.map(a=>`<option value="${escapeHtml(a.value)}" ${a.value===selected.value?'selected':''}>${escapeHtml(a.label)}</option>`).join('')}</select><small class="player-bundle-stock"></small></label><input data-bundle-quantity type="number" min="1" max="999" value="1" required inputmode="numeric"><button type="button" data-bundle-remove aria-label="Retirer cet élément">×</button>`;
+  list.appendChild(row);
+  setupDesktopTradeQuantity(row.querySelector('[data-bundle-quantity]'),side==='offered');
+  syncPlayerBundleRow(row);syncPlayerBundleControls();renderPlayerBundleRecap();
 }
 function syncPlayerBundleControls() {
   const form=$('playerBundleForm');if(!form)return;
-  form.querySelector('[type=submit]').disabled=playerTradeBusy || !playerBundleChoices('offered').length || !playerBundleChoices('requested').length;
-  $('playerBundleContinue').disabled=playerTradeBusy || !playerBundleChoices('offered').length;
-  form.querySelectorAll('[data-bundle-add]').forEach(button=>{const list=$(button.dataset.bundleAdd==='offered'?'playerBundleOffered':'playerBundleRequested');button.disabled=playerTradeBusy || list.children.length>=3 || !playerBundleChoices(button.dataset.bundleAdd).length;});
+  const offeredAvailable=playerBundleChoices('offered').length>0,requestedAvailable=playerBundleChoices('requested').length>0;
+  const targetLevel=Number(playerCollectionData?.player?.level);
+  const eligible=!Number.isFinite(targetLevel) || targetLevel>=3;
+  form.querySelector('[type=submit]').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable || !eligible;
+  $('playerBundleContinue').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable || !eligible;
+  form.querySelectorAll('[data-bundle-add]').forEach(button=>{
+    const list=$(button.dataset.bundleAdd==='offered'?'playerBundleOffered':'playerBundleRequested');
+    const used=new Set([...list.children].map(row=>row.querySelector('[data-bundle-asset]')?.value));
+    button.disabled=playerTradeBusy || list.children.length>=3 || !playerBundleChoices(button.dataset.bundleAdd).some(choice=>!used.has(choice.value));
+  });
   form.querySelectorAll('[data-bundle-remove]').forEach(button=>button.disabled=playerTradeBusy || button.parentElement.parentElement.children.length<=1);
+  const availability=$('playerBundleAvailability');
+  if(availability){
+    availability.textContent=!eligible?'Ce joueur pourra échanger à partir du niveau global 3.':!requestedAvailable?'Ce joueur n’a pas encore de fragments compatibles ni d’œufs disponibles à échanger. Reviens quand sa collection aura progressé.':!offeredAvailable?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'';
+    availability.classList.toggle('hidden',!availability.textContent);
+  }
+  renderPlayerBundleRecap();
 }
 function clearPlayerBundleConfirmation() {pendingPlayerTradePayload=null;$('playerBundleConfirmation')?.classList.add('hidden');}
 function readPlayerBundle(side) {
-  const rows=[...$(side==='offered'?'playerBundleOffered':'playerBundleRequested').children],choices=playerBundleChoices(side),seen=new Set();
+  const rows=[...$(side==='offered'?'playerBundleOffered':'playerBundleRequested').children].filter(row=>row.querySelector('[data-bundle-asset]')),choices=playerBundleChoices(side),seen=new Set();
+  if(!rows.length || rows.length>3)throw new Error('Choisis entre 1 et 3 éléments de chaque côté.');
   return rows.map(row=>{
     const value=row.querySelector('[data-bundle-asset]').value,quantity=Number(row.querySelector('[data-bundle-quantity]').value),choice=choices.find(c=>c.value===value);
     if(!choice||!Number.isSafeInteger(quantity)||quantity<1||quantity>999||quantity>choice.quantity)throw new Error('Vérifie les éléments et les quantités disponibles de chaque côté.');
@@ -7462,6 +7536,7 @@ function readPlayerBundle(side) {
   });
 }
 function showPlayerBundleStage(stage,offered=[]) {
+  playerBundleStage=stage;
   clearPlayerBundleConfirmation();
   $('playerBundleMessage').textContent='';
   $('playerBundleOfferedStep').classList.toggle('hidden',stage!==1);
@@ -7470,6 +7545,10 @@ function showPlayerBundleStage(stage,offered=[]) {
   for(const id of ['playerBundleBackStep','playerBundleDurationLabel','playerBundleReview'])$(id).classList.toggle('hidden',stage!==2);
   $('playerBundleStepLabel').textContent=stage===1?'Étape 1 / 2 · Je propose entre 1 et 3 éléments':'Étape 2 / 2 · Je voudrais entre 1 et 3 éléments';
   if(stage===2)$('playerBundleOfferedRecap').textContent='Tu proposes : '+playerBundleSummary(offered);
+  $('playerBundleForm')?.querySelectorAll('[data-player-bundle-step]').forEach(item=>{
+    const active=Number(item.dataset.playerBundleStep)===stage;
+    item.classList.toggle('active',active);if(active)item.setAttribute('aria-current','step');else item.removeAttribute('aria-current');
+  });
   const active=$(stage===1?'playerBundleOfferedStep':'playerBundleRequestedStep');
   active.querySelector('select')?.focus();
   syncPlayerBundleControls();
@@ -7478,26 +7557,34 @@ function playerBundleSummary(assets) {
   const catalog=playerTradeInventory?.catalog || [];
   return assets.map(asset=>`${asset.quantity} × ${asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
 }
-$('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy)clearPlayerBundleConfirmation();});
+$('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy){clearPlayerBundleConfirmation();renderPlayerBundleRecap();}});
 $('lobbyPlayerCollectionBody')?.addEventListener('change',event=>{
   if(playerTradeBusy)return;clearPlayerBundleConfirmation();
-  const row=event.target.closest('[data-bundle-side]');if(!row)return;
-  const choice=playerBundleChoices(row.dataset.bundleSide).find(c=>c.value===row.querySelector('[data-bundle-asset]').value);
-  row.querySelector('[data-bundle-quantity]').max=String(Math.min(999,choice?.quantity || 999));
-  row.querySelector('.player-bundle-asset-preview').innerHTML=choice?.image?`<img src="${escapeHtml(choice.image)}" alt="">`:choice?.value==='egg'?'🥚':'🧩';
+  const row=event.target.closest('[data-bundle-side]');
+  if(row){syncPlayerBundleRow(row);if(event.target.matches('[data-bundle-asset]')){const input=row.querySelector('[data-bundle-quantity]');input.value=String(Math.max(1,Math.min(Number(input.value||1),Number(input.max))));}}
+  syncPlayerBundleControls();renderPlayerBundleRecap();
 });
 $('lobbyPlayerCollectionBody')?.addEventListener('submit',event=>{
-  if(event.target.id!=='playerBundleForm')return;event.preventDefault();if(playerTradeBusy)return;
+  if(event.target.id!=='playerBundleForm')return;event.preventDefault();if(playerTradeBusy || $('playerBundleReview').disabled)return;
   try {
     pendingPlayerTradePayload={targetUserId:playerCollectionData.player.userId,offered:readPlayerBundle('offered'),requested:readPlayerBundle('requested'),durationDays:Number($('playerBundleDuration').value)};
     $('playerBundleMessage').textContent='';
-    const box=$('playerBundleConfirmation');box.innerHTML=`<h4>Envoyer cette proposition à ${escapeHtml(playerCollectionData.player.username)} ?</h4><p><strong>Tu proposes :</strong> ${escapeHtml(playerBundleSummary(pendingPlayerTradePayload.offered))}</p><p><strong>Tu voudrais :</strong> ${escapeHtml(playerBundleSummary(pendingPlayerTradePayload.requested))}</p><p>Seuls tes objets proposés seront réservés. Le joueur pourra accepter ou refuser.</p><button class="lobby-primary-btn" type="button" data-bundle-send>Oui, envoyer la proposition</button> <button class="lobby-secondary-btn" type="button" data-bundle-edit>Non, modifier</button>`;box.classList.remove('hidden');box.querySelector('[data-bundle-send]').focus();
+    const box=$('playerBundleConfirmation');box.innerHTML=`<h4>Envoyer cette proposition à ${escapeHtml(playerCollectionData.player.username)} ?</h4><div class="player-bundle-confirm-groups"><section><h5>Tu proposes</h5>${playerBundleGroupMarkup(pendingPlayerTradePayload.offered)}</section><section><h5>Tu voudrais</h5>${playerBundleGroupMarkup(pendingPlayerTradePayload.requested)}</section></div><p>⏳ ${Number(pendingPlayerTradePayload.durationDays)===1?'24 heures':`${Number(pendingPlayerTradePayload.durationDays)} jours`} · Tous les éléments seront échangés ensemble.</p><p>Seuls tes objets proposés seront réservés. Le joueur pourra accepter ou refuser.</p><div class="player-bundle-confirm-actions"><button class="lobby-primary-btn" type="button" data-bundle-send>Oui, envoyer la proposition</button><button class="lobby-secondary-btn" type="button" data-bundle-edit>Non, modifier</button></div>`;box.classList.remove('hidden');box.querySelector('[data-bundle-send]').focus();
   }catch(error){$('playerBundleMessage').textContent=error.message;}
 });
 $('lobbyPlayerCollectionBody')?.addEventListener('click',async event=>{
   const add=event.target.closest('[data-bundle-add]'),remove=event.target.closest('[data-bundle-remove]');
   if(playerTradeBusy)return;
+  const quantityButton=event.target.closest('[data-trade-quantity-step],[data-trade-quantity-max]');
+  if(quantityButton){
+    const input=quantityButton.closest('.trade-quantity-control')?.querySelector('[data-bundle-quantity]');
+    if(!input)return;
+    const max=Math.max(1,Number(input.max||999));
+    input.value=String(quantityButton.hasAttribute('data-trade-quantity-max')?max:Math.max(1,Math.min(max,Math.trunc(Number(input.value||1))+Number(quantityButton.dataset.tradeQuantityStep))));
+    input.dispatchEvent(new Event('input',{bubbles:true}));return;
+  }
   if(event.target.closest('[data-bundle-continue]')){
+    if($('playerBundleContinue').disabled)return;
     try{const offered=readPlayerBundle('offered');showPlayerBundleStage(2,offered);}
     catch(error){$('playerBundleMessage').textContent=error.message;}
     return;
@@ -7514,7 +7601,12 @@ $('lobbyPlayerCollectionBody')?.addEventListener('click',async event=>{
     pendingPlayerTradePayload=null;
     await loadPlayerTradeInbox();
     if($('playerTradeNotice'))$('playerTradeNotice').textContent='✓ '+data.message;
-    if(generation===playerCollectionGeneration)await openPlayerCollection(payload.targetUserId);
+    if(generation===playerCollectionGeneration){
+      const box=$('playerBundleConfirmation');
+      if(box){box.innerHTML=`<div class="trade-publish-success" aria-live="polite"><div class="trade-publish-success-check">✓</div><strong>Proposition envoyée !</strong><span>${escapeHtml(playerCollectionData.player.username)} pourra accepter ou refuser ton échange.</span></div>`;box.classList.remove('hidden');}
+      await new Promise(resolve=>setTimeout(resolve,1000));
+      if(generation===playerCollectionGeneration)await openPlayerCollection(payload.targetUserId);
+    }
   }catch(error){if(generation===playerCollectionGeneration)$('playerBundleMessage').textContent=error.message;}
   finally{playerTradeBusy=false;if(generation===playerCollectionGeneration)$('playerBundleForm')?.querySelectorAll('button,input,select').forEach(node=>node.disabled=false);syncPlayerBundleControls();}
 });
