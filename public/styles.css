@@ -6867,8 +6867,8 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .desktop-admin-button[aria-current]{background:rgba(145,71,255,.24);border-color:#9147ff}
   #desktopAdminTitle{margin:0;font-size:26px}
   #desktopAdminContent .tracker-admin{margin-top:20px;padding:0;border:0;background:transparent}
-  #desktopAdminContent .admin-profile-actions{gap:12px;margin-top:20px}
-  #desktopAdminContent .admin-profile-actions .btn{min-height:48px;text-align:center}
+  #desktopAdminContent .tracker-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:20px}
+  #desktopAdminContent .tracker-actions .btn{flex:0 1 auto;width:auto;min-height:44px;padding:10px 18px;text-align:center}
   .admin-confirm-overlay{z-index:1001200!important}
   .desktop-action-success{position:fixed;top:50%;left:50%;z-index:1001300;display:grid;justify-items:center;gap:12px;width:min(440px,calc(100vw - 48px));padding:28px 26px 24px;overflow:hidden;transform:translate(-50%,-50%);border:1px solid rgba(114,230,174,.5);border-radius:22px;background:linear-gradient(145deg,#15273a,#101528);box-shadow:0 20px 70px rgba(0,0,0,.5),0 0 36px rgba(74,222,128,.14);text-align:center;color:#fff;pointer-events:none;animation:desktop-action-success-show 2.6s ease both}
   .desktop-action-success-check{display:grid;place-items:center;width:62px;height:62px;border:1px solid rgba(134,239,172,.45);border-radius:50%;background:rgba(74,222,128,.12);color:#86efac;font-size:36px;font-weight:900;animation:desktop-action-success-check .4s ease both}

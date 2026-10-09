@@ -5548,24 +5548,15 @@ async function loadTrackerStatus() {
       return;
     }
 
-    const zombieMode = String(data.specialMode || '').toLowerCase() === 'zombie';
-
     status.textContent = data.error
       ? '⚠️ Tracker à vérifier'
       : data.live
-        ? zombieMode
-          ? '🧟 Mode Zombie · tracker actif'
-          : '🟢 Live détecté · tracker actif'
-        : zombieMode
-          ? '⚪ Chaîne hors ligne · 🧟 Zombie activé'
-          : '⚪ Chaîne hors ligne';
+        ? '🟢 Live détecté · tracker actif'
+        : '⚪ Chaîne hors ligne';
 
     const matched = Number(data.matchedCount || 0);
     const chatters = Number(data.chatterCount || 0);
     const viewers = Number(data.viewerCount || 0);
-    const specialModeLine = zombieMode
-      ? '🧟 Mode spécial : Zombie ACTIVÉ'
-      : '';
 
     const trackerDetailText = data.error
       ? `Dernière erreur : ${data.error}`
@@ -5573,9 +5564,7 @@ async function loadTrackerStatus() {
         ? `${viewers} spectateur(s) Twitch · ${chatters} compte(s) présent(s) dans le chat · ${matched} compte(s) LoVeR Watch Game reconnu(s).`
         : 'Le temps sera compté automatiquement lorsque la chaîne sera en live.';
 
-    detail.textContent = specialModeLine
-      ? `${trackerDetailText}\n${specialModeLine}`
-      : trackerDetailText;
+    detail.textContent = trackerDetailText;
 
     connect.textContent = 'Reconnecter le tracker';
     test.disabled = false;
@@ -6076,7 +6065,7 @@ $('adminTrackerContent')?.addEventListener('click',async event=>{
 
 async function loadAdminTrackerPanel(){
   const box=$('adminTrackerContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}${adminStatCard('🧟','Mode spécial',d.specialMode||'Aucun')}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}finally{await loadWizebotAlertsPanel();}
+  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}finally{await loadWizebotAlertsPanel();}
 }
 async function loadAdminHistory(){
   const box=$('adminHistoryContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
