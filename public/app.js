@@ -902,6 +902,13 @@ async function loadGame() {
     }
 
     me = data;
+    if (isMobileGameUi() && !window.__loverMobileNavRestored) {
+      window.__loverMobileNavRestored = true;
+      const savedPanel = readNavMemory().mobilePanel;
+      if (['combat','creatures','leaderboard','community','inventory','progression'].includes(savedPanel)) {
+        Promise.resolve().then(() => toggleMobilePanel(savedPanel)).catch(console.error);
+      }
+    }
     startLiveUpdates();
     refreshDesktopHomeLiveStatus();
     $('app').classList.remove('hidden');
@@ -3890,6 +3897,7 @@ async function toggleMobilePanel(panel){
     el?.scrollTo({top:0,behavior:'smooth'});syncMobileNavState();return;
   }
   closeAllMobilePanels(panel);
+  saveNavMemory({mobilePanel:panel});
   if(panel==='leaderboard'){
     openMobileLeaderboard();
   } else if(panel==='community'){
@@ -4041,7 +4049,7 @@ $('incubatorAddModal')?.addEventListener('mousedown', event=>{ incubatorBackdrop
 $('incubatorAddModal')?.addEventListener('mouseup', event=>{ if (incubatorBackdropMouseDown && event.target.id === 'incubatorAddModal') closeIncubatorAddModal(); incubatorBackdropMouseDown=false; });
 $('mobileEggClose')?.addEventListener('click',()=>{ $('pick')?.classList.remove('egg-details-open'); document.body.style.overflow=''; syncMobileNavState?.(); });
 $('playerCardProgressionMobile')?.addEventListener('click',()=>{ if(isMobileGameUi()) { toggleMobilePanel('progression'); return; } $('progressionModal')?.classList.remove('hidden'); loadProgression(); });
-$('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; const wasHome=$('mobileNavHome')?.classList.contains('active'); closeAllMobilePanels(''); syncMobileNavState(); if(wasHome)window.scrollTo({top:0,behavior:'smooth'}); });
+$('mobileNavHome')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; const wasHome=$('mobileNavHome')?.classList.contains('active'); closeAllMobilePanels(''); saveNavMemory({mobilePanel:'home'}); syncMobileNavState(); if(wasHome)window.scrollTo({top:0,behavior:'smooth'}); });
 $('mobileNavCombat')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('combat'); });
 $('mobileNavCreatures')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('creatures'); });
 $('mobileNavLeaderboard')?.addEventListener('click',()=>{ if(!isMobileGameUi())return; toggleMobilePanel('leaderboard'); });
@@ -4271,6 +4279,39 @@ let shopFocusItemKey = null;
 let inventoryCategory = 'title';
 let inventoryTitleFilter = 'all';
 let mobileInventoryNewItemKey = null;
+// Navigation mémorisée dans cet onglet uniquement. Jamais d'achat ni de combat repris.
+const NAV_MEMORY_KEY = 'loverwatchgame-navigation-v1';
+let navMemoryReady = false;
+function readNavMemory() {
+  try { return JSON.parse(sessionStorage.getItem(NAV_MEMORY_KEY) || '{}') || {}; }
+  catch { return {}; }
+}
+function saveNavMemory(patch) {
+  if (!navMemoryReady) return;
+  try { sessionStorage.setItem(NAV_MEMORY_KEY, JSON.stringify({...readNavMemory(), ...patch})); }
+  catch {}
+}
+function saveCommerceMemory() {
+  saveNavMemory({commerceTab, shopCategory, inventoryCategory, inventoryTitleFilter,
+    shopTitleFilter, shopBackgroundFilter, shopFrameFilter, shopAvatarFrameFilter});
+}
+function restoreCommerceMemory() {
+  const saved = readNavMemory();
+  const allowed = ['title','background','frame','avatar_frame','object'];
+  if (allowed.includes(saved.shopCategory)) shopCategory = saved.shopCategory;
+  if (allowed.includes(saved.inventoryCategory)) inventoryCategory = saved.inventoryCategory;
+  if (saved.commerceTab === 'inventory' || saved.commerceTab === 'shop') commerceTab = saved.commerceTab;
+  for (const key of ['inventoryTitleFilter','shopTitleFilter','shopBackgroundFilter','shopFrameFilter','shopAvatarFrameFilter']) {
+    if (typeof saved[key] === 'string' && saved[key].length < 80) {
+      if (key === 'inventoryTitleFilter') inventoryTitleFilter = saved[key];
+      if (key === 'shopTitleFilter') shopTitleFilter = saved[key];
+      if (key === 'shopBackgroundFilter') shopBackgroundFilter = saved[key];
+      if (key === 'shopFrameFilter') shopFrameFilter = saved[key];
+      if (key === 'shopAvatarFrameFilter') shopAvatarFrameFilter = saved[key];
+    }
+  }
+}
+
 
 let shopMessageTimer = null;
 function setShopMessage(message = '', type = '') {
@@ -4284,29 +4325,17 @@ function setShopMessage(message = '', type = '') {
   box.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   box.textContent = message;
   box.className = `shop-message${message ? ' is-visible' : ''}${type ? ` ${type}` : ''}`;
-  // Sur la Boutique PC, centrer le message dans l'espace entre l'en-tête et les onglets.
-  // Position fixe : pas de reflow ni de décalage des cartes de l'Inventaire.
+  // Toast ancré à la fenêtre, indépendant du défilement et des mises à jour de cartes.
   box.style.removeProperty('top');
   box.style.removeProperty('left');
   box.style.removeProperty('right');
   box.style.removeProperty('transform');
   if (message && isDesktopGameUi() && document.body.dataset.desktopView === 'shop') {
-    const panel = $('shopModal')?.querySelector('.shop-panel');
-    const head = panel?.querySelector('.shop-head');
-    const tools = $('commerceTopline');
-    if (panel && head && tools) {
-      const headBounds = head.getBoundingClientRect();
-      const toolsBounds = tools.getBoundingClientRect();
-      const panelBounds = panel.getBoundingClientRect();
-      // Ne déplacer le toast que si l'espace demandé existe réellement.
-      if (toolsBounds.top - headBounds.bottom >= 40) {
-        const y = Math.max(24, Math.min(window.innerHeight - 24, (headBounds.bottom + toolsBounds.top) / 2));
-        box.style.top = `${y}px`;
-        box.style.left = `${Math.max(24, Math.min(window.innerWidth - 24, panelBounds.left + panelBounds.width / 2))}px`;
-        box.style.right = 'auto';
-        box.style.transform = 'translate(-50%, -50%)';
-      }
-    }
+    // L'espace central de la Boutique à l'ouverture, mais position toujours fixe au scroll.
+    box.style.top = 'clamp(105px, 35vh, 350px)';
+    box.style.left = '50%';
+    box.style.right = 'auto';
+    box.style.transform = 'translate(-50%, -50%)';
   }
   if (message) {
     shopMessageTimer = setTimeout(() => {
@@ -4482,6 +4511,7 @@ function previewInventoryItem(key) {
 function setCommerceTab(tab) {
   if (!isDesktopGameUi()) return;
   commerceTab = tab === 'inventory' ? 'inventory' : 'shop';
+  saveCommerceMemory();
   syncInventoryPagePlacement();
   $('shopModal').classList.remove('hidden');
   $('shopModal').classList.toggle('commerce-inventory-active', commerceTab === 'inventory');
@@ -4854,7 +4884,7 @@ async function openShop() {
   incubatorShopTargetSlot = null;
   $('shopModal')?.classList.remove('hidden');
   setShopMessage();
-  if(isDesktopGameUi()) setCommerceTab('shop');
+  if(isDesktopGameUi()) setCommerceTab(commerceTab);
   try { await loadShop(); } catch (error) { setShopMessage(error.message, 'error'); }
 }
 
@@ -5218,22 +5248,27 @@ async function shopAction(url, itemKey) {
 
 $('shopTitleFilter')?.addEventListener('change', event => {
   shopTitleFilter = event.target.value || 'all';
+  saveCommerceMemory();
   renderShop();
 });
 $('shopBackgroundFilter')?.addEventListener('change', event => {
   shopBackgroundFilter = event.target.value || 'all';
+  saveCommerceMemory();
   renderShop();
 });
 $('shopFrameFilter')?.addEventListener('change', event => {
   shopFrameFilter = event.target.value || 'all';
+  saveCommerceMemory();
   renderShop();
 });
 $('shopAvatarFrameFilter')?.addEventListener('change', event => {
   shopAvatarFrameFilter = event.target.value || 'all';
+  saveCommerceMemory();
   renderShop();
 });
 $('inventoryTitleFilter')?.addEventListener('change', event => {
   inventoryTitleFilter = event.target.value || 'all';
+  saveCommerceMemory();
   renderInventory();
 });
 $('playerCardInventory')?.addEventListener('click', openInventory);
@@ -5256,6 +5291,7 @@ window.addEventListener('resize', syncInventoryPagePlacement);
 document.querySelectorAll('[data-inventory-category]').forEach(button => {
   button.addEventListener('click', () => {
     inventoryCategory = button.dataset.inventoryCategory || 'title';
+    saveCommerceMemory();
     renderInventory();
   });
 });
@@ -5306,13 +5342,14 @@ $('shopGrid')?.addEventListener('click', event => {
 document.querySelectorAll('[data-shop-category]').forEach(button => {
   button.addEventListener('click', () => {
     shopCategory = button.dataset.shopCategory || 'title';
+    saveCommerceMemory();
     if (shopCategory !== 'object') shopFocusItemKey = null;
     renderShop();
   });
 });
 
 $('shopMobileCategory')?.addEventListener('change',event=>{
-  shopCategory=event.target.value;mobileShopPage=0;shopFocusItemKey=null;renderShop();
+  shopCategory=event.target.value;saveCommerceMemory();mobileShopPage=0;shopFocusItemKey=null;renderShop();
 });
 function changeMobileShopPage(delta){
   if(!isMobileGameUi())return;
@@ -6876,6 +6913,7 @@ async function openDesktopView(view='home'){
   syncInventoryPagePlacement();
   syncAccountPagePlacement();
   desktopView=view;setDesktopNavActive(view);
+  if (view !== 'admin' && view !== 'account') saveNavMemory({desktopView:view});
   $('desktopAccountButton')?.toggleAttribute('aria-current', view === 'account');
   $('desktopAdminButton')?.toggleAttribute('aria-current', view === 'admin');
   document.body.dataset.desktopView=view;
@@ -6906,8 +6944,17 @@ const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve
 const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
 function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
 function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
-// V164 — Un rechargement/F5 repart toujours sur l’Accueil sur PC.
-if(isDesktopGameUi() && location.hash!=='#accueil'){history.replaceState(null,'',location.pathname+location.search+'#accueil');}
+// Retrouver la dernière page publique après F5 (les fenêtres sensibles ne sont pas mémorisées).
+restoreCommerceMemory();
+navMemoryReady = true;
+if (isDesktopGameUi()) {
+  const remembered = readNavMemory().desktopView;
+  const currentHash = String(location.hash || '').replace(/^#/, '').toLowerCase();
+  const allowedViews = ['home','lovys','incubator','pve','lobby','leaderboard','progression','shop'];
+  if (!currentHash && allowedViews.includes(remembered)) {
+    history.replaceState(null, '', location.pathname + location.search + '#' + desktopViewHashes[remembered]);
+  }
+}
 document.querySelectorAll('[data-desktop-view]').forEach(link=>link.addEventListener('click',event=>{
   if(!isDesktopGameUi())return;
   event.preventDefault();
