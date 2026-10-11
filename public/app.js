@@ -6259,6 +6259,25 @@ function showDiscordCallbackMessage() {
 
 showDiscordCallbackMessage();
 
+function renderAccountTwitchAvatar(url) {
+  const avatar = $('accountTwitchAvatar');
+  if (!avatar) return;
+  avatar.textContent = '👤';
+  if (!url) return;
+  try {
+    const source = new URL(url);
+    if (source.protocol !== 'https:') return;
+    const image = document.createElement('img');
+    image.alt = '';
+    image.decoding = 'async';
+    image.addEventListener('error', () => {
+      if (avatar.firstChild === image) avatar.textContent = '👤';
+    }, { once: true });
+    image.src = source.href;
+    avatar.replaceChildren(image);
+  } catch {}
+}
+
 async function openAccountModal() {
   // Sur PC, tous les accès au compte ouvrent la destination de navigation.
   if (isDesktopGameUi() && document.body.dataset.desktopView !== 'account') {
@@ -6284,6 +6303,7 @@ async function openAccountModal() {
   usernameMessage.textContent = '';
   $('accountEmail').textContent = 'Chargement...';
   $('accountTwitch').textContent = 'Chargement...';
+  renderAccountTwitchAvatar();
   if ($('accountDiscord')) $('accountDiscord').textContent = 'Chargement...';
 
   try {
@@ -6294,6 +6314,7 @@ async function openAccountModal() {
       throw new Error(data.error || 'Compte introuvable');
     }
 
+    renderAccountTwitchAvatar(data.account.twitchConnected ? me?.user?.profile_image_url : null);
     const username = data.account.username || '—';
     usernameValue.textContent = username;
     usernameInput.value = data.account.username || '';
@@ -6363,6 +6384,7 @@ async function openAccountModal() {
     usernameMessage.classList.add('error');
     $('accountEmail').textContent = '—';
     $('accountTwitch').textContent = '—';
+    renderAccountTwitchAvatar();
     if ($('accountDiscord')) $('accountDiscord').textContent = '—';
   }
 }
@@ -6613,7 +6635,27 @@ function closeDesktopPrimaryPages(except=''){
   if(except!=='leaderboard')document.body.classList.remove('desktop-leaderboard-open');
 }
 const desktopProfilePageOrigins = new Map();
+const accountProfileCardOrigins = new Map();
+function syncAccountProfileGroup() {
+  const group = $('accountProfileGroup');
+  if (!group) return;
+  const desktop = isDesktopGameUi();
+  for (const selector of ['.account-identity-card', '.account-twitch-card']) {
+    const card = $('accountModal')?.querySelector(selector);
+    if (!card) continue;
+    if (!accountProfileCardOrigins.has(selector)) {
+      const origin = document.createComment('account-profile-mobile-origin');
+      card.before(origin);
+      accountProfileCardOrigins.set(selector, origin);
+    }
+    if (desktop) group.appendChild(card);
+    else accountProfileCardOrigins.get(selector).after(card);
+  }
+  group.classList.toggle('hidden', !desktop);
+}
+
 function syncAccountPagePlacement() {
+  syncAccountProfileGroup();
   syncDesktopAdminPageLayout();
   const header = $('standardPageHeader');
   if (!header) return;

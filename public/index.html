@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=356">
+<link rel="stylesheet" href="/styles.css?v=358">
 
 
 </head>
@@ -719,6 +719,8 @@
       <button id="accountClose" class="account-close" type="button" aria-label="Fermer">×</button>
     </div>
 
+    <section id="accountProfileGroup" class="account-profile-group hidden" aria-label="Profil du joueur et compte Twitch"></section>
+
     <div class="account-info-row account-identity-card">
       <span class="account-info-label">Pseudo du joueur</span>
       <div id="accountUsername" class="account-info-value">—</div>
@@ -733,8 +735,13 @@
       <div id="accountEmail" class="account-info-value">—</div>
     </div>
     <div class="account-info-row account-twitch-card">
-      <span class="account-info-label">Compte Twitch</span>
-      <div id="accountTwitch" class="account-info-value">—</div>
+      <div class="account-twitch-identity">
+        <div id="accountTwitchAvatar" class="account-twitch-avatar" aria-hidden="true">👤</div>
+        <div class="account-twitch-details">
+          <span class="account-info-label">Compte Twitch</span>
+          <div id="accountTwitch" class="account-info-value">—</div>
+        </div>
+      </div>
       <div class="discord-connect-row">
         <span id="accountTwitchHelp" class="account-edit-help">Reconnecte Twitch pour actualiser ton profil et tes autorisations sans perdre ta progression.</span>
         <a id="accountTwitchConnect" class="btn secondary discord-connect-button" href="/auth/twitch">Reconnecter Twitch</a>
@@ -1240,5 +1247,5 @@
   <div class="community-guide-actions"><button id="communityGuideSkip" class="lobby-secondary-btn" type="button">Passer</button><div><button id="communityGuidePrev" class="lobby-secondary-btn" type="button">← Retour</button><button id="communityGuideNext" class="lobby-primary-btn" type="button">Suivant →</button></div></div>
  </section>
 </div>
-<script src="/app.js?v=357"></script>
+<script src="/app.js?v=358"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
