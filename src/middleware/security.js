@@ -67,3 +67,13 @@ export const registerRateLimit = rateLimit({
   legacyHeaders: false,
   message: { error: 'Trop de créations de compte depuis cette connexion. Réessaie plus tard.' }
 });
+
+// Limite les essais du mot de passe actuel, même pour un compte connecté.
+export const passwordChangeRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Trop de tentatives. Réessaie dans 15 minutes.' }
+});
