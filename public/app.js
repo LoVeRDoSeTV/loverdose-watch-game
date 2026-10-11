@@ -4284,6 +4284,30 @@ function setShopMessage(message = '', type = '') {
   box.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   box.textContent = message;
   box.className = `shop-message${message ? ' is-visible' : ''}${type ? ` ${type}` : ''}`;
+  // Sur la Boutique PC, centrer le message dans l'espace entre l'en-tête et les onglets.
+  // Position fixe : pas de reflow ni de décalage des cartes de l'Inventaire.
+  box.style.removeProperty('top');
+  box.style.removeProperty('left');
+  box.style.removeProperty('right');
+  box.style.removeProperty('transform');
+  if (message && isDesktopGameUi() && document.body.dataset.desktopView === 'shop') {
+    const panel = $('shopModal')?.querySelector('.shop-panel');
+    const head = panel?.querySelector('.shop-head');
+    const tools = $('commerceTopline');
+    if (panel && head && tools) {
+      const headBounds = head.getBoundingClientRect();
+      const toolsBounds = tools.getBoundingClientRect();
+      const panelBounds = panel.getBoundingClientRect();
+      // Ne déplacer le toast que si l'espace demandé existe réellement.
+      if (toolsBounds.top - headBounds.bottom >= 40) {
+        const y = Math.max(24, Math.min(window.innerHeight - 24, (headBounds.bottom + toolsBounds.top) / 2));
+        box.style.top = `${y}px`;
+        box.style.left = `${Math.max(24, Math.min(window.innerWidth - 24, panelBounds.left + panelBounds.width / 2))}px`;
+        box.style.right = 'auto';
+        box.style.transform = 'translate(-50%, -50%)';
+      }
+    }
+  }
   if (message) {
     shopMessageTimer = setTimeout(() => {
       box.classList.remove('is-visible');
