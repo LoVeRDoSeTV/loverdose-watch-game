@@ -2105,7 +2105,7 @@ async function awardBadgeXpOnce(userIds, badgeKey, xpAmount, rewardKey = badgeKe
   return result.rowCount || 0;
 }
 
-async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1', legacyRewardKey = badgeKey) {
+async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1', legacyRewardKey = badgeKey, queryClient = pool) {
   const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
     .map(Number)
     .filter(Number.isInteger))];
@@ -2118,7 +2118,7 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
   // Les anciennes versions donnaient déjà un petit montant d'XP Lovys à
   // certains badges. On le déduit du nouveau montant pour ne pas récompenser
   // deux fois les joueurs qui avaient déjà débloqué le badge.
-  const result = await pool.query(
+  const result = await queryClient.query(
     `
     WITH eligible AS (
       SELECT DISTINCT ub.user_id
@@ -2295,230 +2295,104 @@ async function runTrackerTick() {
 
     let matched = 0;
 
-    if (deltaSeconds > 0 && chatterIds.length > 0) {
-      const normalXp = deltaSeconds / 3600 * 100 * adminLiveBoosts.xp;
-      const subXp = deltaSeconds / 3600 * 120 * adminLiveBoosts.xp;
-      const normalLoverCash = deltaSeconds / 3600 * 10 * adminLiveBoosts.cash;
-      const subLoverCash = deltaSeconds / 3600 * 12 * adminLiveBoosts.cash;
-      const normalGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_PER_HOUR * adminLiveBoosts.globalXp;
-      const subGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_SUB_PER_HOUR * adminLiveBoosts.globalXp;
+    // Toutes les récompenses et le curseur du Tracker doivent être validés ensemble.
+    // Une erreur annule le passage complet, sans crédit partiel à rejouer.
+    const trackerClient = await pool.connect();
+    try {
+      await trackerClient.query('BEGIN');
 
-      const result = await pool.query(
-        `
-        UPDATE users
-        SET
-          xp = xp + (CASE
-            WHEN creature_id IS NULL THEN 0
-            WHEN is_sub THEN $2::double precision
-            ELSE $1::double precision
-          END) * (CASE WHEN EXISTS (
-            SELECT 1 FROM user_active_boosts b
-            WHERE b.user_id = users.id AND b.boost_key = 'boost_xp_x2' AND b.expires_at > CURRENT_TIMESTAMP
-          ) THEN 2 ELSE 1 END),
-          points = points + (CASE
-            WHEN is_sub THEN $4::double precision
-            ELSE $3::double precision
-          END) * (CASE WHEN EXISTS (
-            SELECT 1 FROM user_active_boosts b
-            WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
-          ) THEN 2 ELSE 1 END),
-          lifetime_lovercash_earned = lifetime_lovercash_earned + (CASE
-            WHEN is_sub THEN $4::double precision
-            ELSE $3::double precision
-          END) * (CASE WHEN EXISTS (
-            SELECT 1 FROM user_active_boosts b
-            WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
-          ) THEN 2 ELSE 1 END),
-          global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END), $9::double precision),
-          watch_seconds = watch_seconds + $5::bigint,
-          last_live_seen_at = CURRENT_TIMESTAMP,
-          updated_at = CURRENT_TIMESTAMP
-        WHERE twitch_id = ANY($6::text[])
-        RETURNING id
-        `,
-        [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp, globalThresholdForLevel(56)]
-      );
+      if (deltaSeconds > 0 && chatterIds.length > 0) {
+        const normalXp = deltaSeconds / 3600 * 100 * adminLiveBoosts.xp;
+        const subXp = deltaSeconds / 3600 * 120 * adminLiveBoosts.xp;
+        const normalLoverCash = deltaSeconds / 3600 * 10 * adminLiveBoosts.cash;
+        const subLoverCash = deltaSeconds / 3600 * 12 * adminLiveBoosts.cash;
+        const normalGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_PER_HOUR * adminLiveBoosts.globalXp;
+        const subGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_SUB_PER_HOUR * adminLiveBoosts.globalXp;
 
-      matched = result.rowCount || 0;
-
-      const matchedUserIds = result.rows
-        .map(item => Number(item.id))
-        .filter(Number.isInteger);
-
-      if (matchedUserIds.length > 0) {
-        const currentStreamId = String(stream?.id || '').trim();
-        if (currentStreamId) {
-          await pool.query(
-            `INSERT INTO user_live_attendance (user_id, stream_id, badge_watch_seconds)
-             SELECT user_id, $2, LEAST($3::bigint, $4::bigint) FROM unnest($1::int[]) AS user_id
-             ON CONFLICT (user_id, stream_id) DO UPDATE SET
-               badge_watch_seconds = LEAST(user_live_attendance.badge_watch_seconds + EXCLUDED.badge_watch_seconds, $4::bigint)`,
-            [matchedUserIds, currentStreamId, deltaSeconds, DAILY_CHALLENGE_LIBRARY.watch_60.goal]
-          );
-        }
-
-        // Tous les œufs supplémentaires placés dans l'incubateur progressent
-        // en parallèle pendant le live, quel que soit l'appareil utilisé.
-        await pool.query(
+        const result = await trackerClient.query(
           `
-          UPDATE user_incubator_eggs
+          UPDATE users
           SET
-            watched_seconds = LEAST(watched_seconds + $2::bigint, $3::bigint),
-            status = CASE WHEN watched_seconds + $2::bigint >= $3::bigint THEN 'ready' ELSE 'incubating' END,
+            xp = xp + (CASE
+              WHEN creature_id IS NULL THEN 0
+              WHEN is_sub THEN $2::double precision
+              ELSE $1::double precision
+            END) * (CASE WHEN EXISTS (
+              SELECT 1 FROM user_active_boosts b
+              WHERE b.user_id = users.id AND b.boost_key = 'boost_xp_x2' AND b.expires_at > CURRENT_TIMESTAMP
+            ) THEN 2 ELSE 1 END),
+            points = points + (CASE
+              WHEN is_sub THEN $4::double precision
+              ELSE $3::double precision
+            END) * (CASE WHEN EXISTS (
+              SELECT 1 FROM user_active_boosts b
+              WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
+            ) THEN 2 ELSE 1 END),
+            lifetime_lovercash_earned = lifetime_lovercash_earned + (CASE
+              WHEN is_sub THEN $4::double precision
+              ELSE $3::double precision
+            END) * (CASE WHEN EXISTS (
+              SELECT 1 FROM user_active_boosts b
+              WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
+            ) THEN 2 ELSE 1 END),
+            global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END), $9::double precision),
+            watch_seconds = watch_seconds + $5::bigint,
+            last_live_seen_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
-          WHERE user_id = ANY($1::int[])
-            AND status = 'incubating'
+          WHERE twitch_id = ANY($6::text[])
+          RETURNING id
           `,
-          [matchedUserIds, deltaSeconds, EGG_HATCH_SECONDS]
-        );
-        const activityDate = dailyChallengeDateKey();
-        await pool.query(
-          `
-          INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, global_xp_earned, lovercash_earned, updated_at)
-          SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5::double precision ELSE $4::double precision END, CASE WHEN u.is_sub THEN $7::double precision ELSE $6::double precision END, CURRENT_TIMESTAMP
-          FROM users u WHERE u.id = ANY($1::int[])
-          ON CONFLICT (user_id, activity_date) DO UPDATE SET
-            watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
-            global_xp_earned = user_daily_activity.global_xp_earned + EXCLUDED.global_xp_earned,
-            lovercash_earned = user_daily_activity.lovercash_earned + EXCLUDED.lovercash_earned,
-            updated_at = CURRENT_TIMESTAMP
-          `,
-          [matchedUserIds, activityDate, deltaSeconds, normalGlobalXp, subGlobalXp, normalLoverCash, subLoverCash]
-        );
-
-        await pool.query(
-          `
-          INSERT INTO user_game_watch (
-            user_id,
-            game_id,
-            game_name,
-            watch_seconds,
-            updated_at
-          )
-          SELECT
-            user_id,
-            $2,
-            $3,
-            $4::bigint,
-            CURRENT_TIMESTAMP
-          FROM unnest($1::int[]) AS user_id
-          ON CONFLICT (user_id, game_id)
-          DO UPDATE SET
-            game_name = EXCLUDED.game_name,
-            watch_seconds = user_game_watch.watch_seconds + EXCLUDED.watch_seconds,
-            updated_at = CURRENT_TIMESTAMP
-          `,
-          [matchedUserIds, currentGameId, currentGameName, deltaSeconds]
+          [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp, globalThresholdForLevel(56)]
         );
 
-        if (currentGameName.trim().toLowerCase() === 'dofus') {
-          await pool.query(
+        matched = result.rowCount || 0;
+
+        const matchedUserIds = result.rows
+          .map(item => Number(item.id))
+          .filter(Number.isInteger);
+
+        if (matchedUserIds.length > 0) {
+          const currentStreamId = String(stream?.id || '').trim();
+          if (currentStreamId) {
+            await trackerClient.query(
+              `INSERT INTO user_live_attendance (user_id, stream_id, badge_watch_seconds)
+               SELECT user_id, $2, LEAST($3::bigint, $4::bigint) FROM unnest($1::int[]) AS user_id
+               ON CONFLICT (user_id, stream_id) DO UPDATE SET
+                 badge_watch_seconds = LEAST(user_live_attendance.badge_watch_seconds + EXCLUDED.badge_watch_seconds, $4::bigint)`,
+              [matchedUserIds, currentStreamId, deltaSeconds, DAILY_CHALLENGE_LIBRARY.watch_60.goal]
+            );
+          }
+
+          // Tous les œufs supplémentaires placés dans l'incubateur progressent
+          // en parallèle pendant le live, quel que soit l'appareil utilisé.
+          await trackerClient.query(
             `
-            INSERT INTO user_badges (
-              user_id,
-              badge_key,
-              game_id,
-              game_name,
-              badge_name,
-              badge_image,
-              badge_challenge,
-              tier,
-              threshold_hours
-            )
-            SELECT
-              user_id,
-              'challenge:dofus:gardien-emeraude:50h',
-              game_id,
-              game_name,
-              'Gardien de l’Émeraude',
-              '/DofusEmeraude.webp',
-              'Regarder 50 h de lives dans la catégorie Dofus',
-              'special',
-              50
-            FROM user_game_watch
+            UPDATE user_incubator_eggs
+            SET
+              watched_seconds = LEAST(watched_seconds + $2::bigint, $3::bigint),
+              status = CASE WHEN watched_seconds + $2::bigint >= $3::bigint THEN 'ready' ELSE 'incubating' END,
+              updated_at = CURRENT_TIMESTAMP
             WHERE user_id = ANY($1::int[])
-              AND LOWER(TRIM(game_name)) = 'dofus'
-              AND watch_seconds >= 180000
-            ON CONFLICT (user_id, badge_key) DO NOTHING
+              AND status = 'incubating'
             `,
-            [matchedUserIds]
+            [matchedUserIds, deltaSeconds, EGG_HATCH_SECONDS]
           );
-          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]);
-        }
-
-        if (currentGameName.trim().toLowerCase() === 'palworld') {
-          await pool.query(
+          const activityDate = dailyChallengeDateKey();
+          await trackerClient.query(
             `
-            INSERT INTO user_badges (
-              user_id,
-              badge_key,
-              game_id,
-              game_name,
-              badge_name,
-              badge_image,
-              badge_challenge,
-              tier,
-              threshold_hours
-            )
-            SELECT
-              user_id,
-              'challenge:palworld:maitre-des-spheres:50h',
-              game_id,
-              game_name,
-              'Maître des Sphères',
-              '/SpherePalworld.webp',
-              'Regarder 50 h de lives dans la catégorie Palworld',
-              'special',
-              50
-            FROM user_game_watch
-            WHERE user_id = ANY($1::int[])
-              AND LOWER(TRIM(game_name)) = 'palworld'
-              AND watch_seconds >= 180000
-            ON CONFLICT (user_id, badge_key) DO NOTHING
+            INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, global_xp_earned, lovercash_earned, updated_at)
+            SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5::double precision ELSE $4::double precision END, CASE WHEN u.is_sub THEN $7::double precision ELSE $6::double precision END, CURRENT_TIMESTAMP
+            FROM users u WHERE u.id = ANY($1::int[])
+            ON CONFLICT (user_id, activity_date) DO UPDATE SET
+              watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
+              global_xp_earned = user_daily_activity.global_xp_earned + EXCLUDED.global_xp_earned,
+              lovercash_earned = user_daily_activity.lovercash_earned + EXCLUDED.lovercash_earned,
+              updated_at = CURRENT_TIMESTAMP
             `,
-            [matchedUserIds]
+            [matchedUserIds, activityDate, deltaSeconds, normalGlobalXp, subGlobalXp, normalLoverCash, subLoverCash]
           );
-          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]);
-        }
 
-
-        if (currentGameName.trim().toLowerCase().includes('modern warfare 4')) {
-          await pool.query(
-            `
-            INSERT INTO user_badges (
-              user_id,
-              badge_key,
-              game_id,
-              game_name,
-              badge_name,
-              badge_image,
-              badge_challenge,
-              tier,
-              threshold_hours
-            )
-            SELECT
-              user_id,
-              'challenge:mw4:operateur-elite:50h',
-              game_id,
-              game_name,
-              'Opérateur d’Élite',
-              '/MW4.webp',
-              'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
-              'special',
-              50
-            FROM user_game_watch
-            WHERE user_id = ANY($1::int[])
-              AND LOWER(TRIM(game_name)) LIKE '%modern warfare 4%'
-              AND watch_seconds >= 180000
-            ON CONFLICT (user_id, badge_key) DO NOTHING
-            `,
-            [matchedUserIds]
-          );
-          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50]);
-        }
-
-        if (specialMode === 'zombie') {
-          await pool.query(
+          await trackerClient.query(
             `
             INSERT INTO user_game_watch (
               user_id,
@@ -2529,9 +2403,9 @@ async function runTrackerTick() {
             )
             SELECT
               user_id,
-              'special:zombie',
-              'Zombie',
-              $2::bigint,
+              $2,
+              $3,
+              $4::bigint,
               CURRENT_TIMESTAMP
             FROM unnest($1::int[]) AS user_id
             ON CONFLICT (user_id, game_id)
@@ -2540,68 +2414,212 @@ async function runTrackerTick() {
               watch_seconds = user_game_watch.watch_seconds + EXCLUDED.watch_seconds,
               updated_at = CURRENT_TIMESTAMP
             `,
-            [matchedUserIds, deltaSeconds]
+            [matchedUserIds, currentGameId, currentGameName, deltaSeconds]
           );
 
-          await pool.query(
-            `
-            INSERT INTO user_badges (
-              user_id,
-              badge_key,
-              game_id,
-              game_name,
-              badge_name,
-              badge_image,
-              badge_challenge,
-              tier,
-              threshold_hours
-            )
-            SELECT
-              user_id,
-              'mission:zombie:maitre-des-morts:25h',
-              game_id,
-              game_name,
-              'Maître des morts',
-              '/Zombie.webp',
-              'Regarder 25 h de lives en mode Zombie',
-              'special',
-              25
-            FROM user_game_watch
-            WHERE user_id = ANY($1::int[])
-              AND game_id = 'special:zombie'
-              AND watch_seconds >= 90000
-            ON CONFLICT (user_id, badge_key) DO NOTHING
-            `,
-            [matchedUserIds]
-          );
-          await awardBadgeEconomyRewardsOnce(matchedUserIds, 'mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]);
+          if (currentGameName.trim().toLowerCase() === 'dofus') {
+            await trackerClient.query(
+              `
+              INSERT INTO user_badges (
+                user_id,
+                badge_key,
+                game_id,
+                game_name,
+                badge_name,
+                badge_image,
+                badge_challenge,
+                tier,
+                threshold_hours
+              )
+              SELECT
+                user_id,
+                'challenge:dofus:gardien-emeraude:50h',
+                game_id,
+                game_name,
+                'Gardien de l’Émeraude',
+                '/DofusEmeraude.webp',
+                'Regarder 50 h de lives dans la catégorie Dofus',
+                'special',
+                50
+              FROM user_game_watch
+              WHERE user_id = ANY($1::int[])
+                AND LOWER(TRIM(game_name)) = 'dofus'
+                AND watch_seconds >= 180000
+              ON CONFLICT (user_id, badge_key) DO NOTHING
+              `,
+              [matchedUserIds]
+            );
+            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:dofus:gardien-emeraude:50h', trackerClient);
+          }
+
+          if (currentGameName.trim().toLowerCase() === 'palworld') {
+            await trackerClient.query(
+              `
+              INSERT INTO user_badges (
+                user_id,
+                badge_key,
+                game_id,
+                game_name,
+                badge_name,
+                badge_image,
+                badge_challenge,
+                tier,
+                threshold_hours
+              )
+              SELECT
+                user_id,
+                'challenge:palworld:maitre-des-spheres:50h',
+                game_id,
+                game_name,
+                'Maître des Sphères',
+                '/SpherePalworld.webp',
+                'Regarder 50 h de lives dans la catégorie Palworld',
+                'special',
+                50
+              FROM user_game_watch
+              WHERE user_id = ANY($1::int[])
+                AND LOWER(TRIM(game_name)) = 'palworld'
+                AND watch_seconds >= 180000
+              ON CONFLICT (user_id, badge_key) DO NOTHING
+              `,
+              [matchedUserIds]
+            );
+            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:palworld:maitre-des-spheres:50h', trackerClient);
+          }
+
+
+          if (currentGameName.trim().toLowerCase().includes('modern warfare 4')) {
+            await trackerClient.query(
+              `
+              INSERT INTO user_badges (
+                user_id,
+                badge_key,
+                game_id,
+                game_name,
+                badge_name,
+                badge_image,
+                badge_challenge,
+                tier,
+                threshold_hours
+              )
+              SELECT
+                user_id,
+                'challenge:mw4:operateur-elite:50h',
+                game_id,
+                game_name,
+                'Opérateur d’Élite',
+                '/MW4.webp',
+                'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
+                'special',
+                50
+              FROM user_game_watch
+              WHERE user_id = ANY($1::int[])
+                AND LOWER(TRIM(game_name)) LIKE '%modern warfare 4%'
+                AND watch_seconds >= 180000
+              ON CONFLICT (user_id, badge_key) DO NOTHING
+              `,
+              [matchedUserIds]
+            );
+            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:mw4:operateur-elite:50h', trackerClient);
+          }
+
+          if (specialMode === 'zombie') {
+            await trackerClient.query(
+              `
+              INSERT INTO user_game_watch (
+                user_id,
+                game_id,
+                game_name,
+                watch_seconds,
+                updated_at
+              )
+              SELECT
+                user_id,
+                'special:zombie',
+                'Zombie',
+                $2::bigint,
+                CURRENT_TIMESTAMP
+              FROM unnest($1::int[]) AS user_id
+              ON CONFLICT (user_id, game_id)
+              DO UPDATE SET
+                game_name = EXCLUDED.game_name,
+                watch_seconds = user_game_watch.watch_seconds + EXCLUDED.watch_seconds,
+                updated_at = CURRENT_TIMESTAMP
+              `,
+              [matchedUserIds, deltaSeconds]
+            );
+
+            await trackerClient.query(
+              `
+              INSERT INTO user_badges (
+                user_id,
+                badge_key,
+                game_id,
+                game_name,
+                badge_name,
+                badge_image,
+                badge_challenge,
+                tier,
+                threshold_hours
+              )
+              SELECT
+                user_id,
+                'mission:zombie:maitre-des-morts:25h',
+                game_id,
+                game_name,
+                'Maître des morts',
+                '/Zombie.webp',
+                'Regarder 25 h de lives en mode Zombie',
+                'special',
+                25
+              FROM user_game_watch
+              WHERE user_id = ANY($1::int[])
+                AND game_id = 'special:zombie'
+                AND watch_seconds >= 90000
+              ON CONFLICT (user_id, badge_key) DO NOTHING
+              `,
+              [matchedUserIds]
+            );
+            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25], 'economy-v1', 'mission:zombie:maitre-des-morts:25h', trackerClient);
+          }
+
         }
-
+      } else if (chatterIds.length > 0) {
+        const result = await trackerClient.query(
+          `UPDATE users SET last_live_seen_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
+           WHERE twitch_id = ANY($1::text[]) RETURNING id`,
+          [chatterIds]
+        );
+        matched = result.rowCount || 0;
       }
-    } else if (chatterIds.length > 0) {
-      const result = await pool.query(
-        `UPDATE users SET last_live_seen_at=CURRENT_TIMESTAMP, updated_at=CURRENT_TIMESTAMP
-         WHERE twitch_id = ANY($1::text[]) RETURNING id`,
-        [chatterIds]
-      );
-      matched = result.rowCount || 0;
-    }
 
-    await pool.query(
-      `
-      UPDATE twitch_tracker_auth
-      SET last_poll_at = CURRENT_TIMESTAMP,
-          last_success_at = CURRENT_TIMESTAMP,
-          last_live = TRUE,
-          last_chatter_count = $1,
-          last_matched_count = $2,
-          last_viewer_count = $3,
-          last_error = NULL,
-          updated_at = CURRENT_TIMESTAMP
-      WHERE id = 1
-      `,
-      [rawChatterCount, matched, Math.max(0, Number(stream.viewer_count || 0))]
-    );
+      await trackerClient.query(
+        `
+        UPDATE twitch_tracker_auth
+        SET last_poll_at = CURRENT_TIMESTAMP,
+            last_success_at = CURRENT_TIMESTAMP,
+            last_live = TRUE,
+            last_chatter_count = $1,
+            last_matched_count = $2,
+            last_viewer_count = $3,
+            last_error = NULL,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = 1
+        `,
+        [rawChatterCount, matched, Math.max(0, Number(stream.viewer_count || 0))]
+      );
+
+      await trackerClient.query('COMMIT');
+    } catch (error) {
+      try {
+        await trackerClient.query('ROLLBACK');
+      } catch (rollbackError) {
+        console.error('Rollback du Tracker impossible :', rollbackError);
+      }
+      throw error;
+    } finally {
+      trackerClient.release();
+    }
 
     // Enregistrer les alertes avant de prévenir les navigateurs des œufs prêts.
     await wizebotAlerts.collect();
