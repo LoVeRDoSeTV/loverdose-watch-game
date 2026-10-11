@@ -7,7 +7,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
 import { getSessionSecret, isProduction } from './src/config.js';
-import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, feedbackRateLimit, validOAuthCallback, regenerateSession } from './src/middleware/security.js';
+import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, feedbackRateLimit, economyWriteRateLimit, tradeWriteRateLimit, validOAuthCallback, regenerateSession } from './src/middleware/security.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
@@ -3329,10 +3329,14 @@ app.patch('/api/account/username', async (req, res) => {
 ========================================= */
 
 app.post('/api/account/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({
-      ok: true
-    });
+  if (!req.session) return res.json({ ok: true });
+  req.session.destroy(error => {
+    if (error) {
+      console.error('Erreur déconnexion :', error);
+      return res.status(500).json({ error: 'Déconnexion impossible.' });
+    }
+    res.clearCookie('connect.sid', { path: '/' });
+    return res.json({ ok: true });
   });
 });
 
@@ -6603,7 +6607,7 @@ app.get('/api/shop', async (req, res) => {
   }
 });
 
-app.post('/api/shop/buy', async (req, res) => {
+app.post('/api/shop/buy', economyWriteRateLimit, async (req, res) => {
   const client = await pool.connect();
   try {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
@@ -7035,7 +7039,7 @@ app.get('/api/player-trades', async(req,res)=>{
   finally{client.release();}
 });
 
-app.post('/api/player-trades',async(req,res)=>{
+app.post('/api/player-trades',tradeWriteRateLimit,async(req,res)=>{
   const offered=normalizePlayerTradeBundle(req.body?.offered),requested=normalizePlayerTradeBundle(req.body?.requested);
   const targetUserId=Number(req.body?.targetUserId),durationDays=Number(req.body?.durationDays??3);
   if(!offered||!requested||!Number.isSafeInteger(targetUserId)||targetUserId<1||!TRADE_DURATIONS.has(durationDays))
@@ -7072,7 +7076,7 @@ app.post('/api/player-trades',async(req,res)=>{
   finally{client.release();}
 });
 
-app.post('/api/player-trades/:offerId/:action',async(req,res)=>{
+app.post('/api/player-trades/:offerId/:action',tradeWriteRateLimit,async(req,res)=>{
   const offerId=Number(req.params.offerId),action=req.params.action;
   if(!Number.isSafeInteger(offerId)||offerId<1||!['accept','decline','cancel'].includes(action))return res.status(400).json({error:'Action invalide.'});
   const client=await pool.connect();
@@ -7164,13 +7168,13 @@ app.get('/api/trades',async(req,res)=>{
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur offres échanges :',error);res.status(500).json({error:'Impossible de charger les échanges.'});}finally{client.release();}
 });
 
-app.post('/api/trades',async(req,res)=>{
+app.post('/api/trades',tradeWriteRateLimit,async(req,res)=>{
   const client=await pool.connect();
   try{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
     const offered=normalizeTradeAsset(req.body?.offer);const rawOptions=Array.isArray(req.body?.options)?req.body.options:[];const options=rawOptions.slice(0,TRADE_MAX_OPTIONS).map(normalizeTradeAsset).filter(Boolean);
     const durationDays=Number.parseInt(req.body?.durationDays,10)||3;
-    if(!offered||!options.length||options.length!==rawOptions.slice(0,TRADE_MAX_OPTIONS).length)return res.status(400).json({error:'Offre ou contrepartie invalide.'});
+    if(!offered||!options.length||rawOptions.length>TRADE_MAX_OPTIONS||options.length!==rawOptions.length)return res.status(400).json({error:'Offre ou contrepartie invalide.'});
     if(!TRADE_DURATIONS.has(durationDays))return res.status(400).json({error:"Durée d'annonce invalide."});
     const unique=new Set(options.map(a=>`${a.type}:${a.creatureId||''}:${a.quantity}`));if(unique.size!==options.length)return res.status(400).json({error:'Deux contreparties identiques ne sont pas nécessaires.'});
     await client.query('BEGIN');await restoreExpiredTrades(client);const ctx=await tradeContext(client,req);if(!ctx)throw new Error('Profil introuvable.');
@@ -7187,7 +7191,7 @@ app.post('/api/trades',async(req,res)=>{
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur création échange :',error);res.status(400).json({error:error.message||"Impossible de publier l'offre."});}finally{client.release();}
 });
 
-app.post('/api/trades/:offerId/accept',async(req,res)=>{
+app.post('/api/trades/:offerId/accept',tradeWriteRateLimit,async(req,res)=>{
   const client=await pool.connect();
   try{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
@@ -7212,7 +7216,7 @@ app.post('/api/trades/:offerId/accept',async(req,res)=>{
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur acceptation échange :',error);res.status(400).json({error:error.message||"Impossible d'accepter cet échange."});}finally{client.release();}
 });
 
-app.post('/api/trades/:offerId/cancel',async(req,res)=>{
+app.post('/api/trades/:offerId/cancel',tradeWriteRateLimit,async(req,res)=>{
   const client=await pool.connect();
   try{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const offerId=Number.parseInt(req.params.offerId,10);if(!offerId)return res.status(400).json({error:'Offre invalide.'});
