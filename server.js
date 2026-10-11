@@ -6,8 +6,9 @@ import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
-import { getSessionSecret, isProduction } from './src/config.js';
-import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, feedbackRateLimit, economyWriteRateLimit, tradeWriteRateLimit, validOAuthCallback, regenerateSession } from './src/middleware/security.js';
+import { getSessionSecret, isProduction, getPublicBaseUrl, twitchConfigurationIssues } from './src/config.js';
+import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, feedbackRateLimit, economyWriteRateLimit, tradeWriteRateLimit, passwordChangeRateLimit, validOAuthCallback, regenerateSession } from './src/middleware/security.js';
+import { createChangePasswordHandler, getDiscordInviteUrl } from './src/account-settings.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
@@ -28,9 +29,8 @@ app.use(createHelmetMiddleware({ production: isProduction }));
 
 const PORT = Number(process.env.PORT || 3000);
 
-const BASE_URL =
-  process.env.BASE_URL ||
-  `http://localhost:${PORT}`;
+const BASE_URL = getPublicBaseUrl();
+for (const issue of twitchConfigurationIssues()) console.warn(`[configuration Twitch] ${issue}`);
 
 const CHANNEL =
   (process.env.TWITCH_CHANNEL || 'loverdosetv')
@@ -1842,10 +1842,14 @@ function decryptTrackerSecret(value) {
   );
   decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
 
-  return Buffer.concat([
-    decipher.update(Buffer.from(encryptedText, 'base64url')),
-    decipher.final()
-  ]).toString('utf8');
+  try {
+    return Buffer.concat([
+      decipher.update(Buffer.from(encryptedText, 'base64url')),
+      decipher.final()
+    ]).toString('utf8');
+  } catch {
+    throw new Error('Jeton tracker incompatible avec le secret de ce serveur. Reconnecte le tracker Twitch depuis Administration.');
+  }
 }
 
 async function getTrackerAuthRow() {
@@ -3139,6 +3143,8 @@ app.get('/api/account/me', async (req, res) => {
         id,
         email,
         username,
+        created_at,
+        (password_hash IS NOT NULL AND password_hash <> '') AS has_password,
         twitch_id,
         game_intro_seen,
         community_intro_seen,
@@ -3171,6 +3177,9 @@ app.get('/api/account/me', async (req, res) => {
         id: account.id,
         email: account.email,
         username: account.username,
+        createdAt: account.created_at || null,
+        hasPassword: Boolean(account.has_password),
+        discordInviteUrl: getDiscordInviteUrl(process.env.DISCORD_INVITE_URL || 'https://discord.gg/loverdosetv'),
         twitchConnected: Boolean(account.twitch_id),
         discordConnected: Boolean(account.discord_user_id),
         discordUsername: account.discord_username || null,
@@ -3192,6 +3201,8 @@ app.get('/api/account/me', async (req, res) => {
   }
 });
 
+
+app.post('/api/account/password', passwordChangeRateLimit, createChangePasswordHandler({ pool, bcrypt }));
 
 /* =========================================
    COMPTE - INTRODUCTION VUE
@@ -3641,7 +3652,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick }));
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -3681,6 +3692,7 @@ app.post('/api/events/special-mode', async (req, res) => {
     );
 
     const updated = await getTrackerAuthRow();
+    pushLiveUpdate('special-mode-update', { specialMode: updated?.special_mode || null });
     res.json({
       ok: true,
       live: Boolean(updated?.last_live),
@@ -3900,7 +3912,7 @@ app.get('/auth/discord', (req, res) => {
   if (!req.session.account) return res.redirect('/');
 
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_GUILD_ID) {
-    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans Render.');
+    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans le fichier .env du serveur.');
   }
 
   const state = crypto.randomBytes(24).toString('hex');
