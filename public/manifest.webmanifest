@@ -2,7 +2,7 @@
   "id": "/",
   "name": "LoVeR Watch Game",
   "short_name": "LoVeR Watch Game",
-  "description": "LoVeR Watch Game : jeu communautaire Twitch avec Lovys, incubation, défis, PvE et progression.",
+  "description": "Regarde les lives Twitch de LoVeRDoSeTV et joue à LoVeR Watch Game, un jeu basé sur le temps de visionnage : collectionne des Lovys et gagne des récompenses en regardant.",
   "lang": "fr-FR",
   "start_url": "/?source=pwa",
   "scope": "/",
