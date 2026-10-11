@@ -4110,7 +4110,7 @@ function formatProfileDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Date inconnue';
   return date.toLocaleString('fr-FR', {
-    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit'
+    day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Paris'
   });
 }
 
@@ -6267,7 +6267,9 @@ function renderAccountBadgeShowcase() {
   card.innerHTML = `<p class="account-badge-count">${badges.length} badge${badges.length > 1 ? 's' : ''} débloqué${badges.length > 1 ? 's' : ''}</p><div class="account-badge-grid">${badges.length ? badges.map(badge => {
     const name = badge.badgeName || badge.gameName || 'Badge';
     const description = badge.badgeChallenge || name;
-    return `<div class="account-badge-item" title="${escapeHtml(description)}">${badgeVisual(badge, 'account-badge-image')}<span>${escapeHtml(name)}</span></div>`;
+    const unlockedAt = formatProfileDateTime(badge.unlockedAt);
+    const tooltip = `${description}\n${unlockedAt === 'Date inconnue' ? 'Date de déblocage inconnue' : `Débloqué le ${unlockedAt} (heure de Paris)`}`;
+    return `<div class="account-badge-item" title="${escapeHtml(tooltip)}">${badgeVisual(badge, 'account-badge-image')}<span>${escapeHtml(name)}</span></div>`;
   }).join('') : '<p class="account-badge-empty">Tes badges apparaîtront ici au fil de ta progression.</p>'}</div>`;
 }
 
