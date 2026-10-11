@@ -2087,6 +2087,11 @@ html, body{
   .commerce-catalog .shop-item-preview{min-height:94px!important;height:94px!important;margin:0!important}
   .commerce-catalog #inventoryGrid .shop-preview-title{width:100%;box-sizing:border-box;margin:0;padding:10px;text-align:center;line-height:1.3;white-space:normal;overflow-wrap:anywhere}
   .commerce-catalog :is(.shop-item-name,.inventory-item-name){font-size:13px!important}
+  /* Hauteurs cohérentes pour les noms de titres sur une ou deux lignes. */
+  .commerce-catalog #inventoryGrid .inventory-item-name{line-height:1.35;min-height:2.7em;overflow-wrap:anywhere}
+  .commerce-catalog #inventoryGrid .inventory-item-meta{min-height:1.5em}
+  .commerce-catalog #inventoryGrid .inventory-actions{margin-top:auto;min-height:44px}
+  .commerce-catalog #inventoryGrid .inventory-actions .shop-action{min-height:44px}
   .commerce-catalog :is(.shop-actions,.inventory-actions){margin-top:8px;gap:6px;flex-wrap:wrap}
   .commerce-catalog .shop-action{font-size:11px;min-height:36px;padding:8px 10px}
   .commerce-catalog .commerce-tried{border-color:#bc83ff!important;box-shadow:0 0 0 1px rgba(188,131,255,.4)!important}
