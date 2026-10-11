@@ -5588,7 +5588,7 @@ body:has(#pveModal:not(.hidden)){
     inset:auto!important;
     z-index:auto!important;
     display:block!important;
-    width:100%;max-width:1040px;margin:28px auto 0;
+    width:min(1500px,calc(100vw - 84px));max-width:1500px;margin:28px auto 0;
     padding:0 0 32px!important;
     overflow:visible!important;
     background:transparent!important;
@@ -5596,6 +5596,7 @@ body:has(#pveModal:not(.hidden)){
   }
   body[data-desktop-view="account"] #accountModal.hidden{display:none!important}
   body[data-desktop-view="account"] #accountModal .account-panel{
+    width:100%!important;max-width:1500px!important;
     min-height:0!important;max-height:none!important;overflow:visible;
     margin:0 auto!important;
     padding:0 0 32px!important;
@@ -5605,11 +5606,11 @@ body:has(#pveModal:not(.hidden)){
     box-shadow:none!important;
   }
   body[data-desktop-view="account"] #accountModal .account-panel-head{
-    padding-bottom:20px!important;
+    padding:8px 0 22px!important;
     margin-bottom:6px!important;
     border-bottom:1px solid rgba(145,71,255,.22)!important;
   }
-  body[data-desktop-view="account"] #accountModal .account-panel-head h2{font-size:30px!important}
+  body[data-desktop-view="account"] #accountModal .account-panel-head h2{font-size:34px!important;line-height:1.15;letter-spacing:-.02em}
   body[data-desktop-view="account"] #accountModal .account-close{display:none!important}
   body[data-desktop-view="account"] #accountModal #trackerAdminSection{margin-top:22px!important}
 
