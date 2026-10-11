@@ -4440,8 +4440,7 @@ function setCommerceTab(tab) {
   $('commerceShopTab').setAttribute('aria-pressed', String(commerceTab === 'shop'));
   $('commerceInventoryTab').setAttribute('aria-pressed', String(commerceTab === 'inventory'));
   if (commerceTab === 'inventory') renderInventory();
-  else renderShop();
-  renderInventoryVisitPreview();
+  else { renderShop(); renderInventoryVisitPreview(); }
 }
 
 function syncDesktopBoostData() {
@@ -4651,13 +4650,19 @@ function renderShop() {
     </article>`;
   }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>';
 
+  const shopCounts = Object.create(null);
+  for (const item of shopData.catalog || []) {
+    if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))) {
+      shopCounts[item.category] = (shopCounts[item.category] || 0) + 1;
+    }
+  }
+  const desktopShop = isDesktopGameUi();
   document.querySelectorAll('[data-shop-category]').forEach(button => {
-    const category=button.dataset.shopCategory;
+    const category = button.dataset.shopCategory;
     button.classList.toggle('active', category === shopCategory);
-    const count=(shopData.catalog||[]).filter(item=>item.category===category&&!isProgressionReward(item)&&(category==='object'||(!item.owned&&!item.equipped&&!item.exclusive))).length;
-    button.textContent=`${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${isDesktopGameUi()?` ${count}`:''}`;
+    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
   });
-  if(isDesktopGameUi())renderInventoryVisitPreview();
+  // La carte de visite ne dépend pas du filtre ou de la catégorie de la boutique.
 }
 
 function inventoryOwnedItems() {
@@ -4679,12 +4684,17 @@ function renderInventory() {
 
   const titleFilterWrap = $('inventoryTitleFilterWrap');
   if (titleFilterWrap) titleFilterWrap.classList.toggle('hidden', inventoryCategory !== 'title');
-  renderInventoryVisitPreview();
   const items = inventoryOwnedItems();
+  const inventoryCounts = Object.create(null);
+  for (const item of shopData?.catalog || []) {
+    if (item.category === 'object' ? Number(item.quantity) > 0 : commerceOwns(item)) {
+      inventoryCounts[item.category] = (inventoryCounts[item.category] || 0) + 1;
+    }
+  }
+  const desktopInventory = isDesktopGameUi();
   document.querySelectorAll('[data-inventory-category]').forEach(button => {
     const category = button.dataset.inventoryCategory;
-    const count = (shopData?.catalog || []).filter(item => item.category === category && (category === 'object' ? Number(item.quantity)>0 : commerceOwns(item))).length;
-    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${isDesktopGameUi()?` ${count}`:''}`;
+    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${desktopInventory ? ` ${inventoryCounts[category] || 0}` : ''}`;
   });
   $('inventoryCount').textContent = `${items.length} article${items.length > 1 ? 's' : ''} dans cette catégorie`;
 
@@ -4694,6 +4704,7 @@ function renderInventory() {
 
   if (!items.length) {
     grid.innerHTML = isDesktopGameUi() ? `<div class="inventory-empty">Tu n’as ${({title:'aucun titre',background:'aucun fond',frame:'aucun encadrement',avatar_frame:'aucun cadre de profil',object:'aucun objet'})[inventoryCategory]}.<br><button class="shop-action secondary" type="button" data-commerce-empty-shop="${inventoryCategory}">Voir dans la boutique →</button></div>` : `<div class="inventory-empty">Tu ne possèdes encore aucun article dans cette catégorie.</div>`;
+    if (isDesktopGameUi()) renderInventoryVisitPreview();
     return;
   }
 
@@ -4760,7 +4771,7 @@ async function loadShop() {
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
   shopData = data;
   renderShop();
-  if(isDesktopGameUi()) {syncDesktopBoostData();renderInventoryVisitPreview();if(commerceTab==='inventory')renderInventory();}
+  if(isDesktopGameUi()) {syncDesktopBoostData();if(commerceTab==='inventory')renderInventory();else renderInventoryVisitPreview();}
 }
 
 function focusShopItem(itemKey) {
