@@ -4992,12 +4992,21 @@ async function confirmShopPurchase() {
     waiting?.classList.remove('is-running');
     $('shopPurchaseConfirmModal')?.classList.add('hidden');
     pendingShopPurchaseKey = null;
-    await loadShop();
-    await loadGame();
-    await loadLeaderboard();
-    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
+    // Afficher le succès dès la validation réelle du serveur et la fin de la cinématique.
+    // Les rafraîchissements réseau ne doivent pas retarder cette confirmation.
     closeShopItemPreview();
     openShopPurchaseSuccess(item, data.balance, data.quantity || quantity);
+    if (shopData && Number.isFinite(Number(data.balance))) {
+      shopData.balance = Number(data.balance);
+      if ($('shopBalance')) $('shopBalance').textContent = Math.floor(shopData.balance);
+    }
+    // Une erreur de synchronisation ultérieure ne doit jamais être présentée
+    // comme un échec de paiement déjà confirmé.
+    const refreshed = await Promise.allSettled([loadShop(), loadGame(), loadLeaderboard()]);
+    if (refreshed.some(result => result.status === 'rejected')) {
+      console.warn('Achat validé, mais certaines données restent à actualiser.');
+    }
+    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
 
     if (itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
       const targetSlot = Number(incubatorShopTargetSlot);
