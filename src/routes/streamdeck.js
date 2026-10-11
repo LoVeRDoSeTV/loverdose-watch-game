@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 
-export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick }) {
+export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }) {
   const router = express.Router();
 
   function tokenIsValid(req) {
@@ -24,6 +24,7 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       if (!row) return res.status(409).send('Tracker Twitch non configuré.');
       await runTrackerTick();
       await pool.query(`UPDATE twitch_tracker_auth SET special_mode='zombie', updated_at=CURRENT_TIMESTAMP WHERE id=1`);
+      pushLiveUpdate('special-mode-update', { specialMode: 'zombie' });
       res.send('🧟 Mode Zombie activé');
     } catch (error) {
       console.error('Erreur Stream Deck Zombie ON :', error);
@@ -37,6 +38,7 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       if (!row) return res.status(409).send('Tracker Twitch non configuré.');
       await runTrackerTick();
       await pool.query(`UPDATE twitch_tracker_auth SET special_mode=NULL, updated_at=CURRENT_TIMESTAMP WHERE id=1`);
+      pushLiveUpdate('special-mode-update', { specialMode: null });
       res.send('✅ Mode Zombie désactivé');
     } catch (error) {
       console.error('Erreur Stream Deck Zombie OFF :', error);
