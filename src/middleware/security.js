@@ -108,3 +108,14 @@ export const tradeWriteRateLimit = rateLimit({
   legacyHeaders: false,
   message: { error: 'Trop d’opérations d’échange. Réessaie dans quelques minutes.' }
 });
+
+
+// Limite les tentatives de changement de mot de passe, y compris pour un compte connecté.
+export const passwordChangeRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { error: 'Trop de tentatives. Réessaie dans 15 minutes.' }
+});
