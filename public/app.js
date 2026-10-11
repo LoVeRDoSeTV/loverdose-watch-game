@@ -4272,11 +4272,36 @@ let inventoryCategory = 'title';
 let inventoryTitleFilter = 'all';
 let mobileInventoryNewItemKey = null;
 
+let shopMessageTimer = null;
 function setShopMessage(message = '', type = '') {
   const box = $('shopMessage');
   if (!box) return;
+  clearTimeout(shopMessageTimer);
+  shopMessageTimer = null;
+  // Le message reste hors des grilles et panneaux défilants : aucun décalage.
+  if (box.parentElement !== document.body) document.body.appendChild(box);
+  box.setAttribute('role', type === 'error' ? 'alert' : 'status');
+  box.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
   box.textContent = message;
-  box.className = `shop-message${type ? ` ${type}` : ''}`;
+  box.className = `shop-message${message ? ' is-visible' : ''}${type ? ` ${type}` : ''}`;
+  if (message) {
+    shopMessageTimer = setTimeout(() => {
+      box.classList.remove('is-visible');
+      shopMessageTimer = null;
+    }, type === 'error' ? 6500 : 3000);
+  }
+}
+
+function shopSuccessLabel(url, itemKey, fallback) {
+  const item = shopData?.catalog?.find(entry => entry.key === itemKey);
+  const kinds = {
+    title: 'Titre', background: 'Fond', frame: 'Encadrement',
+    avatar_frame: 'Cadre de profil', object: 'Objet'
+  };
+  const name = kinds[item?.category] || 'Cosmétique';
+  if (url.endsWith('/equip')) return `${name} équipé !`;
+  if (url.endsWith('/unequip')) return `${name} déséquipé !`;
+  return fallback || 'Action effectuée.';
 }
 
 function shopPreview(item) {
@@ -5116,7 +5141,7 @@ async function shopAction(url, itemKey) {
     if (!response.ok) throw new Error(data.error || 'Action impossible.');
     if(desktopUse) {clearTimeout(desktopBoostNoticeTimer);desktopBoostNotice=null;renderDesktopBoostStatus();showDesktopBoostAccepted(itemKey,data);}
     if(isDesktopGameUi())commerceDraft = {};
-    setShopMessage(data.message || 'Action effectuée.', 'ok');
+    setShopMessage(shopSuccessLabel(url, itemKey, data.message), 'ok');
     await loadShop();
     await loadGame();
     await loadLeaderboard();
