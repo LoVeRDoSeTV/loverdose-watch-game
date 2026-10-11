@@ -905,7 +905,7 @@ async function loadGame() {
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
       window.__loverMobileNavRestored = true;
       const savedPanel = readNavMemory().mobilePanel;
-      if (['combat','creatures','leaderboard','community','inventory','progression'].includes(savedPanel)) {
+      if (['combat','creatures','leaderboard','community','inventory','progression','profile'].includes(savedPanel)) {
         Promise.resolve().then(() => toggleMobilePanel(savedPanel)).catch(console.error);
       }
     }
@@ -6913,7 +6913,7 @@ async function openDesktopView(view='home'){
   syncInventoryPagePlacement();
   syncAccountPagePlacement();
   desktopView=view;setDesktopNavActive(view);
-  if (view !== 'admin' && view !== 'account') saveNavMemory({desktopView:view});
+  if (view !== 'admin') saveNavMemory({desktopView:view});
   $('desktopAccountButton')?.toggleAttribute('aria-current', view === 'account');
   $('desktopAdminButton')?.toggleAttribute('aria-current', view === 'admin');
   document.body.dataset.desktopView=view;
@@ -6944,17 +6944,34 @@ const desktopViewHashes={home:'accueil',lovys:'lovys',incubator:'incubateur',pve
 const desktopHashViews=Object.fromEntries(Object.entries(desktopViewHashes).map(([view,hash])=>[hash,view]));
 function desktopViewFromHash(){return desktopHashViews[String(location.hash||'').replace(/^#/,'').toLowerCase()]||'home';}
 function syncDesktopViewFromUrl(){if(isDesktopGameUi())openDesktopView(desktopViewFromHash());}
-// Retrouver la dernière page publique après F5 (les fenêtres sensibles ne sont pas mémorisées).
+// Restaurer la dernière page après F5, quel que soit le hash resté dans l'URL.
+// Une arrivée par lien direct garde en revanche la priorité sur la mémoire.
 restoreCommerceMemory();
 navMemoryReady = true;
 if (isDesktopGameUi()) {
   const remembered = readNavMemory().desktopView;
+  const allowedViews = ['home','lovys','incubator','pve','lobby','leaderboard','progression','shop','account'];
+  const navigationEntry = performance.getEntriesByType('navigation')[0];
+  const isReload = navigationEntry?.type === 'reload';
   const currentHash = String(location.hash || '').replace(/^#/, '').toLowerCase();
-  const allowedViews = ['home','lovys','incubator','pve','lobby','leaderboard','progression','shop'];
-  if (!currentHash && allowedViews.includes(remembered)) {
+  if (allowedViews.includes(remembered) && (isReload || !currentHash)) {
     history.replaceState(null, '', location.pathname + location.search + '#' + desktopViewHashes[remembered]);
   }
 }
+// Capturer l'état réellement affiché avant le rechargement de la page.
+window.addEventListener('pagehide', () => {
+  saveCommerceMemory();
+  if (isDesktopGameUi()) {
+    const currentView = document.body.dataset.desktopView || desktopView;
+    if (['home','lovys','incubator','pve','lobby','leaderboard','progression','shop','account'].includes(currentView)) {
+      saveNavMemory({desktopView:currentView});
+    }
+  } else if (isMobileGameUi()) {
+    const panels = ['inventory','leaderboard','community','creatures','progression','profile','combat'];
+    const panel = panels.find(p => isMobilePanelOpen(p)) || 'home';
+    saveNavMemory({mobilePanel:panel});
+  }
+});
 document.querySelectorAll('[data-desktop-view]').forEach(link=>link.addEventListener('click',event=>{
   if(!isDesktopGameUi())return;
   event.preventDefault();
