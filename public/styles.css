@@ -5510,21 +5510,13 @@ body:has(#pveModal:not(.hidden)){
     padding:8px 0 24px;border-bottom:1px solid rgba(145,71,255,.2);
   }
   #accountModal .account-profile-extras h3,#accountModal .account-security h3{margin:0 0 14px;font-size:18px}
-  #accountModal .account-profile-preview{
-    position:relative;isolation:isolate;overflow:hidden;padding:22px;min-height:160px;
-    border:1px solid rgba(145,71,255,.3);border-radius:16px;background:#121528;
-  }
-  #accountModal .account-profile-preview::before{content:'';position:absolute;inset:0;z-index:-1;background:var(--profile-card-image,none);background-size:cover;background-position:center}
-  #accountModal .account-preview-identity{display:flex;align-items:center;gap:16px}
-  #accountModal .account-preview-identity>div:last-child{min-width:0;overflow-wrap:anywhere}
-  #accountModal .account-preview-identity strong{font-size:21px}
-  #accountModal .account-preview-avatar{display:flex;align-items:center;justify-content:center;flex:0 0 64px;width:64px;height:64px;border-radius:14px;overflow:hidden;border:2px solid rgba(145,71,255,.4);background:#19152b;font-size:28px}
-  #accountModal .account-preview-avatar img{width:100%;height:100%;object-fit:cover}
-  #accountModal .account-preview-title{display:block;color:#dfc5ff;font-size:14px;margin-top:5px}
-  #accountModal .account-preview-badges{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px}
-  #accountModal .account-preview-badge{display:flex;align-items:center;justify-content:center;width:38px;height:38px}
-  #accountModal .account-preview-badge-image{width:100%;height:100%;object-fit:contain}
-  #accountModal .account-preview-empty{font-size:13px;color:var(--muted)}
+  #accountModal .account-badge-showcase{padding:4px 0;min-width:0}
+  #accountModal .account-badge-count{margin:0 0 16px;color:var(--muted);font-size:13px}
+  #accountModal .account-badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:18px 12px}
+  #accountModal .account-badge-item{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;text-align:center}
+  #accountModal .account-badge-image{display:flex;align-items:center;justify-content:center;width:54px;height:54px;object-fit:contain;font-size:30px}
+  #accountModal .account-badge-item>span:last-child{font-size:12px;line-height:1.4;overflow-wrap:anywhere;color:#dce0ef}
+  #accountModal .account-badge-empty{grid-column:1/-1;margin:0;color:var(--muted);font-size:14px;line-height:1.6}
   #accountModal .account-personalize-actions p,#accountModal .account-security p{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 16px}
   #accountModal .account-personalize-actions .btn{display:inline-flex;margin:0 8px 10px 0}
   #accountModal .account-security{grid-column:1/-1;grid-row:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;padding:8px 0 24px;border-bottom:1px solid rgba(145,71,255,.2)}

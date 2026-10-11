@@ -1864,7 +1864,7 @@ function renderPlayerVisitCard() {
       ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`
       : '🏅';
   });
-  renderAccountProfilePreview();
+  renderAccountBadgeShowcase();
 }
 
 async function loadBadges() {
@@ -6260,22 +6260,15 @@ function showDiscordCallbackMessage() {
 
 showDiscordCallbackMessage();
 
-function renderAccountProfilePreview() {
-  const card = $('accountProfilePreview');
+function renderAccountBadgeShowcase() {
+  const card = $('accountBadgeShowcase');
   if (!card || !me?.user) return;
-  const user = me.user;
-  const name = user.game_username || user.display_name || 'Joueur';
-  let photo = '';
-  try { const url = new URL(user.profile_image_url); if (url.protocol === 'https:') photo = url.href; } catch {}
-  const badges = (badgeData.badges || []).filter(badge => Number(badge.equippedSlot) > 0)
-    .sort((a,b) => Number(a.equippedSlot) - Number(b.equippedSlot)).slice(0,6);
-  card.innerHTML = `<div class="account-preview-identity"><div class="account-preview-avatar">${photo ? `<img src="${escapeHtml(photo)}" alt="Photo de ${escapeHtml(name)}" decoding="async">` : '👤'}</div><div><strong>${escapeHtml(name)}</strong><span class="account-preview-title">${escapeHtml(user.cosmetic_title || 'Aucun titre équipé')}</span></div></div><div class="account-preview-badges">${badges.length ? badges.map(badge => `<span class="account-preview-badge" title="${escapeHtml(badge.badgeName || 'Badge')}">${badgeVisual(badge, 'account-preview-badge-image')}</span>`).join('') : '<span class="account-preview-empty">Aucun badge équipé pour le moment.</span>'}</div>`;
-  const title = card.querySelector('.account-preview-title');
-  if (title) title.style.color = user.cosmetic_title_color || '';
-  const avatar = card.querySelector('.account-preview-avatar');
-  avatar?.querySelector('img')?.addEventListener('error', () => { avatar.textContent = '👤'; }, { once:true });
-  applyProfileCosmetics(card, user.cosmetic_background, user.cosmetic_frame);
-  applyAvatarFrameCosmetics(avatar, user.cosmetic_avatar_frame);
+  const badges = badgeData.badges || [];
+  card.innerHTML = `<p class="account-badge-count">${badges.length} badge${badges.length > 1 ? 's' : ''} débloqué${badges.length > 1 ? 's' : ''}</p><div class="account-badge-grid">${badges.length ? badges.map(badge => {
+    const name = badge.badgeName || badge.gameName || 'Badge';
+    const description = badge.badgeChallenge || name;
+    return `<div class="account-badge-item" title="${escapeHtml(description)}">${badgeVisual(badge, 'account-badge-image')}<span>${escapeHtml(name)}</span></div>`;
+  }).join('') : '<p class="account-badge-empty">Tes badges apparaîtront ici au fil de ta progression.</p>'}</div>`;
 }
 
 function renderAccountSettings(account) {
@@ -6295,7 +6288,7 @@ function renderAccountSettings(account) {
     } catch {}
     invite.classList.toggle('hidden', !valid);
   }
-  renderAccountProfilePreview();
+  renderAccountBadgeShowcase();
 }
 
 async function saveAccountPassword(event) {
@@ -6380,7 +6373,7 @@ async function openAccountModal() {
   $('accountDiscordInvite')?.classList.add('hidden');
   if ($('accountPasswordMessage')) $('accountPasswordMessage').textContent = '';
   if ($('accountMemberSince')) $('accountMemberSince').textContent = 'Chargement…';
-  if ($('accountProfilePreview')) $('accountProfilePreview').textContent = 'Chargement…';
+  if ($('accountBadgeShowcase')) $('accountBadgeShowcase').textContent = 'Chargement…';
   if ($('accountDiscord')) $('accountDiscord').textContent = 'Chargement...';
 
   try {
@@ -6464,7 +6457,7 @@ async function openAccountModal() {
     $('accountTwitch').textContent = '—';
     renderAccountTwitchAvatar();
     if ($('accountMemberSince')) $('accountMemberSince').textContent = 'Date d’inscription indisponible';
-    if ($('accountProfilePreview')) $('accountProfilePreview').textContent = 'Profil indisponible';
+    if ($('accountBadgeShowcase')) $('accountBadgeShowcase').textContent = 'Profil indisponible';
     if ($('accountDiscord')) $('accountDiscord').textContent = '—';
   }
 }
