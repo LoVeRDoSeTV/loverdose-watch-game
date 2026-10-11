@@ -5146,7 +5146,8 @@ async function shopAction(url, itemKey) {
     await loadGame();
     await loadLeaderboard();
     if(desktopUse)await loadIncubatorSlots();
-    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
+    // loadShop() a déjà actualisé l'inventaire ouvert : éviter un second
+    // remplacement du DOM (saut visuel et perte du focus après équipement).
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
     if (url === '/api/shop/buy' && itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
