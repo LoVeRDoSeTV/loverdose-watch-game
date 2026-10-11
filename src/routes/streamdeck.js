@@ -6,7 +6,10 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
 
   function tokenIsValid(req) {
     const configured = String(process.env.STREAM_DECK_TOKEN || '').trim();
-    const provided = String(req.get('x-stream-deck-token') || '').trim();
+    const headerToken = req.get('x-stream-deck-token');
+    const queryToken = req.method === 'GET' && typeof req.query?.token === 'string'
+      ? req.query.token : '';
+    const provided = String(headerToken || queryToken).trim();
     if (!configured || !provided) return false;
     const expected = Buffer.from(configured);
     const received = Buffer.from(provided);
@@ -14,11 +17,14 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
   }
 
   function requireToken(req, res, next) {
+    // Les appels GET du Stream Deck doivent atteindre le serveur à chaque clic.
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Referrer-Policy', 'no-referrer');
     if (!tokenIsValid(req)) return res.status(403).send('Accès refusé.');
     return next();
   }
 
-  router.post('/zombie/on', requireToken, async (req, res) => {
+  async function enableZombie(req, res) {
     try {
       const row = await getTrackerAuthRow();
       if (!row) return res.status(409).send('Tracker Twitch non configuré.');
@@ -30,9 +36,9 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       console.error('Erreur Stream Deck Zombie ON :', error);
       res.status(500).send('Impossible d’activer le mode Zombie.');
     }
-  });
+  }
 
-  router.post('/zombie/off', requireToken, async (req, res) => {
+  async function disableZombie(req, res) {
     try {
       const row = await getTrackerAuthRow();
       if (!row) return res.status(409).send('Tracker Twitch non configuré.');
@@ -44,7 +50,12 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       console.error('Erreur Stream Deck Zombie OFF :', error);
       res.status(500).send('Impossible de désactiver le mode Zombie.');
     }
-  });
+  }
+
+  router.post('/zombie/on', requireToken, enableZombie);
+  router.get('/zombie/on', requireToken, enableZombie);
+  router.post('/zombie/off', requireToken, disableZombie);
+  router.get('/zombie/off', requireToken, disableZombie);
 
   router.get('/zombie/status', requireToken, async (req, res) => {
     try {
