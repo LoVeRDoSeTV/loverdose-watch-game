@@ -902,13 +902,6 @@ async function loadGame() {
     }
 
     me = data;
-    if (isMobileGameUi() && !window.__loverMobileNavRestored) {
-      window.__loverMobileNavRestored = true;
-      const savedPanel = readNavMemory().mobilePanel;
-      if (['combat','creatures','leaderboard','community','inventory','progression','profile'].includes(savedPanel)) {
-        Promise.resolve().then(() => toggleMobilePanel(savedPanel)).catch(console.error);
-      }
-    }
     startLiveUpdates();
     refreshDesktopHomeLiveStatus();
     $('app').classList.remove('hidden');
@@ -917,6 +910,15 @@ async function loadGame() {
     renderPlayerSubscriptionStatus();
 
     renderGame();
+    // Restaurer les pages mobiles uniquement au premier chargement authentifié,
+    // après l'affichage de l'application ; jamais lors des rafraîchissements.
+    if (isMobileGameUi() && !window.__loverMobileNavRestored) {
+      window.__loverMobileNavRestored = true;
+      const savedPanel = readNavMemory().mobilePanel;
+      if (['combat','creatures','leaderboard','community','inventory','progression','profile'].includes(savedPanel)) {
+        Promise.resolve().then(() => toggleMobilePanel(savedPanel)).catch(console.error);
+      }
+    }
     await loadIncubatorSlots();
     await syncDesktopLovysHub();
     await loadBadges();
@@ -4029,12 +4031,36 @@ if(typeof ResizeObserver !== 'undefined' && $('incubatorCarousel')){
 }
 updateIncubatorCarousel();
 
+// Relie les boutons visibles de l'incubateur aux fonctions d'éclosion existantes.
+function awaitStarterHatchFromCard() {
+  const button = $('hatchEgg');
+  if (!button) return;
+  // Les données des emplacements font foi pour ce clic ; le serveur vérifie
+  // de nouveau les 6 heures avant d'accorder le Lovys.
+  button.disabled = false;
+  hatchEgg();
+}
+function hatchExtraIncubatorEggFromCard(slotData) {
+  openExtraEggInfo(slotData);
+  // La fenêtre dédiée conserve son message d'erreur et son bouton de réessai.
+  $('incubatorHatchExtraEgg')?.click();
+}
+
 document.querySelector('.incubator-slots')?.addEventListener('click', event=>{
   const slotEl = event.target.closest('[data-incubator-slot]');
   if (!slotEl) return;
   const slot = Number(slotEl.dataset.incubatorSlot || 0);
   const slotData = incubatorData?.slots?.find(item => Number(item.slot) === slot);
   if (!slotData || slotData.empty) { openIncubatorAddModal(slot); return; }
+  // Le bouton sur un œuf prêt doit lancer l'éclosion, pas rouvrir les détails.
+  if (event.target.closest('.incubator-card-action.hatch') && slotData.ready) {
+    if (slotData.source === 'starter') {
+      awaitStarterHatchFromCard();
+    } else {
+      hatchExtraIncubatorEggFromCard(slotData);
+    }
+    return;
+  }
   if (slotData.source === 'starter') {
     if(isMobileGameUi()) { toggleMobilePanel('creatures'); return; }
     const pick=$('pick'); if(!pick) return;
@@ -4821,7 +4847,6 @@ function renderInventory() {
 
 async function openInventory() {
   if (isDesktopGameUi()) {
-    inventoryTitleFilter = 'all';
     if (desktopView !== 'shop') await openDesktopView('shop');
     setCommerceTab('inventory');
     return;
@@ -6913,7 +6938,13 @@ async function openDesktopView(view='home'){
   syncInventoryPagePlacement();
   syncAccountPagePlacement();
   desktopView=view;setDesktopNavActive(view);
-  if (view !== 'admin') saveNavMemory({desktopView:view});
+  if (view !== 'admin') {
+    saveNavMemory({desktopView:view});
+    // Même les navigations déclenchées sans lien mettent l'URL à jour.
+    // F5 retrouve alors la page sans dépendre du stockage navigateur.
+    const hash = '#' + (desktopViewHashes[view] || 'accueil');
+    if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+  }
   $('desktopAccountButton')?.toggleAttribute('aria-current', view === 'account');
   $('desktopAdminButton')?.toggleAttribute('aria-current', view === 'admin');
   document.body.dataset.desktopView=view;
