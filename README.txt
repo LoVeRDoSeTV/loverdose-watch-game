@@ -107,14 +107,17 @@ PORT                    Port HTTP (3000 par défaut)
 Pour le tracker Twitch, enregistrer le callback :
   https://VOTRE-DOMAINE/auth/twitch/tracker/callback
 
-DÉPLOIEMENT RENDER
-------------------
-- Build command : npm install
-- Start command : npm start
-- Renseigner toutes les variables de env.example dans les variables d'environnement Render.
-- Utiliser l'URL Render publique dans BASE_URL.
-- SESSION_SECRET doit être défini avec une valeur longue et aléatoire en production.
-- Le serveur crée/complète automatiquement les tables et colonnes PostgreSQL nécessaires au démarrage.
+DÉPLOIEMENT OVH
+---------------
+- Voir MIGRATION-OVH.md pour l'installation du patch et les réglages externes.
+- BASE_URL=https://loverwatchgame.fr, NODE_ENV=production.
+- Ne pas remplacer le .env existant par env.example.
+- npm run migrate:ovh -- --apply corrige uniquement BASE_URL avec sauvegarde privée.
+- npm run check:ovh contrôle la configuration et PostgreSQL sans toucher aux récompenses.
+- Le service systemd loverwatchgame lance node server.js dans le dossier du jeu.
+- Le tracker tourne automatiquement toutes les 15 secondes dans ce même serveur.
+- Suspendre le service Render pour n'avoir qu'un tracker actif.
+- Le serveur crée/complète les tables et colonnes nécessaires au démarrage.
 
 NOTES
 -----

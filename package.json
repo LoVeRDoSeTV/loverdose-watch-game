@@ -5,7 +5,9 @@
   "main": "server.js",
   "type": "module",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "check:ovh": "node scripts/check-ovh.mjs",
+    "migrate:ovh": "node scripts/migrate-ovh.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -6,7 +6,7 @@ import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
-import { getSessionSecret, isProduction } from './src/config.js';
+import { getSessionSecret, isProduction, getPublicBaseUrl, twitchConfigurationIssues } from './src/config.js';
 import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit } from './src/middleware/security.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
@@ -28,9 +28,8 @@ app.use(createHelmetMiddleware({ production: isProduction }));
 
 const PORT = Number(process.env.PORT || 3000);
 
-const BASE_URL =
-  process.env.BASE_URL ||
-  `http://localhost:${PORT}`;
+const BASE_URL = getPublicBaseUrl();
+for (const issue of twitchConfigurationIssues()) console.warn(`[configuration Twitch] ${issue}`);
 
 const CHANNEL =
   (process.env.TWITCH_CHANNEL || 'loverdosetv')
@@ -1842,10 +1841,14 @@ function decryptTrackerSecret(value) {
   );
   decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
 
-  return Buffer.concat([
-    decipher.update(Buffer.from(encryptedText, 'base64url')),
-    decipher.final()
-  ]).toString('utf8');
+  try {
+    return Buffer.concat([
+      decipher.update(Buffer.from(encryptedText, 'base64url')),
+      decipher.final()
+    ]).toString('utf8');
+  } catch {
+    throw new Error('Jeton tracker incompatible avec le secret de ce serveur. Reconnecte le tracker Twitch depuis Administration.');
+  }
 }
 
 async function getTrackerAuthRow() {
@@ -3859,7 +3862,7 @@ app.get('/auth/discord', (req, res) => {
   if (!req.session.account) return res.redirect('/');
 
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_GUILD_ID) {
-    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans Render.');
+    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans le fichier .env du serveur.');
   }
 
   const state = crypto.randomBytes(24).toString('hex');
