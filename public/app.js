@@ -6264,13 +6264,17 @@ function renderAccountBadgeShowcase() {
   const card = $('accountBadgeShowcase');
   if (!card || !me?.user) return;
   const badges = badgeData.badges || [];
-  card.innerHTML = `<p class="account-badge-count">${badges.length} badge${badges.length > 1 ? 's' : ''} débloqué${badges.length > 1 ? 's' : ''}</p><div class="account-badge-grid">${badges.length ? badges.map(badge => {
+  const html = `<p class="account-badge-count">${badges.length} badge${badges.length > 1 ? 's' : ''} débloqué${badges.length > 1 ? 's' : ''}</p><div class="account-badge-grid">${badges.length ? badges.map(badge => {
     const name = badge.badgeName || badge.gameName || 'Badge';
     const description = badge.badgeChallenge || name;
     const unlockedAt = formatProfileDateTime(badge.unlockedAt);
     const tooltip = `${description}\n${unlockedAt === 'Date inconnue' ? 'Date de déblocage inconnue' : `Débloqué le ${unlockedAt} (heure de Paris)`}`;
-    return `<div class="account-badge-item" title="${escapeHtml(tooltip)}">${badgeVisual(badge, 'account-badge-image')}<span>${escapeHtml(name)}</span></div>`;
+    return `<div class="account-badge-item" tabindex="0" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(`${name}\n${tooltip}`)}">${badgeVisual(badge, 'account-badge-image')}<span>${escapeHtml(name)}</span></div>`;
   }).join('') : '<p class="account-badge-empty">Tes badges apparaîtront ici au fil de ta progression.</p>'}</div>`;
+  if (card._badgeShowcaseHtml !== html) {
+    card.innerHTML = html;
+    card._badgeShowcaseHtml = html;
+  }
 }
 
 function renderAccountSettings(account) {

@@ -5513,7 +5513,11 @@ body:has(#pveModal:not(.hidden)){
   #accountModal .account-badge-showcase{padding:4px 0;min-width:0}
   #accountModal .account-badge-count{margin:0 0 16px;color:var(--muted);font-size:13px}
   #accountModal .account-badge-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:18px 12px}
-  #accountModal .account-badge-item{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;text-align:center}
+  #accountModal .account-badge-item{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0;text-align:center;cursor:help}
+  #accountModal .account-badge-item::after{content:attr(data-tooltip);position:absolute;left:0;bottom:calc(100% + 8px);width:240px;max-width:60vw;box-sizing:border-box;padding:10px 12px;border:1px solid rgba(145,71,255,.45);border-radius:10px;background:#0a0e1d;color:#fff;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:12px;line-height:1.5;white-space:pre-line;overflow-wrap:anywhere;text-align:left;visibility:hidden;pointer-events:none;z-index:80}
+  #accountModal .account-badge-item:hover,#accountModal .account-badge-item:focus-visible{z-index:81}
+  #accountModal .account-badge-item:hover::after,#accountModal .account-badge-item:focus-visible::after{visibility:visible}
+  #accountModal .account-badge-item:focus-visible{outline:2px solid #9147ff;outline-offset:4px;border-radius:8px}
   #accountModal .account-badge-image{display:flex;align-items:center;justify-content:center;width:54px;height:54px;object-fit:contain;font-size:30px}
   #accountModal .account-badge-item>span:last-child{font-size:12px;line-height:1.4;overflow-wrap:anywhere;color:#dce0ef}
   #accountModal .account-badge-empty{grid-column:1/-1;margin:0;color:var(--muted);font-size:14px;line-height:1.6}
