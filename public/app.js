@@ -4901,6 +4901,23 @@ function closeShopPurchaseConfirm() {
   pendingShopPurchaseKey = null;
 }
 
+function shopPurchaseConfirmationCopy(item, quantity = 1) {
+  const labels = {
+    title: ['Titre', 'Titre'],
+    background: ['Fond', 'Fond'],
+    frame: ['Encadrement', 'Encadrement'],
+    avatar_frame: ['Cadre de profil', 'Cadre de profil'],
+    object: ['Objet', 'Objets']
+  };
+  const [singular, plural] = labels[item?.category] || ['Article', 'Articles'];
+  const categoryLabel = quantity > 1 ? plural : singular;
+  const added = quantity > 1 ? `${quantity} ${categoryLabel.toLowerCase()} ont bien été ajoutés à ton inventaire.` : `Ton ${categoryLabel.toLowerCase()} a bien été ajouté à ton inventaire.`;
+  const followUp = item?.category === 'object'
+    ? 'Tu peux maintenant le retrouver et l’utiliser depuis ton inventaire.'
+    : 'Tu peux maintenant le retrouver dans ton inventaire et l’équiper.';
+  return `🎒 ${added} ${followUp}`;
+}
+
 function openShopPurchaseSuccess(item, balance, quantity = 1) {
   const inventoryButton=$('shopPurchaseSuccessInventory');
   if(inventoryButton){
@@ -4908,7 +4925,9 @@ function openShopPurchaseSuccess(item, balance, quantity = 1) {
     inventoryButton.dataset.inventoryItemKey=item?.key||'';
   }
   if ($('shopPurchaseSuccessVisual')) $('shopPurchaseSuccessVisual').innerHTML = shopPreview(item);
+  if ($('shopPurchaseSuccessTitle')) $('shopPurchaseSuccessTitle').textContent = 'Achat confirmé !';
   if ($('shopPurchaseSuccessName')) $('shopPurchaseSuccessName').textContent = `${quantity > 1 ? `${quantity} × ` : ''}${item?.name || 'Ton objet'}`;
+  if ($('shopPurchaseSuccessMessage')) $('shopPurchaseSuccessMessage').textContent = shopPurchaseConfirmationCopy(item, quantity);
   if ($('shopPurchaseSuccessBalance')) $('shopPurchaseSuccessBalance').textContent = `${Number(balance || 0).toLocaleString('fr-FR')} LoVeR’Cash`;
   $('shopPurchaseSuccessModal')?.classList.remove('hidden');
   const card = $('shopPurchaseSuccessCard');
@@ -5146,8 +5165,7 @@ async function shopAction(url, itemKey) {
     await loadGame();
     await loadLeaderboard();
     if(desktopUse)await loadIncubatorSlots();
-    // loadShop() a déjà actualisé l'inventaire ouvert : éviter un second
-    // remplacement du DOM (saut visuel et perte du focus après équipement).
+    if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
     if (url === '/api/shop/buy' && itemKey === 'mystery_egg' && incubatorShopTargetSlot) {
