@@ -3603,7 +3603,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick }));
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -3643,6 +3643,7 @@ app.post('/api/events/special-mode', async (req, res) => {
     );
 
     const updated = await getTrackerAuthRow();
+    pushLiveUpdate('special-mode-update', { specialMode: updated?.special_mode || null });
     res.json({
       ok: true,
       live: Boolean(updated?.last_live),
