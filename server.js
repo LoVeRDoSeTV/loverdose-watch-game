@@ -6,9 +6,8 @@ import connectPgSimple from 'connect-pg-simple';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
-import { getSessionSecret, isProduction, getPublicBaseUrl, twitchConfigurationIssues } from './src/config.js';
-import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, passwordChangeRateLimit } from './src/middleware/security.js';
-import { createChangePasswordHandler, getDiscordInviteUrl } from './src/account-settings.js';
+import { getSessionSecret, isProduction } from './src/config.js';
+import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, feedbackRateLimit, validOAuthCallback, regenerateSession } from './src/middleware/security.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
@@ -29,8 +28,9 @@ app.use(createHelmetMiddleware({ production: isProduction }));
 
 const PORT = Number(process.env.PORT || 3000);
 
-const BASE_URL = getPublicBaseUrl();
-for (const issue of twitchConfigurationIssues()) console.warn(`[configuration Twitch] ${issue}`);
+const BASE_URL =
+  process.env.BASE_URL ||
+  `http://localhost:${PORT}`;
 
 const CHANNEL =
   (process.env.TWITCH_CHANNEL || 'loverdosetv')
@@ -1842,14 +1842,10 @@ function decryptTrackerSecret(value) {
   );
   decipher.setAuthTag(Buffer.from(tagText, 'base64url'));
 
-  try {
-    return Buffer.concat([
-      decipher.update(Buffer.from(encryptedText, 'base64url')),
-      decipher.final()
-    ]).toString('utf8');
-  } catch {
-    throw new Error('Jeton tracker incompatible avec le secret de ce serveur. Reconnecte le tracker Twitch depuis Administration.');
-  }
+  return Buffer.concat([
+    decipher.update(Buffer.from(encryptedText, 'base64url')),
+    decipher.final()
+  ]).toString('utf8');
 }
 
 async function getTrackerAuthRow() {
@@ -2685,6 +2681,7 @@ async function logAdminAction(adminAccountId, targetAccountId, actionKey, summar
    EXPRESS
 ========================================= */
 
+app.post('/api/feedback', feedbackRateLimit);
 app.use('/api/feedback', express.json({ limit: '3mb' }));
 app.use(express.json({ limit: '100kb' }));
 app.use(createOriginGuard({ baseUrl: BASE_URL }));
@@ -2748,6 +2745,17 @@ app.use(
   })
 );
 
+
+// Ne jamais publier un ancien fichier serveur, même s'il reste sur le disque.
+app.use((req, res, next) => {
+  let path;
+  try { path = decodeURIComponent(req.path); } catch { return res.sendStatus(400); }
+  if (/^\/+server\.js(?:\/|$)/i.test(path)) {
+    res.set('Cache-Control', 'no-store');
+    return res.sendStatus(404);
+  }
+  next();
+});
 
 app.use(
   express.static('public', {
@@ -2966,6 +2974,8 @@ app.post('/api/register', registerRateLimit, async (req, res) => {
 
     const account = result.rows[0];
 
+    await regenerateSession(req);
+
     req.session.account = {
       id: account.id,
       email: account.email,
@@ -3050,6 +3060,8 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
       });
     }
 
+    await regenerateSession(req);
+
     req.session.account = {
       id: account.id,
       email: account.email,
@@ -3109,8 +3121,6 @@ app.get('/api/account/me', async (req, res) => {
         id,
         email,
         username,
-        created_at,
-        (password_hash IS NOT NULL AND password_hash <> '') AS has_password,
         twitch_id,
         game_intro_seen,
         community_intro_seen,
@@ -3143,9 +3153,6 @@ app.get('/api/account/me', async (req, res) => {
         id: account.id,
         email: account.email,
         username: account.username,
-        createdAt: account.created_at || null,
-        hasPassword: Boolean(account.has_password),
-        discordInviteUrl: getDiscordInviteUrl(process.env.DISCORD_INVITE_URL || 'https://discord.gg/loverdosetv'),
         twitchConnected: Boolean(account.twitch_id),
         discordConnected: Boolean(account.discord_user_id),
         discordUsername: account.discord_username || null,
@@ -3167,8 +3174,6 @@ app.get('/api/account/me', async (req, res) => {
   }
 });
 
-
-app.post('/api/account/password', passwordChangeRateLimit, createChangePasswordHandler({ pool, bcrypt }));
 
 /* =========================================
    COMPTE - INTRODUCTION VUE
@@ -3543,6 +3548,7 @@ app.get('/auth/twitch/tracker', async (req, res) => {
 
     const state = crypto.randomBytes(24).toString('hex');
     req.session.trackerOauthState = state;
+    req.session.trackerOauthStateStartedAt = Date.now();
     await saveSession(req);
 
     res.redirect(trackerAuthUrl(state));
@@ -3559,11 +3565,13 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
       return res.status(403).send('Accès réservé au diffuseur de la chaîne.');
     }
 
-    if (!req.query.code || req.query.state !== req.session.trackerOauthState) {
+    if (!validOAuthCallback(req.query, req.session, 'trackerOauthState')) {
       return res.status(400).send('OAuth tracker invalide.');
     }
 
     delete req.session.trackerOauthState;
+    delete req.session.trackerOauthStateStartedAt;
+    await saveSession(req);
 
     const tokenRes = await fetch('https://id.twitch.tv/oauth2/token', {
       method: 'POST',
@@ -3611,7 +3619,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }));
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -3651,7 +3659,6 @@ app.post('/api/events/special-mode', async (req, res) => {
     );
 
     const updated = await getTrackerAuthRow();
-    pushLiveUpdate('special-mode-update', { specialMode: updated?.special_mode || null });
     res.json({
       ok: true,
       live: Boolean(updated?.last_live),
@@ -3871,11 +3878,12 @@ app.get('/auth/discord', (req, res) => {
   if (!req.session.account) return res.redirect('/');
 
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_GUILD_ID) {
-    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans le fichier .env du serveur.');
+    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans Render.');
   }
 
   const state = crypto.randomBytes(24).toString('hex');
   req.session.discordOAuthState = state;
+  req.session.discordOAuthStateStartedAt = Date.now();
 
   req.session.save(error => {
     if (error) {
@@ -3890,11 +3898,13 @@ app.get('/auth/discord/callback', async (req, res) => {
   try {
     if (!req.session.account) return res.redirect('/');
 
-    if (!req.query.code || !req.query.state || req.query.state !== req.session.discordOAuthState) {
+    if (!validOAuthCallback(req.query, req.session, 'discordOAuthState')) {
       return res.status(400).send('OAuth Discord invalide.');
     }
 
     delete req.session.discordOAuthState;
+    delete req.session.discordOAuthStateStartedAt;
+    await saveSession(req);
 
     const tokenRes = await fetch('https://discord.com/api/oauth2/token', {
       method: 'POST',
@@ -4024,6 +4034,7 @@ app.get(
 
     req.session.oauthState =
       state;
+    req.session.oauthStateStartedAt = Date.now();
 
     req.session.save(error => {
       if (error) {
@@ -4055,9 +4066,7 @@ app.get(
       }
 
       if (
-        !req.query.code ||
-        req.query.state !==
-          req.session.oauthState
+        !validOAuthCallback(req.query, req.session, 'oauthState')
       ) {
 
         return res
@@ -4069,6 +4078,8 @@ app.get(
       }
 
       delete req.session.oauthState;
+      delete req.session.oauthStateStartedAt;
+      await saveSession(req);
 
       const tokenRes =
         await fetch(
@@ -4252,6 +4263,10 @@ await pool.query(
     req.session.account.id
   ]
 );
+
+      const authenticatedAccount = req.session.account;
+      await regenerateSession(req);
+      req.session.account = authenticatedAccount;
 
       req.session.user = {
 
