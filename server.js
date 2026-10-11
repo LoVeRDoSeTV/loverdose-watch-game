@@ -7,7 +7,8 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import compression from 'compression';
 import { getSessionSecret, isProduction, getPublicBaseUrl, twitchConfigurationIssues } from './src/config.js';
-import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit } from './src/middleware/security.js';
+import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRateLimit, passwordChangeRateLimit } from './src/middleware/security.js';
+import { createChangePasswordHandler, getDiscordInviteUrl } from './src/account-settings.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
@@ -3108,6 +3109,8 @@ app.get('/api/account/me', async (req, res) => {
         id,
         email,
         username,
+        created_at,
+        (password_hash IS NOT NULL AND password_hash <> '') AS has_password,
         twitch_id,
         game_intro_seen,
         community_intro_seen,
@@ -3140,6 +3143,9 @@ app.get('/api/account/me', async (req, res) => {
         id: account.id,
         email: account.email,
         username: account.username,
+        createdAt: account.created_at || null,
+        hasPassword: Boolean(account.has_password),
+        discordInviteUrl: getDiscordInviteUrl(process.env.DISCORD_INVITE_URL || 'https://discord.gg/loverdosetv'),
         twitchConnected: Boolean(account.twitch_id),
         discordConnected: Boolean(account.discord_user_id),
         discordUsername: account.discord_username || null,
@@ -3161,6 +3167,8 @@ app.get('/api/account/me', async (req, res) => {
   }
 });
 
+
+app.post('/api/account/password', passwordChangeRateLimit, createChangePasswordHandler({ pool, bcrypt }));
 
 /* =========================================
    COMPTE - INTRODUCTION VUE
