@@ -90,3 +90,21 @@ export const registerRateLimit = rateLimit({
   legacyHeaders: false,
   message: { error: 'Trop de créations de compte depuis cette connexion. Réessaie plus tard.' }
 });
+
+// Plafonds défensifs sur les écritures d'économie et les échanges.
+// Les lectures, le combat PvE et les ticks automatiques du Tracker ne sont pas concernés.
+export const economyWriteRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Trop d’achats rapprochés. Réessaie dans quelques minutes.' }
+});
+
+export const tradeWriteRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Trop d’opérations d’échange. Réessaie dans quelques minutes.' }
+});
