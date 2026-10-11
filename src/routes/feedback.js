@@ -129,6 +129,14 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
       client=await pool.connect();await client.query('BEGIN');
       const account=(await client.query('SELECT id,username FROM accounts WHERE id=$1 FOR UPDATE',[req.session.account.id])).rows[0];
       if (!account) {await client.query('ROLLBACK');return res.status(401).json({error:'Compte introuvable.'});}
+      // Le verrou du compte sérialise les envois simultanés. Le quota persiste
+      // en PostgreSQL, y compris après un redémarrage ou avec plusieurs processus.
+      const quota=(await client.query(`SELECT COUNT(*) FILTER (WHERE created_at > CURRENT_TIMESTAMP - INTERVAL '1 hour')::int AS hourly, COUNT(*)::int AS daily FROM game_feedback WHERE account_id=$1 AND created_at > CURRENT_TIMESTAMP - INTERVAL '24 hours'`,[account.id])).rows[0];
+      if (Number(quota.hourly) >= 5 || Number(quota.daily) >= 10) {
+        await client.query('ROLLBACK');
+        res.set('Retry-After', '3600');
+        return res.status(429).json({error:'Limite de 5 messages par heure ou 10 par 24 heures atteinte. Réessaie plus tard.'});
+      }
       const row=(await client.query(`INSERT INTO game_feedback(account_id,player_name,kind,page,platform,description,screenshot,screenshot_mime) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,[account.id,account.username,kind,page,platform,description.trim(),image?.bytes || null,image?.mime || null])).rows[0];
       await client.query('COMMIT');client.release();client=null;
       // L'enregistrement reste disponible dans l'Admin même si Discord échoue.
