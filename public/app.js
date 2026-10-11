@@ -5578,6 +5578,26 @@ async function loadTrackerStatus() {
 
 let eventsRefreshTimer = null;
 let currentSpecialMode = null;
+let specialModeUpdateVersion = 0;
+let eventsRequestVersion = 0;
+
+function renderZombieMode(specialMode) {
+  currentSpecialMode = String(specialMode || '').toLowerCase() || null;
+  const active = currentSpecialMode === 'zombie';
+  renderEventModeStatus($('eventZombieState'), active);
+  const button = $('eventZombieToggle');
+  if (button) {
+    button.textContent = active ? 'Passer OFF' : 'Passer ON';
+    button.classList.toggle('active', active);
+  }
+}
+
+function applySpecialModeUpdate(data) {
+  specialModeUpdateVersion += 1;
+  renderZombieMode(data.specialMode);
+  const updated = $('eventsUpdated');
+  if (updated) updated.textContent = `Dernière mise à jour : ${new Date().toLocaleTimeString('fr-FR')}`;
+}
 
 function renderEventModeStatus(element,enabled,remainingMinutes=null){
   if(!element)return;
@@ -5593,12 +5613,7 @@ function renderEventsState(data) {
   const updated = $('eventsUpdated');
   if (!zombieCard || !zombieState || !zombieToggle || !liveState || !updated) return;
 
-  currentSpecialMode = String(data?.specialMode || '').toLowerCase() || null;
-  const zombieActive = currentSpecialMode === 'zombie';
-
-  renderEventModeStatus(zombieState,zombieActive);
-  zombieToggle.textContent = zombieActive ? 'Passer OFF' : 'Passer ON';
-  zombieToggle.classList.toggle('active', zombieActive);
+  renderZombieMode(data?.specialMode);
 
   liveState.textContent = data?.live
     ? '🟢 Chaîne en live · le mode actif peut comptabiliser du temps'
@@ -5625,12 +5640,18 @@ function renderEventsState(data) {
 }
 
 async function refreshEventsState() {
+  const modeVersion = specialModeUpdateVersion;
+  const requestVersion = ++eventsRequestVersion;
   try {
     const response = await fetch('/api/tracker/status', { cache: 'no-store' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Statut indisponible');
+    if (requestVersion !== eventsRequestVersion) return;
+    // Une réponse commencée avant le push ne doit pas rétablir l’ancien mode.
+    if (modeVersion !== specialModeUpdateVersion) data.specialMode = currentSpecialMode;
     renderEventsState(data);
   } catch (error) {
+    if (requestVersion !== eventsRequestVersion) return;
     const liveState = $('eventsLiveState');
     if (liveState) liveState.textContent = `⚠️ ${error.message || 'Impossible de charger l’état'}`;
   }
@@ -5679,7 +5700,7 @@ $('eventZombieToggle')?.addEventListener('click', async () => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Modification impossible');
     showDesktopActionSuccess(nextMode?'Mode Zombie bien activé.':'Mode Zombie bien désactivé.');
-    renderEventsState(data);
+    applySpecialModeUpdate(data);
     await loadTrackerStatus();
   } catch (error) {
     const liveState = $('eventsLiveState');
@@ -7089,6 +7110,12 @@ function startLiveUpdates() {
   if (!me?.user || !window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
+  liveUpdates.addEventListener('special-mode-update', event => {
+    try { applySpecialModeUpdate(JSON.parse(event.data)); } catch {}
+  });
+  liveUpdates.addEventListener('connected', () => {
+    if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
+  });
   liveUpdates.addEventListener('connected', refreshDesktopHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshDesktopHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
