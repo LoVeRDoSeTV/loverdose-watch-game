@@ -1864,6 +1864,7 @@ function renderPlayerVisitCard() {
       ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`
       : '🏅';
   });
+  renderAccountProfilePreview();
 }
 
 async function loadBadges() {
@@ -6259,6 +6260,76 @@ function showDiscordCallbackMessage() {
 
 showDiscordCallbackMessage();
 
+function renderAccountProfilePreview() {
+  const card = $('accountProfilePreview');
+  if (!card || !me?.user) return;
+  const user = me.user;
+  const name = user.game_username || user.display_name || 'Joueur';
+  let photo = '';
+  try { const url = new URL(user.profile_image_url); if (url.protocol === 'https:') photo = url.href; } catch {}
+  const badges = (badgeData.badges || []).filter(badge => Number(badge.equippedSlot) > 0)
+    .sort((a,b) => Number(a.equippedSlot) - Number(b.equippedSlot)).slice(0,6);
+  card.innerHTML = `<div class="account-preview-identity"><div class="account-preview-avatar">${photo ? `<img src="${escapeHtml(photo)}" alt="Photo de ${escapeHtml(name)}" decoding="async">` : '👤'}</div><div><strong>${escapeHtml(name)}</strong><span class="account-preview-title">${escapeHtml(user.cosmetic_title || 'Aucun titre équipé')}</span></div></div><div class="account-preview-badges">${badges.length ? badges.map(badge => `<span class="account-preview-badge" title="${escapeHtml(badge.badgeName || 'Badge')}">${badgeVisual(badge, 'account-preview-badge-image')}</span>`).join('') : '<span class="account-preview-empty">Aucun badge équipé pour le moment.</span>'}</div>`;
+  const title = card.querySelector('.account-preview-title');
+  if (title) title.style.color = user.cosmetic_title_color || '';
+  const avatar = card.querySelector('.account-preview-avatar');
+  avatar?.querySelector('img')?.addEventListener('error', () => { avatar.textContent = '👤'; }, { once:true });
+  applyProfileCosmetics(card, user.cosmetic_background, user.cosmetic_frame);
+  applyAvatarFrameCosmetics(avatar, user.cosmetic_avatar_frame);
+}
+
+function renderAccountSettings(account) {
+  const since = $('accountMemberSince');
+  const date = new Date(account.createdAt);
+  if (since) since.textContent = account.createdAt && !Number.isNaN(date.getTime())
+    ? `Membre depuis le ${date.toLocaleDateString('fr-FR', {day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Paris'})}` : 'Date d’inscription indisponible';
+  $('accountSecuritySection')?.classList.toggle('hidden', !account.hasPassword);
+  const invite = $('accountDiscordInvite');
+  if (invite) {
+    invite.removeAttribute('href');
+    let valid = false;
+    try {
+      const url = new URL(account.discordInviteUrl);
+      valid = url.protocol === 'https:' && ['discord.gg', 'discord.com'].includes(url.hostname);
+      if (valid) invite.href = url.href;
+    } catch {}
+    invite.classList.toggle('hidden', !valid);
+  }
+  renderAccountProfilePreview();
+}
+
+async function saveAccountPassword(event) {
+  event.preventDefault();
+  const form = $('accountPasswordForm');
+  const button = $('accountPasswordSave');
+  const message = $('accountPasswordMessage');
+  if (!form || !button || !message || button.disabled || !form.reportValidity()) return;
+  const currentPassword = $('accountCurrentPassword').value;
+  const newPassword = $('accountNewPassword').value;
+  const confirmPassword = $('accountConfirmPassword').value;
+  message.className = 'account-settings-message';
+  if (new TextEncoder().encode(newPassword).length > 72) {
+    message.textContent = 'Le nouveau mot de passe dépasse 72 octets. Raccourcis-le.';
+    message.classList.add('error'); return;
+  }
+  if (newPassword !== confirmPassword) {
+    message.textContent = 'Les nouveaux mots de passe ne correspondent pas.';
+    message.classList.add('error'); return;
+  }
+  button.disabled = true; button.textContent = 'Modification…';
+  try {
+    const response = await fetch('/api/account/password', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({currentPassword,newPassword,confirmPassword})});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Modification impossible.');
+    form.reset(); message.textContent = data.message;
+    message.classList.add('success');
+  } catch (error) {
+    $('accountCurrentPassword').value = '';
+    message.textContent = error.message || 'Modification impossible.';
+    message.classList.add('error');
+  } finally { button.disabled = false; button.textContent = 'Modifier mon mot de passe'; }
+}
+
 function renderAccountTwitchAvatar(url) {
   const avatar = $('accountTwitchAvatar');
   if (!avatar) return;
@@ -6304,6 +6375,12 @@ async function openAccountModal() {
   $('accountEmail').textContent = 'Chargement...';
   $('accountTwitch').textContent = 'Chargement...';
   renderAccountTwitchAvatar();
+  $('accountPasswordForm')?.reset();
+  $('accountSecuritySection')?.classList.add('hidden');
+  $('accountDiscordInvite')?.classList.add('hidden');
+  if ($('accountPasswordMessage')) $('accountPasswordMessage').textContent = '';
+  if ($('accountMemberSince')) $('accountMemberSince').textContent = 'Chargement…';
+  if ($('accountProfilePreview')) $('accountProfilePreview').textContent = 'Chargement…';
   if ($('accountDiscord')) $('accountDiscord').textContent = 'Chargement...';
 
   try {
@@ -6317,6 +6394,7 @@ async function openAccountModal() {
     renderAccountTwitchAvatar(data.account.twitchConnected ? me?.user?.profile_image_url : null);
     const username = data.account.username || '—';
     usernameValue.textContent = username;
+    renderAccountSettings(data.account);
     usernameInput.value = data.account.username || '';
     usernameInput.disabled = false;
     usernameButton.disabled = false;
@@ -6385,6 +6463,8 @@ async function openAccountModal() {
     $('accountEmail').textContent = '—';
     $('accountTwitch').textContent = '—';
     renderAccountTwitchAvatar();
+    if ($('accountMemberSince')) $('accountMemberSince').textContent = 'Date d’inscription indisponible';
+    if ($('accountProfilePreview')) $('accountProfilePreview').textContent = 'Profil indisponible';
     if ($('accountDiscord')) $('accountDiscord').textContent = '—';
   }
 }
@@ -6455,6 +6535,10 @@ async function saveAccountUsername() {
   }
 }
 
+$('accountPasswordForm')?.addEventListener('submit', saveAccountPassword);
+$('accountPersonalize')?.addEventListener('click', () => { inventoryCategory = 'title'; openInventory(); });
+$('accountManageBadges')?.addEventListener('click', openBadgeShowcaseModal);
+
 $('accountUsernameSave')?.addEventListener('click', saveAccountUsername);
 $('accountUsernameInput')?.addEventListener('keydown', event => {
   if (event.key === 'Enter') {
@@ -6464,6 +6548,7 @@ $('accountUsernameInput')?.addEventListener('keydown', event => {
 });
 
 function closeAccountModal() {
+  $('accountPasswordForm')?.reset();
   $('accountModal')?.classList.add('hidden');
 }
 

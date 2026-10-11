@@ -781,6 +781,7 @@ body.auth-locked .wrap { visibility:hidden; }
   width:38px;height:38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;
   font-size:22px;cursor:pointer
 }
+.account-pc-feature{display:none}
 .account-twitch-identity{display:contents}
 .account-twitch-details{display:contents}
 .account-twitch-avatar{display:none}
@@ -5501,6 +5502,42 @@ body:has(#pveModal:not(.hidden)){
     max-height:calc(100dvh - 48px);overflow-y:auto;padding:26px;
   }
   #accountModal .account-panel-head{grid-column:1/-1;margin-bottom:4px}
+  #accountModal .account-pc-feature{display:block}
+  #accountModal .account-pc-feature.hidden{display:none}
+  #accountModal .account-member-since{margin:6px 0 0;color:var(--muted);font-size:13px}
+  #accountModal .account-profile-extras{
+    grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;
+    padding:8px 0 24px;border-bottom:1px solid rgba(145,71,255,.2);
+  }
+  #accountModal .account-profile-extras h3,#accountModal .account-security h3{margin:0 0 14px;font-size:18px}
+  #accountModal .account-profile-preview{
+    position:relative;isolation:isolate;overflow:hidden;padding:22px;min-height:160px;
+    border:1px solid rgba(145,71,255,.3);border-radius:16px;background:#121528;
+  }
+  #accountModal .account-profile-preview::before{content:'';position:absolute;inset:0;z-index:-1;background:var(--profile-card-image,none);background-size:cover;background-position:center}
+  #accountModal .account-preview-identity{display:flex;align-items:center;gap:16px}
+  #accountModal .account-preview-identity>div:last-child{min-width:0;overflow-wrap:anywhere}
+  #accountModal .account-preview-identity strong{font-size:21px}
+  #accountModal .account-preview-avatar{display:flex;align-items:center;justify-content:center;flex:0 0 64px;width:64px;height:64px;border-radius:14px;overflow:hidden;border:2px solid rgba(145,71,255,.4);background:#19152b;font-size:28px}
+  #accountModal .account-preview-avatar img{width:100%;height:100%;object-fit:cover}
+  #accountModal .account-preview-title{display:block;color:#dfc5ff;font-size:14px;margin-top:5px}
+  #accountModal .account-preview-badges{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:18px}
+  #accountModal .account-preview-badge{display:flex;align-items:center;justify-content:center;width:38px;height:38px}
+  #accountModal .account-preview-badge-image{width:100%;height:100%;object-fit:contain}
+  #accountModal .account-preview-empty{font-size:13px;color:var(--muted)}
+  #accountModal .account-personalize-actions p,#accountModal .account-security p{color:var(--muted);font-size:14px;line-height:1.6;margin:0 0 16px}
+  #accountModal .account-personalize-actions .btn{display:inline-flex;margin:0 8px 10px 0}
+  #accountModal .account-security{grid-column:1/-1;grid-row:5;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:32px;padding:8px 0 24px;border-bottom:1px solid rgba(145,71,255,.2)}
+  #accountModal .account-password-form{display:grid;gap:9px;min-width:0}
+  #accountModal .account-password-form label{font-size:13px;font-weight:700}
+  #accountModal .account-password-form input{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:#090c18;color:white;font:inherit}
+  #accountModal .account-password-form input:focus-visible{outline:2px solid #c89aff;outline-offset:2px}
+  #accountModal .account-password-form small{color:var(--muted);font-size:12px;line-height:1.5}
+  #accountModal .account-password-form .btn{justify-self:start;margin-top:6px}
+  #accountModal .account-password-form .account-settings-message{margin:0}
+  #accountModal .account-settings-message.success{color:#91e6ad}
+  #accountModal .account-settings-message.error{color:#ff9b9b}
+
   #accountModal .account-info-row{
     min-width:0;padding:8px 0 24px;border:0;border-bottom:1px solid rgba(145,71,255,.20);
     border-radius:0;background:transparent;

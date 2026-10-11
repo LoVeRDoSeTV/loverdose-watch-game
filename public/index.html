@@ -11,7 +11,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=359">
+<link rel="stylesheet" href="/styles.css?v=360">
 
 
 </head>
@@ -724,6 +724,7 @@
     <div class="account-info-row account-identity-card">
       <span class="account-info-label">Pseudo du joueur</span>
       <div id="accountUsername" class="account-info-value">—</div>
+      <p id="accountMemberSince" class="account-member-since account-pc-feature">Membre depuis le…</p>
       <div class="account-username-edit">
         <input id="accountUsernameInput" type="text" minlength="3" maxlength="24" autocomplete="off" placeholder="Nouveau pseudo">
         <button id="accountUsernameSave" class="btn account-username-save" type="button">Modifier</button>
@@ -753,9 +754,38 @@
       <div id="accountDiscord" class="account-info-value">—</div>
       <div class="discord-connect-row">
         <span id="accountDiscordHelp" class="account-edit-help">Connecte Discord pour vérifier automatiquement que tu as rejoint le serveur.</span>
+        <a id="accountDiscordInvite" class="btn secondary discord-connect-button account-pc-feature hidden" target="_blank" rel="noopener noreferrer">Rejoindre le Discord</a>
         <a id="accountDiscordConnect" class="btn secondary discord-connect-button" href="/auth/discord">Connecter Discord</a>
       </div>
     </div>
+
+    <section class="account-profile-extras account-pc-feature" aria-labelledby="accountProfilePreviewTitle">
+      <div>
+        <h3 id="accountProfilePreviewTitle">Ton profil</h3>
+        <div id="accountProfilePreview" class="account-profile-preview"></div>
+      </div>
+      <div class="account-personalize-actions">
+        <h3>Personnalisation</h3>
+        <p>Retrouve tes titres, fonds et cadres dans ton inventaire, puis choisis les badges à afficher.</p>
+        <button id="accountPersonalize" class="btn" type="button">🎨 Personnaliser mon profil</button>
+        <button id="accountManageBadges" class="btn secondary" type="button">🏆 Gérer mes badges</button>
+      </div>
+    </section>
+
+    <section id="accountSecuritySection" class="account-security account-pc-feature hidden" aria-labelledby="accountSecurityTitle">
+      <div><h3 id="accountSecurityTitle">Sécurité</h3><p>Change le mot de passe de ta connexion par e-mail. Les autres sessions seront déconnectées.</p></div>
+      <form id="accountPasswordForm" class="account-password-form">
+        <label for="accountCurrentPassword">Mot de passe actuel</label>
+        <input id="accountCurrentPassword" type="password" autocomplete="current-password" required maxlength="1024">
+        <label for="accountNewPassword">Nouveau mot de passe</label>
+        <input id="accountNewPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="72" aria-describedby="accountPasswordHelp">
+        <label for="accountConfirmPassword">Confirmer le nouveau mot de passe</label>
+        <input id="accountConfirmPassword" type="password" autocomplete="new-password" required minlength="8" maxlength="72">
+        <small id="accountPasswordHelp">Au moins 8 caractères. Maximum 72 octets : les accents et emojis comptent davantage.</small>
+        <button id="accountPasswordSave" class="btn" type="submit">Modifier mon mot de passe</button>
+        <p id="accountPasswordMessage" class="account-settings-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
 
     <div id="trackerAdminSection" class="tracker-admin hidden">
       <span class="account-info-label">Tracker Twitch · diffuseur</span>
@@ -1247,5 +1277,5 @@
   <div class="community-guide-actions"><button id="communityGuideSkip" class="lobby-secondary-btn" type="button">Passer</button><div><button id="communityGuidePrev" class="lobby-secondary-btn" type="button">← Retour</button><button id="communityGuideNext" class="lobby-primary-btn" type="button">Suivant →</button></div></div>
  </section>
 </div>
-<script src="/app.js?v=358"></script>
+<script src="/app.js?v=360"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
