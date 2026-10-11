@@ -1,6 +1,29 @@
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
 
+export function validOAuthCallback(query, session, stateKey, now = Date.now()) {
+  const state = session[stateKey];
+  const startedAt = session[`${stateKey}StartedAt`];
+  return typeof query.code === 'string' && query.code.length > 0
+    && typeof query.state === 'string' && query.state.length > 0
+    && typeof state === 'string' && state.length > 0 && query.state === state
+    && Number.isFinite(startedAt) && now >= startedAt && now - startedAt <= 10 * 60 * 1000;
+}
+
+export function regenerateSession(req) {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate(error => error ? reject(error) : resolve());
+  });
+}
+
+export const feedbackRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { error: 'Trop de messages depuis cette connexion. Réessaie dans 15 minutes.' }
+});
+
 export function createHelmetMiddleware({ production = false } = {}) {
   return helmet({
     contentSecurityPolicy: {
@@ -66,14 +89,4 @@ export const registerRateLimit = rateLimit({
   standardHeaders: 'draft-7',
   legacyHeaders: false,
   message: { error: 'Trop de créations de compte depuis cette connexion. Réessaie plus tard.' }
-});
-
-// Limite les essais du mot de passe actuel, même pour un compte connecté.
-export const passwordChangeRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 5,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: { error: 'Trop de tentatives. Réessaie dans 15 minutes.' }
 });
