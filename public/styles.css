@@ -8496,10 +8496,16 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .online-players-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
 .online-players-head h2{margin:0;font-size:21px}
 .online-players-list{display:grid;gap:10px;margin-top:16px}
-.online-player-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px;background:rgba(101,76,160,.12);border:1px solid rgba(169,127,255,.22);border-radius:12px;flex-wrap:wrap}
-.online-player-identity,.online-player-actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.online-player-identity img,.online-player-identity>span{width:35px;height:35px;border-radius:50%;object-fit:cover;display:grid;place-items:center}
-.online-player-actions button{background:#43316c;border:1px solid #795bb9;border-radius:8px;padding:7px 10px;color:#fff;cursor:pointer}
+.online-player-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;background:rgba(101,76,160,.12);border:1px solid rgba(169,127,255,.22);border-radius:12px;flex-wrap:wrap}
+.online-player-identity,.online-player-actions{display:flex;align-items:center;gap:9px}
+.online-player-identity{min-width:0;flex:1}
+.online-player-info{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
+.online-player-info strong{overflow-wrap:anywhere}
+.online-player-title{color:#cbb4ff;font-size:12px;line-height:1.3}
+.online-player-presence{display:inline-flex;align-items:center;gap:6px;color:#77e4a8;font-size:11px}
+.online-player-presence-dot{width:7px;height:7px;border-radius:50%;background:#4fda91;box-shadow:0 0 7px rgba(79,218,145,.3)}
+.online-player-identity img,.online-player-identity>span.online-player-avatar-fallback{width:42px;height:42px;flex:0 0 42px;border-radius:50%;object-fit:cover;display:grid;place-items:center}
+.online-player-actions button{background:#43316c;border:1px solid #795bb9;border-radius:8px;padding:7px 10px;color:#fff;cursor:pointer;white-space:nowrap}
 .online-player-actions button:hover{background:#65489a}
 .admin-email-edit-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px}
 .admin-email-edit-row input{flex:1;min-width:180px;padding:10px 12px;background:#171a30;border:1px solid #6a5a8b;border-radius:9px;color:#fff}
@@ -8524,3 +8530,5 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .incubator-no-boost-panel .egg-boost-actions{justify-content:center;flex-wrap:wrap}
 .incubator-no-boost-panel .egg-boost-actions button{flex:1 1 170px}
 @media(max-width:900px){.incubator-slot-details{gap:8px}.incubator-slot-actions{gap:8px;margin-top:14px}.incubator-slot-actions .incubator-card-action{min-height:42px}}
+
+@media(max-width:420px){.online-player-row{align-items:flex-start}.online-player-actions{margin-left:54px}}
