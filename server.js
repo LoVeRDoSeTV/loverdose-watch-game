@@ -7473,6 +7473,7 @@ app.get(
         const eggWatched = Math.min(watched, EGG_HATCH_SECONDS);
 
         return {
+          id: Number(player.id),
           rank: player.excluded_from_ranking ? null : ++visibleRank,
           excluded_from_ranking: Boolean(player.excluded_from_ranking),
           twitch_id: player.twitch_id,
