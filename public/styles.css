@@ -7731,7 +7731,13 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  /* NAV volontairement intacte : elle défile exactement comme avant. */
  .standard-page-header{display:none;box-sizing:border-box;width:min(1500px,calc(100vw - 84px));max-width:1500px;margin:28px auto 0;padding:0;background:transparent}
  .standard-page-header.is-visible{display:block}
- .standard-page-header-inner{box-sizing:border-box;width:100%;margin:0;padding:8px 0 22px;border-bottom:1px solid rgba(145,71,255,.22)}
+ .standard-page-header-inner{box-sizing:border-box;position:relative;width:100%;margin:0;padding:8px 0 26px;border-bottom:0}
+ /* Séparateur premium partagé par les pages PC : double ligne fine + éclat retenu. */
+ .standard-page-header-inner::after{content:"";position:absolute;left:0;right:0;bottom:0;height:12px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(155,102,245,.65) 12%,rgba(170,133,255,.26) 54%,rgba(145,71,255,.4) 88%,transparent) center 2px / 100% 1px no-repeat,linear-gradient(90deg,transparent,rgba(170,120,255,.54),rgba(112,80,190,.18),transparent) 10% 8px / 46% 1px no-repeat;filter:drop-shadow(0 0 5px rgba(145,71,255,.25))}
+ .standard-page-header.is-visible{margin-bottom:22px}
+ /* L'Accueil n'utilise pas l'en-tête standard : séparateur au-dessus des actions. */
+ body[data-desktop-view="home"] #nextActionsBar{position:relative;margin-top:38px}
+ body[data-desktop-view="home"] #nextActionsBar::before{content:"";position:absolute;left:0;right:0;top:-23px;height:11px;pointer-events:none;background:linear-gradient(90deg,transparent,rgba(155,102,245,.6) 12%,rgba(170,133,255,.25) 65%,transparent) center 2px / 100% 1px no-repeat,linear-gradient(90deg,transparent,rgba(170,120,255,.5),transparent) left 8px / 43% 1px no-repeat}
  body[data-desktop-view="shop"] .desktop-shop-inventory{display:none}
  #standardPageHeaderTitle{margin:0;padding:0;font-size:34px;line-height:1.15;font-weight:800;letter-spacing:-.02em;text-align:left}
  #standardPageHeaderSubtitle{margin:7px 0 0;padding:0;font-size:13px;line-height:1.5;color:#aeb6d0;text-align:left}
