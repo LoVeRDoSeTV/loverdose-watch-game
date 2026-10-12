@@ -8538,3 +8538,12 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(max-width:900px){.incubator-slot-details{gap:8px}.incubator-slot-actions{gap:8px;margin-top:14px}.incubator-slot-actions .incubator-card-action{min-height:42px}}
 
 @media(max-width:420px){.online-player-row{align-items:flex-start}.online-player-actions{margin-left:54px}}
+
+/* Logo LoVeR Watch Game : en-tête PC uniquement, navigation mobile inchangée. */
+.site-logo-desktop{display:none}
+@media(min-width:901px){
+ .top{position:relative}
+ .game-brand .logo{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:1;width:min(310px,28vw);line-height:0;pointer-events:none}
+ .game-brand .site-logo-mobile{display:none}
+ .game-brand .site-logo-desktop{display:block;width:100%;height:auto;object-fit:contain}
+}
