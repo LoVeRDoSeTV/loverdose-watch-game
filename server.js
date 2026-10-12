@@ -1002,6 +1002,8 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS universal_lovys_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_live_seen_at TIMESTAMPTZ`);
+  // Temps ajouté artificiellement au premier œuf : exclu du classement Visionnage.
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS incubator_accelerated_seconds BIGINT NOT NULL DEFAULT 0`);
 
   // Migration douce pour les joueurs déjà présents : le niveau global reprend
   // leur ancien temps de visionnage au taux de base de 50 XP globale / heure.
@@ -3492,6 +3494,7 @@ app.post('/api/account/reset-game', async (req, res) => {
         lifetime_lovercash_earned = 0,
         lifetime_lovercash_spent = 0,
         watch_seconds = 0,
+        incubator_accelerated_seconds = 0,
         updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       `,
@@ -6857,7 +6860,7 @@ app.post('/api/shop/use', async (req, res) => {
       }
       const next = Math.min(EGG_HATCH_SECONDS, watched + 1800 * requestedQuantity);
       if (starter) {
-        await client.query('UPDATE users SET watch_seconds=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1', [user.id,next]);
+        await client.query('UPDATE users SET watch_seconds=$2, incubator_accelerated_seconds=incubator_accelerated_seconds+$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1', [user.id,next,next-watched]);
       } else {
         await client.query("UPDATE user_incubator_eggs SET watched_seconds=$2, status=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1", [egg.id,next,next >= EGG_HATCH_SECONDS ? 'ready' : 'incubating']);
       }
@@ -7312,7 +7315,7 @@ app.get(
       const requestedMetric = String(req.query.metric || 'watch').trim().toLowerCase();
       const metric = ['watch', 'level', 'pve', 'collection'].includes(requestedMetric) ? requestedMetric : 'watch';
       const orderByMetric = {
-        watch: 'COALESCE(u.watch_seconds, 0) DESC, u.id ASC',
+        watch: 'GREATEST(0, COALESCE(u.watch_seconds, 0) - COALESCE(u.incubator_accelerated_seconds, 0)) DESC, u.id ASC',
         level: 'COALESCE(u.global_xp, 0) DESC, u.id ASC',
         pve: 'pve_wins DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC',
         collection: 'COALESCE(u.total_lovys_hatched, 0) DESC, COALESCE(u.global_xp, 0) DESC, u.id ASC'
@@ -7343,6 +7346,7 @@ app.get(
           u.lifetime_lovercash_earned,
           u.lifetime_lovercash_spent,
           u.watch_seconds,
+          u.incubator_accelerated_seconds,
           u.created_at,
           (SELECT COUNT(*)::int FROM user_lovys ul WHERE ul.user_id = u.id) AS collection_count,
           (SELECT COALESCE(SUM(upp.wins), 0)::int FROM user_pve_progress upp WHERE upp.user_id = u.id) AS pve_wins,
@@ -7421,7 +7425,7 @@ app.get(
       let visibleRank = 0;
       const leaderboard = playersResult.rows.map(player => {
         const hatched = Boolean(player.creature_id);
-        const watched = Math.max(0, Number(player.watch_seconds) || 0);
+        const watched = Math.max(0, (Number(player.watch_seconds) || 0) - (Number(player.incubator_accelerated_seconds) || 0));
         const eggWatched = Math.min(watched, EGG_HATCH_SECONDS);
 
         return {
