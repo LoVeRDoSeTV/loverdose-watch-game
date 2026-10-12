@@ -8454,3 +8454,20 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  .community-guide-actions{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:22px}
  .community-guide-actions>div{display:flex;gap:10px}
 }
+
+/* Administration : présence récente d'un compte sur le site (2 min). */
+.admin-player-card.is-online{background:rgba(31,106,71,.20);border-color:rgba(65,205,132,.56)}
+.admin-player-card.is-offline{background:rgba(113,36,53,.19);border-color:rgba(225,95,110,.5)}
+.admin-player-presence{display:inline-block;margin-left:8px;font-size:12px;font-weight:800;white-space:nowrap}
+.is-online .admin-player-presence{color:#80e7ae}
+.is-offline .admin-player-presence{color:#f5a0ae}
+/* Quantité des objets consommables : même interface sur PC et mobile. */
+.shop-purchase-quantity.is-visible{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;margin:18px 0}
+.shop-purchase-quantity label{font-size:13px;font-weight:850;color:#d7cee7}
+.shop-purchase-quantity>div,.egg-boost-quantity>div{display:flex;align-items:center;justify-content:center;gap:8px}
+.shop-purchase-quantity button,.egg-boost-quantity button{width:40px;height:40px;border:1px solid rgba(145,71,255,.4);border-radius:10px;background:#241b3c;color:#eee3ff;font-size:20px;cursor:pointer}
+.shop-purchase-quantity input,.egg-boost-quantity input{width:76px;height:40px;box-sizing:border-box;border:1px solid rgba(145,71,255,.4);border-radius:10px;background:#111629;color:#fff;text-align:center;font:inherit;font-size:16px;font-weight:900}
+.shop-purchase-quantity small{width:100%;color:#aca4c6;font-size:12px;text-align:center}
+.egg-boost-quantity{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:16px 0;padding:12px;border:1px solid rgba(145,71,255,.2);border-radius:12px}
+.egg-boost-quantity label{font-weight:800}
+.incubator-card-action.accelerate{margin-left:8px;border-color:rgba(110,205,185,.5)!important;background:rgba(33,119,109,.2)!important}

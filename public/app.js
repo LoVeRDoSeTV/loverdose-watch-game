@@ -994,7 +994,7 @@ function renderIncubatorSlot(slotData) {
   const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
   const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans ${formatEggTime(remaining)}`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
-  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">Chances</button>';
+  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
   el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}${action}`;
 }
 
@@ -4052,6 +4052,12 @@ document.querySelector('.incubator-slots')?.addEventListener('click', event=>{
   const slot = Number(slotEl.dataset.incubatorSlot || 0);
   const slotData = incubatorData?.slots?.find(item => Number(item.slot) === slot);
   if (!slotData || slotData.empty) { openIncubatorAddModal(slot); return; }
+  if (event.target.closest('.incubator-card-action.accelerate') && !slotData.ready) {
+    event.preventDefault();
+    event.stopPropagation();
+    shopAction('/api/shop/use', 'incubator_skip_30', slot);
+    return;
+  }
   // Le bouton sur un œuf prêt doit lancer l'éclosion, pas rouvrir les détails.
   if (event.target.closest('.incubator-card-action.hatch') && slotData.ready) {
     if (slotData.source === 'starter') {
@@ -4917,10 +4923,9 @@ let pendingShopPurchaseKey = null;
 
 let shopPurchaseBusy = false;
 function shopPurchaseQuantity(item) {
-  return isDesktopGameUi() && item?.category === 'object' ? Number($('shopPurchaseQuantity')?.value) : 1;
+  return item?.category === 'object' ? Number($('shopPurchaseQuantity')?.value) : 1;
 }
 function updateShopPurchaseQuantity() {
-  if (!isDesktopGameUi()) return;
   const item = getShopItemByKey(pendingShopPurchaseKey);
   if (!item) return;
   const quantity = shopPurchaseQuantity(item);
@@ -4936,7 +4941,7 @@ function updateShopPurchaseQuantity() {
   $('shopPurchaseQuantityPlus').disabled = shopPurchaseBusy || !valid || quantity >= 100 || Number(shopData?.balance || 0) < Number(item.price || 0)*(quantity+1);
 }
 function changeShopPurchaseQuantity(delta) {
-  if (!isDesktopGameUi() || shopPurchaseBusy) return;
+  if (shopPurchaseBusy) return;
   const input = $('shopPurchaseQuantity');
   input.value = String(Math.max(1,Math.min(100,(Number(input.value)||1)+delta)));
   $('shopPurchaseConfirmError').textContent='';
@@ -4952,7 +4957,7 @@ function openShopPurchaseConfirm(itemKey) {
   if(shopPurchaseBusy)return;
   pendingShopPurchaseKey = itemKey;
   $('shopPurchaseQuantity').value='1';
-  $('shopPurchaseQuantityWrap').classList.toggle('is-visible',isDesktopGameUi() && item.category==='object');
+  $('shopPurchaseQuantityWrap').classList.toggle('is-visible',item.category==='object');
   $('shopPurchaseUnitPrice').textContent=`${Number(item.price||0).toLocaleString('fr-FR')} LoVeR’Cash par objet`;
   $('shopPurchaseConfirmError').textContent='';
   const balance = Number(shopData?.balance || 0);
@@ -5149,41 +5154,58 @@ function showDesktopBoostAccepted(itemKey, data) {
   overlay.querySelector('button').focus();
 }
 
-async function chooseEggForAcceleration() {
-  const response = await fetch('/api/incubator',{cache:'no-store'});
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Impossible de charger tes œufs.');
+async function chooseEggForAcceleration(preferredSlot = null) {
+  const [incubatorResponse, shopResponse] = await Promise.all([
+    fetch('/api/incubator', {cache:'no-store'}),
+    fetch('/api/shop', {cache:'no-store'})
+  ]);
+  const data = await incubatorResponse.json();
+  const shop = await shopResponse.json();
+  if (!incubatorResponse.ok) throw new Error(data.error || 'Impossible de charger tes œufs.');
+  if (!shopResponse.ok) throw new Error(shop.error || 'Impossible de charger ton inventaire.');
   incubatorData = data;
+  const owned = Math.max(0,Number(shop.catalog?.find(i=>i.key==='incubator_skip_30')?.quantity || 0));
+  if (owned < 1) throw new Error('Tu n’as aucun accélérateur 30 min. Tu peux en acheter dans la Boutique.');
   const hatch = Number(data.hatchSeconds || 21600);
-  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds)<hatch);
-  if (!slots.length) throw new Error('Aucun œuf à accélérer : tes emplacements sont libres ou tes œufs sont déjà prêts.');
+  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < hatch);
+  if (!slots.length) throw new Error('Aucun œuf à accélérer.');
   return new Promise(resolve => {
     const previousFocus = document.activeElement;
     const overlay = document.createElement('div');
     overlay.className = 'desktop-egg-boost-overlay';
-    overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
-    let selected = null;
-    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⏱️ Accélérateur −30 min</h2><p>Choisis l’œuf à accélérer. Un seul accélérateur sera utilisé après confirmation.</p><div class="egg-boost-choices">${slots.map(slot => {
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
+    let selected = slots.find(slot=>Number(slot.slot)===Number(preferredSlot)) || null;
+    const maxQuantity = slot => Math.min(100,owned,Math.ceil(Math.max(0,hatch-Number(slot.watchedSeconds))/1800));
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⚡ Accélérer un œuf</h2><p>Tu possèdes <strong>${owned}</strong> accélérateur${owned>1?'s':''} de 30 minutes. Choisis l’œuf et la quantité à utiliser.</p><div class="egg-boost-choices">${slots.map(slot => {
       const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
-      return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="false"><span>🥚 Œuf · emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} → ${remaining<=1800?'Prêt à éclore !':formatEggTime(remaining-1800)}</strong></button>`;
-    }).join('')}</div><p class="egg-boost-question" data-egg-boost-question>Choisis un œuf pour continuer.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>✕ Non, annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>✓ Oui, utiliser</button></div></div>`;
-    const finish = value => {document.removeEventListener('keydown',keyHandler,true);window.removeEventListener('resize',resizeHandler);overlay.remove();previousFocus?.focus?.();resolve(value);};
-    const resizeHandler = () => {if(!isDesktopGameUi())finish(null);};
-    const keyHandler = event => {
-      if (event.key==='Escape') {event.preventDefault();event.stopImmediatePropagation();finish(null);}
-      else if (event.key==='Tab') trapDesktopAdminFocus(event,overlay);
+      return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="${selected===slot}"><span>🥚 Emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} restantes</strong></button>`;
+    }).join('')}</div><div class="egg-boost-quantity" data-egg-boost-quantity-wrap><label for="eggBoostQuantity">Quantité</label><div><button type="button" data-egg-minus aria-label="Réduire">−</button><input id="eggBoostQuantity" type="number" min="1" max="100" value="1" step="1" inputmode="numeric"><button type="button" data-egg-plus aria-label="Augmenter">＋</button></div></div><p class="egg-boost-question" data-egg-boost-question></p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Utiliser</button></div></div>`;
+    const input = overlay.querySelector('#eggBoostQuantity');
+    const update = () => {
+      const max = selected ? maxQuantity(selected) : 0;
+      input.max = String(Math.max(1,max));
+      const amount=Number(input.value);
+      const valid = selected && Number.isSafeInteger(amount) && amount>=1 && amount<=max;
+      overlay.querySelector('[data-egg-boost-confirm]').disabled = !valid;
+      overlay.querySelector('[data-egg-minus]').disabled = !selected || !valid || amount<=1;
+      overlay.querySelector('[data-egg-plus]').disabled = !selected || !valid || amount>=max;
+      const remaining = selected ? Math.max(0,hatch-Number(selected.watchedSeconds)) : 0;
+      overlay.querySelector('[data-egg-boost-question]').textContent = !selected ? 'Choisis un œuf.' : !valid ? `Choisis de 1 à ${max} accélérateur(s).` : `${amount} accélérateur(s) · −${formatEggTime(Math.min(remaining,amount*1800))} · ${remaining<=amount*1800?'Prêt à éclore !':formatEggTime(remaining-amount*1800)+' restantes'}`;
     };
-    overlay.addEventListener('click',event => {
+    const finish = value => {document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus();resolve(value);};
+    const onKey = event => {if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(null);}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    overlay.addEventListener('click',event=>{
       const choice = event.target.closest('[data-egg-boost-slot]');
-      if (choice) {
-        selected = slots.find(slot => Number(slot.slot)===Number(choice.dataset.eggBoostSlot));
-        overlay.querySelectorAll('[data-egg-boost-slot]').forEach(button => button.setAttribute('aria-pressed', String(button===choice)));
-        overlay.querySelector('[data-egg-boost-question]').textContent = `Utiliser un accélérateur sur l’œuf de l’emplacement ${selected.slot} ?`;
-        overlay.querySelector('[data-egg-boost-confirm]').disabled = false;
-      } else if (event.target.closest('[data-egg-boost-confirm]') && selected) finish({slot:Number(selected.slot),source:selected.source,eggId:selected.eggId});
-      else if (event.target===overlay || event.target.closest('[data-egg-boost-cancel]')) finish(null);
+      if(choice){selected=slots.find(slot=>Number(slot.slot)===Number(choice.dataset.eggBoostSlot));input.value='1';overlay.querySelectorAll('[data-egg-boost-slot]').forEach(button=>button.setAttribute('aria-pressed',String(button===choice)));update();}
+      else if(event.target.closest('[data-egg-minus]')){input.value=String(Math.max(1,Number(input.value)-1));update();}
+      else if(event.target.closest('[data-egg-plus]')){input.value=String(Math.min(maxQuantity(selected),Number(input.value)+1));update();}
+      else if(event.target.closest('[data-egg-boost-confirm]') && !event.target.disabled && selected)finish({slot:Number(selected.slot),source:selected.source,eggId:selected.eggId,quantity:Number(input.value)});
+      else if(event.target===overlay || event.target.closest('[data-egg-boost-cancel]'))finish(null);
     });
-    document.body.appendChild(overlay);document.addEventListener('keydown',keyHandler,true);window.addEventListener('resize',resizeHandler);
+    input.addEventListener('input',update);
+    document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);update();
     overlay.querySelector('[data-egg-boost-cancel]').focus();
   });
 }
@@ -5228,7 +5250,7 @@ function confirmDesktopObjectUse(itemKey) {
   });
 }
 
-async function shopAction(url, itemKey) {
+async function shopAction(url, itemKey, preferredSlot = null) {
   const desktopUse = isDesktopGameUi() && url === '/api/shop/use';
   if(desktopUse && desktopObjectUseBusy)return;
   if(desktopUse)desktopObjectUseBusy=true;
@@ -5241,7 +5263,7 @@ async function shopAction(url, itemKey) {
       if(!free)throw new Error('Tous tes emplacements sont occupés. Fais éclore un œuf pour libérer une place.');
       openIncubatorAddModal(free.slot);return;
     }
-    if(desktopUse && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration();if(!target)return;} 
+    if(url === '/api/shop/use' && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration(preferredSlot);if(!target)return;}
     else if(desktopUse && !(await confirmDesktopObjectUse(itemKey))) return;
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
@@ -5252,7 +5274,7 @@ async function shopAction(url, itemKey) {
     await loadShop();
     await loadGame();
     await loadLeaderboard();
-    if(desktopUse)await loadIncubatorSlots();
+    if(url === '/api/shop/use' && itemKey === 'incubator_skip_30')await loadIncubatorSlots();
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
@@ -5928,9 +5950,9 @@ function renderAdminPlayers(data) {
       : player.discordConnected ? '🟠 Discord lié' : '⚪ Discord non lié';
 
     return `
-      <div class="admin-player-card ${player.isBroadcaster ? 'is-broadcaster' : ''}" data-account-id="${player.accountId}">
+      <div class="admin-player-card ${player.online ? 'is-online' : 'is-offline'} ${player.isBroadcaster ? 'is-broadcaster' : ''}" data-account-id="${player.accountId}">
         <div>
-          <div class="admin-player-name">${escapeHtml(player.username || 'Sans pseudo')}${player.isBroadcaster ? ' · 👑 Admin' : ''}</div>
+          <div class="admin-player-name">${escapeHtml(player.username || 'Sans pseudo')}${player.isBroadcaster ? ' · 👑 Admin' : ''} <span class="admin-player-presence">${player.online ? '● En ligne' : '● Hors ligne'}</span></div>
           <div class="admin-player-meta">Inscrit le ${formatAdminDate(player.createdAt)}<br>${escapeHtml(player.email || '—')}</div>
         </div>
         <div>
