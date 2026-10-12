@@ -8503,3 +8503,17 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .online-player-actions button:hover{background:#65489a}
 .admin-email-edit-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:9px}
 .admin-email-edit-row input{flex:1;min-width:180px;padding:10px 12px;background:#171a30;border:1px solid #6a5a8b;border-radius:9px;color:#fff}
+
+/* Incubateur : séparation claire entre progression, statut et actions (PC/mobile). */
+.incubator-slot-details{display:flex;flex-direction:column;align-items:center;gap:9px;width:100%;margin:12px 0 0;text-align:center}
+.incubator-slot-details .incubator-status,.incubator-slot-details .incubator-live-state,.incubator-slot-details .incubator-pending{margin:0!important;line-height:1.5!important}
+.incubator-slot-actions{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:16px;width:100%}
+.incubator-slot-actions .incubator-card-action{margin:0!important;min-height:40px;padding:9px 15px;border-radius:11px;font-size:13px;line-height:1.2;transition:background .15s ease,border-color .15s ease,transform .15s ease}
+.incubator-slot-actions .incubator-card-action.accelerate{border-color:rgba(85,200,185,.62)!important;background:linear-gradient(120deg,rgba(36,116,114,.3),rgba(23,78,92,.28))!important;color:#c5fff1!important}
+.incubator-slot-actions .incubator-card-action.accelerate:hover{background:rgba(45,138,134,.42)!important}
+.incubator-no-boost-panel{text-align:center;width:min(445px,100%)}
+.incubator-no-boost-symbol{font-size:30px;margin-bottom:12px}
+.incubator-no-boost-panel p{font-size:14px;line-height:1.65;margin:14px auto 24px;max-width:340px}
+.incubator-no-boost-panel .egg-boost-actions{justify-content:center;flex-wrap:wrap}
+.incubator-no-boost-panel .egg-boost-actions button{flex:1 1 170px}
+@media(max-width:900px){.incubator-slot-details{gap:8px}.incubator-slot-actions{gap:8px;margin-top:14px}.incubator-slot-actions .incubator-card-action{min-height:42px}}

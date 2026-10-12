@@ -994,8 +994,8 @@ function renderIncubatorSlot(slotData) {
   const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
   const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans ${formatEggTime(remaining)}`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
-  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
-  el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}${action}`;
+  const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">🎲 Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
+  el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-slot-details"><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}</div><div class="incubator-slot-actions">${action}</div>`;
 }
 
 let mobileIncubatorHelpOpen=false;
@@ -5209,6 +5209,38 @@ function showDesktopBoostAccepted(itemKey, data) {
   overlay.querySelector('button').focus();
 }
 
+function offerIncubatorAcceleratorPurchase() {
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'desktop-egg-boost-overlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','incubatorNoBoostTitle');
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel incubator-no-boost-panel"><div class="incubator-no-boost-symbol" aria-hidden="true">⚡</div><h2 id="incubatorNoBoostTitle">Plus d’accélérateurs !</h2><p>Tu n’as aucune potion d’accélération de 30 minutes. Veux-tu en acheter dans la Boutique ?</p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-boost-decline>Non, merci</button><button type="button" class="shop-action" data-boost-buy>Oui, voir les potions</button></div></div>`;
+    const close = shouldBuy => {document.removeEventListener('keydown', onKey, true);overlay.remove();if(!shouldBuy && previousFocus?.isConnected) previousFocus.focus();resolve(shouldBuy);};
+    const onKey = event => {if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close(false);}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    overlay.addEventListener('click', event=>{if(event.target===overlay || event.target.closest('[data-boost-decline]'))close(false);else if(event.target.closest('[data-boost-buy]'))close(true);});
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown',onKey,true);
+    overlay.querySelector('[data-boost-buy]')?.focus();
+  });
+}
+async function openShopForIncubatorAccelerators() {
+  shopCategory='object';
+  shopFocusItemKey='incubator_skip_30';
+  if (isDesktopGameUi()) {
+    await openDesktopView('shop');
+    setCommerceTab('shop');
+  } else {
+    await openShop();
+    shopCategory='object';
+    if ($('shopMobileCategory')) $('shopMobileCategory').value='object';
+  }
+  await loadShop();
+  focusShopItem('incubator_skip_30');
+}
+
 async function chooseEggForAcceleration(preferredSlot = null) {
   const [incubatorResponse, shopResponse] = await Promise.all([
     fetch('/api/incubator', {cache:'no-store'}),
@@ -5220,7 +5252,11 @@ async function chooseEggForAcceleration(preferredSlot = null) {
   if (!shopResponse.ok) throw new Error(shop.error || 'Impossible de charger ton inventaire.');
   incubatorData = data;
   const owned = Math.max(0,Number(shop.catalog?.find(i=>i.key==='incubator_skip_30')?.quantity || 0));
-  if (owned < 1) throw new Error('Tu n’as aucun accélérateur 30 min. Tu peux en acheter dans la Boutique.');
+  if (owned < 1) {
+    const buy = await offerIncubatorAcceleratorPurchase();
+    if (buy) await openShopForIncubatorAccelerators();
+    return null;
+  }
   const hatch = Number(data.hatchSeconds || 21600);
   const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < hatch);
   if (!slots.length) throw new Error('Aucun œuf à accélérer.');
@@ -5300,8 +5336,7 @@ function confirmDesktopObjectUse(itemKey) {
     });
     document.body.appendChild(overlay);
     document.addEventListener('keydown', onKey, true);
-    window.addEventListener('resize', onResize);
-    overlay.querySelector('[data-object-use-no]').focus();
+    overlay.querySelector('[data-egg-boost-slot]')?.focus();
   });
 }
 
