@@ -6808,10 +6808,10 @@ app.post('/api/shop/use', async (req, res) => {
     if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
 
     const requestedQuantity = req.body?.quantity === undefined ? 1 : req.body.quantity;
-    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 100 ||
+    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > (key === 'incubator_skip_30' ? 12 : 1) ||
         (key !== 'incubator_skip_30' && requestedQuantity !== 1)) {
       await client.query('ROLLBACK');
-      return res.status(400).json({error:'Quantité invalide (1 à 100 accélérateurs).'});
+      return res.status(400).json({error:'Quantité invalide (12 accélérateurs maximum, soit 6 heures).'});
     }
     if (Number(inv.rows[0].quantity) < requestedQuantity) {
       await client.query('ROLLBACK');
