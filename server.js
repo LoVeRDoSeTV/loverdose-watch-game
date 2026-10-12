@@ -2768,6 +2768,17 @@ app.use(
 );
 
 
+// Présence récente sur le site (et non présence dans le chat Twitch).
+const activeGameAccounts = new Map();
+const PLAYER_ONLINE_WINDOW_MS = 2 * 60 * 1000;
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api/')) {
+    const accountId = Number(req.session?.account?.id);
+    if (Number.isSafeInteger(accountId) && accountId > 0) activeGameAccounts.set(accountId, Date.now());
+  }
+  next();
+});
+
 // Ne jamais publier un ancien fichier serveur, même s'il reste sur le disque.
 app.use((req, res, next) => {
   let path;
@@ -6163,6 +6174,7 @@ app.get('/api/admin/players', async (req, res) => {
       total: Number(totalResult.rows[0]?.total || 0),
       players: playersResult.rows.map(player => ({
         accountId: Number(player.account_id),
+        online: Date.now() - (activeGameAccounts.get(Number(player.account_id)) || 0) < PLAYER_ONLINE_WINDOW_MS,
         username: player.username,
         email: player.email,
         createdAt: player.created_at,
@@ -6795,6 +6807,16 @@ app.post('/api/shop/use', async (req, res) => {
     const inv = await client.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2 FOR UPDATE`, [req.session.account.id, key]);
     if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
 
+    const requestedQuantity = req.body?.quantity === undefined ? 1 : req.body.quantity;
+    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > 100 ||
+        (key !== 'incubator_skip_30' && requestedQuantity !== 1)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({error:'Quantité invalide (1 à 100 accélérateurs).'});
+    }
+    if (Number(inv.rows[0].quantity) < requestedQuantity) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({error:'Tu ne possèdes pas assez d’accélérateurs.'});
+    }
     let message = '';
     let acceleration = null;
     let boostExpiresAt = null;
@@ -6828,18 +6850,23 @@ app.post('/api/shop/use', async (req, res) => {
       }
       const watched = Math.max(0, Number(starter ? user.watch_seconds : egg.watched_seconds) || 0);
       if (watched >= EGG_HATCH_SECONDS || egg?.status === 'ready') {await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf est déjà prêt à éclore.'});}
-      const next = Math.min(EGG_HATCH_SECONDS, watched + 1800);
+      const required = Math.ceil((EGG_HATCH_SECONDS - watched) / 1800);
+      if (requestedQuantity > required) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({error:`${required} accélérateur(s) suffisent pour terminer cet œuf.`});
+      }
+      const next = Math.min(EGG_HATCH_SECONDS, watched + 1800 * requestedQuantity);
       if (starter) {
         await client.query('UPDATE users SET watch_seconds=$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1', [user.id,next]);
       } else {
         await client.query("UPDATE user_incubator_eggs SET watched_seconds=$2, status=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1", [egg.id,next,next >= EGG_HATCH_SECONDS ? 'ready' : 'incubating']);
       }
-      acceleration = {slot,secondsReduced:next-watched,remainingSeconds:EGG_HATCH_SECONDS-next,ready:next>=EGG_HATCH_SECONDS};
+      acceleration = {slot,quantity:requestedQuantity,secondsReduced:next-watched,remainingSeconds:EGG_HATCH_SECONDS-next,ready:next>=EGG_HATCH_SECONDS};
       const minutes = Math.ceil((next-watched)/60);
       message = `Œuf de l’emplacement ${slot} accéléré de ${minutes} min.${acceleration.ready ? ' Il est prêt à éclore !' : ''}`;
     }
 
-    await client.query(`UPDATE shop_inventory SET quantity = quantity - 1 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key]);
+    await client.query(`UPDATE shop_inventory SET quantity = quantity - $3 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key, requestedQuantity]);
     await client.query('COMMIT');
     await wizebotAlerts.collect();
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
