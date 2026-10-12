@@ -5177,11 +5177,11 @@ async function chooseEggForAcceleration(preferredSlot = null) {
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
     let selected = slots.find(slot=>Number(slot.slot)===Number(preferredSlot)) || null;
-    const maxQuantity = slot => Math.min(100,owned,Math.ceil(Math.max(0,hatch-Number(slot.watchedSeconds))/1800));
+    const maxQuantity = slot => Math.min(12,owned,Math.ceil(Math.max(0,hatch-Number(slot.watchedSeconds))/1800));
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⚡ Accélérer un œuf</h2><p>Tu possèdes <strong>${owned}</strong> accélérateur${owned>1?'s':''} de 30 minutes. Choisis l’œuf et la quantité à utiliser.</p><div class="egg-boost-choices">${slots.map(slot => {
       const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
       return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="${selected===slot}"><span>🥚 Emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} restantes</strong></button>`;
-    }).join('')}</div><div class="egg-boost-quantity" data-egg-boost-quantity-wrap><label for="eggBoostQuantity">Quantité</label><div><button type="button" data-egg-minus aria-label="Réduire">−</button><input id="eggBoostQuantity" type="number" min="1" max="100" value="1" step="1" inputmode="numeric"><button type="button" data-egg-plus aria-label="Augmenter">＋</button></div></div><p class="egg-boost-question" data-egg-boost-question></p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Utiliser</button></div></div>`;
+    }).join('')}</div><div class="egg-boost-quantity" data-egg-boost-quantity-wrap><label for="eggBoostQuantity">Quantité</label><div><button type="button" data-egg-minus aria-label="Réduire">−</button><input id="eggBoostQuantity" type="number" min="1" max="12" value="1" step="1" inputmode="numeric"><button type="button" data-egg-plus aria-label="Augmenter">＋</button></div></div><p class="egg-boost-question" data-egg-boost-question></p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Utiliser</button></div></div>`;
     const input = overlay.querySelector('#eggBoostQuantity');
     const update = () => {
       const max = selected ? maxQuantity(selected) : 0;
