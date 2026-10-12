@@ -1027,12 +1027,49 @@ function renderDesktopHomeLiveStatus(data) {
   dot?.classList.toggle('is-live', live === true);
   dot?.classList.toggle('is-offline', live === false);
   if ($('desktopHomeLiveLabel')) $('desktopHomeLiveLabel').textContent = live === null ? 'Statut du live indisponible' : live ? 'En live' : 'Hors ligne';
+  const avatar=$('desktopStreamAvatar');
+  if(avatar && data?.broadcasterAvatar && /^https:\/\//.test(data.broadcasterAvatar)){
+    avatar.src=data.broadcasterAvatar;avatar.hidden=false;
+    $('desktopStreamAvatarFallback')?.classList.add('hidden');
+  }
   const count = data?.gamePlayerCount;
   if ($('desktopHomeGamePlayers')) $('desktopHomeGamePlayers').textContent = Number.isSafeInteger(count) && count >= 0 ? count.toLocaleString('fr-FR') : '—';
   if ($('desktopHomeViewerGroup')) $('desktopHomeViewerGroup').hidden = live !== true;
   const viewers = data?.twitchViewerCount;
   if ($('desktopHomeViewers')) $('desktopHomeViewers').textContent = Number.isSafeInteger(viewers) && viewers >= 0 ? viewers.toLocaleString('fr-FR') : '—';
 }
+
+async function openOnlinePlayersModal(){
+  const modal=$('onlinePlayersModal'),list=$('onlinePlayersList');if(!modal||!list)return;
+  modal.classList.remove('hidden');list.textContent='Chargement…';
+  try{
+    const r=await fetch('/api/game/online-players',{cache:'no-store'}),data=await r.json();
+    if(!r.ok)throw new Error(data.error||'Liste indisponible');
+    const players=Array.isArray(data.players)?data.players:[];
+    list.innerHTML=players.length?players.map(p=>`<article class="online-player-row"><div class="online-player-identity">${p.avatar?`<img src="${escapeHtml(p.avatar)}" alt="" loading="lazy">`:'<span>👤</span>'}<strong>${escapeHtml(p.username||'Joueur')}</strong></div><div class="online-player-actions">${p.userId?`<button type="button" data-online-profile="${Number(p.userId)}">Voir le profil</button><button type="button" data-online-trade="${Number(p.userId)}">Proposer un échange</button>`:'<span class="muted">Compte Twitch non lié</span>'}</div></article>`).join(''):'<p class="muted">Aucun joueur actif pour le moment.</p>';
+  }catch(e){list.textContent='⚠️ '+e.message;}
+}
+$('desktopOnlinePlayersOpen')?.addEventListener('click',openOnlinePlayersModal);
+$('onlinePlayersClose')?.addEventListener('click',()=>$('onlinePlayersModal')?.classList.add('hidden'));
+document.addEventListener('keydown',event=>{if(event.key==='Escape')$('onlinePlayersModal')?.classList.add('hidden');});
+$('onlinePlayersModal')?.addEventListener('click',event=>{
+  if(event.target.id==='onlinePlayersModal')event.currentTarget.classList.add('hidden');
+});
+$('onlinePlayersList')?.addEventListener('click',async event=>{
+  const b=event.target.closest('[data-online-profile],[data-online-trade]');if(!b)return;
+  const userId=Number(b.dataset.onlineProfile||b.dataset.onlineTrade);
+  $('onlinePlayersModal')?.classList.add('hidden');
+  if(isDesktopGameUi()){
+    await openDesktopView('lobby');
+    await openPlayerCollection(userId);
+    if(b.dataset.onlineTrade)$('playerBundleForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }else{
+    await toggleMobilePanel('community');
+    await loadLobbyPlayers();
+    const player=lobbyPlayers.find(p=>Number(p.userId)===userId);
+    if(player)openLobbySideProfile(player);
+  }
+});
 
 async function refreshDesktopHomeLiveStatus() {
   if (!isDesktopGameUi() || !me?.user) return;
@@ -5271,9 +5308,8 @@ async function shopAction(url, itemKey, preferredSlot = null) {
     if(desktopUse) {clearTimeout(desktopBoostNoticeTimer);desktopBoostNotice=null;renderDesktopBoostStatus();showDesktopBoostAccepted(itemKey,data);}
     if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(shopSuccessLabel(url, itemKey, data.message), 'ok');
-    await loadShop();
-    await loadGame();
-    await loadLeaderboard();
+    await Promise.all([loadShop(),loadGame()]);
+    void loadLeaderboard().catch(console.warn);
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30')await loadIncubatorSlots();
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
@@ -6011,6 +6047,7 @@ function renderAdminPlayerEditor(player){
   const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
   editor.innerHTML=`
     <div class="admin-editor-head"><div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
       ${adminStatCard('💰',"LoVeR'Cash",formatAdminNumber(player.points))}
@@ -6387,6 +6424,21 @@ async function deleteDesktopAdminAccount(button){
 
 $('adminPlayerEditor')?.addEventListener('click', async event=>{
   if(event.target.closest('[data-admin-close-editor]')){$('adminPlayerEditor')?.classList.add('hidden');return;}
+  const saveEmail=event.target.closest('[data-admin-email-save]');
+  if(saveEmail){
+    const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-email]'),message=editor?.querySelector('[data-admin-email-message]');
+    const email=String(field?.value||'').trim().toLowerCase();
+    if(!field?.checkValidity() || !email){if(message)message.textContent='Adresse e-mail invalide.';return;}
+    if(!await showAdminActionConfirmation({username:editor.dataset.playerUsername||'Joueur',actionText:'Modifier l’adresse e-mail',question:`Enregistrer ${email} comme nouvelle adresse de connexion ?`}))return;
+    saveEmail.disabled=true;
+    try{
+      const data=await adminFetch(`/api/admin/players/${encodeURIComponent(editor.dataset.accountId)}/email`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+      if(message)message.textContent='✓ Adresse mise à jour : '+data.email;
+      await loadAdminPlayers();
+    }catch(error){if(message)message.textContent='⚠️ '+error.message;}
+    finally{saveEmail.disabled=false;}
+    return;
+  }
   const button=event.target.closest('[data-admin-action]');if(button)await runAdminPlayerAction(button);
 });
 
