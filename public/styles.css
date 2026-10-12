@@ -8547,3 +8547,8 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  .game-brand .site-logo-mobile{display:none}
  .game-brand .site-logo-desktop{display:block;width:100%;height:auto;object-fit:contain}
 }
+
+/* Espacement logo et navigation PC */
+@media(min-width:901px){
+  #desktopGameNav.desktop-game-nav{margin-top:56px!important}
+}
