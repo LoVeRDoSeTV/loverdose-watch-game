@@ -992,7 +992,7 @@ function renderIncubatorSlot(slotData) {
   if (slotData.ready) el.classList.add('ready');
   const title = slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation';
   const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
-  const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans ${formatEggTime(remaining)}`;
+  const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans <strong class="incubator-remaining-time">${formatEggTime(remaining)}</strong>`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
   const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">🎲 Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
   el.innerHTML = `${incubatorEggMarkup()}<div class="incubator-slot-title">${title}</div><div class="incubator-slot-progress"><div class="incubator-progress-bar" style="width:${progress}%"></div><span class="incubator-progress-percent">${Math.round(progress)} %</span></div><div class="incubator-slot-details"><div class="incubator-status">${status}</div><div class="incubator-live-state" data-incubator-live>🟣 Progresse pendant tes heures de présence en live</div>${pending}</div><div class="incubator-slot-actions">${action}</div>`;

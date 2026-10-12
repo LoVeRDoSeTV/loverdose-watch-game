@@ -8511,6 +8511,13 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .incubator-slot-actions .incubator-card-action{margin:0!important;min-height:40px;padding:9px 15px;border-radius:11px;font-size:13px;line-height:1.2;transition:background .15s ease,border-color .15s ease,transform .15s ease}
 .incubator-slot-actions .incubator-card-action.accelerate{border-color:rgba(85,200,185,.62)!important;background:linear-gradient(120deg,rgba(36,116,114,.3),rgba(23,78,92,.28))!important;color:#c5fff1!important}
 .incubator-slot-actions .incubator-card-action.accelerate:hover{background:rgba(45,138,134,.42)!important}
+
+/* Mettre en avant le temps restant et signaler visuellement l'acceleration. */
+.incubator-slot-details .incubator-status{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px}
+.incubator-remaining-time{display:inline-flex;align-items:center;justify-content:center;padding:5px 11px;border-radius:10px;background:rgba(145,71,255,.18);border:1px solid rgba(174,121,255,.46);color:#eee0ff;font-weight:950;font-variant-numeric:tabular-nums;letter-spacing:.02em;box-shadow:0 0 14px rgba(145,71,255,.10);transition:color .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.incubator-slot:has(.incubator-card-action.accelerate:is(:hover,:focus-visible)) .incubator-remaining-time{color:#c6fff1;background:rgba(41,139,122,.26);border-color:rgba(92,231,197,.78);box-shadow:0 0 18px rgba(59,207,174,.24);transform:scale(1.05)}
+@media(prefers-reduced-motion:reduce){.incubator-remaining-time{transition:none}}
+
 .incubator-no-boost-panel{text-align:center;width:min(445px,100%)}
 .incubator-no-boost-symbol{font-size:30px;margin-bottom:12px}
 .incubator-no-boost-panel p{font-size:14px;line-height:1.65;margin:14px auto 24px;max-width:340px}
