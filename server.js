@@ -3054,7 +3054,7 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({
-        error: 'E-mail et mot de passe obligatoires.'
+        error: 'Adresse e-mail ou pseudo et mot de passe obligatoires.'
       });
     }
 
@@ -3071,7 +3071,9 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
         discord_member_verified,
         discord_verified_at
       FROM accounts
-      WHERE email = $1
+      WHERE LOWER(email) = $1 OR LOWER(username) = $1
+      ORDER BY CASE WHEN LOWER(email) = $1 THEN 0 ELSE 1 END
+      LIMIT 1
       `,
       [email]
     );
@@ -3080,7 +3082,7 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
 
     if (!account) {
       return res.status(401).json({
-        error: 'E-mail ou mot de passe incorrect.'
+        error: 'Identifiant ou mot de passe incorrect.'
       });
     }
 
@@ -3091,7 +3093,7 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
 
     if (!passwordOk) {
       return res.status(401).json({
-        error: 'E-mail ou mot de passe incorrect.'
+        error: 'Identifiant ou mot de passe incorrect.'
       });
     }
 
@@ -3758,6 +3760,19 @@ function connectedGamePlayerCount() {
     .map(client => String(client.gamePlayerId))]).size;
 }
 
+// Présence sur le site : n'utilise pas les spectateurs du chat Twitch.
+app.get('/api/game/online-players', async(req,res)=>{
+  if(!req.session.account || !req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  const cutoff=Date.now()-PLAYER_ONLINE_WINDOW_MS;
+  const ids=[...activeGameAccounts].filter(([,seen])=>seen>=cutoff).map(([id])=>id).slice(0,150);
+  if(!ids.length)return res.json({ok:true,players:[]});
+  try{
+    const result=await pool.query(`SELECT a.id account_id,a.username,u.id user_id,u.profile_image_url FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=ANY($1::integer[]) ORDER BY a.username LIMIT 100`,[ids]);
+    res.setHeader('Cache-Control','no-store');
+    res.json({ok:true,players:result.rows.map(p=>({accountId:Number(p.account_id),userId:p.user_id?Number(p.user_id):null,username:p.username,avatar:p.profile_image_url||null}))});
+  }catch(error){console.error('Joueurs en ligne :',error);res.status(500).json({error:'Liste indisponible.'});}
+});
+
 app.get('/api/game/live-status', async (req, res) => {
   if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
   if (req.session.user.twitchId) GAME_STATUS_PRESENCE.set(String(req.session.user.twitchId), Date.now());
@@ -3769,7 +3784,8 @@ app.get('/api/game/live-status', async (req, res) => {
       ? (!tracker.last_error && viewersUpdatedRecently ? Number(tracker.last_viewer_count) : null)
       : 0;
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ live:tracker ? Boolean(tracker.last_live) : null, gamePlayerCount:connectedGamePlayerCount(), twitchViewerCount });
+    const avatar=(await pool.query('SELECT profile_image_url FROM users WHERE twitch_id=$1 LIMIT 1',[String(process.env.TWITCH_BROADCASTER_ID||'')])).rows[0]?.profile_image_url||null;
+    res.json({ live:tracker ? Boolean(tracker.last_live) : null, gamePlayerCount:[...activeGameAccounts.values()].filter(seen=>Date.now()-seen<PLAYER_ONLINE_WINDOW_MS).length, twitchViewerCount, broadcasterAvatar:avatar });
   } catch (error) {
     console.error('Erreur statut accueil :', error);
     res.status(500).json({ error:'Statut indisponible.' });
@@ -6261,6 +6277,34 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
     }
     res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),lovys,incubator,badges,pve,inventory}});
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
+});
+
+// Correction administrative d'une adresse existante, tracée et réservée au diffuseur.
+app.patch('/api/admin/players/:accountId/email', async (req,res) => {
+  let client;
+  try {
+    const admin = await getBroadcasterAccount(req);
+    if (!admin) return res.status(403).json({error:'Accès réservé au diffuseur.'});
+    const id = Number(req.params.accountId);
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({error:'Compte invalide.'});
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return res.status(400).json({error:'Adresse e-mail invalide.'});
+    client = await pool.connect(); await client.query('BEGIN');
+    const original = (await client.query('SELECT id,email,username FROM accounts WHERE id=$1 FOR UPDATE',[id])).rows[0];
+    if (!original) {await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    if (!original.email) {await client.query('ROLLBACK');return res.status(400).json({error:'Ce compte ne possède pas encore d’adresse e-mail.'});}
+    if (String(original.email).toLowerCase() === email) {await client.query('ROLLBACK');return res.json({ok:true,email});}
+    const used = (await client.query('SELECT id FROM accounts WHERE LOWER(email)=$1 AND id<>$2 LIMIT 1',[email,id])).rowCount;
+    if (used) {await client.query('ROLLBACK');return res.status(409).json({error:'Adresse déjà utilisée.'});}
+    await client.query('UPDATE accounts SET email=$2 WHERE id=$1',[id,email]);
+    await logAdminAction(admin.id,id,'change_email',`Adresse e-mail corrigée · ${original.username}`,{oldEmail:original.email,newEmail:email},client);
+    await client.query('COMMIT');
+    res.json({ok:true,email});
+  } catch (error) {
+    if(client)try{await client.query('ROLLBACK');}catch{}
+    console.error('Correction e-mail admin :',error);
+    res.status(error.code==='23505'?409:500).json({error:error.code==='23505'?'Adresse déjà utilisée.':'Modification impossible.'});
+  } finally {client?.release();}
 });
 
 app.post('/api/admin/players/:accountId/action',async(req,res)=>{
