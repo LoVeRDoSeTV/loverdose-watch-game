@@ -3767,9 +3767,9 @@ app.get('/api/game/online-players', async(req,res)=>{
   const ids=[...activeGameAccounts].filter(([,seen])=>seen>=cutoff).map(([id])=>id).slice(0,150);
   if(!ids.length)return res.json({ok:true,players:[]});
   try{
-    const result=await pool.query(`SELECT a.id account_id,a.username,u.id user_id,u.profile_image_url FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=ANY($1::integer[]) ORDER BY a.username LIMIT 100`,[ids]);
+    const result=await pool.query(`SELECT a.id account_id,a.username,a.twitch_id,a.equipped_title_key,u.id user_id,u.profile_image_url FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=ANY($1::integer[]) ORDER BY a.username LIMIT 100`,[ids]);
     res.setHeader('Cache-Control','no-store');
-    res.json({ok:true,players:result.rows.map(p=>({accountId:Number(p.account_id),userId:p.user_id?Number(p.user_id):null,username:p.username,avatar:p.profile_image_url||null}))});
+    res.json({ok:true,players:result.rows.map(p=>({accountId:Number(p.account_id),userId:p.user_id?Number(p.user_id):null,username:p.username,avatar:p.profile_image_url||null,title:cosmeticTitleForTwitchId(p.twitch_id,p.equipped_title_key)}))});
   }catch(error){console.error('Joueurs en ligne :',error);res.status(500).json({error:'Liste indisponible.'});}
 });
 
