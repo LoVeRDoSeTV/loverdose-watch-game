@@ -1059,10 +1059,26 @@ $('onlinePlayersList')?.addEventListener('click',async event=>{
   const b=event.target.closest('[data-online-profile],[data-online-trade]');if(!b)return;
   const userId=Number(b.dataset.onlineProfile||b.dataset.onlineTrade);
   $('onlinePlayersModal')?.classList.add('hidden');
+  if (b.hasAttribute('data-online-profile')) {
+    // Réutiliser exactement la fenêtre et les données du Classement.
+    try {
+      const playerRow = b.closest('.online-player-row');
+      const username = playerRow?.querySelector('.online-player-identity strong')?.textContent?.trim() || '';
+      const params = new URLSearchParams({metric:'watch',search:username});
+      const response = await fetch(`/api/leaderboard?${params}`, {cache:'no-store'});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Profil indisponible.');
+      const player = (data.leaderboard || []).find(p=>Number(p.id)===userId);
+      if (!player) throw new Error('Profil introuvable dans le classement.');
+      openPlayerProfile(player);
+    } catch(error) { alert(error.message || 'Impossible de charger le profil.'); }
+    return;
+  }
+  // La proposition d'échange continue d'utiliser le parcours privé existant.
   if(isDesktopGameUi()){
     await openDesktopView('lobby');
     await openPlayerCollection(userId);
-    if(b.dataset.onlineTrade)$('playerBundleForm')?.scrollIntoView({behavior:'smooth',block:'start'});
+    $('playerBundleForm')?.scrollIntoView({behavior:'smooth',block:'start'});
   }else{
     await toggleMobilePanel('community');
     await loadLobbyPlayers();
@@ -4608,8 +4624,10 @@ async function equipCommerceOutfit() {
     if (!response.ok) throw new Error(data.error || 'Impossible d’équiper cette tenue.');
     commerceDraft = {};
     $('inventoryOutfitMessage').textContent = '✓ Tenue équipée !';
-    await loadShop(); await loadGame(); await loadLeaderboard();
+    await loadShop();
     if (commerceTab === 'inventory') renderInventory();
+    void loadGame().catch(console.warn);
+    void loadLeaderboard().catch(console.warn);
   } catch (error) { $('inventoryOutfitMessage').textContent = error.message; }
   finally {commerceBusy = false;renderInventoryVisitPreview();}
 }
@@ -5308,7 +5326,9 @@ async function shopAction(url, itemKey, preferredSlot = null) {
     if(desktopUse) {clearTimeout(desktopBoostNoticeTimer);desktopBoostNotice=null;renderDesktopBoostStatus();showDesktopBoostAccepted(itemKey,data);}
     if(isDesktopGameUi())commerceDraft = {};
     setShopMessage(shopSuccessLabel(url, itemKey, data.message), 'ok');
-    await Promise.all([loadShop(),loadGame()]);
+    // L'inventaire est prioritaire : ne pas le bloquer par les données du jeu ou du classement.
+    await loadShop();
+    void loadGame().catch(console.warn);
     void loadLeaderboard().catch(console.warn);
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30')await loadIncubatorSlots();
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
