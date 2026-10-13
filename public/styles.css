@@ -8275,6 +8275,8 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #inventoryModal .inventory-grid{grid-template-columns:1fr;gap:12px;scroll-margin-top:16px}
   #inventoryModal .inventory-item{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px 12px;padding:14px;align-items:center;min-width:0}
   #inventoryModal .inventory-item>.shop-item-preview{grid-row:1/3;width:88px;min-height:72px;height:88px;margin:0}
+  :is(#shopModal,#inventoryModal) .shop-item-preview{container-type:inline-size}
+  :is(#shopModal,#inventoryModal) .shop-preview-title{width:100%;min-width:0;box-sizing:border-box;margin:0;padding:6px;font-size:clamp(9px,13cqi,14px);line-height:1.2;text-align:center;white-space:normal;overflow-wrap:anywhere;text-wrap:pretty}
   #inventoryModal .inventory-item-name{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
   #inventoryModal .inventory-item-desc{display:none}
   #inventoryModal .inventory-item-meta{font-size:13px;line-height:1.5}
@@ -8300,7 +8302,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   @media(max-width:360px){
     .mobile-game-nav-btn b{font-size:10px!important}
     #inventoryModal .inventory-item{grid-template-columns:72px minmax(0,1fr)}
-    #inventoryModal .inventory-item>.shop-item-preview{width:72px;height:76px}
+    #inventoryModal .inventory-item>.shop-item-preview{width:72px;height:72px}
     .mobile-list-pagination{gap:5px}
   }
 }
