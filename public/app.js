@@ -82,7 +82,7 @@ function renderHomeMonster() {
   const monster = homeMonsters[homeMonsterIndex];
   const card = $('carouselCard');
   if (!card) return;
-  card.style.setProperty('--monster-glow', monster.glow);
+  card.closest('.public-lovys-showcase')?.style.setProperty('--monster-glow', monster.glow);
   $('carouselMonster').src = monster.image;
   $('carouselMonster').alt = monster.name;
   $('carouselName').textContent = monster.name;
@@ -152,7 +152,6 @@ if (carouselCard) {
 renderHomeMonster();
 
 let publicMotionPaused=false;
-let publicIllustrationViewers=128;
 const publicMotionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
 function syncPublicMotion(){
   const paused=publicMotionPaused||publicMotionPreference.matches;
@@ -167,9 +166,7 @@ function tickPublicHomeMotion(){
   if(publicMotionPaused||publicMotionPreference.matches||document.hidden||authOverlay.classList.contains('hidden')||authHome.style.display==='none')return;
   const showcase=document.querySelector('.public-lovys-showcase');
   if(!showcase?.matches(':hover, :focus-within'))moveHomeCarousel(1);
-  publicIllustrationViewers=publicIllustrationViewers>=168?128:publicIllustrationViewers+2;
-  const count=$('publicIllustrationViewers');
-  if(count){count.textContent=publicIllustrationViewers.toLocaleString('fr-FR');count.animate?.([{opacity:.45},{opacity:1}],{duration:400});}
+
 }
 setInterval(tickPublicHomeMotion,4500);
 
@@ -8669,6 +8666,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
 
 
