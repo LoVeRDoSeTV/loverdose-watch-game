@@ -4720,22 +4720,40 @@ function syncDesktopBoostData() {
 }
 
 async function equipCommerceOutfit() {
-  if (!isDesktopGameUi() || commerceBusy || !Object.keys(commerceDraft).length) return;
+  if (!isDesktopGameUi() || commerceBusy || cosmeticPending.size || !Object.keys(commerceDraft).length) return;
   const equipment = {...commerceDraft};
   if (Object.values(equipment).some(key => key && !commerceOwns(getShopItemByKey(key)))) return;
-  commerceBusy = true; renderInventoryVisitPreview();
+  const previous = Object.fromEntries(Object.keys(equipment).map(category => [category, shopData?.equipped?.[category] || null]));
+  commerceBusy = true;
+  commerceDraft = {};
+  cosmeticRevision++;
+  for (const [category,key] of Object.entries(equipment)) {
+    cosmeticPending.set(category,{confirmed:previous[category],desired:key});
+    applyCosmeticLocally(category,key,false);
+  }
+  renderPlayerVisitCard();
+  renderInventory();
+  $('inventoryOutfitMessage').textContent = 'Enregistrement de la tenue…';
   try {
     const response = await fetch('/api/shop/equip-outfit', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({equipment})});
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Impossible d’équiper cette tenue.');
-    commerceDraft = {};
     $('inventoryOutfitMessage').textContent = '✓ Tenue équipée !';
-    await loadShop();
-    if (commerceTab === 'inventory') renderInventory();
+  } catch (error) {
+    for (const [category,key] of Object.entries(previous)) applyCosmeticLocally(category,key,false);
+    commerceDraft = equipment;
+    $('inventoryOutfitMessage').textContent = error.message || 'Impossible d’équiper cette tenue.';
+    setShopMessage(error.message || 'Impossible d’équiper cette tenue.', 'error');
+  } finally {
+    for (const category of Object.keys(equipment)) cosmeticPending.delete(category);
+    cosmeticRevision++;
+    commerceBusy = false;
+    renderPlayerVisitCard();
+    renderInventory();
+    void loadShop().catch(console.warn);
     void loadGame().catch(console.warn);
     void loadLeaderboard().catch(console.warn);
-  } catch (error) { $('inventoryOutfitMessage').textContent = error.message; }
-  finally {commerceBusy = false;renderInventoryVisitPreview();}
+  }
 }
 
 function renderShopPreviewVisual(item) {
