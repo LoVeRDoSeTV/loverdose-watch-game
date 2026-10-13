@@ -1164,6 +1164,7 @@ async function loadIncubatorSlots() {
     const data = await response.json();
     if (!response.ok) return;
     incubatorData = data;
+    if(isMobileGameUi())void primeMobileIncubatorBoostStock().catch(()=>{});
     renderIncubatorSlots();
     renderNextActions();
   } catch (error) {
@@ -5126,6 +5127,7 @@ async function loadShop() {
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
   if (revision !== cosmeticRevision && !cosmeticPending.size) return;
   shopData = data;
+  if(isMobileGameUi())mobileIncubatorBoostStock={data,time:Date.now()};
   reapplyPendingCosmetics();
   renderShop();
   if(isDesktopGameUi()) {syncDesktopBoostData();if(commerceTab==='inventory')renderInventory();else renderInventoryVisitPreview();}
@@ -5436,15 +5438,45 @@ async function openShopForIncubatorAccelerators() {
   focusShopItem('incubator_skip_30');
 }
 
+let mobileIncubatorBoostStock = null;
+let mobileIncubatorBoostStockPromise = null;
+async function primeMobileIncubatorBoostStock(){
+  if(!isMobileGameUi())return null;
+  if(mobileIncubatorBoostStock && Date.now()-mobileIncubatorBoostStock.time<30000)return mobileIncubatorBoostStock.data;
+  if(mobileIncubatorBoostStockPromise)return mobileIncubatorBoostStockPromise;
+  mobileIncubatorBoostStockPromise=(async()=>{
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
+    try{
+      const response=await fetch('/api/shop',{cache:'no-store',signal:controller.signal});
+      const data=await response.json();
+      if(!response.ok)throw new Error(data.error||'Impossible de charger tes potions.');
+      mobileIncubatorBoostStock={data,time:Date.now()};return data;
+    }finally{clearTimeout(timeout);mobileIncubatorBoostStockPromise=null;}
+  })();
+  return mobileIncubatorBoostStockPromise;
+}
 async function chooseEggForAcceleration(preferredSlot = null) {
-  const [incubatorResponse, shopResponse] = await Promise.all([
-    fetch('/api/incubator', {cache:'no-store'}),
-    fetch('/api/shop', {cache:'no-store'})
-  ]);
-  const data = await incubatorResponse.json();
-  const shop = await shopResponse.json();
-  if (!incubatorResponse.ok) throw new Error(data.error || 'Impossible de charger tes œufs.');
-  if (!shopResponse.ok) throw new Error(shop.error || 'Impossible de charger ton inventaire.');
+  let data,shop;
+  if(isMobileGameUi()){
+    let loading=null,cancelled=false;
+    if(!mobileIncubatorBoostStock || Date.now()-mobileIncubatorBoostStock.time>=30000){
+      loading=document.createElement('div');loading.className='desktop-egg-boost-overlay';
+      loading.setAttribute('role','dialog');loading.setAttribute('aria-modal','true');loading.setAttribute('aria-labelledby','eggBoostLoadingTitle');
+      loading.innerHTML='<div class="desktop-egg-boost-panel"><h2 id="eggBoostLoadingTitle">⚡ Accélérer un œuf</h2><p role="status">Chargement de tes potions…</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button">Annuler</button></div></div>';
+      loading.querySelector('button').addEventListener('click',()=>{cancelled=true;loading.remove();});
+      document.body.appendChild(loading);loading.querySelector('button').focus();
+    }
+    try{shop=await primeMobileIncubatorBoostStock();}
+    finally{loading?.remove();}
+    if(cancelled)return null;
+    data=incubatorData;
+    if(!data?.slots){const response=await fetch('/api/incubator',{cache:'no-store'});data=await response.json();if(!response.ok)throw new Error(data.error||'Impossible de charger tes œufs.');}
+  }else{
+    const [incubatorResponse,shopResponse]=await Promise.all([fetch('/api/incubator',{cache:'no-store'}),fetch('/api/shop',{cache:'no-store'})]);
+    data=await incubatorResponse.json();shop=await shopResponse.json();
+    if(!incubatorResponse.ok)throw new Error(data.error||'Impossible de charger tes œufs.');
+    if(!shopResponse.ok)throw new Error(shop.error||'Impossible de charger ton inventaire.');
+  }
   incubatorData = data;
   const owned = Math.max(0,Number(shop.catalog?.find(i=>i.key==='incubator_skip_30')?.quantity || 0));
   if (owned < 1) {
