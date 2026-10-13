@@ -3136,10 +3136,19 @@ function lovysLiveXpExplanation() {
   return `<div class="lovys-live-xp-explanation"><strong>📺 Seul ton Lovys actif gagne l’XP du live</strong><p>L’XP du live n’est ni partagée ni donnée aux autres Lovys de ta collection. Pour faire progresser un autre Lovys, sélectionne-le puis rends-le actif : il recevra l’XP des prochains instants de présence comptabilisés pendant le live.</p><p>⚡ Tu peux aussi sélectionner un Lovys et utiliser « Donner de l’XP » pour lui attribuer de l’XP en réserve.</p></div>`;
 }
 
+function renderMobileLovysIncubator(now){
+  const slots=lovysIncubatorData?.slots||[];
+  const ready=slots.some(slot=>slot?.ready);
+  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||21600);
+  const incubating=slots.filter(slot=>slot&&!slot.ready&&Number(slot.watchedSeconds||0)>0);
+  const remaining=incubating.length?Math.min(...incubating.map(slot=>Math.max(0,hatchSeconds-Number(slot.watchedSeconds||0)))):0;
+  const label=ready?'Un œuf est prêt à éclore !':incubating.length?`Éclosion dans ${formatEggTime(remaining)}`:'Ouvrir l’incubateur';
+  now.innerHTML=`<button class="mobile-lovys-incubator" type="button" data-lovys-incubator><span aria-hidden="true">🥚</span><strong>${escapeHtml(label)}</strong><span aria-hidden="true">›</span></button>`;
+}
 function renderLovysActiveHero(data){
   const box=$('lovysActiveHero'),now=$('lovysNowStrip');if(!box||!now)return;
   const active=(data?.lovys||[]).find(l=>l.isActive)||(data?.lovys||[])[0];
-  if(!active){box.innerHTML='';now.innerHTML='';return;}
+  if(!active){box.innerHTML='';now.innerHTML='';if(isMobileGameUi())renderMobileLovysIncubator(now);return;}
   const st=active.stats||{},skills=active.skills||[],frag=lovysFragmentProgress(active),nextRank=Number(active.rank||1)+1,nextPreview=lovysNextRankText(active);
   const prog=active.progression||{},cur=Math.max(0,Number(prog.currentThreshold||0)),next=Math.max(cur,Number(prog.nextThreshold||cur)),total=Math.max(0,Number(active.xp||0)),into=Math.max(0,Math.floor(total-cur)),need=Math.max(0,Math.ceil(next-cur)),xpPct=active.maxLevel?100:Math.max(0,Math.min(100,need?into/need*100:0));
   const milestone=LOVYS_MILESTONES.find(m=>m.level>Number(active.level||1));
@@ -3150,6 +3159,13 @@ function renderLovysActiveHero(data){
   <div class="lovys-active-kit"><div class="lovys-kit-label">TALENT & COMPÉTENCES <button class="lovys-kit-info" type="button" title="Le talent passif est toujours actif. Les compétences sont utilisées en combat puis doivent se recharger." aria-label="Aide sur le talent et les compétences">?</button></div><div class="lovys-skill talent"><div class="lovys-skill-top"><strong><small>✨ TALENT PASSIF · RANG ${Number(active.rank||1)}</small>${escapeHtml(active.talent?.icon||'✨')} ${escapeHtml(active.talent?.name||'Talent')}</strong><span class="lovys-passive-badge">TOUJOURS ACTIF</span></div><p>${escapeHtml(active.talent?.description||'')}</p>${lovysTalentEvolution(active)}</div><div class="lovys-combat-kit-title">⚔️ COMPÉTENCES DE COMBAT</div>${lovysSkillMarkup(skills[0],1)}${lovysSkillMarkup(skills[1],2)}${lovysDesktopRankAction(active)}</div>`;
 
   if(isMobileGameUi()){
+    const art=box.querySelector('.lovys-active-art'),main=box.querySelector('.lovys-active-main');
+    const header=document.createElement('div');header.className='mobile-lovys-active-header';
+    const overview=document.createElement('div');overview.className='mobile-lovys-active-overview';
+    box.prepend(header);header.append(art,overview);
+    ['.lovys-active-kicker','.lovys-active-title','.lovys-active-level','.lovys-active-xp','.lovys-xp-copy'].forEach(selector=>{const element=main.querySelector(selector);if(element)overview.appendChild(element);});
+    const affinities=main.querySelector('.lovys-type-chips'),zoneAdvice=main.querySelector('.lovys-zone-advice');
+    if(affinities){const fold=document.createElement('details');fold.className='mobile-info-fold';fold.innerHTML='<summary>💡 Affinités et conseils</summary>';affinities.before(fold);fold.appendChild(affinities);if(zoneAdvice)fold.appendChild(zoneAdvice);}
     const actions=box.querySelector('.lovys-active-actions');
     const rank=box.querySelector('.lovys-rank-explainer');
     if(actions && rank){
@@ -3191,7 +3207,8 @@ function renderLovysActiveHero(data){
   }else if(advice){
     tipIcon='⚔️';tipTitle='Conseil pour la zone en cours';tipText=escapeHtml(advice);
   }
-  now.innerHTML=`<div class="lovys-moment-tip"><div class="lovys-moment-tip-icon">${tipIcon}</div><div class="lovys-moment-tip-copy"><span>CONSEIL DU MOMENT</span><strong>${tipTitle}</strong><p>${tipText}</p></div>${tipAction}</div>`;
+  if(isMobileGameUi())renderMobileLovysIncubator(now);
+  else now.innerHTML=`<div class="lovys-moment-tip"><div class="lovys-moment-tip-icon">${tipIcon}</div><div class="lovys-moment-tip-copy"><span>CONSEIL DU MOMENT</span><strong>${tipTitle}</strong><p>${tipText}</p></div>${tipAction}</div>`;
 }
 function renderLovysFragmentInventory(data){
   const universalBox=$('lovysUniversalFragments'),grid=$('lovysFragmentsGrid'); if(!grid)return;
@@ -3206,7 +3223,10 @@ function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)re
 function renderLovysCollection(data){
   const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/10 découverts`;renderLovysActiveHero(data);if(!grid)return;
   const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
-  grid.innerHTML=`<div class="lovys-grid-toolbar"><div><strong>Collection</strong><span>Découvre de nouveaux Lovys dans l’incubateur.</span></div><button class="hub-btn" type="button" data-lovys-incubator>🥚 Aller à l’incubateur</button></div>${owned+lovysMissingCards(lovys)}`;renderLovysFragmentInventory(data);renderLovysCollectionTabs();
+  const summary=$('lovysCollectionModal')?.querySelector('.lovys-collection-summary>span');
+  if(summary)summary.textContent=isMobileGameUi()?'Choisis ton Lovy actif.':'Choisis ton équipe et prépare le prochain combat.';
+  const toolbar=isMobileGameUi()?'':`<div class="lovys-grid-toolbar"><div><strong>Collection</strong><span>Découvre de nouveaux Lovys dans l’incubateur.</span></div><button class="hub-btn" type="button" data-lovys-incubator>🥚 Aller à l’incubateur</button></div>`;
+  grid.innerHTML=toolbar+owned+lovysMissingCards(lovys);renderLovysFragmentInventory(data);renderLovysCollectionTabs();
 }
 async function loadLovysCollection(){
   const grid=$('lovysCollectionGrid');
@@ -8519,3 +8539,4 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
