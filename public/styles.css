@@ -234,11 +234,9 @@ body.auth-locked .wrap { visibility:hidden; }
 .auth-home :is(button,a,summary):focus-visible{outline:2px solid #c99aff;outline-offset:4px}
 @media(max-width:900px){
  .auth-home{padding:18px 18px 26px}
- .public-home-header{gap:14px;padding-bottom:14px}
+ .public-home-header{justify-content:center;gap:0;padding-bottom:14px}
  .public-home-brand img{width:130px}
- .public-home-header nav{gap:10px}
- .public-home-header nav>a{display:none}
- .public-home-header button{font-size:12px;padding:8px 12px}
+ .public-home-header nav{display:none}
  .public-home-hero{grid-template-columns:1fr;gap:26px;padding:32px 0 16px}
  .public-floating-egg.egg-one{left:auto;right:5%;top:18px;opacity:.16}
  .public-floating-egg.egg-two{left:2%;bottom:6px;opacity:.18}
