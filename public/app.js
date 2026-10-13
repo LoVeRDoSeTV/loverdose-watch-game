@@ -892,6 +892,7 @@ async function spinRewardWheel() {
 }
 
 async function loadGame() {
+  const cosmeticLoadRevision = cosmeticRevision;
   try {
     const response = await fetch('/api/me', { cache: 'no-store' });
     const data = await response.json();
@@ -901,7 +902,13 @@ async function loadGame() {
       return;
     }
 
+    if (cosmeticLoadRevision !== cosmeticRevision && !cosmeticPending.size && me?.user) {
+      for (const field of ['cosmetic_title','cosmetic_title_color','cosmetic_background','cosmetic_frame','cosmetic_avatar_frame']) {
+        data.user[field] = me.user[field];
+      }
+    }
     me = data;
+    reapplyPendingCosmetics();
     startLiveUpdates();
     refreshDesktopHomeLiveStatus();
     $('app').classList.remove('hidden');
@@ -4430,6 +4437,105 @@ function setShopMessage(message = '', type = '') {
   }
 }
 
+// Equipement optimiste : affichage immédiat, sauvegardes séquentielles par catégorie.
+const cosmeticPending = new Map();
+let cosmeticRevision = 0;
+const COSMETIC_CATEGORIES = ['title','background','frame','avatar_frame'];
+
+function applyCosmeticLocally(category, key, shouldRender = true) {
+  if (!COSMETIC_CATEGORIES.includes(category)) return;
+  const selected = key ? getShopItemByKey(key) : null;
+  if (shopData) {
+    shopData.equipped = shopData.equipped || {};
+    shopData.equipped[category] = key || null;
+    (shopData.catalog || []).forEach(item => {
+      if (item.category === category) item.equipped = Boolean(key && item.key === key);
+    });
+  }
+  if (me?.user) {
+    if (category === 'title') {
+      me.user.cosmetic_title = selected?.name || null;
+      me.user.cosmetic_title_color = selected?.color || null;
+    } else {
+      me.user['cosmetic_' + category] = key || null;
+    }
+  }
+  if (!shouldRender) return;
+  renderPlayerVisitCard();
+  if (shopData) {
+    renderShop();
+    if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+    else if (isDesktopGameUi()) renderInventoryVisitPreview();
+    if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
+  }
+}
+
+function reapplyPendingCosmetics(shouldRender = false) {
+  for (const [category, state] of cosmeticPending) {
+    applyCosmeticLocally(category, state.desired, false);
+  }
+  if (shouldRender && cosmeticPending.size) {
+    renderPlayerVisitCard();
+    if (shopData) {
+      renderShop();
+      if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+    }
+  }
+}
+
+async function saveCosmeticChanges(category, state) {
+  try {
+    while (state.confirmed !== state.desired) {
+      const next = state.desired;
+      const endpoint = next ? '/api/shop/equip' : '/api/shop/unequip';
+      const itemKey = next || state.confirmed;
+      try {
+        const response = await fetch(endpoint, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({itemKey})
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Impossible de sauvegarder cet équipement.');
+        state.confirmed = next;
+      } catch (error) {
+        state.desired = state.confirmed;
+        applyCosmeticLocally(category, state.confirmed);
+        setShopMessage(error.message || 'Équipement non enregistré.', 'error');
+        break;
+      }
+    }
+  } finally {
+    cosmeticPending.delete(category);
+    cosmeticRevision++;
+    // Le serveur est la source de vérité, sans bloquer la réaction du bouton.
+    void loadShop().catch(console.warn);
+    void loadGame().catch(console.warn);
+    void loadLeaderboard().catch(console.warn);
+  }
+}
+
+function equipCosmeticInstantly(url, itemKey) {
+  if (!shopData || commerceBusy) return;
+  const item = getShopItemByKey(itemKey);
+  if (!item || !COSMETIC_CATEGORIES.includes(item.category) || !commerceOwns(item)) return;
+  const category = item.category;
+  const previous = cosmeticPending.get(category);
+  const desired = url.endsWith('/unequip') ? null : item.key;
+  if (desired === (previous ? previous.desired : (shopData.equipped?.[category] || null))) return;
+  if (!previous) {
+    const state = {confirmed:shopData.equipped?.[category] || null,desired};
+    cosmeticPending.set(category,state);
+    cosmeticRevision++;
+    applyCosmeticLocally(category,desired);
+    void saveCosmeticChanges(category,state);
+  } else {
+    previous.desired = desired;
+    cosmeticRevision++;
+    applyCosmeticLocally(category,desired);
+  }
+}
+
 function shopSuccessLabel(url, itemKey, fallback) {
   const item = shopData?.catalog?.find(entry => entry.key === itemKey);
   const kinds = {
@@ -4931,10 +5037,13 @@ function closeInventory() {
 }
 
 async function loadShop() {
+  const revision = cosmeticRevision;
   const response = await fetch('/api/shop', { cache:'no-store' });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Impossible de charger la boutique.');
+  if (revision !== cosmeticRevision && !cosmeticPending.size) return;
   shopData = data;
+  reapplyPendingCosmetics();
   renderShop();
   if(isDesktopGameUi()) {syncDesktopBoostData();if(commerceTab==='inventory')renderInventory();else renderInventoryVisitPreview();}
 }
@@ -5341,6 +5450,10 @@ function confirmDesktopObjectUse(itemKey) {
 }
 
 async function shopAction(url, itemKey, preferredSlot = null) {
+  if (url === '/api/shop/equip' || url === '/api/shop/unequip') {
+    equipCosmeticInstantly(url, itemKey);
+    return;
+  }
   const desktopUse = isDesktopGameUi() && url === '/api/shop/use';
   if(desktopUse && desktopObjectUseBusy)return;
   if(desktopUse)desktopObjectUseBusy=true;
