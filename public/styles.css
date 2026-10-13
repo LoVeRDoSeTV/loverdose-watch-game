@@ -241,6 +241,12 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-floating-egg.egg-three{right:1%;top:49%;opacity:.2}
  .public-floating-twitch{left:2%;top:66%;width:36px;height:36px;opacity:.18}
  .public-mobile-decoration{display:block}
+ .public-floating-egg.egg-seven{left:3%;right:auto;top:8%;width:40px;height:52px;opacity:.14;animation-delay:-1s}
+ .public-floating-egg.egg-eight{left:auto;right:2%;top:37%;width:46px;height:60px;opacity:.14;animation-delay:-4s}
+ .public-floating-egg.egg-nine{left:auto;right:4%;top:60%;width:42px;height:55px;opacity:.15;animation-delay:-7s}
+ .public-floating-twitch.twitch-four{left:3%;right:auto;top:18%;width:36px;height:36px;opacity:.14;animation-delay:-1s}
+ .public-floating-twitch.twitch-five{left:2%;right:auto;top:48%;width:40px;height:40px;opacity:.14;animation-delay:-4s}
+ .public-floating-twitch.twitch-six{left:auto;right:3%;top:76%;width:38px;height:38px;opacity:.15;animation-delay:-6s}
  .public-floating-egg.egg-five{left:1%;right:auto;top:24%;width:54px;height:70px;opacity:.13;animation-delay:-3s}
  .public-floating-egg.egg-six{left:3%;right:auto;top:81%;width:46px;height:60px;opacity:.15;animation-delay:-6s}
  .public-floating-twitch.twitch-two{left:auto;right:4%;top:32%;width:42px;height:42px;opacity:.15;animation-delay:-2s}
@@ -259,7 +265,7 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-home-section{padding:26px 0}
  .public-section-heading h2,.public-final-call h2{font-size:24px}
  .public-steps{grid-template-columns:1fr;gap:10px}
- .public-steps article{padding:16px;background:transparent;border-color:rgba(185,148,234,.24)}
+ .public-steps article{padding:16px;background:transparent;border-color:rgba(185,148,234,.24);text-align:center}
  .public-steps article h3{color:#f6f3ff;text-shadow:0 2px 8px #080a16}
  .public-steps article p{color:#d0d7e9;text-shadow:0 2px 7px #080a16;line-height:1.8}
  .public-step-number{font-size:20px}
