@@ -229,6 +229,7 @@ body.auth-locked .wrap { visibility:hidden; }
 .public-home-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 0;border-top:1px solid #302b3f;color:#8f9bb6;font-size:11px;line-height:1.7}
 .public-home-footer a{color:#b79acf;text-decoration:none;min-height:44px;display:inline-flex;align-items:center}
 .auth-home :is(button,a,summary):focus-visible{outline:2px solid #c99aff;outline-offset:4px}
+.public-mobile-decoration{display:none}
 @media(max-width:900px){
  .auth-home{padding:18px 18px 26px}
  .public-home-header{justify-content:center;gap:0;padding-bottom:14px}
@@ -239,6 +240,13 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-floating-egg.egg-two{left:2%;top:40%;opacity:.14}
  .public-floating-egg.egg-three{right:1%;top:49%;opacity:.2}
  .public-floating-twitch{left:2%;top:66%;width:36px;height:36px;opacity:.18}
+ .public-mobile-decoration{display:block}
+ .public-floating-egg.egg-five{left:1%;right:auto;top:24%;width:54px;height:70px;opacity:.13;animation-delay:-3s}
+ .public-floating-egg.egg-six{left:3%;right:auto;top:81%;width:46px;height:60px;opacity:.15;animation-delay:-6s}
+ .public-floating-twitch.twitch-two{left:auto;right:4%;top:32%;width:42px;height:42px;opacity:.15;animation-delay:-2s}
+ .public-floating-twitch.twitch-three{left:auto;right:5%;top:90%;width:46px;height:46px;opacity:.16;animation-delay:-5s}
+ .public-hero-copy .home-kicker{display:block;text-align:center}
+ .public-hero-copy :is(.home-title,.home-subtitle,.public-hero-detail){text-align:center}
  .home-title{font-size:clamp(34px,8vw,48px);margin:14px 0}
  .home-subtitle{font-size:15px;line-height:1.7}
  .public-hero-detail{font-size:13px;margin:12px 0 18px}
@@ -251,7 +259,9 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-home-section{padding:26px 0}
  .public-section-heading h2,.public-final-call h2{font-size:24px}
  .public-steps{grid-template-columns:1fr;gap:10px}
- .public-steps article{padding:16px}
+ .public-steps article{padding:16px;background:transparent;border-color:rgba(185,148,234,.24)}
+ .public-steps article h3{color:#f6f3ff;text-shadow:0 2px 8px #080a16}
+ .public-steps article p{color:#d0d7e9;text-shadow:0 2px 7px #080a16;line-height:1.8}
  .public-step-number{font-size:20px}
  .public-home-section h3{margin:8px 0}
  .public-features{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
@@ -8668,6 +8678,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(min-width:901px){
   #desktopGameNav.desktop-game-nav{margin-top:56px!important}
 }
+
 
 
 
