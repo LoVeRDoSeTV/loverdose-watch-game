@@ -5836,7 +5836,13 @@ function clearAuthErrors() {
   loginError.style.display = 'none';
 }
 
+document.querySelector('.auth-home')?.addEventListener('click',event=>{
+  const button=event.target.closest('[data-public-auth]');if(!button)return;
+  $(button.dataset.publicAuth==='register'?'showRegister':'showLogin')?.click();
+});
+
 $('showRegister').addEventListener('click', () => {
+  authOverlay.scrollTop=0;
   clearAuthErrors();
   authHome.style.display = 'none';
   registerScreen.classList.remove('hidden');
@@ -5845,6 +5851,7 @@ $('showRegister').addEventListener('click', () => {
 });
 
 $('showLogin').addEventListener('click', () => {
+  authOverlay.scrollTop=0;
   clearAuthErrors();
   authHome.style.display = 'none';
   loginScreen.classList.remove('hidden');
@@ -8636,6 +8643,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
 
 

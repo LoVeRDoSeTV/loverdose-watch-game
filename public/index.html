@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=384-mobile">
+<link rel="stylesheet" href="/styles.css?v=385">
 
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
@@ -42,40 +42,18 @@
 
   <div class="auth-home">
     <div class="home-shell">
-      <div class="home-brand">
-  <svg class="home-twitch-logo" viewBox="0 0 16 16" aria-hidden="true">
-    <path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/>
-    <path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/>
-  </svg>
-
-  <span>LoVeR Watch Game</span>
-
-  <small>JEU COMMUNAUTAIRE TWITCH</small>
-</div>
-      <h1 class="home-title">Regarde. Gagne. <span>Évolue.</span></h1>
-      <p class="home-subtitle">Regarde les lives Twitch de LoVeRDoSeTV pour progresser dans le jeu : fais éclore ton œuf, collectionne des Lovys et gagne des récompenses grâce au visionnage.</p>
-      <p class="mobile-auth-explanation">📺 Regarde les lives de <strong>LoVeRDoSeTV</strong> pour faire progresser ton Lovy actif, avancer tes œufs et gagner du <strong>LoVeR’Cash</strong>.<br><span>Crée ton compte et lie Twitch pour commencer.</span></p>
-
-      <div class="home-carousel" aria-label="Présentation des monstres">
-        <button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Monstre précédent">‹</button>
-
-        <div id="carouselCard" class="carousel-card">
-          <img loading="lazy" decoding="async" id="carouselMonster" class="carousel-monster" src="/Flamby.webp" alt="Flamby">
-          <div id="carouselName" class="carousel-name">Flamby</div>
-          <div id="carouselType" class="carousel-type">Cendre</div>
-          <div id="carouselDrop" class="carousel-drop">Rare • 8 %</div>
-          <p id="carouselDescription" class="carousel-description">Un petit compagnon ardent qui transforme chaque combat en étincelles.</p>
-        </div>
-
-        <button id="carouselNext" class="carousel-arrow" type="button" aria-label="Monstre suivant">›</button>
-      </div>
-
-      <div id="carouselDots" class="carousel-dots" aria-label="Choisir un monstre"></div>
-
-      <div class="auth-home-buttons">
-        <button id="showRegister" class="auth-main-button" type="button">Inscription</button>
-        <button id="showLogin" class="auth-main-button secondary" type="button">Connexion</button>
-      </div>
+      <header class="public-home-header"><a class="public-home-brand" href="#publicHero" aria-label="LoVeR Watch Game"><img src="/logo-lover-watch-game.png" alt="LoVeR Watch Game" decoding="async"></a><nav aria-label="Découvrir le jeu"><a href="#publicHow">Comment jouer</a><a href="#publicQuestions">Questions</a><button type="button" data-public-auth="login">Connexion</button></nav></header>
+      <main>
+        <section id="publicHero" class="public-home-hero" aria-labelledby="publicHeroTitle">
+          <div class="public-hero-copy"><span class="home-kicker">LE JEU QUI AVANCE AVEC LES LIVES</span><h1 id="publicHeroTitle" class="home-title">Regarde le live.<br><span>Fais grandir tes Lovys.</span></h1><p class="home-subtitle">Avec <strong>LoVeRDoSeTV</strong> sur Twitch, ton temps de présence fait progresser ton Lovy actif, avance tes œufs et te rapporte du <strong>LoVeR’Cash</strong>.</p><p class="public-hero-detail">Collectionne des compagnons, prépare tes combats et échange avec les autres joueurs.</p><div class="auth-home-buttons"><button id="showRegister" class="auth-main-button" type="button">Créer mon compte</button><button id="showLogin" class="auth-main-button secondary" type="button">J’ai déjà un compte</button></div><p class="public-auth-note">Crée ton compte, puis lie Twitch pour commencer.</p><a class="public-twitch-link" href="https://www.twitch.tv/LoVeRDoSeTV" target="_blank" rel="noopener noreferrer">Voir la chaîne LoVeRDoSeTV ↗</a></div>
+          <div class="public-lovys-showcase"><div class="public-showcase-heading"><span>RENCONTRE LES LOVYS</span><small>Ton prochain compagnon t’attend dans un œuf.</small></div><div class="home-carousel" aria-label="Présentation des Lovys"><button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Lovy précédent">‹</button><div id="carouselCard" class="carousel-card"><img id="carouselMonster" class="carousel-monster" src="/Flamby.webp" alt="Flamby" decoding="async"><div id="carouselName" class="carousel-name">Flamby</div><div id="carouselType" class="carousel-type">Cendre</div><div id="carouselDrop" class="carousel-drop">Rare • 8 %</div><p id="carouselDescription" class="carousel-description">Un petit compagnon ardent qui transforme chaque combat en étincelles.</p></div><button id="carouselNext" class="carousel-arrow" type="button" aria-label="Lovy suivant">›</button></div><div id="carouselDots" class="carousel-dots" aria-label="Choisir un Lovy"></div></div>
+        </section>
+        <section id="publicHow" class="public-home-section" aria-labelledby="publicHowTitle"><div class="public-section-heading"><span>TES PREMIERS PAS</span><h2 id="publicHowTitle">Un compte, un live, une aventure.</h2><p>Voici comment ta progression commence.</p></div><div class="public-steps"><article><span class="public-step-number">01</span><h3>Crée ton compte</h3><p>Inscris-toi et lie ton compte Twitch. Tu peux alors retrouver ta progression dans le jeu.</p></article><article><span class="public-step-number">02</span><h3>Regarde LoVeRDoSeTV</h3><p>Pendant les lives, ta présence comptabilisée fait avancer tes incubations et te rapporte de l’XP et du LoVeR’Cash.</p></article><article><span class="public-step-number">03</span><h3>Fais évoluer ta collection</h3><p>Fais éclore tes œufs, choisis ton Lovy actif et utilise tes récompenses pour préparer tes prochains combats.</p></article></div></section>
+        <section class="public-home-section" aria-labelledby="publicPlayTitle"><div class="public-section-heading"><span>À TOI DE JOUER</span><h2 id="publicPlayTitle">Plusieurs façons de progresser.</h2><p>Chaque récompense trouve sa place dans ton aventure.</p></div><div class="public-features"><article><span aria-hidden="true">🐉</span><h3>Collectionne tes Lovys</h3><p>Découvre leurs talents, leurs compétences et leurs affinités. Les doublons donnent des fragments pour améliorer leurs rangs.</p></article><article><span aria-hidden="true">🥚</span><h3>Fais éclore tes œufs</h3><p>Place tes œufs dans l’incubateur. Ton temps de présence en live rapproche leur éclosion.</p></article><article><span aria-hidden="true">⚔️</span><h3>Relève les combats</h3><p>Prépare ton Lovy actif, explore les zones PvE et affronte les adversaires pour obtenir des récompenses.</p></article><article><span aria-hidden="true">🤝</span><h3>Échange et personnalise</h3><p>Échange avec la communauté et dépense ton LoVeR’Cash dans des objets, des bonus et des cosmétiques.</p></article></div><div class="public-rewards-note"><span aria-hidden="true">🎡</span><p><strong>Des objectifs à retrouver en jeu</strong><br>Défis du jour, roue des récompenses et classement accompagnent ta progression.</p></div></section>
+        <section id="publicQuestions" class="public-home-section public-questions" aria-labelledby="publicQuestionsTitle"><div class="public-section-heading"><span>AVANT DE COMMENCER</span><h2 id="publicQuestionsTitle">Les réponses utiles.</h2></div><details><summary>Est-ce que le jeu progresse quand le live est terminé ?</summary><p>L’XP et la monnaie gagnées grâce au visionnage, ainsi que le temps d’incubation, avancent lorsque ta présence est comptabilisée pendant les lives. Tu peux retrouver ta collection, gérer tes objets et jouer aux combats en dehors des lives.</p></details><details><summary>Quel Lovy reçoit l’XP du live ?</summary><p>Ton Lovy actif reçoit l’XP du live. Pour faire progresser un autre compagnon, choisis-le comme actif. L’XP en réserve peut aussi être distribuée depuis la page Lovys.</p></details><details><summary>À quoi sert le LoVeR’Cash ?</summary><p>C’est la monnaie du jeu. La boutique propose des objets, des bonus et des cosmétiques pour personnaliser ton profil.</p></details><details><summary>Comment obtenir de nouveaux Lovys ?</summary><p>Fais éclore les œufs placés dans tes incubateurs. Les Lovys obtenus rejoignent ta collection ; les doublons apportent des fragments pour améliorer leur rang.</p></details></section>
+        <section class="public-final-call"><div><span>TA COLLECTION COMMENCE ICI</span><h2>Prêt à rencontrer ton premier Lovy ?</h2><p>Rejoins LoVeR Watch Game et retrouve LoVeRDoSeTV en live.</p></div><div><button class="auth-main-button" type="button" data-public-auth="register">Créer mon compte</button><button class="public-login-link" type="button" data-public-auth="login">Déjà inscrit ? Me connecter</button></div></section>
+      </main>
+      <footer class="public-home-footer"><span>LoVeR Watch Game · Le jeu de la communauté LoVeRDoSeTV</span><a href="https://www.twitch.tv/LoVeRDoSeTV" target="_blank" rel="noopener noreferrer">Retrouver le live sur Twitch ↗</a></footer>
     </div>
   </div>
 
@@ -1311,8 +1289,9 @@
   <div class="community-guide-actions"><button id="communityGuideSkip" class="lobby-secondary-btn" type="button">Passer</button><div><button id="communityGuidePrev" class="lobby-secondary-btn" type="button">← Retour</button><button id="communityGuideNext" class="lobby-primary-btn" type="button">Suivant →</button></div></div>
  </section>
 </div>
-<script src="/app.js?v=384"></script>
+<script src="/app.js?v=385"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
+
 
 
 
