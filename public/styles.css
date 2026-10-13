@@ -8140,9 +8140,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .lobby-presence-summary{justify-self:start;padding:7px 10px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:13px;font-weight:900}
   body.mobile-community-open .lobby-howto{margin-top:13px;padding:10px 11px;border:1px solid rgba(145,71,255,.14);border-radius:11px;background:rgba(145,71,255,.06);color:#aeb8d4;font-size:13px;line-height:1.5}
   body.mobile-community-open .lobby-howto span{color:#a98cff}
-  body.mobile-community-open .lobby-tabs{display:flex!important;gap:6px;margin-top:14px;padding:0 0 10px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.07);scrollbar-width:none}
+  body.mobile-community-open .lobby-tabs{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:16px;padding:0 0 14px;overflow:visible;border-bottom:1px solid rgba(255,255,255,.07)}
+  body.mobile-community-open .lobby-tab[data-lobby-tab="trades"]{grid-column:1/-1}
   body.mobile-community-open .lobby-tabs::-webkit-scrollbar{display:none}
-  body.mobile-community-open .lobby-tab{flex:0 0 auto;min-height:44px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:13px;font-weight:900}
+  body.mobile-community-open .lobby-tab{min-width:0;min-height:44px;width:100%;padding:10px 8px;border:1px solid #30354f;border-radius:10px;background:#151a2d;color:#b2bdd7;font:inherit;font-size:13px;line-height:1.4;font-weight:800;text-align:center;white-space:normal;overflow-wrap:anywhere}
   body.mobile-community-open .lobby-tab.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
   body.mobile-community-open .lobby-tab b{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:3px;padding:0 4px;border-radius:999px;background:rgba(145,71,255,.2);font-size:13px}
   body.mobile-community-open .lobby-panel{margin-top:14px}
@@ -8153,11 +8154,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .lobby-primary-btn,
   body.mobile-community-open .lobby-secondary-btn{min-height:44px;padding:9px 11px;border:1px solid rgba(145,71,255,.28);border-radius:10px;background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:13px;font-weight:900}
   body.mobile-community-open .lobby-primary-btn{background:linear-gradient(145deg,#6f36c7,#9147ff)}
-  body.mobile-community-open .lobby-trade-filters{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}
+  body.mobile-community-open .lobby-trade-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px;overflow:visible;padding-bottom:6px;align-items:stretch}
   body.mobile-community-open .lobby-trade-filters::-webkit-scrollbar{display:none}
-  body.mobile-community-open .lobby-trade-filters button{flex:0 0 auto;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:13px;font-weight:900}
+  body.mobile-community-open .lobby-trade-filters button{min-width:0;min-height:44px;padding:9px 10px;border:1px solid rgba(255,255,255,.12);border-radius:10px;background:#101427;color:#b0bad3;font:inherit;font-size:13px;font-weight:800;line-height:1.4;white-space:normal}
   body.mobile-community-open .lobby-trade-filters button.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
-  body.mobile-community-open .lobby-trade-filters select{flex:0 0 auto;min-height:44px;padding:5px 8px;border:1px solid rgba(145,71,255,.25);border-radius:9px;background:#101427;color:#dfe4f5;font:inherit;font-size:13px;font-weight:850}
+  body.mobile-community-open .lobby-trade-filters select{grid-column:1/-1;width:100%;min-width:0;margin:0;min-height:44px;padding:10px 12px;border:1px solid rgba(145,71,255,.25);border-radius:10px;background:#101427;color:#dfe4f5;font:inherit;font-size:16px;font-weight:750}
   body.mobile-community-open .lobby-trades-grid,
   body.mobile-community-open .lobby-player-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px;margin-top:12px}
   body.mobile-community-open .trade-offer-card{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,#11162b,#0e1326)}
@@ -8194,7 +8195,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .lobby-player-meta,
   body.mobile-community-open .lobby-player-lovys{margin-top:3px;color:#9ca6c4;font-size:13px;line-height:1.5}
   body.mobile-community-open .lobby-player-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
-  body.mobile-community-open .lobby-empty{padding:24px 14px;border:1px dashed rgba(145,71,255,.18);border-radius:13px;text-align:center;color:#8993b2;font-size:13px}
+  body.mobile-community-open .lobby-empty{padding:22px 16px;border:1px dashed rgba(145,71,255,.22);border-radius:13px;text-align:center;color:#aeb8d4;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+  body.mobile-community-open .lobby-empty-action{display:grid;grid-template-columns:minmax(0,1fr);justify-items:stretch;gap:12px}
+  body.mobile-community-open .lobby-empty-action strong{display:block;color:#eee6ff;font-size:15px;line-height:1.5}
+  body.mobile-community-open .lobby-empty-action span{display:block;font-size:13px;line-height:1.6}
+  body.mobile-community-open .lobby-empty-action button{display:block;width:100%;margin:4px 0 0;min-height:48px;white-space:normal;line-height:1.4}
   body.mobile-community-open .wishlist-editor,
   body.mobile-community-open .wishlist-community,
   body.mobile-community-open .lobby-community-footer{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
@@ -8231,6 +8236,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 /* Les éléments propres au mobile n'occupent jamais d'espace sur PC. */
 .mobile-more-page,.mobile-home-actions,.mobile-list-pagination,.mobile-page-back{display:none}
 @media(max-width:900px){
+  @keyframes mobilePageEnter{from{opacity:.75}to{opacity:1}}
+  .mobile-page-enter{animation:mobilePageEnter .12s ease-out}
+  @media(prefers-reduced-motion:reduce){.mobile-page-enter{animation:none}}
   .mobile-more-page:not(.hidden){position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000055;display:block;overflow-y:auto;overscroll-behavior:contain;padding:calc(20px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(180deg,#12172c,#090d1b)}
   .mobile-more-page.hidden{display:none}
   .mobile-page-heading h2{margin:0;color:#f7f5ff;font-size:24px;line-height:1.25}

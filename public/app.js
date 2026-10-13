@@ -3211,8 +3211,9 @@ function renderLovysCollection(data){
 async function loadLovysCollection(){
   const grid=$('lovysCollectionGrid');
   const fragmentsGrid=$('lovysFragmentsGrid');
-  if(grid) grid.innerHTML='<div class="hub-sub">Chargement…</div>';
-  if(fragmentsGrid) fragmentsGrid.innerHTML='<div class="hub-sub">Chargement…</div>';
+  const keepMobileContent=isMobileGameUi()&&Boolean(lovysCollectionData);
+  if(grid&&!keepMobileContent) grid.innerHTML='<div class="hub-sub">Chargement…</div>';
+  if(fragmentsGrid&&!keepMobileContent) fragmentsGrid.innerHTML='<div class="hub-sub">Chargement…</div>';
   try{
     const [response,pveResponse,incubatorResponse]=await Promise.all([fetch('/api/lovys',{cache:'no-store'}),fetch('/api/pve',{cache:'no-store'}).catch(()=>null),fetch('/api/incubator',{cache:'no-store'}).catch(()=>null)]);
     const data=await response.json();
@@ -3224,8 +3225,8 @@ async function loadLovysCollection(){
     renderLovysCollection(data);
     return data;
   }catch(error){
-    if(grid)grid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
-    if(fragmentsGrid)fragmentsGrid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
+    if(grid&&!keepMobileContent)grid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
+    if(fragmentsGrid&&!keepMobileContent)fragmentsGrid.innerHTML=`<div class="hub-sub">${escapeHtml(error.message)}</div>`;
     return null;
   }
 }
@@ -3510,7 +3511,7 @@ function renderPveAdventureMap(data,zoneIndex=null){
   box.innerHTML=window.matchMedia('(min-width:1024px)').matches?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
 }
-async function loadPve(){const box=$('pveContent');if(!box)return;box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
+async function loadPve(){const box=$('pveContent');if(!box)return;const keepMobileContent=isMobileGameUi()&&Boolean(pveMapState.data);if(!keepMobileContent)box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){if(!keepMobileContent)box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
 async function refreshPveAfterVictory(zoneIndex=null){
   const [pveResponse]=await Promise.all([
     fetch('/api/pve',{cache:'no-store'}),
@@ -3935,6 +3936,13 @@ function closeMobileEggDetails(){
   syncMobileNavState();
 }
 const mobilePageScroll = new Map();
+let mobileNavigationRevision=0;
+const mobilePageLoads=new Map();
+function refreshMobilePage(key,loader){
+  if(mobilePageLoads.has(key))return mobilePageLoads.get(key);
+  const request=Promise.resolve().then(loader).finally(()=>{if(mobilePageLoads.get(key)===request)mobilePageLoads.delete(key);});
+  mobilePageLoads.set(key,request);return request;
+}
 const mobilePageIds = ['inventoryModal','playerProfileModal','progressionModal','lovysCollectionModal','desktopLobbyPage','shopModal','pveModal','mobileMorePage'];
 function restoreMobilePageScroll(id){
   if(!isMobileGameUi()) return;
@@ -3942,6 +3950,7 @@ function restoreMobilePageScroll(id){
 }
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  mobileNavigationRevision++;
   if(except!=='more')$('mobileMorePage')?.classList.add('hidden');
   mobilePageIds.forEach(id=>{const el=$(id);if(el && !el.classList.contains('hidden')) mobilePageScroll.set(id,el.scrollTop);});
   const board=document.querySelector('.global-leaderboard');
@@ -3961,50 +3970,67 @@ function closeAllMobilePanels(except=''){
   document.body.style.overflow='';
 }
 async function toggleMobilePanel(panel){
-  if(!isMobileGameUi()) return;
-  if(isMobilePanelOpen(panel)){
-    if(panel==='combat'){syncMobileNavState();return;}
-    const ids={combat:'pveModal',inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',creatures:'lovysCollectionModal',community:'desktopLobbyPage'};
-    const el=panel==='leaderboard'?document.querySelector('.global-leaderboard'):$(ids[panel]);
-    el?.scrollTo({top:0,behavior:'smooth'});syncMobileNavState();return;
-  }
+  if(!isMobileGameUi())return;
+  const ids={combat:'pveModal',inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',creatures:'lovysCollectionModal',community:'desktopLobbyPage',shop:'shopModal',more:'mobileMorePage'};
+  const navIds={combat:'mobileNavCombat',inventory:'mobileNavInventory',profile:'mobileNavProfile',progression:'mobileNavProfile',creatures:'mobileNavCreatures',community:'mobileNavCommunity',leaderboard:'mobileNavLeaderboard',shop:'mobileNavShop',more:'mobileNavMore'};
+  if(!navIds[panel])return;
+  const alreadyOpen=isMobilePanelOpen(panel);
   closeAllMobilePanels(panel);
+  const revision=mobileNavigationRevision;
+  const page=panel==='leaderboard'?document.querySelector('.global-leaderboard'):$(ids[panel]);
+  // La destination et la navigation changent ensemble, avant toute requête.
+  setMobileNavActive(navIds[panel]);
   saveNavMemory({mobilePanel:panel});
-  if(panel==='more'){
-    $('mobileMorePage')?.classList.remove('hidden');
-    document.body.style.overflow='hidden';
-    $('mobileMoreTitle')?.focus({preventScroll:true});
-  } else if(panel==='shop'){
-    await openShop();
-  } else if(panel==='leaderboard'){
-    openMobileLeaderboard();
-  } else if(panel==='community'){
-    document.body.classList.add('mobile-community-open');
-    $('desktopLobbyPage')?.classList.remove('hidden');
-    document.body.style.overflow='hidden';
-    await openLobbyTab(lobbyTab);
-  } else if(panel==='combat'){
-    $('pveModal')?.classList.remove('hidden');
-    loadPve();
-  } else if(panel==='inventory'){
-    await openInventory();
-  } else if(panel==='profile'){
-    const selfPlayer = getSelfLeaderboardPlayer();
-    if(selfPlayer) openPlayerProfile(selfPlayer);
-    else document.querySelector('.player-visit-card')?.scrollIntoView({behavior:'smooth',block:'start'});
-  } else if(panel==='progression'){
-    $('progressionModal')?.classList.remove('hidden');
-    await loadProgression();
-  } else if(panel==='creatures'){
+  if(alreadyOpen){
+    if(panel!=='combat')page?.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  let refresh=null;
+  if(panel==='leaderboard'){
+    document.body.classList.add('mobile-leaderboard-open');
+    refresh=()=>loadLeaderboard();
+  }else if(panel==='community'){
+    document.body.classList.add('mobile-community-open');page?.classList.remove('hidden');
+    refresh=()=>Promise.allSettled([openLobbyTab(lobbyTab),refreshMobilePage('community-presence',loadLobbyPlayers)]);
+  }else if(panel==='creatures'){
     if(me?.user?.creature_id){
-      await openLovysCollection(lovysCollectionTab);
-    } else {
-      openMobileEggDetails();
+      page?.classList.remove('hidden');renderLovysCollectionTabs();refresh=()=>loadLovysCollection();
+    }else openMobileEggDetails();
+  }else if(panel==='inventory'){
+    syncInventoryPagePlacement();page?.classList.remove('hidden');
+    if(shopData)renderInventory();
+    else $('inventoryGrid').innerHTML='<div class="inventory-empty">Chargement de tes objets…</div>';
+    refresh=async()=>{await refreshMobilePage('commerce-data',loadShop);renderInventory();};
+  }else if(panel==='shop'){
+    shopFocusItemKey=null;incubatorShopTargetSlot=null;setShopMessage();
+    page?.classList.remove('hidden');if(shopData)renderShop();
+    else $('shopGrid').innerHTML='<p class="muted">Chargement des articles…</p>';
+    refresh=()=>refreshMobilePage('commerce-data',loadShop);
+  }else if(panel==='profile'){
+    const player=getSelfLeaderboardPlayer();if(player)openPlayerProfile(player);
+  }else{
+    page?.classList.remove('hidden');
+    if(panel==='combat')refresh=()=>loadPve();
+    if(panel==='progression')refresh=()=>loadProgression();
+    if(panel==='more')$('mobileMoreTitle')?.focus({preventScroll:true});
+  }
+  if(panel==='leaderboard')requestAnimationFrame(()=>{if(revision===mobileNavigationRevision&&page)page.scrollTop=mobilePageScroll.get('leaderboard')||0;});
+  else if(ids[panel])restoreMobilePageScroll(ids[panel]);
+  syncMobileNavState();
+  if(page){
+    page.classList.remove('mobile-page-enter');
+    requestAnimationFrame(()=>{if(revision===mobileNavigationRevision&&isMobileGameUi())page.classList.add('mobile-page-enter');});
+  }
+  if(refresh){
+    try{await refreshMobilePage(panel,refresh);}
+    catch(error){
+      if(revision===mobileNavigationRevision&&panel==='shop')setShopMessage(error.message,'error');
+      else if(revision===mobileNavigationRevision&&panel==='inventory'&&!shopData)$('inventoryGrid').innerHTML='<div class="inventory-empty">Inventaire indisponible. Réessaie depuis le menu Plus.</div>';
+      else console.warn('Actualisation mobile :',error);
     }
   }
-  const pageIds={inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',community:'desktopLobbyPage',shop:'shopModal',combat:'pveModal',more:'mobileMorePage'};
-  if(pageIds[panel]) restoreMobilePageScroll(pageIds[panel]);
-  syncMobileNavState();
+  // Une réponse ancienne ne peut pas réactiver une page quittée entre-temps.
+  if(revision===mobileNavigationRevision&&isMobileGameUi())syncMobileNavState();
 }
 async function hatchExtraIncubatorEgg(slot){
   const message=$('incubatorAddMessage');
@@ -7301,7 +7327,7 @@ function lobbyPlayerMarkup(player){
   return `<article class="lobby-player-card ${player.present?'present':''}" data-lobby-user="${Number(player.userId)}" ${isDesktopGameUi()?'tabindex="0" role="button" aria-label="Voir la collection de '+escapeHtml(player.username)+'"':''}><div class="lobby-player-avatar">${avatar}<span class="lobby-presence-dot"></span></div><div class="lobby-player-copy"><div class="lobby-player-name">${escapeHtml(player.username)}</div><div class="lobby-player-meta">${status} · Niveau ${Number(player.level||1)}${Number(player.prestige||0)>0?` · Prestige ${Number(player.prestige)}`:''}</div>${active?`<div class="lobby-player-lovys">🐉 ${escapeHtml(active.name)} · Niv. ${Number(active.level||1)} · ${'⭐'.repeat(Math.max(1,Number(active.rank||1)))}</div>`:'<div class="lobby-player-lovys muted">Aucun Lovys actif</div>'}${offers?`<div class="lobby-player-offers">🔄 ${offers} offre${offers>1?'s':''} active${offers>1?'s':''}</div>`:''}</div><div class="lobby-player-actions">${isDesktopGameUi()?'<span class="player-collection-link">Voir la collection →</span>':`<button class="lobby-secondary-btn" type="button" data-lobby-profile="${escapeHtml(player.twitchId||'')}">Voir le profil</button><button class="lobby-primary-btn" type="button" data-lobby-trade-user="${Number(player.userId)}">Échanger</button>`}</div></article>`;
 }
 async function loadLobbyPlayers(){
-  const grid=$('lobbyPlayersGrid');if(grid)grid.innerHTML='<div class="lobby-empty">Chargement du lobby…</div>';
+  const grid=$('lobbyPlayersGrid');if(grid&&(!isMobileGameUi()||!grid.children.length))grid.innerHTML='<div class="lobby-empty">Chargement du lobby…</div>';
   try{const r=await fetch('/api/lobby',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Impossible de charger le lobby.');lobbyPlayers=(d.players||[]).sort((x,y)=>Number(y.present)-Number(x.present)||Number(y.activeOffers||0)-Number(x.activeOffers||0)||String(x.username).localeCompare(String(y.username),'fr'));renderLobbyPlayers();const summary=$('lobbyPresenceSummary');if(summary){if(d.live){summary.classList.remove('hidden');summary.innerHTML=`🔴 En live · ${Number(d.presentCount||0)} joueur${Number(d.presentCount||0)>1?'s':''} connecté${Number(d.presentCount||0)>1?'s':''} <a href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener">Voir Twitch</a>`;}else if(d.lastLiveLabel){summary.classList.remove('hidden');summary.textContent=`⚪ Dernier live : ${d.lastLiveLabel}`;}else{summary.classList.add('hidden');summary.textContent='';}}}catch(error){if(grid)grid.innerHTML=`<div class="lobby-empty">${escapeHtml(error.message)}</div>`;}
 }
 function renderLobbyPlayers(){const grid=$('lobbyPlayersGrid');if(!grid)return;const q=String($('lobbyPlayerSearch')?.value||'').trim().toLowerCase();const rows=lobbyPlayers.filter(p=>!q||String(p.username||'').toLowerCase().includes(q));grid.innerHTML=rows.length?rows.map(lobbyPlayerMarkup).join(''):'<div class="lobby-empty">Aucun joueur trouvé.</div>';}
@@ -7322,7 +7348,7 @@ function formatTradeDate(value){try{return new Intl.DateTimeFormat('fr-FR',{day:
 async function loadTradeInventory(){const r=await fetch('/api/trades/inventory',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||"Impossible de charger l'inventaire.");tradeInventory=d;return d;}
 function syncLobbyTabCounts(){const open=(tradeOffers||[]).filter(o=>o.status==='open').length,mine=(myTradeOffers||[]).filter(o=>o.status==='open').length;const a=document.querySelector('[data-lobby-tab="trades"]'),b=document.querySelector('[data-lobby-tab="mine"]');if(a)a.innerHTML=`🔄 Échanges${open?` <b>${open}</b>`:''}`;if(b)b.innerHTML=`📜 Mes offres${mine?` <b>${mine}</b>`:''}`;const lim=$('tradeActiveLimit');if(lim)lim.textContent=`Offres actives : ${mine} / 3`;}
 async function loadTrades(mine=false){
-  const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');if(grid)grid.innerHTML='<div class="lobby-empty">Chargement des offres…</div>';
+  const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');if(grid&&(!isMobileGameUi()||!grid.children.length))grid.innerHTML='<div class="lobby-empty">Chargement des offres…</div>';
   try{await loadTradeInventory();const r=await fetch(`/api/trades${mine?'?mine=1':''}`,{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||'Impossible de charger les offres.');if(mine)myTradeOffers=d.offers||[];else{tradeOffers=d.offers||[];tradeOffers._selfUserId=d.selfUserId;}renderTrades(mine);syncLobbyTabCounts();}catch(error){if(grid)grid.innerHTML=`<div class="lobby-empty">${escapeHtml(error.message)}</div>`;}
 }
 function renderTrades(mine=false){
@@ -7335,6 +7361,7 @@ async function openLobbyTab(tab='trades'){
   lobbyTab=['players','trades','mine','history','wishes'].includes(tab)?tab:'trades';document.querySelectorAll('.lobby-tab').forEach(btn=>btn.classList.toggle('active',btn.dataset.lobbyTab===lobbyTab));
   ['Players','Trades','Mine','History','Wishes'].forEach(n=>$(`lobby${n}Panel`)?.classList.toggle('hidden',lobbyTab!==n.toLowerCase()));
   if(lobbyTab==='players'){await loadLobbyPlayers();if(isDesktopGameUi())await loadPlayerTradeInbox();}else if(lobbyTab==='history')await loadTradeHistory();else if(lobbyTab==='wishes')await loadTradeWishes();else await loadTrades(lobbyTab==='mine');
+  if(isMobileGameUi()&&!communityIsVisible())return;
   refreshLobbyCounts();if(lobbyTab==='trades')loadLobbyActivity();markLobbyNotificationsRead();checkTradeExpiryNotices();
 }
 let tradeExpiryChecking=false,tradeExpiryClosing=false,tradeExpiryItems=[];
