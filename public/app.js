@@ -4523,6 +4523,8 @@ function equipCosmeticInstantly(url, itemKey) {
   const previous = cosmeticPending.get(category);
   const desired = url.endsWith('/unequip') ? null : item.key;
   if (desired === (previous ? previous.desired : (shopData.equipped?.[category] || null))) return;
+  // Un essai précédent ne doit pas masquer le nouvel équipement dans l'aperçu PC.
+  if (Object.hasOwn(commerceDraft, category)) delete commerceDraft[category];
   if (!previous) {
     const state = {confirmed:shopData.equipped?.[category] || null,desired};
     cosmeticPending.set(category,state);
