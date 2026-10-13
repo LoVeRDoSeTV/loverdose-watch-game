@@ -4017,10 +4017,6 @@ async function toggleMobilePanel(panel){
   if(panel==='leaderboard')requestAnimationFrame(()=>{if(revision===mobileNavigationRevision&&page)page.scrollTop=mobilePageScroll.get('leaderboard')||0;});
   else if(ids[panel])restoreMobilePageScroll(ids[panel]);
   syncMobileNavState();
-  if(page){
-    page.classList.remove('mobile-page-enter');
-    requestAnimationFrame(()=>{if(revision===mobileNavigationRevision&&isMobileGameUi())page.classList.add('mobile-page-enter');});
-  }
   if(refresh){
     try{await refreshMobilePage(panel,refresh);}
     catch(error){
