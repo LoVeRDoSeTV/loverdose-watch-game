@@ -151,7 +151,29 @@ body.auth-locked .wrap { visibility:hidden; }
 .public-home-header nav{display:flex;align-items:center;gap:24px}
 .public-home-header a,.public-home-header button{color:#c9cee3;font:inherit;font-size:13px;text-decoration:none}
 .public-home-header button{min-height:44px;padding:9px 16px;border:1px solid #5d497c;border-radius:10px;background:#20182f;color:#efe6ff;cursor:pointer}
-.public-home-hero{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);align-items:center;gap:50px;padding:54px 0 48px;scroll-margin-top:20px}
+.public-home-hero{position:relative;isolation:isolate;display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr);align-items:center;gap:50px;padding:54px 0 48px;scroll-margin-top:20px}
+.public-hero-copy,.public-lovys-showcase{position:relative;z-index:1}
+.public-hero-ambience{position:absolute;inset:-10px -20px;z-index:0;overflow:hidden;pointer-events:none;background:radial-gradient(ellipse at 68% 42%,rgba(123,60,209,.2),transparent 56%),radial-gradient(ellipse at 94% 32%,rgba(88,160,241,.09),transparent 40%)}
+.public-floating-egg{position:absolute;width:60px;height:76px;object-fit:contain;opacity:.28;filter:drop-shadow(0 0 18px #9669dd88);animation:publicEggFloat 9s ease-in-out infinite}
+.public-floating-egg.egg-one{top:12px;left:45%;width:46px;height:60px;animation-delay:-2s}
+.public-floating-egg.egg-two{bottom:12px;left:3%;width:45px;height:56px;animation-delay:-5s;opacity:.18}
+.public-floating-egg.egg-three{right:1%;top:40%;animation-delay:-7s}
+.public-floating-twitch{position:absolute;left:46%;bottom:12%;width:48px;height:48px;fill:#ac72ff;opacity:.3;filter:drop-shadow(0 0 12px #a672ff66);animation:publicTwitchFloat 7s ease-in-out infinite}
+.public-crystal{position:absolute;width:14px;height:22px;border:1px solid #caa2ff88;background:linear-gradient(135deg,#afd5ff55,#9a60e366);transform:rotate(30deg);box-shadow:0 0 20px #b486ff44;animation:publicCrystalGlow 5s ease-in-out infinite}
+.crystal-one{right:44%;top:18%}.crystal-two{right:3%;bottom:8%;width:9px;height:14px;animation-delay:-2s}
+.public-live-illustration{display:flex;align-items:center;gap:12px;margin:0 6px 20px;padding:12px;border:1px solid #744b9b66;border-radius:13px;background:linear-gradient(120deg,#312046,#141b31);text-align:left}
+.public-live-illustration svg{width:29px;height:29px;flex:0 0 29px;fill:#b386ff;animation:publicTwitchFloat 7s ease-in-out infinite}
+.public-live-illustration>span:nth-child(2){flex:1}
+.public-live-illustration small{display:block;margin-bottom:4px;color:#b09bc6;font-size:10px;letter-spacing:.04em}
+.public-live-illustration strong{font-size:14px;color:#e8d9ff;font-variant-numeric:tabular-nums}
+.public-viewer-rise{color:#96dfc6;font-size:25px;animation:publicViewerRise 4.5s ease-in-out infinite}
+.public-showcase-controls{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px}
+#publicMotionToggle{min-height:44px;padding:8px 10px;border:1px solid #514264;border-radius:9px;background:#1e192c;color:#cdb7e7;font:inherit;font-size:11px;cursor:pointer}
+.public-motion-paused *{animation-play-state:paused!important}
+@keyframes publicEggFloat{50%{transform:translateY(-15px) rotate(8deg)}}
+@keyframes publicTwitchFloat{50%{transform:translateY(-6px) rotate(-4deg)}}
+@keyframes publicCrystalGlow{50%{opacity:.35;transform:translateY(-8px) rotate(36deg)}}
+@keyframes publicViewerRise{0%,100%{opacity:.65;transform:translateY(2px)}50%{opacity:1;transform:translateY(-3px)}}
 .home-kicker{display:inline-block;color:#b99ce7;font-size:11px;font-weight:850;letter-spacing:.1em;line-height:1.5}
 .home-title{margin:18px 0;font-size:clamp(36px,4.7vw,60px);line-height:1.06;font-weight:950;letter-spacing:-.045em}
 .home-title span{color:#b486fb}
@@ -218,6 +240,11 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-home-header nav>a{display:none}
  .public-home-header button{font-size:12px;padding:8px 12px}
  .public-home-hero{grid-template-columns:1fr;gap:26px;padding:32px 0 16px}
+ .public-floating-egg.egg-one{left:auto;right:5%;top:18px;opacity:.16}
+ .public-floating-egg.egg-two{left:2%;bottom:6px;opacity:.18}
+ .public-floating-egg.egg-three{right:1%;top:49%;opacity:.2}
+ .public-floating-twitch{left:2%;bottom:40%;width:36px;height:36px;opacity:.18}
+ .public-live-illustration{margin-bottom:16px}
  .home-title{font-size:clamp(34px,8vw,48px);margin:14px 0}
  .home-subtitle{font-size:15px;line-height:1.7}
  .public-hero-detail{font-size:13px;margin:12px 0 18px}
@@ -238,7 +265,7 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-home-footer{flex-direction:column;align-items:flex-start;gap:2px}
 }
 @media(max-width:359px){.auth-home-buttons{grid-template-columns:1fr}.public-features{grid-template-columns:1fr}.public-home-brand img{width:110px}}
-@media(prefers-reduced-motion:reduce){.carousel-monster{animation:none}.auth-main-button{transition:none}}
+@media(prefers-reduced-motion:reduce){.carousel-monster,.public-hero-ambience *,.public-live-illustration *{animation:none}.auth-main-button{transition:none}}
 
 .auth-screen {
   position: absolute;
@@ -8647,6 +8674,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(min-width:901px){
   #desktopGameNav.desktop-game-nav{margin-top:56px!important}
 }
+
 
 
 

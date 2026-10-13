@@ -89,6 +89,10 @@ function renderHomeMonster() {
   $('carouselType').textContent = monster.type;
   $('carouselDrop').textContent = `${monster.rarity} • ${monster.chance}`;
   $('carouselDescription').textContent = monster.description;
+  const image=$('carouselMonster');
+  if(image?.animate && !window.matchMedia('(prefers-reduced-motion: reduce)').matches){
+    image.animate([{opacity:.35,transform:'translateY(5px)'},{opacity:1,transform:'translateY(0)'}],{duration:320,easing:'ease-out'});
+  }
   document.querySelectorAll('.carousel-dot').forEach((dot, index) => {
     dot.classList.toggle('active', index === homeMonsterIndex);
   });
@@ -146,6 +150,28 @@ if (carouselCard) {
 
 }
 renderHomeMonster();
+
+let publicMotionPaused=false;
+let publicIllustrationViewers=128;
+const publicMotionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
+function syncPublicMotion(){
+  const paused=publicMotionPaused||publicMotionPreference.matches;
+  authHome?.classList.toggle('public-motion-paused',paused);
+  const button=$('publicMotionToggle');
+  if(button){button.hidden=publicMotionPreference.matches;button.setAttribute('aria-pressed',String(paused));button.setAttribute('aria-label',paused?'Reprendre les animations et le carrousel':'Mettre les animations et le carrousel en pause');button.textContent=paused?'▶ Animer':'Ⅱ Pause';}
+}
+$('publicMotionToggle')?.addEventListener('click',()=>{publicMotionPaused=!(publicMotionPaused||publicMotionPreference.matches);syncPublicMotion();});
+publicMotionPreference.addEventListener?.('change',syncPublicMotion);
+syncPublicMotion();
+function tickPublicHomeMotion(){
+  if(publicMotionPaused||publicMotionPreference.matches||document.hidden||authOverlay.classList.contains('hidden')||authHome.style.display==='none')return;
+  const showcase=document.querySelector('.public-lovys-showcase');
+  if(!showcase?.matches(':hover, :focus-within'))moveHomeCarousel(1);
+  publicIllustrationViewers=publicIllustrationViewers>=168?128:publicIllustrationViewers+2;
+  const count=$('publicIllustrationViewers');
+  if(count){count.textContent=publicIllustrationViewers.toLocaleString('fr-FR');count.animate?.([{opacity:.45},{opacity:1}],{duration:400});}
+}
+setInterval(tickPublicHomeMotion,4500);
 
 function escapeHtml(value) {
   return String(value ?? '')
@@ -8643,6 +8669,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
 
 
