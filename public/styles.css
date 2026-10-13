@@ -8264,7 +8264,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .mobile-more-link:focus-visible,.mobile-page-back:focus-visible,.mobile-home-action button:focus-visible{outline:2px solid #bd94ff;outline-offset:3px}
   .mobile-page-back{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;margin:0 0 16px;border:1px solid #443657;border-radius:10px;background:#241b38;color:#e5d4ff;font:inherit;font-size:14px;font-weight:750;touch-action:manipulation}
   .mobile-home-actions{display:block;margin:16px 0 20px}
-  .mobile-home-actions h2{margin:0 0 12px;color:#f0e5ff;font-size:18px;line-height:1.3}
+  .mobile-home-actions-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
+  .mobile-home-actions h2{margin:0;color:#f0e5ff;font-size:17px;line-height:1.3}
+  #mobileHomeAllActions{flex:0 0 auto;min-height:44px;padding:6px 0 6px 8px;border:0;background:transparent;color:#c9a8ff;font:inherit;font-size:12px;font-weight:750;touch-action:manipulation}
   #mobileHomeActionsList{display:grid;gap:10px}
   .mobile-home-action{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px 10px;align-items:start;padding:14px;border:1px solid #44315d;border-radius:14px;background:linear-gradient(135deg,#201a34,#13172a)}
   .mobile-home-action-icon{font-size:23px;line-height:1.4}
@@ -8273,10 +8275,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .mobile-home-action button{grid-column:2;justify-self:start;min-height:44px;margin-top:4px;padding:10px 16px;border:1px solid #9360d4;border-radius:10px;background:#58318b;color:#fff;font:inherit;font-size:14px;font-weight:800;touch-action:manipulation}
   .mobile-actions-empty{margin:0;padding:14px;border:1px solid #393050;border-radius:12px;color:#b6c0d9;font-size:14px;line-height:1.6}
   /* L'assistant détaillé reste disponible ; les raccourcis sont dans le bloc ci-dessous. */
-  #nextActionsBar{padding:12px;gap:10px}
-  #nextActionsBar .next-actions-bar-copy{display:none}
-  #nextActionsBar #nextActionQuick{display:none}
-  #nextActionsBar #nextActionsOpen{width:100%;min-height:44px;font-size:13px}
+  #nextActionsBar{display:none!important}
   .mobile-list-pagination:not(.hidden){display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;margin:18px 0 4px;padding:10px 0;color:#bcc6e0;font-size:12px}
   .mobile-list-pagination button{min-height:44px;padding:9px 6px;border:1px solid #4d3967;border-radius:10px;background:#251c37;color:#e5d4ff;font:inherit;font-size:13px;font-weight:750}
   .mobile-list-pagination button:disabled{opacity:.4}
@@ -8763,5 +8762,6 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(min-width:901px){
   #desktopGameNav.desktop-game-nav{margin-top:56px!important}
 }
+
 
 

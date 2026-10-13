@@ -517,6 +517,7 @@ function showGame() {
   twitchScreen.classList.add('hidden');
   document.body.classList.remove('auth-locked');
   if(isDesktopGameUi()) {refreshDesktopAdminAccess();refreshDesktopBoostStatus();refreshDesktopHomeLiveStatus();}
+  else if(isMobileGameUi())refreshMobileHomeLiveStatus();
 }
 
 async function refreshAccountState() {
@@ -1053,6 +1054,7 @@ async function openOnlinePlayersModal(){
     const r=await fetch('/api/game/online-players',{cache:'no-store'}),data=await r.json();
     if(!r.ok)throw new Error(data.error||'Liste indisponible');
     const players=Array.isArray(data.players)?data.players:[];
+    if(isMobileGameUi() && $('desktopHomeGamePlayers'))$('desktopHomeGamePlayers').textContent=players.length.toLocaleString('fr-FR');
     list.innerHTML=players.length?players.map(p=>`<article class="online-player-row"><div class="online-player-identity">${p.avatar?`<img src="${escapeHtml(p.avatar)}" alt="" loading="lazy">`:'<span class="online-player-avatar-fallback">👤</span>'}<div class="online-player-info"><strong>${escapeHtml(p.username||'Joueur')}</strong>${p.title?`<span class="online-player-title">${escapeHtml(p.title)}</span>`:''}<span class="online-player-presence"><span class="online-player-presence-dot" aria-hidden="true"></span>En ligne</span></div></div><div class="online-player-actions">${p.userId?`<button type="button" data-online-profile="${Number(p.userId)}">Voir le profil <span aria-hidden="true">›</span></button>`:'<span class="muted">Profil indisponible</span>'}</div></article>`).join(''):'<p class="muted">Aucun joueur actif pour le moment.</p>';
   }catch(e){list.textContent='⚠️ '+e.message;}
 }
@@ -1116,9 +1118,10 @@ function renderMobileHomeLiveStatus(data){
   const gameCount=data?.gamePlayerCount,viewerCount=data?.twitchViewerCount;
   const players=Number.isSafeInteger(gameCount)&&gameCount>=0?gameCount.toLocaleString('fr-FR'):'—';
   const viewers=Number.isSafeInteger(viewerCount)&&viewerCount>=0?viewerCount.toLocaleString('fr-FR'):'—';
+  if($('desktopHomeGamePlayers'))$('desktopHomeGamePlayers').textContent=players;
   const counts=`${players} joueurs sur le jeu · ${viewers} spectateurs sur Twitch`;
   if($('mobileHomeLiveLabel'))$('mobileHomeLiveLabel').textContent=live===null?'Statut du live indisponible':live?'En live':'Hors ligne';
-  if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live===true?counts:'Voir la chaîne Twitch';
+  if($('mobileHomeLiveAction'))$('mobileHomeLiveAction').textContent=live===true?`${viewers} spectateurs sur Twitch · Voir le live`:'Voir la chaîne Twitch';
   button.setAttribute('aria-label',live===true?`LoVeRDoSeTV est en live. ${counts}. Ouvrir la chaîne Twitch.`:live===false?'LoVeRDoSeTV est hors ligne. Voir la chaîne Twitch.':'Voir la chaîne Twitch. Statut du live indisponible.');
 }
 
@@ -1578,6 +1581,7 @@ function runNextAction(button) {
 }
 
 $('nextActionsOpen')?.addEventListener('click', () => { renderNextActions(); $('nextActionsModal')?.classList.remove('hidden'); });
+$('mobileHomeAllActions')?.addEventListener('click', () => { renderNextActions(); $('nextActionsModal')?.classList.remove('hidden'); });
 $('nextActionsClose')?.addEventListener('click', closeNextActions);
 $('nextActionsModal')?.addEventListener('click', event => { if (event.target.id === 'nextActionsModal') closeNextActions(); });
 $('nextActionsList')?.addEventListener('click', event => { const button=event.target.closest('[data-next-action]'); if(button) runNextAction(button); });
@@ -7770,7 +7774,9 @@ function startLiveUpdates() {
     if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
   });
   liveUpdates.addEventListener('connected', refreshDesktopHomeLiveStatus);
+  liveUpdates.addEventListener('connected', refreshMobileHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshDesktopHomeLiveStatus);
+  liveUpdates.addEventListener('tracker-update', refreshMobileHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
@@ -8560,5 +8566,6 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
 
