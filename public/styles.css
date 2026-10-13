@@ -8043,15 +8043,15 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #adminFeedbackSection .admin-feedback-actions select{min-height:44px;background:#0b1020;color:white;border:1px solid #343b5f;border-radius:8px}
   #adminFeedbackNotice{color:#c9b4ff;white-space:pre-wrap}
 
-  /* 7 destinations stables dans la même barre. */
+  /* 5 accès lisibles ; les destinations secondaires sont dans Plus. */
   .mobile-game-nav{
-    grid-template-columns:repeat(7,minmax(0,1fr))!important;
+    grid-template-columns:repeat(5,minmax(0,1fr))!important;
     z-index:1000070!important;
   }
-  .mobile-game-nav-btn{position:relative;min-width:0!important;padding-left:0!important;padding-right:0!important}
-  .mobile-game-nav-btn b{font-size:7px!important;letter-spacing:-.02em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .mobile-game-nav-btn>span{font-size:19px}
-  .mobile-nav-badge{position:absolute;top:4px;right:4px;display:grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef426f;color:#fff;font-style:normal;font-size:8px;font-weight:1000;line-height:1}
+  .mobile-game-nav-btn{position:relative;min-width:0!important;min-height:54px;padding:6px 2px!important;gap:4px;touch-action:manipulation}
+  .mobile-game-nav-btn b{font-size:11px!important;line-height:1.25;letter-spacing:-.02em;white-space:nowrap}
+  .mobile-game-nav-btn>span{font-size:21px}
+  .mobile-nav-badge{position:absolute;top:4px;right:4px;display:grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:999px;background:#ef426f;color:#fff;font-style:normal;font-size:13px;font-weight:900;line-height:1}
   .mobile-nav-badge.hidden{display:none!important}
 
   /* Les anciens modals principaux deviennent des pages mobiles plein écran. */
@@ -8136,28 +8136,28 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   }
   body.mobile-community-open .desktop-page-head{display:grid!important;grid-template-columns:1fr;gap:10px}
   body.mobile-community-open .desktop-page-head h2{margin:0!important;font-size:24px!important;color:#fff}
-  body.mobile-community-open .desktop-page-head p{margin:5px 0 0!important;color:#aeb8d4!important;font-size:11px!important;line-height:1.45}
-  body.mobile-community-open .lobby-presence-summary{justify-self:start;padding:7px 10px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:9px;font-weight:900}
-  body.mobile-community-open .lobby-howto{margin-top:13px;padding:10px 11px;border:1px solid rgba(145,71,255,.14);border-radius:11px;background:rgba(145,71,255,.06);color:#aeb8d4;font-size:9px;line-height:1.5}
+  body.mobile-community-open .desktop-page-head p{margin:5px 0 0!important;color:#aeb8d4!important;font-size:13px!important;line-height:1.5}
+  body.mobile-community-open .lobby-presence-summary{justify-self:start;padding:7px 10px;border:1px solid rgba(91,214,164,.18);border-radius:999px;background:rgba(91,214,164,.06);color:#bcefdc;font-size:13px;font-weight:900}
+  body.mobile-community-open .lobby-howto{margin-top:13px;padding:10px 11px;border:1px solid rgba(145,71,255,.14);border-radius:11px;background:rgba(145,71,255,.06);color:#aeb8d4;font-size:13px;line-height:1.5}
   body.mobile-community-open .lobby-howto span{color:#a98cff}
   body.mobile-community-open .lobby-tabs{display:flex!important;gap:6px;margin-top:14px;padding:0 0 10px;overflow-x:auto;border-bottom:1px solid rgba(255,255,255,.07);scrollbar-width:none}
   body.mobile-community-open .lobby-tabs::-webkit-scrollbar{display:none}
-  body.mobile-community-open .lobby-tab{flex:0 0 auto;min-height:38px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:9px;font-weight:900}
+  body.mobile-community-open .lobby-tab{flex:0 0 auto;min-height:44px;padding:8px 10px;border:1px solid transparent;border-radius:10px;background:transparent;color:#929cbc;font:inherit;font-size:13px;font-weight:900}
   body.mobile-community-open .lobby-tab.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
-  body.mobile-community-open .lobby-tab b{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:3px;padding:0 4px;border-radius:999px;background:rgba(145,71,255,.2);font-size:8px}
+  body.mobile-community-open .lobby-tab b{display:inline-grid;place-items:center;min-width:17px;height:17px;margin-left:3px;padding:0 4px;border-radius:999px;background:rgba(145,71,255,.2);font-size:13px}
   body.mobile-community-open .lobby-panel{margin-top:14px}
   body.mobile-community-open .lobby-panel.hidden{display:none!important}
   body.mobile-community-open .lobby-trade-toolbar{display:grid;grid-template-columns:1fr;gap:10px}
   body.mobile-community-open .lobby-trade-toolbar strong{display:block;color:#fff;font-size:15px}
-  body.mobile-community-open .lobby-trade-toolbar span{display:block;margin-top:3px;color:#8f99b8;font-size:9px;line-height:1.4}
+  body.mobile-community-open .lobby-trade-toolbar span{display:block;margin-top:3px;color:#8f99b8;font-size:13px;line-height:1.5}
   body.mobile-community-open .lobby-primary-btn,
-  body.mobile-community-open .lobby-secondary-btn{min-height:40px;padding:9px 11px;border:1px solid rgba(145,71,255,.28);border-radius:10px;background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:10px;font-weight:900}
+  body.mobile-community-open .lobby-secondary-btn{min-height:44px;padding:9px 11px;border:1px solid rgba(145,71,255,.28);border-radius:10px;background:rgba(145,71,255,.09);color:#fff;font:inherit;font-size:13px;font-weight:900}
   body.mobile-community-open .lobby-primary-btn{background:linear-gradient(145deg,#6f36c7,#9147ff)}
   body.mobile-community-open .lobby-trade-filters{display:flex;gap:6px;margin-top:12px;overflow-x:auto;padding-bottom:5px;scrollbar-width:none}
   body.mobile-community-open .lobby-trade-filters::-webkit-scrollbar{display:none}
-  body.mobile-community-open .lobby-trade-filters button{flex:0 0 auto;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:8px;font-weight:900}
+  body.mobile-community-open .lobby-trade-filters button{flex:0 0 auto;padding:7px 9px;border:1px solid rgba(255,255,255,.08);border-radius:999px;background:#101427;color:#919bb9;font:inherit;font-size:13px;font-weight:900}
   body.mobile-community-open .lobby-trade-filters button.active{color:#fff;border-color:rgba(145,71,255,.28);background:rgba(145,71,255,.12)}
-  body.mobile-community-open .lobby-trade-filters select{flex:0 0 auto;min-height:32px;padding:5px 8px;border:1px solid rgba(145,71,255,.25);border-radius:9px;background:#101427;color:#dfe4f5;font:inherit;font-size:8px;font-weight:850}
+  body.mobile-community-open .lobby-trade-filters select{flex:0 0 auto;min-height:44px;padding:5px 8px;border:1px solid rgba(145,71,255,.25);border-radius:9px;background:#101427;color:#dfe4f5;font:inherit;font-size:13px;font-weight:850}
   body.mobile-community-open .lobby-trades-grid,
   body.mobile-community-open .lobby-player-grid{display:grid!important;grid-template-columns:1fr!important;gap:10px;margin-top:12px}
   body.mobile-community-open .trade-offer-card{padding:12px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,#11162b,#0e1326)}
@@ -8167,10 +8167,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .trade-owner img{width:100%;height:100%;object-fit:cover}
   body.mobile-community-open .trade-owner>div{min-width:0;overflow-wrap:anywhere}
   body.mobile-community-open .trade-owner strong{display:block;font-size:13px}
-  body.mobile-community-open .trade-owner small{display:block;margin-top:4px;font-size:11px;line-height:1.5;color:#aeb7d1}
+  body.mobile-community-open .trade-owner small{display:block;margin-top:4px;font-size:13px;line-height:1.5;color:#aeb7d1}
   body.mobile-community-open .trade-give,body.mobile-community-open .trade-option{padding:10px;border:1px solid rgba(145,71,255,.18);border-radius:11px;background:#0d1224;flex-wrap:wrap}
   body.mobile-community-open .trade-give strong,body.mobile-community-open .trade-option strong{display:block;font-size:12px}
-  body.mobile-community-open .trade-give small,body.mobile-community-open .trade-option small{display:block;margin-top:3px;font-size:11px;line-height:1.5;color:#aeb7d1}
+  body.mobile-community-open .trade-give small,body.mobile-community-open .trade-option small{display:block;margin-top:3px;font-size:13px;line-height:1.5;color:#aeb7d1}
   body.mobile-community-open .trade-options{display:grid;gap:8px}
   body.mobile-community-open .trade-option button,body.mobile-community-open .trade-cancel-btn{min-height:44px;padding:9px 12px;border:1px solid #7445c3;border-radius:10px;background:#382258;color:#fff;font:inherit;font-size:12px}
   body.mobile-community-open .trade-option button{flex-basis:100%}
@@ -8192,9 +8192,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-community-open .lobby-player-avatar img{width:100%;height:100%;object-fit:cover;border-radius:12px}
   body.mobile-community-open .lobby-player-name{color:#fff;font-size:13px;font-weight:950}
   body.mobile-community-open .lobby-player-meta,
-  body.mobile-community-open .lobby-player-lovys{margin-top:3px;color:#9ca6c4;font-size:9px;line-height:1.4}
+  body.mobile-community-open .lobby-player-lovys{margin-top:3px;color:#9ca6c4;font-size:13px;line-height:1.5}
   body.mobile-community-open .lobby-player-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:7px}
-  body.mobile-community-open .lobby-empty{padding:24px 14px;border:1px dashed rgba(145,71,255,.18);border-radius:13px;text-align:center;color:#8993b2;font-size:10px}
+  body.mobile-community-open .lobby-empty{padding:24px 14px;border:1px dashed rgba(145,71,255,.18);border-radius:13px;text-align:center;color:#8993b2;font-size:13px}
   body.mobile-community-open .wishlist-editor,
   body.mobile-community-open .wishlist-community,
   body.mobile-community-open .lobby-community-footer{padding:12px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
@@ -8210,7 +8210,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #tradeComposer .trade-composer-card{width:100%!important;max-height:none!important;min-height:100%!important;margin:0!important;padding:calc(18px + env(safe-area-inset-top)) 14px 30px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;overflow:visible!important}
   #tradeComposer .trade-composer-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
   #tradeComposer .trade-composer-head h2{margin:0;font-size:22px}
-  #tradeComposer .trade-composer-head p{margin:5px 0 0;color:#9ea7c6;font-size:10px;line-height:1.45}
+  #tradeComposer .trade-composer-head p{margin:5px 0 0;color:#9ea7c6;font-size:13px;line-height:1.5}
   #tradeComposer .trade-composer-head>button{width:38px;height:38px;flex:0 0 38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px}
   #tradeComposer .trade-composer-section{margin-top:12px;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
   #tradeComposer .trade-asset-row,
@@ -8228,6 +8228,78 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #tradeComposer .trade-composer-footer .lobby-primary-btn{width:100%}
 }
 /* ===== /V250 ===== */
+/* Les éléments propres au mobile n'occupent jamais d'espace sur PC. */
+.mobile-more-page,.mobile-home-actions,.mobile-list-pagination,.mobile-page-back{display:none}
+@media(max-width:900px){
+  .mobile-more-page:not(.hidden){position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000055;display:block;overflow-y:auto;overscroll-behavior:contain;padding:calc(20px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(180deg,#12172c,#090d1b)}
+  .mobile-more-page.hidden{display:none}
+  .mobile-page-heading h2{margin:0;color:#f7f5ff;font-size:24px;line-height:1.25}
+  .mobile-page-heading p{margin:8px 0 20px;color:#aeb8d4;font-size:13px;line-height:1.5}
+  .mobile-more-links{display:grid;gap:12px}
+  .mobile-more-link{display:grid;grid-template-columns:28px minmax(0,1fr) 16px;align-items:center;gap:12px;min-height:80px;padding:16px;text-align:left;border:1px solid #393050;border-radius:14px;background:#17182b;color:#fff;font:inherit;touch-action:manipulation}
+  .mobile-more-link>span:first-child{font-size:24px}
+  .mobile-more-link b{display:block;font-size:16px;line-height:1.4}
+  .mobile-more-link small{display:block;margin-top:4px;color:#aeb8d4;font-size:13px;line-height:1.5}
+  .mobile-more-link>span:last-child{color:#c9a8ff;font-size:24px}
+  .mobile-more-link:focus-visible,.mobile-page-back:focus-visible,.mobile-home-action button:focus-visible{outline:2px solid #bd94ff;outline-offset:3px}
+  .mobile-page-back{display:inline-flex;align-items:center;min-height:44px;padding:8px 12px;margin:0 0 16px;border:1px solid #443657;border-radius:10px;background:#241b38;color:#e5d4ff;font:inherit;font-size:14px;font-weight:750;touch-action:manipulation}
+  .mobile-home-actions{display:block;margin:16px 0 20px}
+  .mobile-home-actions h2{margin:0 0 12px;color:#f0e5ff;font-size:18px;line-height:1.3}
+  #mobileHomeActionsList{display:grid;gap:10px}
+  .mobile-home-action{display:grid;grid-template-columns:28px minmax(0,1fr);gap:6px 10px;align-items:start;padding:14px;border:1px solid #44315d;border-radius:14px;background:linear-gradient(135deg,#201a34,#13172a)}
+  .mobile-home-action-icon{font-size:23px;line-height:1.4}
+  .mobile-home-action strong{display:block;color:#f3edff;font-size:14px;line-height:1.5;overflow-wrap:anywhere}
+  .mobile-home-action p{margin:4px 0 0;color:#b2bdd7;font-size:13px;line-height:1.5}
+  .mobile-home-action button{grid-column:2;justify-self:start;min-height:44px;margin-top:4px;padding:10px 16px;border:1px solid #9360d4;border-radius:10px;background:#58318b;color:#fff;font:inherit;font-size:14px;font-weight:800;touch-action:manipulation}
+  .mobile-actions-empty{margin:0;padding:14px;border:1px solid #393050;border-radius:12px;color:#b6c0d9;font-size:14px;line-height:1.6}
+  /* L'assistant détaillé reste disponible ; les raccourcis sont dans le bloc ci-dessous. */
+  #nextActionsBar{padding:12px;gap:10px}
+  #nextActionsBar .next-actions-bar-copy{display:none}
+  #nextActionsBar #nextActionQuick{display:none}
+  #nextActionsBar #nextActionsOpen{width:100%;min-height:44px;font-size:13px}
+  .mobile-list-pagination:not(.hidden){display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:8px;margin:18px 0 4px;padding:10px 0;color:#bcc6e0;font-size:12px}
+  .mobile-list-pagination button{min-height:44px;padding:9px 6px;border:1px solid #4d3967;border-radius:10px;background:#251c37;color:#e5d4ff;font:inherit;font-size:13px;font-weight:750}
+  .mobile-list-pagination button:disabled{opacity:.4}
+  .mobile-list-pagination.hidden{display:none}
+  :is(#shopModal,#inventoryModal,#lovysCollectionModal,#pveModal,#progressionModal,#playerProfileModal) :is(h2,.hub-title){font-size:24px;line-height:1.3;overflow-wrap:anywhere}
+  :is(#shopModal,#inventoryModal,#lovysCollectionModal,#pveModal,#progressionModal,#playerProfileModal) :is(.hub-sub,.shop-subtitle,.inventory-subtitle,.muted){font-size:13px;line-height:1.6}
+  :is(#shopModal,#inventoryModal,#lovysCollectionModal,#pveModal,#progressionModal,#playerProfileModal) :is(.hub-btn,.shop-action,.inventory-tab,.shop-tab){min-height:44px;font-size:14px;line-height:1.35;touch-action:manipulation}
+  :is(#shopModal,#inventoryModal,#lovysCollectionModal,#playerProfileModal) :is(input,select){font-size:16px;min-height:44px;max-width:100%}
+  #inventoryModal .inventory-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:10px;scrollbar-width:thin}
+  #inventoryModal .inventory-tab{flex:0 0 auto;padding:10px 12px;white-space:nowrap}
+  #inventoryModal .inventory-grid{grid-template-columns:1fr;gap:12px;scroll-margin-top:16px}
+  #inventoryModal .inventory-item{display:grid;grid-template-columns:88px minmax(0,1fr);gap:8px 12px;padding:14px;align-items:center;min-width:0}
+  #inventoryModal .inventory-item>.shop-item-preview{grid-row:1/3;width:88px;min-height:72px;height:88px;margin:0}
+  #inventoryModal .inventory-item-name{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+  #inventoryModal .inventory-item-desc{display:none}
+  #inventoryModal .inventory-item-meta{font-size:13px;line-height:1.5}
+  #inventoryModal .inventory-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+  #shopModal .shop-item-name{font-size:15px;line-height:1.4}
+  #shopModal .shop-item-desc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:0;font-size:13px;line-height:1.5}
+  #shopModal :is(.shop-item-meta,.shop-price,.shop-owned,.shop-qty){font-size:13px;line-height:1.5;flex-wrap:wrap}
+  #shopItemPreviewModal :is(.shop-preview-desc,.shop-preview-meta,.shop-preview-ownedline){font-size:14px;line-height:1.6}
+  #shopItemPreviewModal .shop-preview-actions button{min-height:44px;font-size:14px}
+  #lovysCollectionModal :is(.lovys-collection-meta,.lovys-card-level,.lovys-xp-copy,.lovys-missing-copy,.lovys-collection-reserve){font-size:13px;line-height:1.5}
+  #lovysCollectionModal .lovys-collection-art{height:100px}
+  #lovysCollectionModal .lovys-collection-art img{height:94px;max-width:100%;object-fit:contain}
+  #lovysCollectionModal .lovys-collection-name{font-size:15px;line-height:1.4}
+  #lovysCollectionModal .lovys-collection-actions{display:grid;gap:8px}
+  #lovysCollectionModal .lovys-detail-head [data-close-lovys-detail]{width:auto;min-height:44px;padding:8px 12px;font-size:14px;white-space:nowrap}
+  #lovysCollectionModal :is(.lovys-skill p,.lovys-zone-advice,.lovys-live-explanation,.lovys-live-estimate,.lovys-rank-explainer p,.lovys-moment-tip p){font-size:13px;line-height:1.6}
+  #lovysCollectionModal .mobile-info-fold>summary{font-size:14px;min-height:48px}
+  body.mobile-community-open :is(#lobbyTradesGrid,#lobbyMineGrid){scroll-margin-top:16px}
+  body.mobile-community-open .trade-offer-card{padding:14px}
+  body.mobile-community-open .trade-label{font-size:12px;line-height:1.5}
+  #playerProfileModal :is(.player-profile-stat-label,.player-profile-rank,.player-profile-line){font-size:13px;line-height:1.6}
+  .mobile-animation-paused,.mobile-animation-paused *,.mobile-animation-paused::before,.mobile-animation-paused::after{animation-play-state:paused!important}
+  @media(max-width:360px){
+    .mobile-game-nav-btn b{font-size:10px!important}
+    #inventoryModal .inventory-item{grid-template-columns:72px minmax(0,1fr)}
+    #inventoryModal .inventory-item>.shop-item-preview{width:72px;height:76px}
+    .mobile-list-pagination{gap:5px}
+  }
+}
+
 
 /* PC — Pied de page sobre et pleine largeur, hors PvE. */
 .desktop-game-footer{display:none}

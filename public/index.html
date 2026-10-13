@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=371">
+<link rel="stylesheet" href="/styles.css?v=372-mobile">
 
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
@@ -333,13 +333,20 @@
 <div id="app" class="hidden">
 <nav id="mobileGameNav" class="mobile-game-nav" aria-label="Navigation du jeu">
   <button id="mobileNavHome" class="mobile-game-nav-btn active" type="button"><span>🏠</span><b>Accueil</b></button>
+  <button id="mobileNavCreatures" class="mobile-game-nav-btn" type="button"><span>🐉</span><b>Lovys</b></button>
   <button id="mobileNavCombat" class="mobile-game-nav-btn" type="button"><span>⚔️</span><b>Combat</b></button>
-  <button id="mobileNavLeaderboard" class="mobile-game-nav-btn" type="button"><span>🏆</span><b>Classement</b></button>
-  <button id="mobileNavCreatures" class="mobile-game-nav-btn mobile-game-nav-main" type="button"><span>🐉</span><b>Lovys</b></button>
   <button id="mobileNavCommunity" class="mobile-game-nav-btn" type="button"><span>🤝</span><b>Communauté</b><i id="mobileLobbyNavBadge" class="mobile-nav-badge hidden">0</i></button>
-  <button id="mobileNavInventory" class="mobile-game-nav-btn" type="button"><span>🎒</span><b>Inventaire</b></button>
-  <button id="mobileNavProfile" class="mobile-game-nav-btn" type="button"><span>👤</span><b>Profil</b></button>
+  <button id="mobileNavMore" class="mobile-game-nav-btn" type="button" aria-controls="mobileMorePage"><span>☰</span><b>Plus</b></button>
 </nav>
+<section id="mobileMorePage" class="mobile-more-page hidden" aria-labelledby="mobileMoreTitle">
+  <header class="mobile-page-heading"><h2 id="mobileMoreTitle" tabindex="-1">Plus</h2><p>Tous tes accès, au même endroit.</p></header>
+  <div class="mobile-more-links">
+    <button id="mobileNavLeaderboard" class="mobile-more-link" type="button"><span aria-hidden="true">🏆</span><span><b>Classement</b><small>Compare ta progression avec les joueurs.</small></span><span aria-hidden="true">›</span></button>
+    <button id="mobileNavInventory" class="mobile-more-link" type="button"><span aria-hidden="true">🎒</span><span><b>Inventaire</b><small>Équipe tes cosmétiques et utilise tes objets.</small></span><span aria-hidden="true">›</span></button>
+    <button id="mobileNavProfile" class="mobile-more-link" type="button"><span aria-hidden="true">👤</span><span><b>Profil</b><small>Ton compte, tes badges et ta progression.</small></span><span aria-hidden="true">›</span></button>
+    <button id="mobileMoreShop" class="mobile-more-link" type="button"><span aria-hidden="true">🛒</span><span><b>Boutique</b><small>Personnalise ton profil avec ton LoVeR’Cash.</small></span><span aria-hidden="true">›</span></button>
+  </div>
+</section>
 <nav id="desktopGameNav" class="desktop-game-nav" aria-label="Navigation principale PC">
   <a class="desktop-game-nav-btn active" href="#accueil" data-desktop-view="home"><span>🏠</span>Accueil</a>
   <a class="desktop-game-nav-btn" href="#lovys" data-desktop-view="lovys"><span>🐉</span>Lovys</a>
@@ -406,6 +413,7 @@
   <button id="nextActionQuick" class="next-action-quick hidden" type="button"></button>
   <button id="nextActionsOpen" class="next-actions-open" type="button">Voir mes actions <span id="nextActionsCount" class="next-actions-count">0</span></button>
 </section>
+<section id="mobileHomeActions" class="mobile-home-actions" aria-labelledby="mobileHomeActionsTitle"><h2 id="mobileHomeActionsTitle">À faire maintenant</h2><div id="mobileHomeActionsList"></div></section>
 <div class="dashboard-head-grid">
   <div class="dashboard-left-stack">
   <section class="player-visit-card" aria-label="Carte de visite du joueur">
@@ -1095,6 +1103,7 @@
     </div>
     <div id="inventoryCount" class="inventory-count"></div>
     <div id="inventoryGrid" class="inventory-grid"></div>
+    <nav id="mobileInventoryPagination" class="mobile-list-pagination hidden" aria-label="Pages de l’inventaire"></nav>
   </div>
 </div>
 
@@ -1296,5 +1305,5 @@
   <div class="community-guide-actions"><button id="communityGuideSkip" class="lobby-secondary-btn" type="button">Passer</button><div><button id="communityGuidePrev" class="lobby-secondary-btn" type="button">← Retour</button><button id="communityGuideNext" class="lobby-primary-btn" type="button">Suivant →</button></div></div>
  </section>
 </div>
-<script src="/app.js?v=371"></script>
+<script src="/app.js?v=372"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>

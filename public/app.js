@@ -922,7 +922,7 @@ async function loadGame() {
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
       window.__loverMobileNavRestored = true;
       const savedPanel = readNavMemory().mobilePanel;
-      if (['combat','creatures','leaderboard','community','inventory','progression','profile'].includes(savedPanel)) {
+      if (['combat','creatures','leaderboard','community','inventory','progression','profile','more','shop'].includes(savedPanel)) {
         Promise.resolve().then(() => toggleMobilePanel(savedPanel)).catch(console.error);
       }
     }
@@ -1535,6 +1535,7 @@ function renderNextActions() {
   const count = $('nextActionsCount');
   if (!summary || !count) return;
   const actions = buildNextActions();
+  if(isMobileGameUi())renderMobileHomeActions(actions);
   count.textContent = String(actions.length);
   const quick=$('nextActionQuick');
   if(quick){
@@ -3201,7 +3202,7 @@ function renderLovysFragmentInventory(data){
   grid.innerHTML=owned.map(l=>{const p=lovysFragmentProgress(l),stars=lovysRankStars(l.rank),max=!p.cost;return `<article class="lovys-fragment-card ${l.canRankUp?'ready':''}"><div class="lovys-fragment-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-fragment-body"><div class="lovys-fragment-top"><div><div class="lovys-fragment-name">${escapeHtml(l.name)}</div><div class="lovys-fragment-rarity">${escapeHtml(l.rarity)} · ${escapeHtml(l.type)}</div></div><div class="lovys-fragment-rank">${stars}<span>Rang ${Number(l.rank||1)}/5</span></div></div><div class="lovys-fragment-balance-line"><strong>🧩 ${p.specific.toLocaleString('fr-FR')}</strong><span>${max?'MAX':`/ ${p.cost}`}</span></div>${max?'':`<div class="lovys-fragment-progress"><span style="width:${p.pct}%"></span></div><div class="lovys-fragment-helper">Prochain rang : ${escapeHtml(lovysNextRankText(l))}</div><button class="hub-btn lovys-fragment-rank-btn" type="button" data-rank-lovys="${Number(l.id)}" ${l.canRankUp?'':'disabled'}>⭐ Passer au rang ${Number(l.rank||1)+1}</button>`}</div></article>`}).join('');
 }
 function lovysMissingCards(owned){const ids=new Set(owned.map(l=>lovysCanonicalId(l.creatureId)));return homeMonsters.filter(m=>!ids.has(lovysCanonicalId(m.id))).map(m=>`<article class="lovys-collection-card missing rarity-${lovysRarityClass(m.rarity)}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art silhouette"><img src="${escapeHtml(m.image)}" alt="" loading="lazy"></div><div class="lovys-collection-name">???</div><div class="lovys-collection-meta">${escapeHtml(m.rarity)} · ${escapeHtml(m.type)}</div><div class="lovys-missing-hints"><span>Rôle : ???</span><span>Taux : ${escapeHtml(m.chance)}</span></div></article>`).join('');}
-function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>×</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>📈 Paliers</h4><div class="lovys-level-stages"><span>Éveil</span><span>Éclosion</span><span>Ascension</span><span>Apogée</span></div></div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>${isMobileGameUi()?'← Collection':'×'}</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>📈 Paliers</h4><div class="lovys-level-stages"><span>Éveil</span><span>Éclosion</span><span>Ascension</span><span>Apogée</span></div></div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function renderLovysCollection(data){
   const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/10 découverts`;renderLovysActiveHero(data);if(!grid)return;
   const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
@@ -3838,7 +3839,11 @@ $('progressionModal')?.addEventListener('mouseup',event=>{
 
 function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
 function setMobileNavActive(id){
-  document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.id===id));
+  const destination = ['mobileNavLeaderboard','mobileNavInventory','mobileNavProfile','mobileNavShop'].includes(id) ? 'mobileNavMore' : id;
+  document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>{
+    const active=btn.id===destination;btn.classList.toggle('active',active);
+    if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');
+  });
   if(isMobileGameUi()) document.body.style.overflow=id==='mobileNavHome'?'':'hidden';
   if(syncMobileFooterPlacement.ready)syncMobileFooterPlacement();
 }
@@ -3894,6 +3899,8 @@ function getSelfLeaderboardPlayer(){
 }
 function isMobileEggDetailsOpen(){ return Boolean($('pick')?.classList.contains('egg-details-open')); }
 function isMobilePanelOpen(panel){
+  if(panel==='more') return !$('mobileMorePage')?.classList.contains('hidden');
+  if(panel==='shop') return !$('shopModal')?.classList.contains('hidden');
   if(panel==='leaderboard') return document.body.classList.contains('mobile-leaderboard-open');
   if(panel==='community') return document.body.classList.contains('mobile-community-open');
   if(panel==='combat') return !$('pveModal')?.classList.contains('hidden');
@@ -3905,6 +3912,8 @@ function isMobilePanelOpen(panel){
 }
 function syncMobileNavState(){
   if(!isMobileGameUi()) return;
+  if(isMobilePanelOpen('more')) return setMobileNavActive('mobileNavMore');
+  if(isMobilePanelOpen('shop')) return setMobileNavActive('mobileNavShop');
   if(document.body.classList.contains('mobile-leaderboard-open')) return setMobileNavActive('mobileNavLeaderboard');
   if(document.body.classList.contains('mobile-community-open')) return setMobileNavActive('mobileNavCommunity');
   if(!$('pveModal')?.classList.contains('hidden')) return setMobileNavActive('mobileNavCombat');
@@ -3926,13 +3935,14 @@ function closeMobileEggDetails(){
   syncMobileNavState();
 }
 const mobilePageScroll = new Map();
-const mobilePageIds = ['inventoryModal','playerProfileModal','progressionModal','lovysCollectionModal','desktopLobbyPage'];
+const mobilePageIds = ['inventoryModal','playerProfileModal','progressionModal','lovysCollectionModal','desktopLobbyPage','shopModal','pveModal','mobileMorePage'];
 function restoreMobilePageScroll(id){
   if(!isMobileGameUi()) return;
   requestAnimationFrame(()=>{ const el=$(id);if(el && !el.classList.contains('hidden')) el.scrollTop=mobilePageScroll.get(id)||0; });
 }
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  if(except!=='more')$('mobileMorePage')?.classList.add('hidden');
   mobilePageIds.forEach(id=>{const el=$(id);if(el && !el.classList.contains('hidden')) mobilePageScroll.set(id,el.scrollTop);});
   const board=document.querySelector('.global-leaderboard');
   if(document.body.classList.contains('mobile-leaderboard-open') && board) mobilePageScroll.set('leaderboard',board.scrollTop);
@@ -3940,7 +3950,7 @@ function closeAllMobilePanels(except=''){
   if(except!=='community'){ document.body.classList.remove('mobile-community-open'); $('desktopLobbyPage')?.classList.add('hidden'); }
   if(except!=='combat') $('pveModal')?.classList.add('hidden');
   if(except!=='inventory'){ $('inventoryModal')?.classList.add('hidden'); mobileInventoryNewItemKey=null; }
-  $('shopModal')?.classList.add('hidden');
+  if(except!=='shop')$('shopModal')?.classList.add('hidden');
   closeShopItemPreview();
   if(except!=='profile') $('playerProfileModal')?.classList.add('hidden');
   if(except!=='progression') $('progressionModal')?.classList.add('hidden');
@@ -3960,7 +3970,13 @@ async function toggleMobilePanel(panel){
   }
   closeAllMobilePanels(panel);
   saveNavMemory({mobilePanel:panel});
-  if(panel==='leaderboard'){
+  if(panel==='more'){
+    $('mobileMorePage')?.classList.remove('hidden');
+    document.body.style.overflow='hidden';
+    $('mobileMoreTitle')?.focus({preventScroll:true});
+  } else if(panel==='shop'){
+    await openShop();
+  } else if(panel==='leaderboard'){
     openMobileLeaderboard();
   } else if(panel==='community'){
     document.body.classList.add('mobile-community-open');
@@ -3981,12 +3997,12 @@ async function toggleMobilePanel(panel){
     await loadProgression();
   } else if(panel==='creatures'){
     if(me?.user?.creature_id){
-      openLovysCollection(lovysCollectionTab);
+      await openLovysCollection(lovysCollectionTab);
     } else {
       openMobileEggDetails();
     }
   }
-  const pageIds={inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',community:'desktopLobbyPage'};
+  const pageIds={inventory:'inventoryModal',profile:'playerProfileModal',progression:'progressionModal',community:'desktopLobbyPage',shop:'shopModal',combat:'pveModal',more:'mobileMorePage'};
   if(pageIds[panel]) restoreMobilePageScroll(pageIds[panel]);
   syncMobileNavState();
 }
@@ -4976,7 +4992,8 @@ function renderInventory() {
 
   const titleFilterWrap = $('inventoryTitleFilterWrap');
   if (titleFilterWrap) titleFilterWrap.classList.toggle('hidden', inventoryCategory !== 'title');
-  const items = inventoryOwnedItems();
+  const allItems = inventoryOwnedItems();
+  const items = isMobileGameUi() ? mobileInventoryPageItems(allItems) : allItems;
   const inventoryCounts = Object.create(null);
   for (const item of shopData?.catalog || []) {
     if (item.category === 'object' ? Number(item.quantity) > 0 : commerceOwns(item)) {
@@ -4988,7 +5005,7 @@ function renderInventory() {
     const category = button.dataset.inventoryCategory;
     button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${desktopInventory ? ` ${inventoryCounts[category] || 0}` : ''}`;
   });
-  $('inventoryCount').textContent = `${items.length} article${items.length > 1 ? 's' : ''} dans cette catégorie`;
+  $('inventoryCount').textContent = `${allItems.length} article${allItems.length > 1 ? 's' : ''} dans cette catégorie`;
 
   document.querySelectorAll('[data-inventory-category]').forEach(button => {
     button.classList.toggle('active', button.dataset.inventoryCategory === inventoryCategory);
@@ -7260,7 +7277,7 @@ window.addEventListener('pagehide', () => {
       saveNavMemory({desktopView:currentView});
     }
   } else if (isMobileGameUi()) {
-    const panels = ['inventory','leaderboard','community','creatures','progression','profile','combat'];
+    const panels = ['more','shop','inventory','leaderboard','community','creatures','progression','profile','combat'];
     const panel = panels.find(p => isMobilePanelOpen(p)) || 'home';
     saveNavMemory({mobilePanel:panel});
   }
@@ -7311,6 +7328,7 @@ async function loadTrades(mine=false){
 function renderTrades(mine=false){
   const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');if(!grid)return;let offers=mine?myTradeOffers:tradeOffers;
   if(!mine){const select=$('lobbyTradeCreatureFilter');if(select){const available=[...new Map((tradeOffers||[]).filter(o=>o.offer?.creatureId).map(o=>[o.offer.creatureId,String(o.offer.name||'').replace(/^Fragments\s+/,'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));const keep=tradeCreatureFilter;select.innerHTML='<option value="all">Tous les Lovys</option>'+available.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join('');select.value=available.some(x=>x[0]===keep)?keep:'all';if(select.value==='all')tradeCreatureFilter='all';}offers=offers.filter(o=>(tradeFilter==='all'||(tradeFilter==='possible'&&(o.options||[]).some(opt=>tradeCanAcceptOption(o,opt)))||o.offer.type===tradeFilter)&&(tradeCreatureFilter==='all'||o.offer.creatureId===tradeCreatureFilter));}
+  if(isMobileGameUi())offers=mobileTradePageItems(offers,mine);
   grid.innerHTML=offers.length?offers.map(o=>tradeOfferMarkup(o,mine)).join(''):`<div class="lobby-empty lobby-empty-action"><strong>${mine?'Aucune offre publiée':'Aucune offre pour l’instant'}</strong><span>${mine?'Crée ta première annonce pour commencer à échanger.':'Sois le premier à faire vivre la bourse.'}</span><button class="lobby-primary-btn" type="button" data-empty-create>＋ Créer la première offre</button></div>`;
 }
 async function openLobbyTab(tab='trades'){
@@ -7364,8 +7382,8 @@ $('lobbyTradeCreatureFilter')?.addEventListener('change',e=>{tradeCreatureFilter
 $('desktopLobbyPage')?.addEventListener('click',e=>{if(e.target.closest('[data-empty-create]'))openTradeComposer();});
 $('lobbyWishesGrid')?.addEventListener('click',async e=>{const wish=e.target.closest('[data-wish-toggle]');if(wish){const wanted=wish.getAttribute('aria-pressed')!=='true';await fetch('/api/trades/wishes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatureId:wish.dataset.wishToggle,wanted})});loadTradeWishes();return;}const trade=e.target.closest('[data-wish-trade-creature]');if(trade){await openTradeComposer(trade.dataset.wishTradeCreature||'');}});
 async function loadLobbyActivity(){const box=$('lobbyActivityBox'),feed=$('lobbyActivityFeed');if(!box||!feed)return;try{const r=await fetch('/api/trades/activity',{cache:'no-store'}),d=await r.json();const items=d.items||[];if(!r.ok||!items.length){box.classList.add('hidden');feed.innerHTML='';return;}feed.innerHTML=items.slice(0,6).map(x=>`<div class="lobby-activity-item"><span>•</span><span>${escapeHtml(x.text)}</span><small>${formatTradeDate(x.at)}</small></div>`).join('');box.classList.remove('hidden');}catch{box.classList.add('hidden');}}
-let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;}catch{}}
-async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));}catch{}}
+let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
+async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
 function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();if(desktopView==='lobby'||document.body.classList.contains('mobile-community-open')){openLobbyTab(lobbyTab);if(lobbyTab==='trades')loadLobbyActivity();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
 function tradeCreatureImageUrl(l){
@@ -8335,3 +8353,146 @@ document.addEventListener('keydown',event=>{
  if(event.key==='Tab')trapDesktopAdminFocus(event,modal);
 });
 window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closeCommunityGuide();});
+
+// Mobile uniquement — navigation, raccourcis, pagination et animations visibles.
+const mobileInventoryPaging = { page:0, filter:'', focusKey:null };
+const mobileTradePaging = { public:{page:0,filter:''}, mine:{page:0,filter:''} };
+const MOBILE_LIST_PAGE_SIZE = 6;
+
+function mobilePaginationMarkup(page, pages, kind) {
+  return `<button type="button" data-mobile-list="${kind}" data-mobile-page="${page-1}" ${page===0?'disabled':''}>‹ Précédent</button><span>Page ${page+1} / ${pages}</span><button type="button" data-mobile-list="${kind}" data-mobile-page="${page+1}" ${page===pages-1?'disabled':''}>Suivant ›</button>`;
+}
+function mobileInventoryPageItems(items) {
+  if(!isMobileGameUi())return items;
+  const state=mobileInventoryPaging,filter=`${inventoryCategory}:${inventoryTitleFilter}`;
+  if(state.filter!==filter){state.filter=filter;state.page=0;}
+  if(mobileInventoryNewItemKey && state.focusKey!==mobileInventoryNewItemKey){
+    const index=items.findIndex(item=>item.key===mobileInventoryNewItemKey);
+    if(index>=0)state.page=Math.floor(index/MOBILE_LIST_PAGE_SIZE);
+  }
+  state.focusKey=mobileInventoryNewItemKey;
+  const pages=Math.max(1,Math.ceil(items.length/MOBILE_LIST_PAGE_SIZE));
+  state.page=Math.max(0,Math.min(pages-1,state.page));
+  const nav=$('mobileInventoryPagination');
+  if(nav){nav.classList.toggle('hidden',pages<=1);nav.innerHTML=mobilePaginationMarkup(state.page,pages,'inventory');}
+  return items.slice(state.page*MOBILE_LIST_PAGE_SIZE,(state.page+1)*MOBILE_LIST_PAGE_SIZE);
+}
+function mobileTradePageItems(offers,mine) {
+  if(!isMobileGameUi())return offers;
+  const state=mobileTradePaging[mine?'mine':'public'];
+  const filter=mine?'mine':`${tradeFilter}:${tradeCreatureFilter}`;
+  if(state.filter!==filter){state.filter=filter;state.page=0;}
+  const pages=Math.max(1,Math.ceil(offers.length/MOBILE_LIST_PAGE_SIZE));
+  state.page=Math.max(0,Math.min(pages-1,state.page));
+  const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');
+  let nav=$(mine?'mobileMyTradesPagination':'mobileTradesPagination');
+  if(!nav && grid){nav=document.createElement('nav');nav.id=mine?'mobileMyTradesPagination':'mobileTradesPagination';nav.className='mobile-list-pagination';nav.setAttribute('aria-label','Pages des offres');grid.after(nav);}
+  if(nav){nav.classList.toggle('hidden',pages<=1);nav.innerHTML=mobilePaginationMarkup(state.page,pages,mine?'my-trades':'trades');}
+  return offers.slice(state.page*MOBILE_LIST_PAGE_SIZE,(state.page+1)*MOBILE_LIST_PAGE_SIZE);
+}
+function renderMobileHomeActions(actions=[]) {
+  if(!isMobileGameUi())return;
+  const list=$('mobileHomeActionsList');if(!list)return;
+  const useful=actions.filter(action=>action.priority);
+  const xp=Math.floor(Number(me?.user?.pending_xp||0));
+  if(me?.user?.creature_id && xp>0)useful.push({id:'mobile-xp',icon:'⚡',title:`${xp.toLocaleString('fr-FR')} XP à distribuer`,desc:'Fais progresser le Lovy de ton choix.',button:'Distribuer'});
+  if(lastLobbyUnread>0)useful.push({id:'mobile-community',icon:'🤝',title:`${lastLobbyUnread} nouveauté${lastLobbyUnread>1?'s':''} dans la communauté`,desc:'Consulte les dernières activités de tes échanges.',button:'Voir'});
+  useful.push(...actions.filter(action=>!action.priority));
+  list.innerHTML=useful.length ? useful.slice(0,4).map(action=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+}
+function addMobileBackButton(selector,kind,label) {
+  const container=document.querySelector(selector);
+  if(!container || container.querySelector(`:scope > [data-mobile-back="${kind}"]`))return;
+  const button=document.createElement('button');button.type='button';button.className='mobile-page-back';button.dataset.mobileBack=kind;button.textContent=`← ${label}`;container.prepend(button);
+}
+function setupMobileBackButtons() {
+  if(!isMobileGameUi())return;
+  addMobileBackButton('#inventoryModal > .inventory-panel','more','Plus');
+  addMobileBackButton('#shopModal > .shop-panel','shop','Retour');
+  addMobileBackButton('.global-leaderboard','more','Plus');
+  addMobileBackButton('#playerProfileModal > .player-profile-panel','profile','Retour');
+  addMobileBackButton('#progressionModal > .game-panel','progression','Profil');
+  addMobileBackButton('#shopItemPreviewModal > .shop-preview-panel','preview','Retour aux articles');
+  addMobileBackButton('#tradeComposer > .trade-composer-card','trade','Échanges');
+  addMobileBackButton('.lobby-profile-drawer','drawer','Joueurs');
+}
+async function mobileBack(kind) {
+  if(!isMobileGameUi())return;
+  if(kind==='preview'){closeShopItemPreview();return;}
+  if(kind==='trade'){closeTradeComposer();return;}
+  if(kind==='drawer'){document.querySelector('.lobby-profile-drawer')?.classList.add('hidden');return;}
+  if(kind==='profile' && (document.body.classList.contains('mobile-leaderboard-open') || document.body.classList.contains('mobile-community-open'))){closePlayerProfile();return;}
+  if(kind==='progression'){$('progressionModal')?.classList.add('hidden');await toggleMobilePanel('profile');return;}
+  if(kind==='shop' && !$('inventoryModal')?.classList.contains('hidden')){$('shopModal')?.classList.add('hidden');syncMobileNavState();return;}
+  await toggleMobilePanel('more');
+}
+$('mobileNavMore')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('more');});
+$('mobileMoreShop')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('shop');});
+$('mobileHomeActionsList')?.addEventListener('click',async event=>{
+  if(!isMobileGameUi())return;
+  const button=event.target.closest('[data-next-action]');if(!button || button.disabled)return;
+  if(button.dataset.nextAction==='mobile-xp'){
+    await toggleMobilePanel('creatures');
+    $('lovysActiveHero')?.querySelector('[data-transfer-lovys]:not(:disabled)')?.click();
+  }else if(button.dataset.nextAction==='mobile-community')await toggleMobilePanel('community');
+  else runNextAction(button);
+});
+document.addEventListener('click',event=>{
+  if(!isMobileGameUi())return;
+  const back=event.target.closest('[data-mobile-back]');if(back){mobileBack(back.dataset.mobileBack);return;}
+  const button=event.target.closest('[data-mobile-list]');if(!button || button.disabled)return;
+  const page=Number(button.dataset.mobilePage);if(!Number.isInteger(page)||page<0)return;
+  if(button.dataset.mobileList==='inventory'){
+    mobileInventoryPaging.page=page;renderInventory();$('inventoryGrid')?.scrollIntoView({block:'start'});
+  }else{
+    const mine=button.dataset.mobileList==='my-trades';
+    mobileTradePaging[mine?'mine':'public'].page=page;renderTrades(mine);$(mine?'lobbyMineGrid':'lobbyTradesGrid')?.scrollIntoView({block:'start'});
+  }
+});
+
+// Observateurs activés seulement sur mobile ; aucun minuteur d'animation supplémentaire.
+const mobileAnimatedSelector='.egg-shell,.egg-aura,.egg-sparkles,.incubator-egg-mini,.lovys-active-art,.lovys-collection-art,.shop-item-preview,.reward-wheel-disc';
+let mobileVisibilityObserver=null,mobileMutationObserver=null,mobileEnhanceFrame=0;
+const mobileObservedAssets=new Set();
+function scanMobileAssets() {
+  mobileEnhanceFrame=0;
+  if(!isMobileGameUi())return;
+  // Les images des listes paginées ne sont créées qu'à l'ouverture de leur page.
+  document.querySelectorAll('#inventoryGrid img,#shopGrid img,#lovysCollectionGrid img,#lobbyTradesGrid img,#lobbyMineGrid img').forEach(img=>{img.loading='lazy';img.decoding='async';});
+  for(const element of mobileObservedAssets){if(!element.isConnected){mobileVisibilityObserver?.unobserve(element);mobileObservedAssets.delete(element);}}
+  if(mobileVisibilityObserver)document.querySelectorAll(mobileAnimatedSelector).forEach(element=>{
+    if(mobileObservedAssets.has(element))return;
+    mobileObservedAssets.add(element);mobileVisibilityObserver.observe(element);
+  });
+}
+function scheduleMobileAssetsScan() {
+  if(!mobileEnhanceFrame && isMobileGameUi())mobileEnhanceFrame=requestAnimationFrame(scanMobileAssets);
+}
+function updateMobileEnhancements() {
+  if(!isMobileGameUi()){
+    mobileMutationObserver?.disconnect();mobileVisibilityObserver?.disconnect();
+    mobileObservedAssets.forEach(element=>element.classList.remove('mobile-animation-paused'));mobileObservedAssets.clear();
+    if(mobileEnhanceFrame)cancelAnimationFrame(mobileEnhanceFrame);mobileEnhanceFrame=0;
+    $('mobileMorePage')?.classList.add('hidden');
+    return;
+  }
+  setupMobileBackButtons();
+  if(typeof IntersectionObserver!=='undefined' && !mobileVisibilityObserver){
+    mobileVisibilityObserver=new IntersectionObserver(entries=>{
+      if(!isMobileGameUi())return;
+      entries.forEach(entry=>entry.target.classList.toggle('mobile-animation-paused',!entry.isIntersecting||document.hidden));
+    },{rootMargin:'60px 0px',threshold:0});
+  }
+  if(!mobileMutationObserver)mobileMutationObserver=new MutationObserver(scheduleMobileAssetsScan);
+  // Observe child changes only: pausing an animation must not trigger another scan.
+  mobileMutationObserver.observe(document.body,{childList:true,subtree:true});
+  scanMobileAssets();
+  renderMobileHomeActions(buildNextActions());
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!isMobileGameUi())return;
+  if(document.hidden)mobileObservedAssets.forEach(element=>element.classList.add('mobile-animation-paused'));
+  else{mobileVisibilityObserver?.disconnect();mobileObservedAssets.clear();scheduleMobileAssetsScan();}
+});
+window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
+updateMobileEnhancements();
