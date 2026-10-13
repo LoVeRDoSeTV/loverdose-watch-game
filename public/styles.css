@@ -8537,7 +8537,27 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .incubator-no-boost-panel .egg-boost-actions button{flex:1 1 170px}
 @media(max-width:900px){.incubator-slot-details{gap:8px}.incubator-slot-actions{gap:8px;margin-top:14px}.incubator-slot-actions .incubator-card-action{min-height:42px}}
 
-@media(max-width:420px){.online-player-row{align-items:flex-start}.online-player-actions{margin-left:54px}}
+/* Joueurs en ligne : cartes et bouton Profil compacts sur téléphone uniquement. */
+@media(max-width:900px){
+  .online-players-overlay{padding:12px}
+  .online-players-dialog{padding:18px 15px;border-radius:18px;width:100%;max-height:calc(100dvh - 32px)}
+  .online-players-head{gap:10px}
+  .online-players-head h2{font-size:20px;line-height:1.25}
+  .online-players-dialog>p.muted{font-size:12px;line-height:1.5}
+  .online-players-list{gap:9px;margin-top:14px}
+  .online-player-row{flex-wrap:nowrap;align-items:center;gap:9px;padding:12px 10px;border-radius:13px}
+  .online-player-identity{flex:1 1 auto;min-width:0;gap:9px}
+  .online-player-identity img,.online-player-identity>span.online-player-avatar-fallback{width:38px;height:38px;flex-basis:38px}
+  .online-player-info{flex:1 1 auto;min-width:0;gap:3px}
+  .online-player-info strong{font-size:14px;line-height:1.3;overflow-wrap:anywhere}
+  .online-player-title{font-size:11px}
+  .online-player-presence{font-size:11px}
+  .online-player-actions{flex:0 0 auto;margin:0;gap:0}
+  .online-player-actions button{display:inline-flex;align-items:center;justify-content:center;min-width:67px;min-height:36px;padding:8px 11px;border-radius:9px;font-size:0;line-height:1;white-space:nowrap}
+  .online-player-actions button::before{content:"Profil";font-size:12px;font-weight:750;line-height:1.2}
+  .online-player-actions button>span{display:none}
+  .online-player-actions button:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
+}
 
 /* Logo LoVeR Watch Game : en-tête PC uniquement, navigation mobile inchangée. */
 .site-logo-desktop{display:none}
