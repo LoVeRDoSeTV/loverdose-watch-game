@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=379-mobile">
+<link rel="stylesheet" href="/styles.css?v=384-mobile">
 
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
@@ -54,6 +54,7 @@
 </div>
       <h1 class="home-title">Regarde. Gagne. <span>Évolue.</span></h1>
       <p class="home-subtitle">Regarde les lives Twitch de LoVeRDoSeTV pour progresser dans le jeu : fais éclore ton œuf, collectionne des Lovys et gagne des récompenses grâce au visionnage.</p>
+      <p class="mobile-auth-explanation">📺 Regarde les lives de <strong>LoVeRDoSeTV</strong> pour faire progresser ton Lovy actif, avancer tes œufs et gagner du <strong>LoVeR’Cash</strong>.<br><span>Crée ton compte et lie Twitch pour commencer.</span></p>
 
       <div class="home-carousel" aria-label="Présentation des monstres">
         <button id="carouselPrev" class="carousel-arrow" type="button" aria-label="Monstre précédent">‹</button>
@@ -504,6 +505,11 @@
   </div>
 </section>
 
+<section id="mobileHomeDashboard" class="mobile-home-dashboard" aria-label="Comprendre et suivre ma progression">
+  <div id="mobileDashboardLovy" class="mobile-dashboard-lovy"></div>
+  <div class="mobile-dashboard-balances"><article><h3>⚡ XP en réserve</h3><strong id="mobileDashboardXp">0</strong><p>À distribuer à tes Lovys.</p><button type="button" data-mobile-dashboard="xp">Distribuer</button></article><article><h3>💰 LoVeR’Cash</h3><strong id="mobileDashboardCash">0</strong><p>Objets, bonus et cosmétiques.</p><button type="button" data-mobile-dashboard="shop">Boutique</button></article></div>
+  <div id="mobileDashboardIncubator" class="mobile-dashboard-incubator"></div>
+</section>
 </div>
 <section class="card incubator-topbar" aria-label="Incubateur">
   <div class="incubator-topbar-head">
@@ -1305,8 +1311,9 @@
   <div class="community-guide-actions"><button id="communityGuideSkip" class="lobby-secondary-btn" type="button">Passer</button><div><button id="communityGuidePrev" class="lobby-secondary-btn" type="button">← Retour</button><button id="communityGuideNext" class="lobby-primary-btn" type="button">Suivant →</button></div></div>
  </section>
 </div>
-<script src="/app.js?v=380"></script>
+<script src="/app.js?v=384"></script>
 <script src="/auth-fallback.js?v=108"></script></body></html>
+
 
 
 

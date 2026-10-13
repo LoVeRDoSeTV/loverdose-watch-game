@@ -3496,8 +3496,35 @@ body:has(#pveModal:not(.hidden)){
 @media(max-width:1180px){
   .dashboard-head-grid{grid-template-columns:1fr;grid-template-areas:"left" "incubator" "side"}.dashboard-side-stack{grid-area:side;display:flex;flex-direction:column;padding-top:0}.dashboard-side-stack .daily-challenges-card{order:1;margin-top:0}.reward-wheel-card{order:2}.daily-carousel-controls{display:none}.reward-wheel-stage{width:240px;height:240px}.reward-wheel-label{transform:rotate(var(--a)) translateY(-85px) rotate(calc(var(--a) * -1))}
 }
+.mobile-home-dashboard,.mobile-auth-explanation{display:none}
 @media(max-width:900px){
   .dashboard-side-stack{gap:10px}.reward-wheel-card{padding:15px;border-radius:16px}.reward-wheel-title{font-size:18px}.reward-wheel-sub{font-size:10px}.reward-wheel-stage{width:230px;height:230px;margin-top:10px}.reward-wheel-label{transform:rotate(var(--a)) translateY(-81px) rotate(calc(var(--a) * -1))}.reward-wheel-spin{min-height:44px;font-size:13px}.reward-wheel-status{font-size:10px}.reward-wheel-odds{padding:11px}.reward-wheel-odds-row{min-height:52px;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:8px}.reward-wheel-odds-icon{width:34px;height:34px;font-size:20px}.reward-wheel-odds-label{font-size:11px}.reward-wheel-odds-chance{min-width:54px;padding:6px 8px;font-size:16px}.reward-wheel-odds-head{font-size:11px}
+  #game{display:none!important}
+  .mobile-home-dashboard{display:grid;order:3;gap:12px;width:100%;min-width:0;margin-top:6px}
+  .auth-home .home-subtitle{display:none}
+  .mobile-auth-explanation{display:block;margin:14px 0 20px;color:#c6cce0;font-size:14px;line-height:1.7}
+  .mobile-auth-explanation span{display:inline-block;margin-top:6px;color:#bfa4e7;font-size:13px}
+  .mobile-dashboard-lovy,.mobile-dashboard-incubator,.mobile-dashboard-balances>article{min-width:0;box-sizing:border-box;padding:14px;border:1px solid #393050;border-radius:16px;background:#111528}
+  .mobile-home-dashboard p{margin:6px 0 12px;color:#b4bed8;font-size:13px;line-height:1.6}
+  .mobile-dashboard-lovy-head{display:grid;grid-template-columns:90px minmax(0,1fr);align-items:center;gap:12px}
+  .mobile-dashboard-lovy-art{height:105px;display:grid;place-items:center;overflow:hidden}
+  .mobile-dashboard-lovy-art :is(img,svg){width:auto!important;height:auto!important;max-width:90px!important;max-height:100px!important;object-fit:contain;position:static!important;transform:none!important}
+  .mobile-dashboard-kicker{color:#b982ff;font-size:10px;font-weight:850;letter-spacing:.08em}
+  .mobile-home-dashboard h3{margin:4px 0;font-size:16px;line-height:1.4;overflow-wrap:anywhere}
+  .mobile-dashboard-sub{display:block;margin-top:6px;font-size:11px;line-height:1.4;color:#d5c4ff}
+  .mobile-dashboard-xp-bar{height:8px;margin:12px 0 6px;overflow:hidden;border-radius:8px;background:#292f4b}
+  .mobile-dashboard-xp-bar>span{display:block;height:100%;background:linear-gradient(90deg,#9147ff,#c89aff)}
+  .mobile-home-dashboard button{min-height:44px;padding:9px 12px;border:1px solid #77519e;border-radius:10px;background:#2c1e45;color:#eee4ff;font:inherit;font-size:13px;font-weight:750;touch-action:manipulation}
+  .mobile-home-dashboard button:disabled{opacity:.45}
+  .mobile-home-dashboard button:focus-visible{outline:2px solid #c89aff;outline-offset:3px}
+  .mobile-dashboard-balances{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .mobile-dashboard-balances>article{display:flex;flex-direction:column;padding:12px}
+  .mobile-dashboard-balances h3{font-size:12px}
+  .mobile-dashboard-balances strong{margin-top:4px;font-size:25px;overflow-wrap:anywhere}
+  .mobile-dashboard-balances p{font-size:12px}
+  .mobile-dashboard-balances button{margin-top:auto;width:100%}
+  .mobile-dashboard-incubator{display:grid;gap:8px}
+  .mobile-dashboard-incubator p{margin-bottom:0}
 }
 @media(prefers-reduced-motion:reduce){.reward-wheel-disc{transition-duration:.01ms!important}}
 
@@ -8762,6 +8789,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @media(min-width:901px){
   #desktopGameNav.desktop-game-nav{margin-top:56px!important}
 }
+
 
 
 

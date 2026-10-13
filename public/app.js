@@ -771,6 +771,7 @@ async function claimDailyChallenge(challengeKey) {
 }
 
 function syncLoverCashDisplays(user = me?.user) {
+  if(isMobileGameUi() && $('mobileDashboardCash'))$('mobileDashboardCash').textContent=Math.floor(Number(user?.points||0)).toLocaleString('fr-FR');
   if (!user) return;
   const loverCash = Math.floor(Number(user.points || 0));
   if ($('walletBalance')) $('walletBalance').textContent = loverCash;
@@ -1155,6 +1156,7 @@ function renderIncubatorSlots() {
   incubatorData.slots.forEach(renderIncubatorSlot);
   arrangeIncubatorCarousel();
   renderIncubatorOverview();
+  renderMobileHomeDashboard();
   refreshIncubatorLiveState();
 }
 
@@ -2692,8 +2694,44 @@ $('hatchContinue')?.addEventListener('click', closeHatchAnimation);
 $('hatchSkip')?.addEventListener('click', finishHatchAnimation);
 
 
+function renderMobileHomeDashboard(){
+  if(!isMobileGameUi() || !me?.user || !$('mobileHomeDashboard'))return;
+  const user=me.user,creature=creatureById(user.creature_id),progress=user.progression||{};
+  const xp=Math.max(0,Math.floor(Number(user.pending_xp||0)));
+  $('mobileDashboardXp').textContent=xp.toLocaleString('fr-FR');
+  $('mobileDashboardCash').textContent=Math.max(0,Math.floor(Number(user.points||0))).toLocaleString('fr-FR');
+  const distribute=$('mobileHomeDashboard').querySelector('[data-mobile-dashboard="xp"]');
+  distribute.disabled=!creature || xp===0;
+  distribute.textContent=creature?'Distribuer':'Après l’éclosion';
+  if(creature){
+    const current=Number(progress.currentThreshold||0),next=Number(progress.nextThreshold||current),earned=Math.max(0,Math.floor(Number(user.xp||0)-current)),needed=Math.max(0,Math.ceil(next-current));
+    const pct=progress.maxLevel?100:Math.max(0,Math.min(100,needed?earned/needed*100:0));
+    $('mobileDashboardLovy').innerHTML=`<div class="mobile-dashboard-lovy-head"><div class="mobile-dashboard-lovy-art">${art(creature.id,progress.evolution||0)}</div><div><span class="mobile-dashboard-kicker">TON LOVY ACTIF</span><h3>${escapeHtml(creature.name)} · Niveau ${Number(progress.level||1)}</h3>${user.is_sub?'<small class="mobile-dashboard-sub">⭐ SUB : +20 % XP et LoVeR’Cash</small>':''}</div></div><div class="mobile-dashboard-xp-bar" role="progressbar" aria-label="Progression du Lovy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><span style="width:${pct}%"></span></div><p>${progress.maxLevel?'Niveau maximum atteint':`${earned.toLocaleString('fr-FR')} / ${needed.toLocaleString('fr-FR')} XP pour le niveau suivant`}</p><button type="button" data-mobile-dashboard="lovy">Voir mon Lovy</button>`;
+  }else{
+    $('mobileDashboardLovy').innerHTML='<span class="mobile-dashboard-kicker">TON PREMIER LOVY</span><h3>Un œuf, un nouveau compagnon</h3><p>Fais éclore ton premier œuf pour découvrir ton Lovy. L’XP en réserve est conservée pendant son incubation.</p><button type="button" data-mobile-dashboard="incubator">Voir mon œuf</button>';
+  }
+  const slots=(incubatorData?.slots||[]).filter(slot=>slot&&!slot.empty),ready=slots.find(slot=>slot.ready),running=slots.filter(slot=>!slot.ready);
+  const hatch=Number(incubatorData?.hatchSeconds||21600),remaining=running.length?Math.min(...running.map(slot=>Math.max(0,hatch-Number(slot.watchedSeconds||0)))):0;
+  const summary=ready?'Un œuf est prêt à éclore !':running.length?`${running.length} œuf${running.length>1?'s':''} en incubation`:'Aucune incubation en cours';
+  $('mobileDashboardIncubator').innerHTML=`<div><h3>🥚 ${summary}</h3><p>${ready?'Découvre ton nouveau Lovy.':running.length?`Prochaine éclosion dans ${formatEggTime(remaining)} de présence en live.`:'Place un œuf dans un emplacement libre.'}</p></div><button type="button" data-mobile-dashboard="${ready?'hatch':'incubator'}">${ready?'Faire éclore':'Voir mes œufs'}</button>`;
+}
+$('mobileHomeDashboard')?.addEventListener('click',async event=>{
+  if(!isMobileGameUi())return;
+  const button=event.target.closest('[data-mobile-dashboard]');if(!button || button.disabled)return;
+  const action=button.dataset.mobileDashboard;
+  if(action==='shop'){await toggleMobilePanel('shop');return;}
+  if(action==='lovy'||action==='xp'){await toggleMobilePanel('creatures');return;}
+  if(action==='hatch'){
+    const ready=incubatorData?.slots?.find(slot=>slot?.ready);
+    if(ready){if(ready.source==='starter')awaitStarterHatchFromCard();else hatchExtraIncubatorEggFromCard(ready);return;}
+  }
+  closeAllMobilePanels();syncMobileNavState();
+  document.querySelector('.incubator-topbar')?.scrollIntoView({behavior:'smooth',block:'start'});
+});
+
 function renderGame() {
   if (!me?.user) return;
+  renderMobileHomeDashboard();
 
   if (me.user.creature_id) {
     $('pick').classList.add('hidden');
@@ -8598,6 +8636,7 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
 
 
