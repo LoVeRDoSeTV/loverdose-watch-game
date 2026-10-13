@@ -5332,6 +5332,7 @@ async function confirmShopPurchase() {
 }
 
 let desktopObjectUseBusy = false;
+let mobileIncubatorBoostBusy = false;
 let desktopActiveBoosts = {};
 let desktopBoostNotice = null;
 let desktopBoostNoticeTimer = null;
@@ -5421,8 +5422,10 @@ async function openShopForIncubatorAccelerators() {
     await openDesktopView('shop');
     setCommerceTab('shop');
   } else {
-    await openShop();
+    if(isMobileGameUi())await toggleMobilePanel('shop');
+    else await openShop();
     shopCategory='object';
+    shopFocusItemKey='incubator_skip_30';
     if ($('shopMobileCategory')) $('shopMobileCategory').value='object';
   }
   await loadShop();
@@ -5534,6 +5537,9 @@ async function shopAction(url, itemKey, preferredSlot = null) {
     return;
   }
   const desktopUse = isDesktopGameUi() && url === '/api/shop/use';
+  const mobileAcceleration = isMobileGameUi() && url === '/api/shop/use' && itemKey === 'incubator_skip_30';
+  if(mobileAcceleration && mobileIncubatorBoostBusy)return;
+  if(mobileAcceleration)mobileIncubatorBoostBusy=true;
   if(desktopUse && desktopObjectUseBusy)return;
   if(desktopUse)desktopObjectUseBusy=true;
   setShopMessage();
@@ -5557,7 +5563,10 @@ async function shopAction(url, itemKey, preferredSlot = null) {
     await loadShop();
     void loadGame().catch(console.warn);
     void loadLeaderboard().catch(console.warn);
-    if(url === '/api/shop/use' && itemKey === 'incubator_skip_30')await loadIncubatorSlots();
+    if(url === '/api/shop/use' && itemKey === 'incubator_skip_30'){
+      await loadIncubatorSlots();
+      if(mobileAcceleration)showMobileIncubatorBoostResult(data.acceleration?.ready?'Ton œuf est prêt à éclore !':`Œuf accéléré${data.acceleration?` · Éclosion dans ${formatEggTime(data.acceleration.remainingSeconds)}`:''}`);
+    }
     if (!$('inventoryModal')?.classList.contains('hidden')) {renderInventory();}
     if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
 
@@ -5573,7 +5582,19 @@ async function shopAction(url, itemKey, preferredSlot = null) {
   } catch (error) {
     setShopMessage(error.message || 'Action impossible.', 'error');
     if(desktopUse)showDesktopBoostNotice(error.message || 'Action impossible.',true);
-  } finally {if(desktopUse)desktopObjectUseBusy=false;}
+    if(mobileAcceleration)showMobileIncubatorBoostResult(error.message || 'Action impossible.',true);
+  } finally {if(desktopUse)desktopObjectUseBusy=false;if(mobileAcceleration)mobileIncubatorBoostBusy=false;}
+}
+
+function showMobileIncubatorBoostResult(message,error=false){
+  const overlay=document.createElement('div');overlay.className='desktop-egg-boost-overlay';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','mobileIncubatorBoostResultTitle');
+  overlay.innerHTML=`<div class="desktop-egg-boost-panel incubator-no-boost-panel"><h2 id="mobileIncubatorBoostResultTitle">${error?'Accélération impossible':'✅ Accélération réussie'}</h2><p>${escapeHtml(message)}</p><div class="egg-boost-actions"><button class="shop-action" type="button" data-boost-result-close>Compris</button></div></div>`;
+  const previousFocus=document.activeElement;
+  const close=()=>{document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus();};
+  const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+  overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-boost-result-close]'))close();});
+  document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
 }
 
 $('shopTitleFilter')?.addEventListener('change', event => {
@@ -8539,4 +8560,5 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
+
 
