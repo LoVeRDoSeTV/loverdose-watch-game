@@ -149,12 +149,18 @@
       if (!response.ok) return;
       const state = await response.json();
       if (!state.authenticated || !state.twitchConnected) return;
-      if (state.enabled) {
-        sessionStorage.removeItem('lwg_twitch_panel_intent');
-        completed = true; clearInterval(watch); return;
-      }
+      // Même avec une session déjà ouverte, montrer le résultat du parcours Twitch.
       popupOpen = true;
-      modal();
+      const popup = modal();
+      if (state.enabled) {
+        completed = true;
+        sessionStorage.removeItem('lwg_twitch_panel_intent');
+        popup.querySelector('#lwg-panel-title').textContent = 'Panneau Twitch déjà lié !';
+        popup.querySelector('#lwg-panel-desc').textContent = 'Ton compte LoVeR Watch Game est déjà autorisé pour le panneau Twitch. Retourne sur ta chaîne pour retrouver tes informations.';
+        popup.querySelector('#lwg-panel-cancel').remove();
+        const finish = popup.querySelector('#lwg-panel-accept');
+        finish.textContent = 'Compris';
+      }
       clearInterval(watch);
     } catch (_) {}
   }, 1500);
