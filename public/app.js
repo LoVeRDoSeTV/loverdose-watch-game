@@ -8019,7 +8019,54 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
   }catch(error){msg.textContent=error.message;msg.className='trade-composer-message error';hideTradePublishConfirmation();}
   finally{btn.disabled=false;btn.textContent='Confirmer la publication';}
 });
-async function acceptTrade(offerId,optionId){const offer=tradeOffers.find(o=>Number(o.id)===Number(offerId)),option=offer?.options?.find(o=>Number(o.id)===Number(optionId));if(!offer||!option)return;if(!confirm(`Confirmer l’échange ?\n\nTu donnes : ${option.quantity} × ${option.name}\nTu reçois : ${offer.offer.quantity} × ${offer.offer.name}`))return;const r=await fetch(`/api/trades/${offerId}/accept`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({optionId})}),d=await r.json();if(!r.ok){alert(d.error||'Échange impossible.');return;}await loadGame();await loadLovysCollection();await loadTrades(false);}
+let activeTradeExchange=false;
+function tradeExchangeAssetList(assets){
+  return assets.map(asset=>`<div class="trade-exchange-item">${asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`).join('');
+}
+async function runTradeAcceptance({partner,give,receive,submit,refresh}){
+  if(activeTradeExchange)return false;
+  activeTradeExchange=true;
+  const previous=document.activeElement,overlay=document.createElement('div');
+  overlay.className='trade-exchange-overlay';
+  overlay.innerHTML=`<section class="trade-exchange-modal" role="dialog" aria-modal="true" aria-labelledby="tradeExchangeTitle" aria-describedby="tradeExchangeStatus"><button type="button" class="trade-exchange-close" aria-label="Fermer">×</button><div class="trade-exchange-emblem" aria-hidden="true">⇄</div><h2 id="tradeExchangeTitle">Échange avec ${escapeHtml(partner||'ce joueur')}</h2><p id="tradeExchangeStatus" role="status" aria-live="polite">Vérifie les objets avant de confirmer.</p><div class="trade-exchange-summary"><div class="trade-exchange-side give"><h3>Tu donnes</h3>${tradeExchangeAssetList(give)}</div><span class="trade-exchange-arrow" aria-hidden="true">⇄</span><div class="trade-exchange-side receive"><h3>Tu reçois</h3>${tradeExchangeAssetList(receive)}</div></div><div class="trade-exchange-buttons"><button type="button" class="lobby-secondary-btn" data-exchange-cancel>Annuler</button><button type="button" class="lobby-primary-btn" data-exchange-confirm>Confirmer l’échange</button></div></section>`;
+  document.body.appendChild(overlay);
+  const card=overlay.querySelector('.trade-exchange-modal'),status=overlay.querySelector('#tradeExchangeStatus'),main=overlay.querySelector('[data-exchange-confirm]'),cancel=overlay.querySelector('[data-exchange-cancel]'),close=overlay.querySelector('.trade-exchange-close'),emblem=overlay.querySelector('.trade-exchange-emblem');
+  let state='confirm',committed=false;
+  return new Promise(resolve=>{
+    const finish=()=>{if(state==='working')return;overlay.remove();document.removeEventListener('keydown',key);activeTradeExchange=false;if(previous?.isConnected)previous.focus();resolve(committed);};
+    const key=event=>{if(event.key==='Escape'){event.preventDefault();finish();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    document.addEventListener('keydown',key);
+    close.addEventListener('click',finish);cancel.addEventListener('click',finish);
+    overlay.addEventListener('click',event=>{if(event.target===overlay)finish();});
+    main.addEventListener('click',async()=>{
+      if(state==='working')return;
+      if(state!=='confirm'){finish();return;}
+      state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Les objets sont en cours de transfert.';
+      const started=Date.now();
+      try{
+        await submit();committed=true;
+        await new Promise(done=>setTimeout(done,Math.max(0,650-(Date.now()-started))));
+        state='success';card.classList.remove('working');card.classList.add('success');emblem.textContent='✓';
+        status.textContent='Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
+        main.textContent='Parfait !';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
+        try{await refresh?.();}catch(error){console.warn('Échange confirmé, actualisation différée :',error);}
+      }catch(error){
+        state='error';card.classList.remove('working');card.classList.add('error');emblem.textContent='!';
+        status.textContent=error.message||'Impossible de confirmer l’échange. Actualise tes offres avant de réessayer.';
+        main.textContent='Fermer';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
+      }
+    });
+    cancel.focus();
+  });
+}
+async function acceptTrade(offerId,optionId){
+  if(activeTradeExchange)return;
+  const offer=tradeOffers.find(o=>Number(o.id)===Number(offerId)),option=offer?.options?.find(o=>Number(o.id)===Number(optionId));if(!offer||!option)return;
+  await runTradeAcceptance({partner:offer.creatorName,give:[option],receive:[offer.offer],submit:async()=>{
+    const response=await fetch(`/api/trades/${offerId}/accept`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({optionId})});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'Échange impossible.');
+  },refresh:async()=>{await Promise.allSettled([loadGame(),loadLovysCollection()]);await loadTrades(false);}});
+}
 async function cancelTrade(offerId){if(!confirm('Annuler cette offre ? Les objets réservés seront rendus à ton inventaire.'))return;const r=await fetch(`/api/trades/${offerId}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),d=await r.json();if(!r.ok){alert(d.error||'Annulation impossible.');return;}await loadGame();await loadLovysCollection();await loadTrades(true);}
 $('lobbyTradesGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[data-trade-accept]');if(btn&&!btn.disabled)acceptTrade(Number(btn.dataset.tradeAccept),Number(btn.dataset.tradeOption));});
 $('lobbyMineGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[data-trade-cancel]');if(btn)cancelTrade(Number(btn.dataset.tradeCancel));});
@@ -8674,6 +8721,14 @@ $('playerTradeInbox')?.addEventListener('click',async event=>{
   const offer=playerTradeOffers.find(o=>Number(o.id)===Number(button.dataset.playerTradeId));if(!offer)return;
   playerTradeBusy=true;
   try {
+    if(button.dataset.playerTradeAction==='accept'){
+      const received=Number(offer.targetUserId)===playerTradeSelfId;
+      await runTradeAcceptance({partner:received?offer.creatorName:offer.targetName,give:received?offer.requested:offer.offered,receive:received?offer.offered:offer.requested,
+        submit:()=>playerTradeApi(`/api/player-trades/${offer.id}/accept`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),
+        refresh:async()=>{await loadPlayerTradeInbox();if(playerCollectionData)await openPlayerCollection(playerCollectionData.player.userId);await Promise.allSettled([loadGame(),loadLovysCollection()]);}
+      });
+      return;
+    }
     if(!await confirmPlayerTrade(offer,button.dataset.playerTradeAction))return;
     button.disabled=true;
     const data=await playerTradeApi(`/api/player-trades/${offer.id}/${button.dataset.playerTradeAction}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
