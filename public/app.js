@@ -3084,7 +3084,7 @@ async function loadProgression(){
     const lovysPercent=cp.maxLevel?100:progressionPct(lovysInto,lovysNeed);
     const pendingLovysXp=Math.max(0,Math.floor(Number(d.pendingCreatureXp||0)));
     const activeLovysName=d.hasCreature?(creatureById(me?.user?.creature_id)?.name||'ton Lovys'):'ton futur Lovys';
-    const transferHtml=d.hasCreature&&pendingLovysXp>0?`<div class="lovys-transfer-wrap"><div class="lovys-transfer-balance">⚡ XP en réserve : ${pendingLovysXp.toLocaleString('fr-FR')}</div><button id="transferLovysXpBtn" class="hub-btn lovys-transfer-button" type="button">Distribuer à ${escapeHtml(activeLovysName)}</button></div>`:'';
+    const transferHtml=d.hasCreature&&pendingLovysXp>0?`<div class="lovys-transfer-wrap"><div class="lovys-transfer-balance">🏦 XP en réserve : ${pendingLovysXp.toLocaleString('fr-FR')}</div><button id="transferLovysXpBtn" class="hub-btn lovys-transfer-button" type="button">Distribuer à ${escapeHtml(activeLovysName)}</button></div>`:'';
     const lovysProgressHtml=d.hasCreature
       ? `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">🐉 Progression du Lovys</div><span class="lovys-progress-level">Niv. ${lovysLevel}</span></div><div class="lovys-progress-meta"><span>${lovysInto.toLocaleString('fr-FR')} XP</span><span>${cp.maxLevel?'Niveau max':lovysNeed.toLocaleString('fr-FR')+' XP'}</span></div><div class="lovys-xp-bar"><span style="width:${lovysPercent}%"></span></div><div class="lovys-progress-note">XP totale du Lovys : ${lovysTotalXp.toLocaleString('fr-FR')} XP</div>${transferHtml}</div>`
       : `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">${eggIconMarkup('egg-inline-icon title-inline-icon')}XP du futur Lovys</div><span class="lovys-progress-level">Réserve</span></div><div class="lovys-progress-meta"><span>XP en attente</span><span>${pendingLovysXp.toLocaleString('fr-FR')} XP</span></div><div class="lovys-progress-note">Cette XP reste en réserve. Après l’éclosion, tu pourras choisir de la transférer à ton Lovys avec confirmation.</div></div>`;
@@ -3156,7 +3156,7 @@ function renderLovysReserve(data){
   const xp=Math.floor(Number(data?.pendingXp||0)).toLocaleString('fr-FR');
   const universal=Math.max(0,Number(data?.universalFragments||0));
   let help=$('lovysUniversalFragmentsHelp');
-  reserve.textContent=`⚡ ${xp} XP en réserve`;
+  reserve.textContent=`🏦 ${xp} XP en réserve`;
   if(universal<=0){help?.remove();return;}
   if(!help){help=document.createElement('details');help.id='lovysUniversalFragmentsHelp';help.className='lovys-universal-guide';reserve.after(help);}
   if(help.dataset.count===String(universal))return;
