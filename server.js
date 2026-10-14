@@ -3014,7 +3014,9 @@ app.post('/api/register', registerRateLimit, async (req, res) => {
 
     const account = result.rows[0];
 
+    const preservedPanelIntent = req.session.twitchPanelIntent;
     await regenerateSession(req);
+    if (preservedPanelIntent && Date.now()-preservedPanelIntent.createdAt<20*60*1000) req.session.twitchPanelIntent=preservedPanelIntent;
 
     req.session.account = {
       id: account.id,
@@ -3102,7 +3104,9 @@ app.post('/api/account/login', loginRateLimit, async (req, res) => {
       });
     }
 
+    const preservedPanelIntent = req.session.twitchPanelIntent;
     await regenerateSession(req);
+    if (preservedPanelIntent && Date.now()-preservedPanelIntent.createdAt<20*60*1000) req.session.twitchPanelIntent=preservedPanelIntent;
 
     req.session.account = {
       id: account.id,
@@ -4334,7 +4338,9 @@ await pool.query(
 );
 
       const authenticatedAccount = req.session.account;
+      const preservedPanelIntent = req.session.twitchPanelIntent;
       await regenerateSession(req);
+      if (preservedPanelIntent && Date.now()-preservedPanelIntent.createdAt<20*60*1000) req.session.twitchPanelIntent=preservedPanelIntent;
       req.session.account = authenticatedAccount;
 
       req.session.user = {
