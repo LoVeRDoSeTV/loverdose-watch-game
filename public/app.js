@@ -1563,8 +1563,8 @@ function renderNextActions() {
   const summary = $('nextActionsSummary');
   const count = $('nextActionsCount');
   if (!summary || !count) return;
-  const actions = buildNextActions();
-  if(isMobileGameUi())renderMobileHomeActions(actions);
+  const actions = isMobileGameUi() ? mobileHomeActionItems(buildNextActions()) : buildNextActions();
+  if(isMobileGameUi())renderMobileHomeActions(actions, true);
   count.textContent = String(actions.length);
   const quick=$('nextActionQuick');
   if(quick){
@@ -1610,7 +1610,7 @@ $('nextActionsOpen')?.addEventListener('click', () => { renderNextActions(); $('
 $('mobileHomeAllActions')?.addEventListener('click', () => { renderNextActions(); $('nextActionsModal')?.classList.remove('hidden'); });
 $('nextActionsClose')?.addEventListener('click', closeNextActions);
 $('nextActionsModal')?.addEventListener('click', event => { if (event.target.id === 'nextActionsModal') closeNextActions(); });
-$('nextActionsList')?.addEventListener('click', event => { const button=event.target.closest('[data-next-action]'); if(button) runNextAction(button); });
+$('nextActionsList')?.addEventListener('click', async event => { const button=event.target.closest('[data-next-action]'); if(button && !await runMobileHomeSpecialAction(button)) runNextAction(button); });
 
 // V104 — installation PWA. Le jeu reste connecté : le service worker n’intercepte pas les API.
 function isStandalonePwa() { return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
@@ -8665,15 +8665,36 @@ function mobileTradePageItems(offers,mine) {
   if(nav){nav.classList.toggle('hidden',pages<=1);nav.innerHTML=mobilePaginationMarkup(state.page,pages,mine?'my-trades':'trades');}
   return offers.slice(state.page*MOBILE_LIST_PAGE_SIZE,(state.page+1)*MOBILE_LIST_PAGE_SIZE);
 }
-function renderMobileHomeActions(actions=[]) {
-  if(!isMobileGameUi())return;
-  const list=$('mobileHomeActionsList');if(!list)return;
+function mobileHomeActionItems(actions=[]) {
   const useful=actions.filter(action=>action.priority);
   const xp=Math.floor(Number(me?.user?.pending_xp||0));
   if(me?.user?.creature_id && xp>0)useful.push({id:'mobile-xp',icon:'⚡',title:`${xp.toLocaleString('fr-FR')} XP à distribuer`,desc:'Fais progresser le Lovy de ton choix.',button:'Distribuer'});
   if(lastLobbyUnread>0)useful.push({id:'mobile-community',icon:'🤝',title:`${lastLobbyUnread} nouveauté${lastLobbyUnread>1?'s':''} dans la communauté`,desc:'Consulte les dernières activités de tes échanges.',button:'Voir'});
   useful.push(...actions.filter(action=>!action.priority));
-  list.innerHTML=useful.length ? useful.slice(0,4).map(action=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+  return useful;
+}
+function renderMobileHomeActions(actions=[], prepared=false) {
+  if(!isMobileGameUi())return;
+  const list=$('mobileHomeActionsList');if(!list)return;
+  const useful=prepared?actions:mobileHomeActionItems(actions);
+  const all=$('mobileHomeAllActions');
+  if(all){all.hidden=useful.length<=2;all.textContent=`Tout voir (${useful.length}) ›`;}
+  list.innerHTML=useful.length ? useful.slice(0,2).map(action=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+}
+async function runMobileHomeSpecialAction(button) {
+  if(!isMobileGameUi())return false;
+  if(button.dataset.nextAction==='mobile-xp'){
+    closeNextActions();
+    await toggleMobilePanel('creatures');
+    $('lovysActiveHero')?.querySelector('[data-transfer-lovys]:not(:disabled)')?.click();
+    return true;
+  }
+  if(button.dataset.nextAction==='mobile-community'){
+    closeNextActions();
+    await toggleMobilePanel('community');
+    return true;
+  }
+  return false;
 }
 function addMobileBackButton(selector,kind,label) {
   const container=document.querySelector(selector);
@@ -8706,11 +8727,7 @@ $('mobileMoreShop')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMob
 $('mobileHomeActionsList')?.addEventListener('click',async event=>{
   if(!isMobileGameUi())return;
   const button=event.target.closest('[data-next-action]');if(!button || button.disabled)return;
-  if(button.dataset.nextAction==='mobile-xp'){
-    await toggleMobilePanel('creatures');
-    $('lovysActiveHero')?.querySelector('[data-transfer-lovys]:not(:disabled)')?.click();
-  }else if(button.dataset.nextAction==='mobile-community')await toggleMobilePanel('community');
-  else runNextAction(button);
+  if(!await runMobileHomeSpecialAction(button))runNextAction(button);
 });
 document.addEventListener('click',event=>{
   if(!isMobileGameUi())return;
