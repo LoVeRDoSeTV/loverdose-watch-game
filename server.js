@@ -7242,7 +7242,7 @@ app.get('/api/trades',async(req,res)=>{
     const ctx=await tradeContext(client,req);if(!ctx)return res.status(404).json({error:'Profil introuvable.'});
     const mine=String(req.query.mine||'')==='1';
     const params=mine?[ctx.userId]:[];
-    const where=mine?`o.creator_user_id=$1 AND o.status<>'expired'`:`o.status='open' AND o.expires_at>CURRENT_TIMESTAMP`;
+    const where=mine?`o.creator_user_id=$1 AND o.status NOT IN ('expired','completed')`:`o.status='open' AND o.expires_at>CURRENT_TIMESTAMP`;
     const offers=await client.query(`
       SELECT o.*,COALESCE(a.username,u.display_name,u.login) creator_name,u.profile_image_url,
              COALESCE(accept_a.username,accept_u.display_name,accept_u.login) accepted_by_name
