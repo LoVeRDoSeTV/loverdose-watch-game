@@ -2062,7 +2062,7 @@ function renderMobileNextBadges(challenges) {
     .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
     .sort((a, b) => b.progress.percent - a.progress.percent)
     .slice(0, 3);
-  return `<details class="badge-mobile-next">
+  return `<details class="badge-mobile-next" open>
     <summary>✨ Prochains objectifs <span>${next.length}</span></summary>
     ${next.length ? next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
       ${badgeVisual(challenge)}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
