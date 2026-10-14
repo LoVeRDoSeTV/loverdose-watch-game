@@ -8531,10 +8531,8 @@ function addPlayerBundleRow(side) {
 function syncPlayerBundleControls() {
   const form=$('playerBundleForm');if(!form)return;
   const offeredAvailable=playerBundleChoices('offered').length>0,requestedAvailable=playerBundleChoices('requested').length>0;
-  const targetLevel=Number(playerCollectionData?.player?.level);
-  const eligible=!Number.isFinite(targetLevel) || targetLevel>=3;
-  form.querySelector('[type=submit]').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable || !eligible;
-  $('playerBundleContinue').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable || !eligible;
+  form.querySelector('[type=submit]').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable;
+  $('playerBundleContinue').disabled=playerTradeBusy || !offeredAvailable || !requestedAvailable;
   form.querySelectorAll('[data-bundle-add]').forEach(button=>{
     const list=$(button.dataset.bundleAdd==='offered'?'playerBundleOffered':'playerBundleRequested');
     const used=new Set([...list.children].map(row=>row.querySelector('[data-bundle-asset]')?.value));
@@ -8543,7 +8541,7 @@ function syncPlayerBundleControls() {
   form.querySelectorAll('[data-bundle-remove]').forEach(button=>button.disabled=playerTradeBusy || button.parentElement.parentElement.children.length<=1);
   const availability=$('playerBundleAvailability');
   if(availability){
-    availability.textContent=!eligible?'Ce joueur pourra échanger à partir du niveau global 3.':!requestedAvailable?'Ce joueur n’a pas encore de fragments compatibles ni d’œufs disponibles à échanger. Reviens quand sa collection aura progressé.':!offeredAvailable?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'';
+    availability.textContent=!requestedAvailable?'Ce joueur n’a pas encore de fragments compatibles ni d’œufs disponibles à échanger. Reviens quand sa collection aura progressé.':!offeredAvailable?'Tu n’as aucun fragment compatible ni œuf disponible à proposer à ce joueur.':'';
     availability.classList.toggle('hidden',!availability.textContent);
   }
   renderPlayerBundleRecap();
@@ -8683,7 +8681,7 @@ const communityGuideSteps = [
  {icon:'🤝',title:'Bienvenue dans la Communauté !',text:'Ici, les joueurs échangent des fragments de Lovys et des œufs mystère disponibles.',details:'<p><strong>🔄 Échanges :</strong> trouve les offres publiques.</p><p><strong>📜 Mes offres :</strong> suis ou annule tes annonces.</p><p><strong>👥 Joueurs :</strong> découvre les collections et propose un échange à une personne précise.</p><p><strong>💜 Souhaits :</strong> indique les Lovys que tu recherches.</p><p><strong>🕘 Historique :</strong> retrouve les échanges publics terminés.</p>'},
  {icon:'🧩',title:'Quels fragments peux-tu échanger ?',text:'Les doublons donnent des fragments. Tu échanges ces fragments : ton Lovys reste dans ta collection.',details:'<p><strong>Les deux joueurs doivent déjà posséder le Lovys correspondant.</strong></p><p>Exemple : pour échanger des fragments Voltis, vous devez tous les deux avoir Voltis.</p><p>Les œufs mystère disponibles peuvent aussi être échangés. Les œufs en incubation restent dans leurs incubateurs.</p>'},
  {icon:'👥',title:'Je propose / Je voudrais',text:'Clique sur le rectangle d’un joueur pour voir ses Lovys avec leurs photos, ses fragments et ses œufs.',details:'<p><strong>Je propose :</strong> tes fragments compatibles et tes œufs disponibles.</p><p><strong>Je voudrais :</strong> les fragments que ce joueur possède pour tes Lovys, et ses œufs disponibles.</p><p>D’abord, choisis <strong>1 à 3 éléments dans Je propose</strong> et valide cette étape. Ensuite, choisis <strong>1 à 3 éléments dans Je voudrais</strong>. La confirmation finale récapitule les deux côtés avant l’envoi.</p><p><strong>Aucun choix ?</strong> Le joueur doit avoir du stock compatible : posséder un Lovys ne suffit pas pour demander des fragments qu’il n’a pas.</p>'},
- {icon:'✅',title:'Confirmer et suivre ton échange',text:'Relis les quantités avant d’envoyer. Tes objets proposés sont réservés jusqu’à la réponse du joueur.',details:'<p><strong>Proposition ciblée :</strong> le destinataire accepte ou refuse dans <strong>Joueurs</strong>. Tu peux y annuler ta proposition.</p><p><strong>Offre publique :</strong> propose un élément contre une des alternatives. Un joueur choisit une seule contrepartie pour accepter.</p><p>En cas de refus, d’annulation ou d’expiration, les objets réservés sont rendus. L’acceptation transfère les éléments ensemble.</p><p>Échanges accessibles au <strong>niveau global 3</strong> : maximum 3 offres actives et 20 échanges réalisés par jour.</p>'}
+ {icon:'✅',title:'Confirmer et suivre ton échange',text:'Relis les quantités avant d’envoyer. Tes objets proposés sont réservés jusqu’à la réponse du joueur.',details:'<p><strong>Proposition ciblée :</strong> le destinataire accepte ou refuse dans <strong>Joueurs</strong>. Tu peux y annuler ta proposition.</p><p><strong>Offre publique :</strong> propose un élément contre une des alternatives. Un joueur choisit une seule contrepartie pour accepter.</p><p>En cas de refus, d’annulation ou d’expiration, les objets réservés sont rendus. L’acceptation transfère les éléments ensemble.</p><p>Maximum 3 offres actives et 20 échanges réalisés par jour.</p>'}
 ];
 function renderCommunityGuide(){
  const step=communityGuideSteps[communityGuideStepIndex];

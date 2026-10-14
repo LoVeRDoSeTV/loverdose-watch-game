@@ -6938,7 +6938,6 @@ const TRADE_MAX_QUANTITY = 999;
 const TRADE_DURATIONS = new Set([1, 3, 7]);
 const TRADE_MAX_ACTIVE = 3;
 const TRADE_MAX_DAILY_COMPLETED = 20;
-const TRADE_MIN_GLOBAL_LEVEL = 3;
 
 function tradeCreatureName(creatureId) {
   return creatures.find(creature => creature.id === creatureId)?.name || creatureId || 'Lovys';
@@ -7143,7 +7142,6 @@ app.post('/api/player-trades',tradeWriteRateLimit,async(req,res)=>{
     await client.query(`SELECT id FROM users WHERE id=ANY($1::int[]) ORDER BY id FOR UPDATE`,[[ctx.userId,targetUserId].sort((a,b)=>a-b)]);
     const creator=await playerTradeUser(client,ctx.userId),target=await playerTradeUser(client,targetUserId);
     if(!creator||!target)throw new Error('Joueur introuvable.');
-    if(creator.level<TRADE_MIN_GLOBAL_LEVEL||target.level<TRADE_MIN_GLOBAL_LEVEL)throw new Error(`Les deux joueurs doivent avoir le niveau global ${TRADE_MIN_GLOBAL_LEVEL}.`);
     const active=await client.query(`SELECT ((SELECT COUNT(*) FROM trade_offers WHERE creator_user_id=$1 AND status='open')+
       (SELECT COUNT(*) FROM player_trade_offers WHERE creator_user_id=$1 AND status='open'))::int count`,[ctx.userId]);
     if(Number(active.rows[0]?.count||0)>=TRADE_MAX_ACTIVE)throw new Error(`Tu peux avoir au maximum ${TRADE_MAX_ACTIVE} offres actives, publiques ou ciblées.`);
@@ -7188,7 +7186,6 @@ app.post('/api/player-trades/:offerId/:action',tradeWriteRateLimit,async(req,res
     if(!creator||!target)throw new Error('Joueur introuvable.');
     let status,message;
     if(action==='accept') {
-      if(creator.level<TRADE_MIN_GLOBAL_LEVEL||target.level<TRADE_MIN_GLOBAL_LEVEL)throw new Error(`Les deux joueurs doivent avoir le niveau global ${TRADE_MIN_GLOBAL_LEVEL}.`);
       for(const participant of [creator,target])if(await playerTradeDailyCount(client,participant.userId)>=TRADE_MAX_DAILY_COMPLETED)throw new Error(`La limite quotidienne de ${TRADE_MAX_DAILY_COMPLETED} échanges est atteinte pour ${participant.username}.`);
       // Le débit de toutes les contreparties précède les crédits, dans une seule transaction.
       for(const asset of offer.requested)await changeTradeAsset(client,target,asset,-asset.quantity);
@@ -7271,7 +7268,6 @@ app.post('/api/trades',tradeWriteRateLimit,async(req,res)=>{
     await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[ctx.userId]);
     const openCount=await client.query(`SELECT ((SELECT COUNT(*) FROM trade_offers WHERE creator_user_id=$1 AND status='open')+(SELECT COUNT(*) FROM player_trade_offers WHERE creator_user_id=$1 AND status='open'))::int count`,[ctx.userId]);
     if(Number(openCount.rows[0]?.count||0)>=TRADE_MAX_ACTIVE)throw new Error(`Tu peux avoir au maximum ${TRADE_MAX_ACTIVE} offres actives en même temps.`);
-    const levelRow=await client.query(`SELECT global_xp FROM users WHERE id=$1`,[ctx.userId]);if(globalProgressionFromXp(Number(levelRow.rows[0]?.global_xp||0)).level<TRADE_MIN_GLOBAL_LEVEL)throw new Error(`Le niveau global ${TRADE_MIN_GLOBAL_LEVEL} est requis pour échanger.`);
     // Le créateur doit déjà posséder les Lovys dont il souhaite recevoir des fragments.
     for(const option of options){if(option.type==='fragment'){const balance=await tradeAssetBalance(client,ctx,option,true);if(balance===null)throw new Error(`Tu dois posséder ${tradeCreatureName(option.creatureId)} pour demander ses fragments.`);}}
     await changeTradeAsset(client,ctx,offered,-offered.quantity);
@@ -7287,7 +7283,6 @@ app.post('/api/trades/:offerId/accept',tradeWriteRateLimit,async(req,res)=>{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
     const offerId=Number.parseInt(req.params.offerId,10),optionId=Number.parseInt(req.body?.optionId,10);if(!offerId||!optionId)return res.status(400).json({error:'Échange invalide.'});
     await client.query('BEGIN');await restoreExpiredTrades(client);const accepter=await tradeContext(client,req);if(!accepter)throw new Error('Profil introuvable.');
-    const accepterLevelRow=await client.query(`SELECT global_xp FROM users WHERE id=$1`,[accepter.userId]);if(globalProgressionFromXp(Number(accepterLevelRow.rows[0]?.global_xp||0)).level<TRADE_MIN_GLOBAL_LEVEL)throw new Error(`Le niveau global ${TRADE_MIN_GLOBAL_LEVEL} est requis pour échanger.`);
     const daily=await client.query(`SELECT ((SELECT COUNT(*) FROM trade_offers WHERE status='completed' AND accepted_at>=CURRENT_DATE AND (accepted_by_user_id=$1 OR creator_user_id=$1))+(SELECT COUNT(*) FROM player_trade_offers WHERE status='completed' AND accepted_at>=CURRENT_DATE AND (target_user_id=$1 OR creator_user_id=$1)))::int count`,[accepter.userId]);if(Number(daily.rows[0]?.count||0)>=TRADE_MAX_DAILY_COMPLETED)throw new Error(`Limite de ${TRADE_MAX_DAILY_COMPLETED} échanges par jour atteinte.`);
     const offerResult=await client.query(`SELECT * FROM trade_offers WHERE id=$1 FOR UPDATE`,[offerId]);const offer=offerResult.rows[0];if(!offer||offer.status!=='open'||new Date(offer.expires_at)<=new Date())throw new Error("Cette offre n'est plus disponible.");if(Number(offer.creator_user_id)===accepter.userId)throw new Error('Tu ne peux pas accepter ta propre offre.');
     const optionResult=await client.query(`SELECT * FROM trade_offer_options WHERE id=$1 AND offer_id=$2`,[optionId,offerId]);const option=optionResult.rows[0];if(!option)throw new Error('Cette contrepartie est introuvable.');
