@@ -7705,7 +7705,7 @@ function tradeAcceptBlockReason(offer,option){
   if(Number(offer.creatorUserId)===Number(tradeOffers._selfUserId||0))return 'Tu ne peux pas accepter ta propre offre.';
   if(!tradeCanReceive(offer.offer)){
     const name=String(offer.offer.name||'ce Lovy').replace(/^Fragments\s+/i,'');
-    return 'Tu dois déjà posséder '+name+' pour recevoir ses fragments. Les œufs permettent de découvrir de nouveaux Lovys.';
+    return 'Tu dois déjà posséder '+name+' pour recevoir ses fragments.';
   }
   if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
   return '';
