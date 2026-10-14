@@ -4923,7 +4923,49 @@ body:has(#pveModal:not(.hidden)){
 .badge-mobile-next,.badge-mobile-detail-button,.badge-mobile-detail{display:none}
 
 @media(max-width:900px){
-  .badge-mobile-next{display:grid;gap:9px;margin:0 0 18px;padding:15px;border:1px solid rgba(145,71,255,.4);border-radius:16px;background:linear-gradient(145deg,rgba(145,71,255,.14),rgba(17,21,40,.8))}
+  body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
+  #badgeCollectionModal{inset:0;width:100%;height:100dvh;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020;backdrop-filter:none;z-index:1000100}
+  #badgeCollectionModal>.badge-collection-panel{box-sizing:border-box;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0 16px calc(24px + env(safe-area-inset-bottom));border:0;border-radius:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:linear-gradient(180deg,#15132b,#0d1020 420px);box-shadow:none;scroll-padding-top:90px}
+  #badgeCollectionModal .badge-collection-head{position:sticky;top:0;z-index:5;min-height:72px;margin:0 -16px 16px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#121226;border-bottom:1px solid #35304f}
+  #badgeCollectionModal .badge-collection-head h2{min-width:0;font-size:clamp(16px,4.6vw,20px);line-height:1.3}
+  #badgeCollectionModal #badgeCollectionClose{flex:0 0 44px;width:44px;height:44px;font-size:27px;border-radius:12px}
+  #badgeCollectionModal .badge-collection-help,#badgeCollectionModal .badge-collection-title{display:none}
+  #badgeCollectionModal .badge-mobile-summary{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin:0 0 16px;padding:16px;border:1px solid #594080;border-radius:16px;background:linear-gradient(120deg,#30214c,#181b32)}
+  #badgeCollectionModal .badge-mobile-summary>div:first-child{display:grid;gap:6px;flex:1}
+  #badgeCollectionModal .badge-mobile-summary>div>span{font-size:10px;letter-spacing:.1em;color:#c9acff;font-weight:800}
+  #badgeCollectionModal .badge-mobile-summary strong{font-size:29px;line-height:1.1}
+  #badgeCollectionModal .badge-mobile-summary small{font-size:14px;font-weight:500;color:#c5bed8}
+  #badgeCollectionModal .badge-mobile-summary-percent{font-size:20px;font-weight:800;color:#dbbdff}
+  #badgeCollectionModal .badge-mobile-summary>.badge-mobile-progress{flex-basis:100%}
+  #badgeCollectionModal .badge-mobile-summary p{width:100%;margin:0;font-size:12px;line-height:1.5;color:#c5bed8}
+  #badgeCollectionModal .badge-filter-tabs{position:sticky;top:calc(72px + env(safe-area-inset-top));z-index:4;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 -2px 14px;padding:8px 2px;background:#121226}
+  #badgeCollectionModal .badge-filter-tab{min-width:0;min-height:46px;padding:10px 6px;font-size:12px;white-space:normal}
+  #badgeCollectionModal .badge-filter-count{margin-left:4px}
+  #badgeCollectionModal .badge-status-section{margin:14px 0 24px}
+  #badgeCollectionModal .badge-status-header{display:grid;gap:10px;padding:0 0 14px;background:none;border:0;border-bottom:1px solid #35304f;border-radius:0;font-size:15px}
+  #badgeCollectionModal .badge-status-filter{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;width:100%;font-size:12px}
+  #badgeCollectionModal .badge-status-select{width:100%;min-width:0;min-height:46px;font-size:16px;border-radius:10px}
+  #badgeCollectionModal .badge-challenge-grid{grid-template-columns:minmax(0,1fr);gap:12px}
+  #badgeCollectionModal .badge-category-heading{margin:16px 0 10px;font-size:13px}
+  #badgeCollectionModal .badge-challenge-card{min-width:0;min-height:0;padding:14px;border-radius:14px}
+  #badgeCollectionModal .badge-challenge-top{align-items:center;gap:12px}
+  #badgeCollectionModal .badge-challenge-art-wrap{flex:0 0 52px;width:52px;height:52px}
+  #badgeCollectionModal .badge-challenge-art-wrap .badge-art{width:52px;height:52px}
+  #badgeCollectionModal .badge-challenge-info{min-width:0}
+  #badgeCollectionModal .badge-challenge-name{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
+  #badgeCollectionModal .badge-challenge-state{display:block;margin-top:4px;padding:0;border:0;background:none;font-size:11px;line-height:1.5;white-space:normal}
+  #badgeCollectionModal .mobile-badge-card>.badge-mobile-progress{margin-top:12px}
+  #badgeCollectionModal .mobile-badge-progress-copy{margin:7px 0 0;color:#b9bfd8;font-size:12px;line-height:1.5}
+  #badgeCollectionModal .badge-card-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:9px}
+  #badgeCollectionModal .badge-action{min-height:44px;min-width:0;padding:9px 6px;white-space:normal;line-height:1.4;font-size:11px}
+  #badgeCollectionModal .badge-mobile-detail-button{display:flex;align-items:center;justify-content:space-between;margin-top:12px;min-height:44px;padding:10px 12px;font-size:12px}
+  #badgeCollectionModal .badge-mobile-next{display:block;margin:0 0 16px;padding:0;border:1px solid #4b3869;border-radius:12px;background:#1c1830;overflow:hidden}
+  #badgeCollectionModal .badge-mobile-next summary{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;padding:12px;font-size:13px;font-weight:800;cursor:pointer;list-style:none}
+  #badgeCollectionModal .badge-mobile-next summary::-webkit-details-marker{display:none}
+  #badgeCollectionModal .badge-mobile-next summary::after{content:'＋';color:#c99fff}
+  #badgeCollectionModal .badge-mobile-next[open] summary::after{content:'−'}
+  #badgeCollectionModal .badge-mobile-next summary>span{margin-left:auto;color:#b8a3dc;font-size:11px}
+  #badgeCollectionModal .badge-mobile-next-card{width:calc(100% - 20px);margin:0 10px 10px}
   .badge-mobile-next h3{margin:0 0 3px;font-size:17px}
   .badge-mobile-next p{margin:5px 0;color:#abb5d2}
   .badge-mobile-next-card{display:flex;align-items:center;gap:11px;width:100%;min-height:74px;text-align:left;color:#fff;background:#11172b;border:1px solid #363b61;border-radius:12px;padding:10px;cursor:pointer}
@@ -4952,12 +4994,12 @@ body:has(#pveModal:not(.hidden)){
 
 /* Mobile : fenêtres secondaires et formulaires, au-dessus des pages. */
 @media(max-width:900px){
-  :is(#pwaHelpModal,#subBenefitsModal,#badgeCollectionModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay]){
+  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay]){
     z-index:1000100;align-items:center;justify-content:center;
     padding:calc(16px + env(safe-area-inset-top)) 12px calc(var(--mobile-nav-height,55px) + 16px);
     overflow-y:auto;overscroll-behavior:contain;
   }
-  :is(#pwaHelpModal,#subBenefitsModal,#badgeCollectionModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay])>:first-child{
+  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay])>:first-child{
     width:min(560px,100%);min-width:0;max-height:calc(100dvh - var(--mobile-nav-height,55px) - env(safe-area-inset-top) - 32px);
     overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
     margin-top:0;padding:16px;border-radius:18px;

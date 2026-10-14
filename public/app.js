@@ -2062,12 +2062,12 @@ function renderMobileNextBadges(challenges) {
     .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
     .sort((a, b) => b.progress.percent - a.progress.percent)
     .slice(0, 3);
-  return `<section class="badge-mobile-next" aria-label="Mes prochains badges">
-    <h3>✨ Mes prochains badges</h3>
+  return `<details class="badge-mobile-next">
+    <summary>✨ Prochains objectifs <span>${next.length}</span></summary>
     ${next.length ? next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
       ${badgeVisual(challenge)}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
     </button>`).join('') : '<p>Tous les badges disponibles sont obtenus !</p>'}
-  </section>`;
+  </details>`;
 }
 
 async function activateBadgeSocialMission(challenge) {
@@ -2092,10 +2092,15 @@ async function activateBadgeSocialMission(challenge) {
   }
 }
 
+let mobileBadgeCollectionScroll=0;
 function closeMobileBadgeDetail() {
+  const wasOpen=!$('badgeMobileDetail')?.classList.contains('hidden');
   $('badgeMobileDetail')?.classList.add('hidden');
   $('badgeCollectionContent')?.classList.remove('hidden');
   document.querySelector('.badge-collection-panel')?.classList.remove('mobile-detail-open');
+  if(isMobileGameUi()&&wasOpen){
+    document.querySelector('.badge-collection-panel')?.scrollTo({top:mobileBadgeCollectionScroll});
+  }
 }
 
 function openMobileBadgeDetail(key) {
@@ -2104,6 +2109,7 @@ function openMobileBadgeDetail(key) {
   const owned = (badgeData.badges || []).find(item => item.badgeKey === key);
   const badge = challenge || owned;
   if (!badge) return;
+  mobileBadgeCollectionScroll=document.querySelector('.badge-collection-panel')?.scrollTop||0;
   const category = badgeCategoryOf(badge);
   const label = { watch: 'Visionnage', social: 'Réseaux sociaux', support: 'Soutien', special: 'Spéciaux' }[category];
   const progress = challenge ? badgeMobileProgress(challenge) : null;
@@ -2256,6 +2262,15 @@ function renderBadgeCollection() {
       ? `<div class="badge-xp-reward"><span class="badge-reward-label">${rewardLabel}</span>${rewardParts}${reserveNote}</div>`
       : '';
 
+    if(isMobileGameUi()){
+      const progress=badgeMobileProgress(challenge);
+      return `<article class="badge-challenge-card mobile-badge-card ${unlocked?'unlocked':'locked'}" data-badge-key="${escapeHtml(challenge.badgeKey)}">
+        <div class="badge-challenge-top"><div class="badge-challenge-icon badge-challenge-art-wrap">${badgeVisual(challenge)}</div><div class="badge-challenge-info"><div class="badge-challenge-name">${escapeHtml(challenge.badgeName||'Badge')}</div><div class="badge-challenge-state">${unlocked?'✓ Débloqué':'🔒 À débloquer'}${(isGlobalEvolution||isLiveAttendance)&&unlocked?` · Niveau ${Number(challenge.evolutionLevel||1)}/${Number(challenge.maxEvolutionLevel||1)}`:''}</div></div></div>
+        <div class="badge-mobile-progress" role="progressbar" aria-label="Progression du badge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.percent)}"><span style="width:${progress.percent}%"></span></div>
+        <p class="mobile-badge-progress-copy">${escapeHtml(challenge.maxed?'Évolution maximale':progress.label)}</p>
+        <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Objectif et récompenses <span aria-hidden="true">›</span></button>${actions}
+      </article>`;
+    }
     return `
       <div class="badge-challenge-card ${unlocked ? 'unlocked' : 'locked'}${socialClass}"
         data-badge-key="${escapeHtml(challenge.badgeKey)}"
@@ -2347,7 +2362,9 @@ function renderBadgeCollection() {
     </div>` : '';
 
   const selectedHtml = badgeCollectionView === 'locked' ? lockedHtml : unlockedHtml;
-  container.innerHTML = renderMobileNextBadges(challenges) + filterTabs + selectedHtml;
+  const ownedCount=unlockedChallenges.length+extraBadges.length,total=challenges.length+extraBadges.length;
+  const summary=isMobileGameUi()?`<section class="badge-mobile-summary" aria-label="Progression de la collection"><div><span>TA COLLECTION</span><strong>${ownedCount} <small>/ ${total} badges</small></strong></div><span class="badge-mobile-summary-percent">${total?Math.round(ownedCount/total*100):0} %</span><div class="badge-mobile-progress"><span style="width:${total?ownedCount/total*100:0}%"></span></div><p>Gagne des badges et affiche tes favoris sur ton profil.</p></section>`:'';
+  container.innerHTML = isMobileGameUi()?summary+filterTabs+renderMobileNextBadges(challenges)+selectedHtml:filterTabs+selectedHtml;
 
   if (badgeCollectionView === 'unlocked' && extraHtml) container.insertAdjacentHTML('beforeend', extraHtml);
 
@@ -2479,6 +2496,10 @@ function openBadgeShowcaseModal() {
   renderBadgeShowcase();
   renderBadgeCollection();
   $('badgeCollectionModal')?.classList.remove('hidden');
+  if(isMobileGameUi()){
+    document.querySelector('.badge-collection-panel')?.scrollTo({top:0});
+    $('badgeCollectionClose')?.focus({preventScroll:true});
+  }
 }
 
 $('openBadgeCollection')?.addEventListener('click', openBadgeShowcaseModal);
