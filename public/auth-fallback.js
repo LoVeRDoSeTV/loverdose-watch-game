@@ -105,6 +105,7 @@
       root.remove(); completed = true;
     });
     root.querySelector('#lwg-panel-accept').addEventListener('click', async () => {
+      if (completed) { root.remove(); return; }
       if (pending) return;
       pending = true;
       const btn = root.querySelector('#lwg-panel-accept');
@@ -125,7 +126,7 @@
         root.querySelector('#lwg-panel-desc').textContent = 'Ton panneau Twitch peut maintenant afficher tes informations. Retourne sur Twitch et actualise le panneau.';
         btn.textContent = 'Terminer';
         btn.disabled = false;
-        btn.onclick = () => root.remove();
+        
       } catch (err) {
         error.textContent = err.message || 'Une erreur est survenue.';
         error.style.display = 'block';
