@@ -4840,29 +4840,32 @@ body:has(#pveModal:not(.hidden)){
  #pveBattleOverlay .pve-battle-title{font-size:15px;line-height:1.4}
  #pveBattleOverlay .pve-battle-round{font-size:11px}
  #pveBattleOverlay .pve-battle-skip{min-height:44px;min-width:70px;padding:8px;font-size:12px}
- #pveBattleOverlay .pve-battle-arena{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;min-height:0;padding:4px 12px;flex:1 0 auto}
- #pveBattleOverlay .pve-combatant{display:grid;grid-template-columns:78px minmax(0,1fr);gap:10px;align-items:center;transform:none}
+ #pveBattleOverlay .pve-battle-arena{display:grid;grid-template-columns:minmax(0,1fr);align-content:center;gap:clamp(20px,4vh,42px);min-height:0;padding:18px 12px;flex:1 1 auto;background:radial-gradient(ellipse at 50% 50%,rgba(219,132,111,.08),transparent 67%)}
+ #pveBattleOverlay .pve-combatant{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:center;transform:none}
  #pveBattleOverlay .pve-combatant.enemy{order:0}
  #pveBattleOverlay .pve-combatant.player{order:1}
  #pveBattleOverlay .pve-battle-vs{display:none}
- #pveBattleOverlay .pve-combatant-sprite{width:78px;height:86px;margin:0}
- #pveBattleOverlay .pve-combatant-sprite .pve-enemy-art{width:78px;height:84px;transform:none}
- #pveBattleOverlay .pve-combatant-sprite :is(img,svg){width:auto!important;height:auto!important;max-width:78px;max-height:84px;object-fit:contain}
- #pveBattleOverlay .pve-combatant-ui{width:100%;min-width:0;padding:8px 10px;transform:none}
- #pveBattleOverlay .pve-combatant-name{font-size:14px;line-height:1.4;letter-spacing:0}
- #pveBattleOverlay .pve-combatant-name>span{display:block;font-size:10px;line-height:1.5}
+ #pveBattleOverlay .pve-combatant-sprite{width:88px;height:102px;margin:0}
+ #pveBattleOverlay .pve-combatant-sprite .pve-enemy-art{width:88px;height:100px;transform:none}
+ #pveBattleOverlay .pve-combatant-sprite :is(img,svg){width:auto!important;height:auto!important;max-width:88px;max-height:100px;object-fit:contain}
+ #pveBattleOverlay .pve-combatant-ui{width:100%;min-width:0;padding:10px 12px;transform:none}
+ #pveBattleOverlay .pve-combatant-name{display:block;font-size:14px;line-height:1.35;letter-spacing:0}
+ #pveBattleOverlay .pve-combatant-name>span{display:block;margin-top:3px;padding:0;background:none;color:#aeb9d5;font-size:10px;line-height:1.4}
  #pveBattleOverlay .pve-hp-track{height:9px;margin:6px 0}
  #pveBattleOverlay .pve-hp-text{font-size:12px;line-height:1.4}
  #pveBattleOverlay .pve-damage{transform:none}
  #pveBattleOverlay .pve-battle-effects{padding:4px 12px;max-height:110px;overflow:auto;font-size:11px}
  #pveBattleOverlay .mobile-pve-battle-help summary{min-height:30px;display:flex;align-items:center;color:#d4bafa;font-size:11px;cursor:pointer}
  #pveBattleOverlay .mobile-pve-battle-help p{margin:5px 0;font-size:11px;line-height:1.5;color:#b9c4df}
- #pveBattleOverlay .pve-battle-log{min-height:40px;padding:8px 12px;font-size:12px;line-height:1.5}
- #pveBattleOverlay .pve-battle-auto-row{padding:6px 12px;gap:8px}
- #pveBattleOverlay .pve-auto-btn{min-height:44px;padding:8px 12px;font-size:12px}
- #pveBattleOverlay .pve-battle-auto-row>span{font-size:10px;line-height:1.5}
- #pveBattleOverlay .pve-battle-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:8px 10px;position:sticky;bottom:0}
- #pveBattleOverlay .pve-action-btn{min-height:82px;padding:7px 5px;display:flex;flex-direction:column;justify-content:center;gap:4px;text-align:center}
+ #pveBattleOverlay .pve-battle-log{min-height:42px;padding:9px 12px;border-top:1px solid rgba(181,132,255,.2);background:rgba(9,10,23,.9);color:#ebe2ff;font-size:12px;line-height:1.45}
+ #pveBattleOverlay .pve-battle-auto-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;padding:9px 12px;background:#121326}
+ #pveBattleOverlay .pve-auto-btn{min-height:44px;padding:8px 11px;border:1px solid #73529e;border-radius:12px;background:#30234d;color:#f2eaff;font:inherit;font-size:12px;font-weight:850}
+ #pveBattleOverlay .pve-auto-btn.active{border-color:#ad82ed;background:linear-gradient(135deg,#69429c,#402467);color:#fff;box-shadow:0 0 18px rgba(151,91,239,.2)}
+ #pveBattleOverlay .pve-battle-auto-row>span{min-width:0;color:#b9afd5;font-size:11px;line-height:1.4}
+ #pveBattleOverlay .pve-battle-actions{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:9px 10px;position:sticky;bottom:0;background:#0b0d1e}
+ #pveBattleOverlay .pve-action-btn{min-height:78px;padding:7px 5px;display:flex;flex-direction:column;justify-content:center;gap:4px;text-align:center}
+ #pveBattleOverlay .pve-action-btn.basic{border-color:#468b77;background:linear-gradient(180deg,#1d5448,#122b2a)}
+ #pveBattleOverlay .pve-action-btn.basic.queued{border-color:#e8c075;box-shadow:0 0 0 2px rgba(232,192,117,.24)}
  #pveBattleOverlay .pve-action-btn>span{font-size:17px}
  #pveBattleOverlay .pve-action-btn strong{font-size:11px;line-height:1.4;white-space:normal}
  #pveBattleOverlay .pve-action-btn small{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:10px;line-height:1.4;white-space:normal}
