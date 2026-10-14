@@ -3151,6 +3151,19 @@ $('lovysXpTransferConfirm')?.addEventListener('click',async()=>{
 let lovysCollectionData={lovys:[],pendingXp:0,universalFragments:0};
 let lovysCollectionTab='collection';
 
+function renderLovysReserve(data){
+  const reserve=$('lovysCollectionReserve');if(!reserve)return;
+  const xp=Math.floor(Number(data?.pendingXp||0)).toLocaleString('fr-FR');
+  const universal=Math.max(0,Number(data?.universalFragments||0));
+  let help=$('lovysUniversalFragmentsHelp');
+  reserve.textContent=`⚡ ${xp} XP en réserve`;
+  if(universal<=0){help?.remove();return;}
+  if(!help){help=document.createElement('details');help.id='lovysUniversalFragmentsHelp';help.className='lovys-universal-guide';reserve.after(help);}
+  if(help.dataset.count===String(universal))return;
+  help.dataset.count=String(universal);
+  help.innerHTML=`<summary aria-label="${universal} fragments universels : afficher ou masquer l’aide"><span>🧩 ${universal.toLocaleString('fr-FR')} fragment${universal>1?'s':''} universel${universal>1?'s':''}</span><span class="lovys-universal-question" aria-hidden="true">?</span></summary><div class="lovys-universal-explanation"><p><strong>Utilisables sur tous tes Lovys.</strong> Ils complètent automatiquement les fragments manquants quand tu confirmes une amélioration de rang, jusqu’à <strong>50 % du coût</strong>.</p><p><strong>Comment en gagner ?</strong> Fais éclore un doublon d’un Lovys déjà au rang 5. Il donne des fragments universels à la place de ses fragments habituels.</p><p class="lovys-universal-example">Exemple : pour un rang à 70 fragments, tu peux utiliser 60 fragments du Lovys + 10 fragments universels.</p></div>`;
+}
+
 function lovysRankStars(rank){return '⭐'.repeat(Math.max(1,Math.min(5,Number(rank||1))));}
 function lovysFragmentProgress(l){
   const cost=Number(l?.nextRankCost||0),specific=Math.max(0,Number(l?.fragments||0));
@@ -3319,7 +3332,7 @@ function renderLovysActiveHero(data){
 function renderLovysFragmentInventory(data){
   const universalBox=$('lovysUniversalFragments'),grid=$('lovysFragmentsGrid'); if(!grid)return;
   const universal=Math.max(0,Number(data?.universalFragments||0));
-  if(universalBox) universalBox.innerHTML=`<div class="lovys-fragment-rule"><strong>🧩 Comment fonctionnent les doublons ?</strong><span>Un doublon donne 10 / 15 / 25 / 40 fragments selon sa rareté. Les fragments universels peuvent compléter jusqu’à 50 % du coût d’un rang.</span></div><div class="lovys-universal-icon">🧩</div><div><div class="lovys-universal-label">Fragments universels</div><div class="lovys-universal-value">${universal.toLocaleString('fr-FR')}</div><div class="lovys-universal-help">Réserve commune utilisable sur tous tes Lovys.</div></div>`;
+  if(universalBox)universalBox.innerHTML='<div class="lovys-fragment-rule"><strong>🧩 Comment fonctionnent les doublons ?</strong><span>Avant le rang 5, un doublon donne 10 / 15 / 25 / 40 fragments de ce Lovys selon sa rareté. Ils servent à augmenter son rang.</span></div>';
   const owned=(data?.lovys||[]);
   if(!owned.length){grid.innerHTML='<div class="lovys-fragments-empty"><div>🧩</div><strong>Aucun Lovys pour le moment</strong></div>';return;}
   grid.innerHTML=owned.map(l=>{const p=lovysFragmentProgress(l),stars=lovysRankStars(l.rank),max=!p.cost;return `<article class="lovys-fragment-card ${l.canRankUp?'ready':''}"><div class="lovys-fragment-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-fragment-body"><div class="lovys-fragment-top"><div><div class="lovys-fragment-name">${escapeHtml(l.name)}</div><div class="lovys-fragment-rarity">${escapeHtml(l.rarity)} · ${escapeHtml(l.type)}</div></div><div class="lovys-fragment-rank">${stars}<span>Rang ${Number(l.rank||1)}/5</span></div></div><div class="lovys-fragment-balance-line"><strong>🧩 ${p.specific.toLocaleString('fr-FR')}</strong><span>${max?'MAX':`/ ${p.cost}`}</span></div>${max?'':`<div class="lovys-fragment-progress"><span style="width:${p.pct}%"></span></div><div class="lovys-fragment-helper">Prochain rang : ${escapeHtml(lovysNextRankText(l))}</div><button class="hub-btn lovys-fragment-rank-btn" type="button" data-rank-lovys="${Number(l.id)}" ${l.canRankUp?'':'disabled'}>⭐ Passer au rang ${Number(l.rank||1)+1}</button>`}</div></article>`}).join('');
@@ -3327,6 +3340,7 @@ function renderLovysFragmentInventory(data){
 function lovysMissingCards(owned){const ids=new Set(owned.map(l=>lovysCanonicalId(l.creatureId)));return homeMonsters.filter(m=>!ids.has(lovysCanonicalId(m.id))).map(m=>`<article class="lovys-collection-card missing rarity-${lovysRarityClass(m.rarity)}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art silhouette"><img src="${escapeHtml(m.image)}" alt="" loading="lazy"></div><div class="lovys-collection-name">???</div><div class="lovys-collection-meta">${escapeHtml(m.rarity)} · ${escapeHtml(m.type)}</div><div class="lovys-missing-hints"><span>Rôle : ???</span><span>Taux : ${escapeHtml(m.chance)}</span></div></article>`).join('');}
 function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>${isMobileGameUi()?'← Collection':'×'}</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>📈 Paliers</h4><div class="lovys-level-stages"><span>Éveil</span><span>Éclosion</span><span>Ascension</span><span>Apogée</span></div></div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function renderLovysCollection(data){
+  renderLovysReserve(data);
   const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/10 découverts`;renderLovysActiveHero(data);if(!grid)return;
   const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
   const summary=$('lovysCollectionModal')?.querySelector('.lovys-collection-summary>span');
@@ -3347,7 +3361,7 @@ async function loadLovysCollection(){
     if(incubatorResponse?.ok){try{lovysIncubatorData=await incubatorResponse.json();}catch{lovysIncubatorData=null;}}
     if(!response.ok) throw new Error(data.error||'Impossible de charger la collection.');
     lovysCollectionData=data;
-    if($('lovysCollectionReserve')) $('lovysCollectionReserve').textContent=`⚡ ${Math.floor(Number(data.pendingXp||0)).toLocaleString('fr-FR')} XP en réserve · 🧩 ${Number(data.universalFragments||0)} fragments universels`;
+    renderLovysReserve(data);
     renderLovysCollection(data);
     return data;
   }catch(error){
@@ -4477,7 +4491,7 @@ function closeMobileLeaderboard(){
 }
 $('mobileLeaderboardOpen')?.addEventListener('click',openMobileLeaderboard);
 $('mobileLeaderboardClose')?.addEventListener('click',closeMobileLeaderboard);
-window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } renderIncubatorOverview(); renderLovysActiveHero(lovysCollectionData); });
+window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } renderIncubatorOverview(); renderLovysActiveHero(lovysCollectionData); renderLovysReserve(lovysCollectionData); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.body.classList.contains('mobile-leaderboard-open')) closeMobileLeaderboard(); if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');

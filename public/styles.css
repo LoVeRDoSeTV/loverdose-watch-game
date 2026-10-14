@@ -6029,6 +6029,15 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
 /* Informations repliables uniquement sur mobile. */
 .mobile-info-fold{display:contents}
 .mobile-info-fold>summary,.mobile-rank-action{display:none}
+#lovysCollectionModal .lovys-universal-guide{margin:10px 0 14px;border:1px solid #67508e;border-radius:14px;background:#211b35;overflow:hidden}
+#lovysCollectionModal .lovys-universal-guide>summary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:52px;padding:10px 13px;list-style:none;color:#e3d3ff;font-size:14px;font-weight:800;cursor:pointer}
+#lovysCollectionModal .lovys-universal-guide>summary::-webkit-details-marker{display:none}
+#lovysCollectionModal .lovys-universal-question{display:grid;place-items:center;flex:0 0 32px;width:32px;height:32px;border:1px solid #a77bdc;border-radius:50%;background:#332349;color:#fff;font-size:18px}
+#lovysCollectionModal .lovys-universal-explanation{padding:0 13px 14px;border-top:1px solid #49335f;color:#c9c3da;font-size:13px;line-height:1.6}
+#lovysCollectionModal .lovys-universal-explanation p{margin:12px 0 0}
+#lovysCollectionModal .lovys-universal-explanation strong{color:#f0e5ff}
+#lovysCollectionModal .lovys-universal-example{padding:10px;border-radius:10px;background:#151426}
+
 @media(max-width:900px){
   .mobile-info-fold{display:block;margin-top:14px;border:1px solid rgba(145,71,255,.25);border-radius:12px;background:rgba(145,71,255,.06);padding:0 12px}
   .mobile-info-fold>summary{display:list-item;min-height:44px;padding:13px 0;font-size:12px;font-weight:800;color:#dfceff;cursor:pointer;text-align:left}
