@@ -11,6 +11,7 @@ import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRate
 import { createChangePasswordHandler, getDiscordInviteUrl } from './src/account-settings.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { createPveRouter } from './src/routes/pve.js';
+import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
@@ -1078,6 +1079,7 @@ async function initDatabase() {
   await pool.query(`CREATE INDEX IF NOT EXISTS game_feedback_account_date ON game_feedback(account_id,created_at)`);
 
   await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS community_intro_seen BOOLEAN NOT NULL DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE accounts ADD COLUMN IF NOT EXISTS twitch_panel_enabled BOOLEAN NOT NULL DEFAULT FALSE`);
 
   // Les comptes déjà existants sont considérés comme ayant déjà vu l'introduction.
   // Les nouvelles inscriptions passent explicitement cette valeur à FALSE.
@@ -2769,6 +2771,8 @@ app.use(
   })
 );
 
+
+app.use('/api/twitch-panel', createTwitchPanelRouter({pool,baseUrl:BASE_URL,hatchSeconds:EGG_HATCH_SECONDS,creatureBattleStats,catalog:SHOP_ITEMS}));
 
 // Présence récente sur le site (et non présence dans le chat Twitch).
 const activeGameAccounts = new Map();
@@ -7577,3 +7581,4 @@ async function start() {
 
 
 start();
+
