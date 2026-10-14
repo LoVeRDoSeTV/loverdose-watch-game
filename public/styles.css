@@ -6078,6 +6078,12 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
   #lovysCollectionModal .lovys-talent-evolution>div{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:7px}
   #lovysCollectionModal .lovys-talent-evolution b{padding:6px;border-radius:7px;background:#191e33}
   #lovysCollectionModal .lovys-talent-evolution b.current{background:#6f35d9}
+  #lovysCollectionModal .mobile-talent-evolution>p{margin:6px 0;color:#aeb7d1;font-size:12px;line-height:1.5}
+  #lovysCollectionModal .mobile-talent-evolution>div{display:grid;gap:7px}
+  #lovysCollectionModal .mobile-talent-rank{display:grid;gap:4px;min-width:0;padding:9px 10px;border:1px solid #343b5f;border-radius:9px;background:#191e33}
+  #lovysCollectionModal .mobile-talent-rank.current{border-color:#a979ff;background:#30204e}
+  #lovysCollectionModal .mobile-talent-rank strong{font-size:12px;color:#d8c1ff}
+  #lovysCollectionModal .mobile-talent-rank>span{font-size:12px;line-height:1.5;color:#e6e9f5;overflow-wrap:anywhere}
   #lovysCollectionModal .lovys-combat-stats.labelled span{display:grid;gap:3px}
   #lovysCollectionModal .lovys-combat-stats.labelled small{font-size:10px;color:#aeb7d1}
   #lovysCollectionModal .lovys-card-level{font-size:11px;color:#aeb7d1;margin:6px 0}

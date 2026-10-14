@@ -3166,6 +3166,25 @@ function lovysRankTimeline(l){
 function lovysTalentEvolution(l){
   const previews=l?.rankPreviews||[];
   if(!previews.length)return '';
+  if(isMobileGameUi()){
+    const effect=t=>{
+      const pct=n=>`${Number(n||0).toLocaleString('fr-FR')} %`;
+      switch(t?.key){
+        case 'living_roots':return `${pct(t.value)} des PV max récupérés à chaque tour`;
+        case 'deep_veil':return `${pct(t.value)} de dégâts en moins au premier coup reçu`;
+        case 'discharge':return `${pct(t.value)} de chances d’étourdir pendant 1 tour`;
+        case 'mist_dodge':return `${pct(t.value)} de chances d’esquiver une attaque`;
+        case 'persistent_ember':return `${pct(t.value)} de chances de brûlure · ${pct(t.secondaryValue)} de l’ATQ par tour`;
+        case 'prismatic_reflection':return `${pct(t.value)} des dégâts reçus renvoyés`;
+        case 'forge_strike':return `Tous les 3 coups : ${pct(t.value)} de l’ATQ · ${pct(t.secondaryValue)} de DEF ignorée`;
+        case 'ambush':return `Première attaque à ${pct(t.value)} · priorité au début du combat`;
+        case 'second_wind':return `${pct(t.value)} de PV par tour · urgence : ${pct(t.secondaryValue)} de PV et +${pct(t.tertiaryValue)} d’ATQ`;
+        case 'waking_dream':return `${pct(t.value)} des PV max récupérés après un coup fatal`;
+        default:return t?.description||'Talent passif';
+      }
+    };
+    return `<div class="lovys-talent-evolution mobile-talent-evolution"><span>Évolution du talent</span><p>Le talent se renforce aux rangs 3 et 5. Chaque rang augmente aussi les statistiques.</p><div>${previews.map(r=>{const current=Number(r.rank)===Number(l.rank||1);return `<div class="mobile-talent-rank ${current?'current':''}" ${current?'aria-current="step"':''}><strong>Rang ${Number(r.rank)}${current?' · Actuel':''}</strong><span>${escapeHtml(effect(r.talent))}</span></div>`;}).join('')}</div></div>`;
+  }
   const short=d=>{const m=String(d||'').match(/(\d+(?:[,.]\d+)?)\s*%/);return m?`${m[1]} %`:`R${previews.findIndex(x=>x.talent?.description===d)+1}`};
   return `<div class="lovys-talent-evolution"><span>Évolution du talent</span><div>${previews.map(r=>`<b class="${Number(r.rank)===Number(l.rank||1)?'current':''}">${short(r.talent?.description)}</b>`).join('<i>→</i>')}</div></div>`;
 }
@@ -3409,11 +3428,44 @@ async function rankUpLovysFromButton(rankBtn){
     if(document.body.contains(rankBtn)) rankBtn.disabled=false;
   }
 }
+let mobileLovysActivationBusy=false;
+async function activateMobileLovys(lovysId,button){
+  if(!isMobileGameUi()||mobileLovysActivationBusy)return;
+  const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);
+  if(!chosen||chosen.isActive)return;
+  mobileLovysActivationBusy=true;
+  const label=button?.textContent;
+  const lock=disabled=>document.querySelectorAll('[data-activate-lovys],[data-pve-lovys]').forEach(b=>{b.disabled=disabled;});
+  lock(true);
+  if(button)button.textContent='Activation…';
+  try{
+    const response=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId})});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Impossible de changer de Lovys.');
+    // The server has confirmed the change: render it before refreshing other pages.
+    lovysCollectionData={...lovysCollectionData,lovys:lovysCollectionData.lovys.map(l=>({...l,isActive:Number(l.id)===lovysId}))};
+    renderLovysCollection(lovysCollectionData);
+    const inCombatPage=!$('pveModal')?.classList.contains('hidden');
+    if(inCombatPage&&pveMapState.data){
+      pveMapState.data.creature={...chosen.stats,name:chosen.name,type:chosen.type,level:chosen.level,rank:chosen.rank,talent:chosen.talent,skills:chosen.skills};
+      renderMobilePveAdventure(pveMapState.data,pveMapState.selectedZone);
+    }
+    lock(true);
+    // Do not hold the visible selection behind badges, wheels or incubators.
+    await Promise.allSettled([loadGame(),loadLovysCollection(),...(inCombatPage?[loadPve()]:[])]);
+  }catch(error){
+    if(button)button.textContent=label;
+    alert(error.message||'Impossible de changer de Lovys.');
+  }finally{
+    mobileLovysActivationBusy=false;
+    lock(false);
+  }
+}
 $('lovysCollectionGrid')?.addEventListener('click',async e=>{
   const view=e.target.closest('[data-view-lovys]'); if(view){const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===Number(view.dataset.viewLovys));renderLovysDetail(chosen);return;}
   const incubator=e.target.closest('[data-lovys-incubator]');if(incubator){$('openIncubator')?.click();return;}
   const activate=e.target.closest('[data-activate-lovys]');
-  if(activate){activate.disabled=true;const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(activate.dataset.activateLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');activate.disabled=false;return;}await loadGame();await loadLovysCollection();return;}
+  if(activate){if(isMobileGameUi()){await activateMobileLovys(Number(activate.dataset.activateLovys),activate);return;}activate.disabled=true;const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(activate.dataset.activateLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');activate.disabled=false;return;}await loadGame();await loadLovysCollection();return;}
   const rankBtn=e.target.closest('[data-rank-lovys]');
   if(rankBtn){await rankUpLovysFromButton(rankBtn);return;}
   const transfer=e.target.closest('[data-transfer-lovys]');
@@ -4016,7 +4068,7 @@ $('pveContent')?.addEventListener('click',async e=>{
     const fightButton=e.target.closest('[data-fight]');if(fightButton){if(!fightButton.disabled)await startMobilePveFight(fightButton.dataset.fight,fightButton);return;}
   }
   const lovysBtn=e.target.closest('[data-pve-lovys]');
-  if(lovysBtn){if(lovysBtn.classList.contains('active'))return;lovysBtn.disabled=true;try{const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(lovysBtn.dataset.pveLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');return;}await loadGame();await loadLovysCollection();await loadPve();}finally{lovysBtn.disabled=false;}return;}
+  if(lovysBtn){if(isMobileGameUi()){await activateMobileLovys(Number(lovysBtn.dataset.pveLovys),lovysBtn);return;}if(lovysBtn.classList.contains('active'))return;lovysBtn.disabled=true;try{const r=await fetch('/api/lovys/activate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId:Number(lovysBtn.dataset.pveLovys)})});const d=await r.json();if(!r.ok){alert(d.error||'Impossible de changer de Lovys.');return;}await loadGame();await loadLovysCollection();await loadPve();}finally{lovysBtn.disabled=false;}return;}
   const closeDetail=e.target.closest('[data-pve-detail-close]');if(closeDetail){$('pveMapDetail')?.classList.remove('detail-open');return;}
   if(e.target.matches?.('[data-pve-detail-backdrop]')){$('pveMapDetail')?.classList.remove('detail-open');return;}
   const cat=e.target.closest('[data-pve-category]');if(cat){pveMapState.view=cat.dataset.pveCategory==='fragments'?'fragments':'map';renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
