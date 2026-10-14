@@ -1587,6 +1587,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS event_type TEXT`);
   await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS offer_id BIGINT REFERENCES trade_offers(id) ON DELETE CASCADE`);
   await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS popup_seen_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE trade_notifications ADD COLUMN IF NOT EXISTS player_trade_id BIGINT REFERENCES player_trade_offers(id) ON DELETE CASCADE`);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS trade_notifications_expired_offer_idx ON trade_notifications(offer_id) WHERE event_type='offer_expired'`);
 
 
@@ -7197,7 +7198,7 @@ app.post('/api/player-trades/:offerId/:action',tradeWriteRateLimit,async(req,res
       status=action==='decline'?'declined':'cancelled';message=action==='decline'?'Proposition refusée. Les objets ont été rendus au joueur.':'Proposition annulée. Tes objets ont été rendus.';
     }
     await client.query(`UPDATE player_trade_offers SET status=$2,accepted_at=CASE WHEN $2='completed' THEN CURRENT_TIMESTAMP ELSE NULL END,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[offerId,status]);
-    for(const participant of [creator,target])await client.query(`INSERT INTO trade_notifications(user_id,message,event_type) VALUES($1,$2,'player_trade_resolved')`,[participant.userId,`Proposition ciblée #${offerId} : ${message}`]);
+    for(const participant of [creator,target])await client.query(`INSERT INTO trade_notifications(user_id,message,event_type,player_trade_id) VALUES($1,$2,$3,$4)`,[participant.userId,`Proposition ciblée #${offerId} : ${message}`,action==='accept'&&participant.userId===creator.userId?'player_trade_accepted':'player_trade_resolved',offerId]);
     await client.query('COMMIT');pushLiveUpdate('trade-update',{playerTradeId:offerId});res.json({ok:true,message});
   }catch(error){try{await client.query('ROLLBACK');}catch{};res.status(400).json({error:error.message||'Échange impossible.'});}
   finally{client.release();}
@@ -7296,7 +7297,7 @@ app.post('/api/trades/:offerId/accept',tradeWriteRateLimit,async(req,res)=>{
     await changeTradeAsset(client,creator,requested,requested.quantity);
     await changeTradeAsset(client,accepter,offered,offered.quantity);
     await client.query(`UPDATE trade_offers SET status='completed',accepted_by_user_id=$2,accepted_option_id=$3,accepted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[offerId,accepter.userId,optionId]);
-    await client.query(`INSERT INTO trade_notifications(user_id,message) VALUES($1,$2)`,[creator.userId,`Ton offre #${offerId} a été acceptée par ${accepter.username}.`]);
+    await client.query(`INSERT INTO trade_notifications(user_id,message,event_type,offer_id) VALUES($1,$2,'offer_accepted',$3)`,[creator.userId,`Ton offre #${offerId} a été acceptée par ${accepter.username}.`,offerId]);
     await client.query('COMMIT');pushLiveUpdate('trade-update',{offerId});res.json({ok:true,message:'Échange effectué !'});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur acceptation échange :',error);res.status(400).json({error:error.message||"Impossible d'accepter cet échange."});}finally{client.release();}
 });
@@ -7321,6 +7322,44 @@ app.post('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(
 app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
 app.get('/api/trades/notifications',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT id,message,event_type,created_at,read_at FROM trade_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[ctx.userId]);res.json({ok:true,unread:q.rows.filter(x=>!x.read_at).length,items:q.rows});}catch(e){res.status(500).json({error:'Notifications indisponibles.'});}});
 app.post('/api/trades/notifications/read',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});await pool.query(`UPDATE trade_notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND read_at IS NULL`,[ctx.userId]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de marquer les notifications.'});}});
+
+app.get('/api/trades/accepted-notices',async(req,res)=>{
+  try{
+    const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});
+    const result=await pool.query(`SELECT n.id,o.offer_type,o.offer_creature_id,o.offer_quantity,
+      opt.receive_type,opt.receive_creature_id,opt.receive_quantity,
+      COALESCE(a.username,u.display_name,u.login,'un joueur') partner
+      FROM trade_notifications n JOIN trade_offers o ON o.id=n.offer_id
+      JOIN trade_offer_options opt ON opt.id=o.accepted_option_id
+      LEFT JOIN users u ON u.id=o.accepted_by_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id
+      WHERE n.user_id=$1 AND o.creator_user_id=$1 AND o.status='completed'
+      AND n.event_type='offer_accepted' AND n.popup_seen_at IS NULL ORDER BY n.id LIMIT 20`,[ctx.userId]);
+    const targeted=await pool.query(`SELECT n.id,o.offered,o.requested,
+      COALESCE(a.username,u.display_name,u.login,'un joueur') partner
+      FROM trade_notifications n JOIN player_trade_offers o ON o.id=n.player_trade_id
+      LEFT JOIN users u ON u.id=o.target_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id
+      WHERE n.user_id=$1 AND o.creator_user_id=$1 AND o.status='completed'
+      AND n.event_type='player_trade_accepted' AND n.popup_seen_at IS NULL ORDER BY n.id LIMIT 20`,[ctx.userId]);
+    const items=result.rows.map(row=>({id:Number(row.id),partner:row.partner,
+      give:[tradeAssetJson(row.offer_type,row.offer_creature_id,row.offer_quantity)],
+      receive:[tradeAssetJson(row.receive_type,row.receive_creature_id,row.receive_quantity)]}));
+    items.push(...targeted.rows.map(row=>({id:Number(row.id),partner:row.partner,
+      give:row.offered.map(asset=>tradeAssetJson(asset.type,asset.creatureId,asset.quantity)),
+      receive:row.requested.map(asset=>tradeAssetJson(asset.type,asset.creatureId,asset.quantity))})));
+    res.json({ok:true,items:items.sort((a,b)=>a.id-b.id).slice(0,20)});
+  }catch(error){console.error('Avis d’échange accepté :',error);res.status(500).json({error:'Notifications indisponibles.'});}
+});
+app.post('/api/trades/accepted-notices/seen',async(req,res)=>{
+  try{
+    const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});
+    const ids=req.body?.ids;
+    if(!Array.isArray(ids)||!ids.length||ids.length>20||ids.some(id=>!Number.isSafeInteger(id)||id<1))return res.status(400).json({error:'Avis invalides.'});
+    await pool.query(`UPDATE trade_notifications SET popup_seen_at=CURRENT_TIMESTAMP WHERE user_id=$1
+      AND id=ANY($2::bigint[]) AND event_type IN ('offer_accepted','player_trade_accepted') AND popup_seen_at IS NULL`,[ctx.userId,ids]);
+    res.json({ok:true});
+  }catch(error){res.status(500).json({error:'Impossible de confirmer les notifications.'});}
+});
+
 app.get('/api/trades/expiry-notices',async(req,res)=>{
   if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
   let client,transaction=false;

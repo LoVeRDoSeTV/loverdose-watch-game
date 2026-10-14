@@ -7794,7 +7794,7 @@ async function loadLobbyActivity(silent=false){
   const box=$('lobbyActivityBox'),feed=$('lobbyActivityFeed');if(!box||!feed || (silent && !canRefreshLobbyTab('trades')))return;
   try{const r=await fetch('/api/trades/activity',{cache:'no-store'}),d=await r.json();if(!r.ok)return;if(silent && !canRefreshLobbyTab('trades'))return;const items=d.items||[];if(!items.length){box.classList.add('hidden');updateLobbyMarkup(feed,'');return;}updateLobbyMarkup(feed,items.slice(0,6).map(x=>`<div class="lobby-activity-item"><span>•</span><span>${escapeHtml(x.text)}</span><small>${formatTradeDate(x.at)}</small></div>`).join(''));box.classList.remove('hidden');}catch(error){console.warn('Activité Communauté indisponible :',error);}
 }
-let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
+let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;void refreshAcceptedTradeNotices();if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
 async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
 function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();void refreshLobbySilently();},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
@@ -8059,7 +8059,7 @@ let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
   return assets.map(asset=>`<div class="trade-exchange-item">${asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`).join('');
 }
-async function runTradeAcceptance({partner,give,receive,submit,refresh}){
+async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedNotice=false}){
   if(activeTradeExchange)return false;
   activeTradeExchange=true;
   const previous=document.activeElement,overlay=document.createElement('div');
@@ -8083,7 +8083,8 @@ async function runTradeAcceptance({partner,give,receive,submit,refresh}){
         await submit();committed=true;
         await new Promise(done=>setTimeout(done,Math.max(0,650-(Date.now()-started))));
         state='success';card.classList.remove('working');card.classList.add('success');emblem.textContent='✓';
-        status.textContent='Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
+        if(acceptedNotice)overlay.querySelector('#tradeExchangeTitle').textContent='Félicitations !';
+        status.textContent=acceptedNotice?'Ton offre a été acceptée par '+(partner||'ce joueur')+' ! Les objets ont été transférés.':'Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
         main.textContent='Parfait !';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
         try{await refresh?.();}catch(error){console.warn('Échange confirmé, actualisation différée :',error);}
       }catch(error){
@@ -8092,9 +8093,37 @@ async function runTradeAcceptance({partner,give,receive,submit,refresh}){
         main.textContent='Fermer';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
       }
     });
-    cancel.focus();
+    if(acceptedNotice){cancel.hidden=true;main.click();}else cancel.focus();
   });
 }
+
+const displayedAcceptedTradeNotices=new Set();
+let checkingAcceptedTradeNotices=false;
+async function refreshAcceptedTradeNotices(){
+  if(checkingAcceptedTradeNotices||document.hidden||lobbyRefreshIsBlocked())return;
+  checkingAcceptedTradeNotices=true;
+  try{
+    const response=await fetch('/api/trades/accepted-notices',{cache:'no-store'}),data=await response.json();
+    if(!response.ok)return;
+    for(const item of data.items||[]){
+      if(document.hidden||lobbyRefreshIsBlocked())break;
+      if(!displayedAcceptedTradeNotices.has(item.id)){
+        const shown=await runTradeAcceptance({partner:item.partner,give:item.give,receive:item.receive,
+          acceptedNotice:true,submit:async()=>{},refresh:async()=>{
+            await Promise.allSettled([loadGame(),loadLovysCollection()]);
+            await refreshLobbySilently();
+          }});
+        if(!shown)break;
+        displayedAcceptedTradeNotices.add(item.id);
+      }
+      const seen=await fetch('/api/trades/accepted-notices/seen',{method:'POST',
+        headers:{'Content-Type':'application/json'},body:JSON.stringify({ids:[item.id]})});
+      if(!seen.ok)break;
+    }
+  }catch(error){console.warn('Notification d’échange différée :',error);}
+  finally{checkingAcceptedTradeNotices=false;}
+}
+
 async function acceptTrade(offerId,optionId){
   if(activeTradeExchange)return;
   const offer=tradeOffers.find(o=>Number(o.id)===Number(offerId)),option=offer?.options?.find(o=>Number(o.id)===Number(optionId));if(!offer||!option)return;
@@ -8171,7 +8200,7 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
-  liveUpdates.addEventListener('trade-update', () => { void refreshLobbySilently(); });
+  liveUpdates.addEventListener('trade-update', () => { void refreshLobbyNotifications();void refreshLobbySilently(); });
   liveUpdates.onerror = () => {
     // EventSource tente automatiquement de se reconnecter.
   };
