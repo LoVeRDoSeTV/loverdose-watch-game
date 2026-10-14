@@ -43,12 +43,23 @@ export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattl
     }catch(error){console.error('Erreur lecture panel Twitch :',error.message);res.status(500).json({error:'La progression est momentanément indisponible.'});}
   });
 
+  // Entrée depuis le panneau : conserver l'intention dans la session serveur.
+  router.get('/start',(req,res)=>{
+    const mode=String(req.query.mode||'');
+    if(!['register','login'].includes(mode))return res.status(400).send('Parcours invalide.');
+    req.session.twitchPanelIntent={mode,createdAt:Date.now()};
+    req.session.save(error=>{
+      if(error)return res.status(500).send('Impossible de préparer la liaison.');
+      res.redirect('/?twitch_panel='+mode);
+    });
+  });
+
   router.get('/connection',async(req,res)=>{
     if(!req.session?.account?.id)return res.json({authenticated:false});
     try{
       const result=await pool.query(`SELECT a.username,a.twitch_id,a.twitch_panel_enabled,u.id AS user_id FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1`,[req.session.account.id]);
       const row=result.rows[0];
-      res.json({authenticated:Boolean(row),name:row?.username||'',twitchConnected:Boolean(row?.twitch_id&&row?.user_id),enabled:Boolean(row?.twitch_panel_enabled),configured:panelSettings(env).ready});
+      res.json({authenticated:Boolean(row),name:row?.username||'',twitchConnected:Boolean(row?.twitch_id&&row?.user_id),enabled:Boolean(row?.twitch_panel_enabled),configured:panelSettings(env).ready,panelRequested:Boolean(req.session.twitchPanelIntent&&Date.now()-req.session.twitchPanelIntent.createdAt<20*60*1000)});
     }catch{res.status(500).json({error:'Impossible de vérifier la connexion.'});}
   });
 
@@ -60,6 +71,7 @@ export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattl
       // Explicit site consent; the account's Twitch connection is established by existing OAuth.
       const result=await pool.query(`UPDATE accounts SET twitch_panel_enabled=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND ($2=FALSE OR (twitch_id IS NOT NULL AND EXISTS(SELECT 1 FROM users WHERE users.twitch_id=accounts.twitch_id))) RETURNING twitch_panel_enabled`,[req.session.account.id,req.body.enabled]);
       if(!result.rowCount)return res.status(409).json({error:'Relie d’abord ton compte Twitch depuis le site du jeu.'});
+      delete req.session.twitchPanelIntent;
       res.json({ok:true,enabled:Boolean(result.rows[0].twitch_panel_enabled)});
     }catch{res.status(500).json({error:'Impossible de modifier la liaison.'});}
   });
