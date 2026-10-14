@@ -4840,20 +4840,21 @@ body:has(#pveModal:not(.hidden)){
  #pveBattleOverlay .pve-battle-title{font-size:15px;line-height:1.4}
  #pveBattleOverlay .pve-battle-round{font-size:11px}
  #pveBattleOverlay .pve-battle-skip{min-height:44px;min-width:70px;padding:8px;font-size:12px}
- #pveBattleOverlay .pve-battle-arena{display:grid;grid-template-columns:minmax(0,1fr);align-content:safe center;gap:clamp(10px,2vh,20px);min-height:0;padding:10px 12px;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 43%,rgba(219,132,111,.12),transparent 65%)}
+ #pveBattleOverlay .pve-battle-arena{display:grid;grid-template-columns:minmax(0,1fr);align-content:safe center;gap:clamp(6px,1vh,12px);min-height:0;padding:6px 12px;flex:1 1 auto;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:radial-gradient(ellipse at 50% 43%,rgba(219,132,111,.12),transparent 65%)}
  #pveBattleOverlay .pve-combatant{display:grid;grid-template-columns:88px minmax(0,1fr);gap:10px;align-items:center;transform:none}
  #pveBattleOverlay .pve-combatant.enemy{order:0;display:flex;flex-direction:column;gap:3px;align-items:center;width:100%}
  #pveBattleOverlay .pve-combatant.player{order:1}
  #pveBattleOverlay .pve-battle-vs{display:none}
  #pveBattleOverlay .pve-combatant-sprite{width:88px;height:102px;margin:0}
- #pveBattleOverlay .pve-combatant.enemy .pve-combatant-sprite{width:min(52vw,27vh,185px);height:min(52vw,27vh,185px);margin:0 auto;filter:drop-shadow(0 10px 22px rgba(0,0,0,.42))}
+ #pveBattleOverlay .pve-combatant.enemy .pve-combatant-sprite{width:min(48vw,23vh,165px);height:min(48vw,23vh,165px);margin:0 auto;filter:drop-shadow(0 10px 22px rgba(0,0,0,.42))}
  #pveBattleOverlay .pve-combatant.enemy .pve-combatant-sprite .pve-enemy-art{width:100%;height:100%;transform:none}
  #pveBattleOverlay .pve-combatant-sprite :is(img,svg){width:auto!important;height:auto!important;max-width:88px;max-height:100px;object-fit:contain}
  #pveBattleOverlay .pve-combatant.enemy .pve-combatant-sprite :is(img,svg){max-width:100%!important;max-height:100%!important}
  #pveBattleOverlay .pve-combatant-ui{width:100%;min-width:0;padding:10px 12px;transform:none}
  #pveBattleOverlay .pve-combatant.enemy .pve-combatant-ui{max-width:360px;margin:0 auto}
- #pveBattleOverlay .pve-combatant-name{display:block;font-size:14px;line-height:1.35;letter-spacing:0}
- #pveBattleOverlay .pve-combatant-name>span{display:block;margin-top:3px;padding:0;background:none;color:#aeb9d5;font-size:10px;line-height:1.4}
+ #pveBattleOverlay .pve-combatant-name{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:14px;line-height:1.35;letter-spacing:0}
+ #pveBattleOverlay .pve-combatant-name>strong{min-width:0;overflow-wrap:anywhere}
+ #pveBattleOverlay .pve-combatant-name>span{display:block;flex:none;margin:0;padding:4px 7px;border-radius:99px;background:rgba(155,113,229,.18);color:#e7d4ff;font-size:11px;line-height:1.2;white-space:nowrap}
  #pveBattleOverlay .pve-hp-track{height:9px;margin:6px 0}
  #pveBattleOverlay .pve-hp-text{font-size:12px;line-height:1.4}
  #pveBattleOverlay .pve-damage{transform:none}
