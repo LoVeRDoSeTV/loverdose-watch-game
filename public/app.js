@@ -8073,17 +8073,16 @@ async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedN
     const key=event=>{if(event.key==='Escape'){event.preventDefault();finish();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
     document.addEventListener('keydown',key);
     close.addEventListener('click',finish);cancel.addEventListener('click',finish);
-    overlay.addEventListener('click',event=>{if(event.target===overlay)finish();});
+    overlay.addEventListener('click',event=>{if(event.target===overlay&&state!=='success')finish();});
     main.addEventListener('click',async()=>{
       if(state==='working')return;
       if(state!=='confirm'){finish();return;}
       state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Les objets sont en cours de transfert.';
-      const started=Date.now();
       try{
         await submit();committed=true;
-        await new Promise(done=>setTimeout(done,Math.max(0,650-(Date.now()-started))));
+        await new Promise(done=>setTimeout(done,1200));
         state='success';card.classList.remove('working');card.classList.add('success');emblem.textContent='✓';
-        if(acceptedNotice)overlay.querySelector('#tradeExchangeTitle').textContent='Félicitations !';
+        overlay.querySelector('#tradeExchangeTitle').textContent=acceptedNotice?'Félicitations !':'Félicitations pour ton échange avec '+(partner||'ce joueur')+' !';
         status.textContent=acceptedNotice?'Ton offre a été acceptée par '+(partner||'ce joueur')+' ! Les objets ont été transférés.':'Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
         main.textContent='Parfait !';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
         try{await refresh?.();}catch(error){console.warn('Échange confirmé, actualisation différée :',error);}

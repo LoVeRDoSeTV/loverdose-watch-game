@@ -7670,6 +7670,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .trade-exchange-modal.working .receive .trade-exchange-item{animation:tradeExchangeReceive .8s ease-in-out infinite}
 .trade-exchange-modal.success .trade-exchange-emblem{background:#164d3a;border-color:#67dba8;color:#aeffd3;animation:tradeSuccessCheck .4s ease-out}
 .trade-exchange-modal.success #tradeExchangeStatus{color:#b6f8d5}
+.trade-exchange-modal.success .trade-exchange-arrow{color:#aeffd3;animation:tradeSuccessCheck .7s ease-out}
+.trade-exchange-modal.success .trade-exchange-side{border-color:#67dba8;box-shadow:0 0 20px #67dba825}
+.trade-exchange-modal.success .trade-exchange-item{animation:tradeSuccessCheck .7s ease-out}
 .trade-exchange-modal.error .trade-exchange-emblem{background:#542237;border-color:#ce7392;color:#ffd4e1}
 .trade-exchange-modal.error #tradeExchangeStatus{color:#ffc1d3}
 .trade-exchange-overlay :focus-visible{outline:2px solid #d5adff;outline-offset:3px}
@@ -7677,7 +7680,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 @keyframes tradeExchangeSend{50%{transform:translateX(5px);opacity:.55}}
 @keyframes tradeExchangeReceive{50%{transform:translateX(-5px);filter:brightness(1.25)}}
 @media(max-width:600px){.trade-exchange-modal{padding:24px 14px 18px}.trade-exchange-modal h2{font-size:19px}.trade-exchange-buttons{flex-direction:column}.trade-exchange-summary{grid-template-columns:minmax(0,1fr) 26px minmax(0,1fr);gap:5px}}
-@media(prefers-reduced-motion:reduce){.trade-exchange-modal,.trade-exchange-modal.working *,.trade-exchange-modal.success .trade-exchange-emblem{animation:none!important}}
+@media(prefers-reduced-motion:reduce){.trade-exchange-modal,.trade-exchange-modal.working *,.trade-exchange-modal.success .trade-exchange-emblem,.trade-exchange-modal.success .trade-exchange-arrow,.trade-exchange-modal.success .trade-exchange-item{animation:none!important}}
 
 /* V191 — confirmation d'offre en vraie popup + succès 1,5 s */
 .trade-publish-confirm-overlay{position:fixed;inset:0;z-index:10060;display:grid;place-items:center;padding:20px;background:rgba(3,5,13,.72);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px)}
