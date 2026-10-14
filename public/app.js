@@ -4172,7 +4172,9 @@ function getSelfLeaderboardPlayer(){
     created_at: current.created_at || cached?.created_at || null,
     lifetime_lovercash_earned: Number(current.lifetime_lovercash_earned ?? cached?.lifetime_lovercash_earned ?? 0),
     lifetime_lovercash_spent: Number(current.lifetime_lovercash_spent ?? cached?.lifetime_lovercash_spent ?? 0),
-    creature_count: Number(cached?.creature_count ?? (current.creature_id ? 1 : 0)),
+    collection_count: lovysCollectionData?.ok ? new Set((lovysCollectionData.lovys||[]).map(lovy=>lovy.creatureId)).size : Number(cached?.collection_count || 0),
+    total_lovys: Number(cached?.total_lovys || homeMonsters.length),
+    creature_count: Number(cached?.creature_count || 0),
     badge_count: Number(cached?.badge_count ?? (badgeData.badges || []).length),
     cosmetic_title: current.cosmetic_title || null,
     cosmetic_title_color: current.cosmetic_title_color || null,
@@ -4584,7 +4586,7 @@ function openPlayerProfile(playerData) {
     <div class="player-profile-stat"><div class="player-profile-stat-label">Temps regardé</div><div class="player-profile-stat-value">${escapeHtml(formatProfileHours(playerData.watch_seconds))}</div></div>
     <div class="player-profile-stat"><div class="player-profile-stat-label">LoVeR'Cash</div><div class="player-profile-stat-value">${Math.floor(Number(playerData.points || 0))}</div></div>
     <div class="player-profile-stat"><div class="player-profile-stat-label">Badges débloqués</div><div class="player-profile-stat-value">${Number(playerData.badge_count || 0)}</div></div>
-    <div class="player-profile-stat"><div class="player-profile-stat-label">Compagnons</div><div class="player-profile-stat-value">${Number(playerData.creature_count || 0)}</div></div>
+    <div class="player-profile-stat"><div class="player-profile-stat-label">Lovys découverts</div><div class="player-profile-stat-value">${Number(playerData.collection_count || 0)} / ${Number(playerData.total_lovys || homeMonsters.length)}</div></div>
   </div>
   <div class="player-profile-sections">
     <section class="player-profile-section"><h3>📈 Progression</h3><div class="player-profile-line"><span>XP globale</span><strong>${globalXp} XP</strong></div><div class="player-profile-line"><span>Prestige</span><strong>${Number(playerData.prestige || 0)}</strong></div><div class="player-profile-line"><span>Fragments d’œuf</span><strong>${Number(playerData.egg_fragments || 0)}</strong></div><div class="player-profile-line"><span>XP Lovys</span><strong>${creatureXp} XP</strong></div><div class="player-profile-line"><span>Lovys actuel</span><strong>${escapeHtml(creatureName)}</strong></div><div class="player-profile-line"><span>Arrivée sur le jeu</span><strong>${escapeHtml(formatProfileDate(playerData.created_at))}</strong></div></section>
