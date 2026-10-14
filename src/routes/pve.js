@@ -86,8 +86,9 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
           }
           await client.query(`UPDATE users SET global_xp=LEAST(global_xp+$2,$4),egg_fragments=egg_fragments+$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments,globalThresholdForLevel(56)]);
         }
+        // Report power columns are INTEGER; battle attacks may contain decimals.
         await client.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Number(resolved.state.player.attack||0),Number(resolved.state.enemy.attack||fight.power||0),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key})]);
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Math.round(Number(resolved.state.player.attack||0)),Math.round(Number(resolved.state.enemy.attack||fight.power||0)),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key})]);
         await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[user.id]);
       }else{
         await client.query(`UPDATE user_pve_battles SET state_json=$2::jsonb,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,[user.id,JSON.stringify(resolved.state)]);
