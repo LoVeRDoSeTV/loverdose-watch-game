@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { createAchievements } from './src/achievements.js';
+import { createAchievements, WATCH_STAGE_REWARDS } from './src/achievements.js';
 import express from 'express';
 import session from 'express-session';
 import pg from 'pg';
@@ -61,16 +61,8 @@ const BADGE_SOCIAL_REWARD = Object.freeze({ lovysXp: 100, globalXp: 50, cash: 25
 // Badge d'abonnement : récompense plus marquée pour remercier le soutien Twitch.
 const BADGE_SUB_REWARD = Object.freeze({ lovysXp: 500, globalXp: 250, cash: 100 });
 
-// Badge progressif « Fidèle de la chaîne ».
-// Les montants correspondent au temps ajouté entre deux paliers : au total,
-// atteindre 1000 h rapporte 10 000 XP Lovys, 5 000 XP globale et 1 000 Cash.
-const BADGE_GLOBAL_STAGE_REWARDS = Object.freeze({
-  50:   { lovysXp: 500,  globalXp: 250,  cash: 50 },
-  100:  { lovysXp: 500,  globalXp: 250,  cash: 50 },
-  250:  { lovysXp: 1500, globalXp: 750,  cash: 150 },
-  500:  { lovysXp: 2500, globalXp: 1250, cash: 250 },
-  1000: { lovysXp: 5000, globalXp: 2500, cash: 500 }
-});
+// Les montants de visionnage sont versés une fois à chaque palier atteint.
+const BADGE_GLOBAL_STAGE_REWARDS = WATCH_STAGE_REWARDS;
 
 // Récompenses de niveau global : la plupart des niveaux donnent un petit bonus
 // d'XP globale, mais tous les 5 niveaux ce bonus est remplacé par du LoVeR'Cash.
@@ -5279,6 +5271,8 @@ app.get('/api/badges', async (req, res) => {
         }
       }
     }
+
+    await achievementService.reconcileGlobalWatch(user.id,globalWatchHours);
 
     const [watchResult, badgeResult] = await Promise.all([
       pool.query(

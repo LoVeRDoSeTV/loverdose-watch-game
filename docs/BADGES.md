@@ -76,3 +76,20 @@ Les badges de visionnage global existants utilisent toujours public/Watch1.webp 
 | public/badges/watch-zombie-4.webp | Maître des Morts | 250 h |
 | public/badges/watch-zombie-5.webp | Maître des Morts | 500 h |
 | public/badges/watch-zombie-6.webp | Maître des Morts | 1000 h |
+
+## Récompenses de visionnage — V419
+
+Chaque palier donne son propre montant, une fois :
+
+| Palier | XP Lovys en réserve | XP globale | LoVeR’Cash |
+|---|---:|---:|---:|
+|25 h|250|125|25|
+|50 h|500|250|50|
+|100 h|750|375|75|
+|250 h|1 500|750|150|
+|500 h|2 500|1 250|250|
+|1 000 h|5 000|2 500|500|
+
+Ce barème s’applique aux quatre catégories Twitch et au badge global, selon leurs seuils disponibles. Pour les joueurs ayant déjà reçu les petits gains V418, seul le complément est crédité, une seule fois. Les anciens 100 h globaux sont complétés de 250 XP Lovys, 125 XP globale et 25 Cash.
+
+Discord, Instagram et TikTok : chacun 100 XP Lovys en réserve, 50 XP globale et 25 Cash, une fois. Abonnement : 500 XP Lovys, 250 XP globale et 100 Cash, une seule fois au premier déblocage. Les autres familles conservent leurs récompenses actuelles.

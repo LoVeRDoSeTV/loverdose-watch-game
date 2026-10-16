@@ -1,5 +1,14 @@
 import { existsSync } from 'node:fs';
 
+export const WATCH_STAGE_REWARDS=Object.freeze({
+  25:{lovysXp:250,globalXp:125,cash:25},
+  50:{lovysXp:500,globalXp:250,cash:50},
+  100:{lovysXp:750,globalXp:375,cash:75},
+  250:{lovysXp:1500,globalXp:750,cash:150},
+  500:{lovysXp:2500,globalXp:1250,cash:250},
+  1000:{lovysXp:5000,globalXp:2500,cash:500}
+});
+
 // Une famille = un badge évolutif. Les gains sont incrémentaux, jamais horaires.
 const rewards = index => ({ lovysXp:[10,25,50,100][Math.min(index,3)], globalXp:[5,10,20,40][Math.min(index,3)], cash:[1,2,3,5][Math.min(index,3)] });
 const family=(id,category,icon,unit,metric,steps)=>({id,key:`achievement:${id}`,category,icon,unit,metric,steps:steps.map(([goal,name],index)=>({goal,name,rewards:rewards(index)}))});
@@ -124,7 +133,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       const watch=(await client.query('SELECT game_id,game_name,watch_seconds FROM user_game_watch WHERE user_id=$1',[userId])).rows;
       const definitions=[...ACHIEVEMENT_FAMILIES.map(f=>({...f,value:values[f.metric]})),...WATCH_FAMILIES.map(f=>({
         ...f,category:'watch',icon:'👀',unit:'h de visionnage',value:watch.filter(f.match).reduce((n,row)=>n+Number(row.watch_seconds)/3600,0),
-        steps:[f.base,...[50,100,250,500,1000].filter(goal=>goal>f.base)].map((goal,index)=>({goal,name:f.name,rewards:rewards(index)}))
+        steps:[f.base,...[50,100,250,500,1000].filter(goal=>goal>f.base)].map((goal,index)=>({goal,name:f.name,rewards:WATCH_STAGE_REWARDS[goal]}))
       }))];
       const owned=(await client.query('SELECT badge_key,tier,badge_image,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1',[userId])).rows;
       const paid=new Set((await client.query('SELECT reward_key FROM user_xp_rewards WHERE user_id=$1',[userId])).rows.map(row=>row.reward_key));
@@ -146,8 +155,12 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         }
         for(const stage of earned){
           if(f.base&&stage.goal===f.base)continue;
-          const version=`achievement-${stage.goal}-v1`;
-          if(!paid.has(`${f.key}:${version}`))await awardRewards([userId],f.key,stage.rewards,version,`${f.key}:no-legacy`,client);
+          const version=f.base?`watch-${stage.goal}-v2`:`achievement-${stage.goal}-v1`;
+          if(!paid.has(`${f.key}:${version}`)){
+            const old=f.base&&paid.has(`${f.key}:achievement-${stage.goal}-v1`)?rewards(f.steps.indexOf(stage)):{lovysXp:0,globalXp:0,cash:0};
+            const grant=Object.fromEntries(['lovysXp','globalXp','cash'].map(key=>[key,Math.max(0,stage.rewards[key]-old[key])]));
+            await awardRewards([userId],f.key,grant,version,`${f.key}:no-legacy`,client);
+          }
         }
         const reward=current&&current===next?current.rewards:next.rewards;
         challenges.push({badgeKey:f.key,badgeName:current?.name||f.steps[0].name,badgeIcon:f.icon,badgeImage:image,
@@ -169,6 +182,15 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
     }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}
   }
 
+  async function reconcileGlobalWatch(userId,hours){
+    if(hours<100)return 0;
+    const key='mission:global:fidele-chaine';
+    const previous=await pool.query('SELECT xp_amount FROM user_xp_rewards WHERE user_id=$1 AND reward_key=$2',[userId,key+':stage-100h-v1']);
+    // Les nouveaux versements v1 utilisent déjà 750 ; seuls les anciens 500 sont complétés.
+    if(Number(previous.rows[0]?.xp_amount)!==500)return 0;
+    return awardRewards([userId],key,{lovysXp:250,globalXp:125,cash:25},'stage-100h-v2-adjustment',key+':no-legacy');
+  }
+
   async function adminState(){return (await pool.query(`SELECT id,kind,starts_at,ends_at FROM achievement_events WHERE ends_at>CURRENT_TIMESTAMP ORDER BY id`)).rows;}
   async function toggleEvent(kind,enabled){
     if(!['event','marathon'].includes(kind))throw new Error('Événement inconnu.');
@@ -184,5 +206,5 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
     await client.query('DELETE FROM user_achievement_progress WHERE user_id=$1',[userId]);
     await client.query('DELETE FROM user_achievement_event_watch WHERE user_id=$1',[userId]);
   }
-  return {init,sync,trackEvents,adminState,toggleEvent,reset};
+  return {init,sync,trackEvents,adminState,toggleEvent,reset,reconcileGlobalWatch};
 }
