@@ -2049,13 +2049,18 @@ function badgeCategoryOf(challenge) {
   return 'watch';
 }
 
-function badgeStagesMarkup(challenge){
+function badgeStagesMarkup(challenge,expanded=false){
   if(!challenge?.stages?.length)return '';
   const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h');
-  return '<details class="badge-stage-list"><summary>Voir les '+challenge.stages.length+' paliers</summary><ol>'+
-    challenge.stages.map(stage=>'<li class="'+(stage.unlocked?'obtained':'')+'"><span>'+ (stage.unlocked?'✓':'🔒')+' '+escapeHtml(stage.name)+'</span><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong></li>').join('')+
+  const nextIndex=challenge.stages.findIndex(stage=>!stage.unlocked);
+  return '<details class="badge-stage-list"'+(expanded?' open':'')+'><summary>Les '+challenge.stages.length+' paliers du badge</summary><ol>'+
+    challenge.stages.map((stage,index)=>'<li class="'+(stage.unlocked?'obtained':index===nextIndex?'next-stage':'locked-stage')+'">'+
+      badgeVisual({badgeImage:stage.image,badgeName:stage.name,badgeIcon:challenge.badgeIcon})+
+      '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong><small>'+
+      (stage.unlocked?'✓ Obtenu':index===nextIndex?'Prochain badge':'À débloquer')+'</small></span></li>').join('')+
     '</ol></details>';
 }
+
 function badgeMobileProgress(challenge) {
   if(challenge.missionType==='achievement'){
     const current=Math.max(0,Number(challenge.progressValue||0)),target=Math.max(1,Number(challenge.progressTarget||1));
@@ -2079,7 +2084,6 @@ function badgeMobileProgress(challenge) {
 }
 
 function renderMobileNextBadges(challenges) {
-  if (!isMobileGameUi()) return '';
   const next = challenges.filter(challenge => !challenge.maxed && (!challenge.unlocked || ['global-evolution', 'live-attendance', 'achievement'].includes(challenge.missionType)))
     .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
     .sort((a, b) => b.progress.percent - a.progress.percent)
@@ -2087,7 +2091,7 @@ function renderMobileNextBadges(challenges) {
   return `<details class="badge-mobile-next" open>
     <summary>✨ Prochains objectifs <span>${next.length}</span></summary>
     ${next.length ? next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
-      ${badgeVisual(challenge)}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
+      ${badgeVisual({...challenge,badgeImage:challenge.stages?.find(stage=>!stage.unlocked)?.image||challenge.badgeImage})}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
     </button>`).join('') : '<p>Tous les badges disponibles sont obtenus !</p>'}
   </details>`;
 }
@@ -2120,13 +2124,12 @@ function closeMobileBadgeDetail() {
   $('badgeMobileDetail')?.classList.add('hidden');
   $('badgeCollectionContent')?.classList.remove('hidden');
   document.querySelector('.badge-collection-panel')?.classList.remove('mobile-detail-open');
-  if(isMobileGameUi()&&wasOpen){
+  if(wasOpen){
     document.querySelector('.badge-collection-panel')?.scrollTo({top:mobileBadgeCollectionScroll});
   }
 }
 
 function openMobileBadgeDetail(key) {
-  if (!isMobileGameUi()) return;
   const challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
   const owned = (badgeData.badges || []).find(item => item.badgeKey === key);
   const badge = challenge || owned;
@@ -2151,7 +2154,7 @@ function openMobileBadgeDetail(key) {
       ${progress ? `<div class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></div><small>${escapeHtml(progress.label)}${challenge.maxed ? ' · Évolution maximale' : ''}</small>` : ''}</div>
     ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>Récompense</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
     ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
-    ${badgeStagesMarkup(challenge)}
+    ${badgeStagesMarkup(challenge,true)}
     ${!unlocked && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
@@ -2581,13 +2584,11 @@ $('badgeCollectionModal')?.addEventListener('mouseup', event => {
 });
 
 $('badgeCollectionContent')?.addEventListener('click', event => {
-  if (isMobileGameUi()) {
-    const detailButton = event.target.closest('[data-mobile-badge-detail]');
-    const badgeCard = event.target.closest('.badge-challenge-card[data-badge-key]');
-    if (detailButton || (badgeCard && !event.target.closest('button'))) {
-      openMobileBadgeDetail(detailButton?.dataset.mobileBadgeDetail || badgeCard.dataset.badgeKey);
-      return;
-    }
+  const detailButton = event.target.closest('[data-mobile-badge-detail]');
+  const badgeCard = isMobileGameUi() ? event.target.closest('.badge-challenge-card[data-badge-key]') : null;
+  if (detailButton || (badgeCard && !event.target.closest('button,details'))) {
+    openMobileBadgeDetail(detailButton?.dataset.mobileBadgeDetail || badgeCard.dataset.badgeKey);
+    return;
   }
   const showcaseButton = event.target.closest('[data-showcase-badge]');
   if (showcaseButton) {

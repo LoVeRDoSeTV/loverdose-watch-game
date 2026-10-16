@@ -820,8 +820,8 @@ body.auth-locked .wrap { visibility:hidden; }
 .badge-slot.gold,.badge-card.gold{border-color:rgba(245,194,76,.55)}
 .badge-collection-modal{position:fixed;inset:0;z-index:1000004;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(3,5,15,.80);backdrop-filter:blur(9px)}
 .badge-collection-modal.hidden{display:none}
-.badge-collection-panel{width:min(860px,100%);max-height:min(760px,90vh);overflow:auto;padding:24px;border:1px solid rgba(145,71,255,.48);border-radius:22px;background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.55)}
-.badge-collection-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.badge-collection-panel{box-sizing:border-box;width:min(1480px,100%);height:94dvh;max-height:94dvh;overflow:auto;padding:24px;border:1px solid rgba(145,71,255,.48);border-radius:22px;background:#111528;box-shadow:0 24px 80px rgba(0,0,0,.55)}
+.badge-collection-head{position:sticky;top:-26px;z-index:5;padding:16px 0;background:#12172c;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .badge-collection-head h2{margin:0}
 .badge-collection-help{margin:8px 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
 .badge-game-group{margin:18px 0 24px}
@@ -841,8 +841,8 @@ body.auth-locked .wrap { visibility:hidden; }
 
 
 /* Badges génériques + affichage dans le classement */
-.badge-art{width:54px;height:54px;object-fit:contain;filter:drop-shadow(0 5px 10px rgba(0,0,0,.30))}
-.badge-art-placeholder{width:54px;height:54px;display:grid;place-items:center;font-size:34px}
+.badge-art{display:block;flex-shrink:0;width:64px;height:64px;aspect-ratio:1;object-fit:contain;object-position:center;filter:drop-shadow(0 5px 10px rgba(0,0,0,.30))}
+.badge-art-placeholder{flex-shrink:0;width:64px;height:64px;aspect-ratio:1;display:grid;place-items:center;font-size:34px}
 .badge-card-actions{display:flex;gap:7px;justify-content:center;flex-wrap:wrap;margin-top:10px}
 .badge-action{border:1px solid var(--line);background:#171c33;color:#fff;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer}
 .badge-action:hover{filter:brightness(1.12)}
@@ -1178,13 +1178,13 @@ body.auth-locked .wrap { visibility:hidden; }
 }
 
 .badge-collection-panel{
-  width:min(920px,100%);
+  width:min(1480px,100%);
   padding:26px;
   border-color:rgba(145,71,255,.44);
   background:linear-gradient(180deg,#12172c,#0f1325);
 }
 .badge-collection-head{
-  padding-bottom:4px;
+  padding-bottom:16px;
 }
 .badge-collection-head h2{
   font-size:23px;
@@ -1218,7 +1218,7 @@ body.auth-locked .wrap { visibility:hidden; }
   flex:0 0 96px;
   border-radius:20px;
 }
-.badge-challenge-icon .badge-art{
+.badge-challenge-icon .badge-art,.badge-challenge-icon .badge-art-placeholder{
   width:80px;
   height:80px;
 }
@@ -4920,8 +4920,26 @@ body:has(#pveModal:not(.hidden)){
 }
 
 .mobile-shop-category,.mobile-shop-summary,.mobile-shop-pagination{display:none}
-.badge-mobile-next,.badge-mobile-detail-button,.badge-mobile-detail{display:none}
+.badge-mobile-next{display:none}
 
+body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
+.badge-mobile-detail{max-width:1040px;margin:0 auto}
+  .badge-mobile-detail-button{display:block;width:100%;min-height:42px;margin-top:12px;border:1px solid #8050ca;border-radius:11px;background:#2b2050;color:#f1e8ff;font-weight:850;cursor:pointer}
+  .badge-collection-panel.mobile-detail-open .badge-collection-help,.badge-collection-panel.mobile-detail-open .badge-collection-title{display:none}
+  .badge-mobile-detail:not(.hidden){display:block}
+  .badge-mobile-back{min-height:44px;padding:8px 12px;border:1px solid #7652b0;border-radius:11px;background:#272045;color:#fff;font-weight:800}
+  .badge-mobile-detail-hero{text-align:center;padding:16px 12px 22px}
+  .badge-mobile-detail-hero .badge-art,.badge-mobile-detail-hero .badge-art-placeholder{width:144px;height:144px;margin:0 auto 12px}
+  .badge-mobile-detail-category{display:block;color:#bf9dff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+  .badge-mobile-detail-hero h3{margin:8px 0;font-size:21px}
+  .badge-mobile-detail-state{color:#b9f6cd;font-weight:800}
+  .badge-mobile-detail-section{margin:0 0 14px;padding:16px;border:1px solid #343a5b;border-radius:14px;background:#101529;line-height:1.5}
+  .badge-mobile-detail-section h4{margin:0 0 8px;color:#d9c6ff;font-size:14px}
+  .badge-mobile-detail-section p{margin:0 0 12px;overflow-wrap:anywhere}
+  .badge-mobile-detail-section small{display:block;margin-top:7px;color:#b4bed6}
+  .badge-mobile-rewards{display:flex;gap:7px;flex-wrap:wrap}
+  .badge-mobile-rewards span{padding:6px 9px;border-radius:9px;background:#262044;color:#e6d9ff;font-size:12px}
+  .badge-mobile-social-button{width:100%;min-height:46px;border:1px solid #9562e6;border-radius:12px;background:#713cca;color:#fff;font-weight:900}
 @media(max-width:900px){
   body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #badgeCollectionModal{inset:0;width:100%;height:100dvh;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020;backdrop-filter:none;z-index:1000100}
@@ -4949,8 +4967,8 @@ body:has(#pveModal:not(.hidden)){
   #badgeCollectionModal .badge-category-heading{margin:16px 0 10px;font-size:13px}
   #badgeCollectionModal .badge-challenge-card{min-width:0;min-height:0;padding:14px;border-radius:14px}
   #badgeCollectionModal .badge-challenge-top{align-items:center;gap:12px}
-  #badgeCollectionModal .badge-challenge-art-wrap{flex:0 0 52px;width:52px;height:52px}
-  #badgeCollectionModal .badge-challenge-art-wrap .badge-art{width:52px;height:52px}
+  #badgeCollectionModal .badge-challenge-art-wrap{flex:0 0 80px;min-width:80px;width:80px;height:80px}
+  #badgeCollectionModal .badge-challenge-art-wrap .badge-art,#badgeCollectionModal .badge-challenge-art-wrap .badge-art-placeholder{width:72px;height:72px}
   #badgeCollectionModal .badge-challenge-info{min-width:0}
   #badgeCollectionModal .badge-challenge-name{font-size:15px;line-height:1.4;overflow-wrap:anywhere}
   #badgeCollectionModal .badge-challenge-state{display:block;margin-top:4px;padding:0;border:0;background:none;font-size:11px;line-height:1.5;white-space:normal}
@@ -4974,22 +4992,7 @@ body:has(#pveModal:not(.hidden)){
   .badge-mobile-next-copy strong{font-size:13px}.badge-mobile-next-copy small{color:#b2bddd;font-size:11px}
   .badge-mobile-progress{display:block;overflow:hidden;width:100%;height:7px;border-radius:999px;background:#343b5c}
   .badge-mobile-progress>span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#7a39da,#c299ff)}
-  .badge-mobile-detail-button{display:block;width:100%;min-height:42px;margin-top:12px;border:1px solid #8050ca;border-radius:11px;background:#2b2050;color:#f1e8ff;font-weight:850;cursor:pointer}
-  .badge-collection-panel.mobile-detail-open .badge-collection-help,.badge-collection-panel.mobile-detail-open .badge-collection-title{display:none}
-  .badge-mobile-detail:not(.hidden){display:block}
-  .badge-mobile-back{min-height:44px;padding:8px 12px;border:1px solid #7652b0;border-radius:11px;background:#272045;color:#fff;font-weight:800}
-  .badge-mobile-detail-hero{text-align:center;padding:16px 12px 22px}
-  .badge-mobile-detail-hero .badge-art,.badge-mobile-detail-hero .badge-art-placeholder{width:90px;height:90px;margin:0 auto 12px}
-  .badge-mobile-detail-category{display:block;color:#bf9dff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
-  .badge-mobile-detail-hero h3{margin:8px 0;font-size:21px}
-  .badge-mobile-detail-state{color:#b9f6cd;font-weight:800}
-  .badge-mobile-detail-section{margin:0 0 14px;padding:16px;border:1px solid #343a5b;border-radius:14px;background:#101529;line-height:1.5}
-  .badge-mobile-detail-section h4{margin:0 0 8px;color:#d9c6ff;font-size:14px}
-  .badge-mobile-detail-section p{margin:0 0 12px;overflow-wrap:anywhere}
-  .badge-mobile-detail-section small{display:block;margin-top:7px;color:#b4bed6}
-  .badge-mobile-rewards{display:flex;gap:7px;flex-wrap:wrap}
-  .badge-mobile-rewards span{padding:6px 9px;border-radius:9px;background:#262044;color:#e6d9ff;font-size:12px}
-  .badge-mobile-social-button{width:100%;min-height:46px;border:1px solid #9562e6;border-radius:12px;background:#713cca;color:#fff;font-weight:900}
+
 }
 
 /* Mobile : fenêtres secondaires et formulaires, au-dessus des pages. */
@@ -8901,12 +8904,16 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 /* Badges évolutifs : paliers et suivi des événements. */
-.badge-stage-list{margin-top:12px;text-align:left;border-top:1px solid #ffffff18;padding-top:10px;font-size:12px}
-.badge-stage-list summary{cursor:pointer;color:#d9bdff;min-height:32px;line-height:1.5}
-.badge-stage-list ol{list-style:none;margin:8px 0 0;padding:0}
-.badge-stage-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:8px 0;color:#aaa5bc;border-bottom:1px solid #ffffff0a}
-.badge-stage-list li.obtained{color:#a8eac5}.badge-stage-list strong{font-size:11px;text-align:right;max-width:115px;overflow-wrap:anywhere}
+.badge-stage-list{margin-top:16px;text-align:left;border-top:1px solid #ffffff18;padding-top:12px;font-size:12px}
+.badge-stage-list summary{cursor:pointer;color:#d9bdff;min-height:36px;line-height:1.5;font-weight:800}
+.badge-stage-list ol{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;list-style:none;margin:10px 0 0;padding:0}
+.badge-stage-list li{display:flex;align-items:center;gap:12px;min-width:0;padding:12px;border:1px solid #ffffff18;border-radius:12px;background:#101427;color:#c6bed8}
+.badge-stage-list li.obtained{border-color:#61c98a66}.badge-stage-list li.next-stage{border-color:#bd8cff;background:#2b2042}
+.badge-stage-list .badge-art,.badge-stage-list .badge-art-placeholder{width:64px;height:64px;flex:0 0 64px;filter:none;opacity:1}
+.badge-stage-copy{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+.badge-stage-copy b{font-size:12px;color:#f3edff}.badge-stage-copy strong{font-size:12px;color:#ddd2f3}.badge-stage-copy small{font-size:11px;color:#c3b8d3}
+.badge-mobile-detail .badge-stage-list ol{grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
 .achievement-event-controls{margin-top:20px;padding:16px;border:1px solid #67418c;border-radius:16px;background:#131326}
 .achievement-event-controls p{font-size:13px;color:#bbb2cd;line-height:1.6}.achievement-event-controls>div{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #ffffff15}
 .achievement-event-controls small{display:block;margin-top:5px;color:#b3acc7;font-size:12px}
-@media(max-width:600px){.badge-stage-list li{grid-template-columns:minmax(0,1fr);gap:4px}.badge-stage-list strong{text-align:left;max-width:none}.achievement-event-controls>div{flex-wrap:wrap}}
+@media(max-width:600px){.badge-stage-list ol{grid-template-columns:minmax(0,1fr)}.achievement-event-controls>div{flex-wrap:wrap}}
