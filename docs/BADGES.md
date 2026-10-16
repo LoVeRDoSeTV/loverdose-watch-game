@@ -1,6 +1,6 @@
 # Visuels des nouveaux badges
 
-26 nouvelles familles, 39 paliers. Les quatre badges de catégorie Twitch disposent de 21 paliers au total.
+23 nouvelles familles, 36 paliers. Les quatre badges de catégorie Twitch disposent de 21 paliers au total.
 
 Chaque ligne correspond à un visuel. Format WebP, carré (512 × 512 conseillé), fond transparent. Déposer les fichiers aux chemins indiqués, puis les publier sur GitHub et redéployer. Les visuels absents affichent une icône provisoire ; les badges de visionnage conservent leur image actuelle. L'ajout d'un visuel ne redonne aucune récompense.
 
@@ -39,9 +39,6 @@ Les badges de visionnage global existants utilisent toujours public/Watch1.webp 
 | public/badges/close-win-1.webp | Sur le fil | 1 victoire avec moins de 10 % de PV |
 | public/badges/flawless-1.webp | Intouchable | 1 victoire sans dégât subi |
 | public/badges/variety-1.webp | Toute la troupe | 5 espèces victorieuses |
-| public/badges/guardian-1.webp | Gardien terrassé | 1 Gardien des Racines vaincu |
-| public/badges/forest-1.webp | La forêt te reconnaît | 1 Monarque vaincu |
-| public/badges/ember-1.webp | Cœur de braise | 1 zone volcanique terminée |
 | public/badges/trades-1.webp | Marché conclu ! | 1 échanges réalisés |
 | public/badges/trades-2.webp | Partenaire de confiance | 10 échanges réalisés |
 | public/badges/partners-1.webp | Créateur de liens | 5 partenaires différents |

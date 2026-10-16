@@ -26,9 +26,6 @@ export const ACHIEVEMENT_FAMILIES = [
   family('close-win','combat','❤️','victoire avec moins de 10 % de PV','closeWin',[[1,'Sur le fil']]),
   family('flawless','combat','🛡️','victoire sans dégât subi','flawless',[[1,'Intouchable']]),
   family('variety','combat','🐾','espèces victorieuses','variety',[[5,'Toute la troupe']]),
-  family('guardian','combat','🌳','Gardien des Racines vaincu','guardian',[[1,'Gardien terrassé']]),
-  family('forest','combat','👑','Monarque vaincu','forest',[[1,'La forêt te reconnaît']]),
-  family('ember','combat','🔥','zone volcanique terminée','ember',[[1,'Cœur de braise']]),
   family('trades','trade','🤝','échanges réalisés','trades',[[1,'Marché conclu !'],[10,'Partenaire de confiance']]),
   family('partners','trade','💞','partenaires différents','partners',[[5,'Créateur de liens']]),
   family('challenges','challenges','✅','défis réclamés','challenges',[[1,'Mission accomplie'],[50,'Toujours un objectif']]),
@@ -55,10 +52,13 @@ export function achievementImage(id,stage,fallback=null){
 
 export function createAchievements({pool,creatures,zones,progressionFromXp,awardRewards}){
   async function init(){
+    const retiredKeys=['achievement:guardian','achievement:forest','achievement:ember'];
+    await pool.query('DELETE FROM user_badges WHERE badge_key=ANY($1::text[])',[retiredKeys]);
     await pool.query(`CREATE TABLE IF NOT EXISTS user_subscription_badge_state(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,is_active BOOLEAN NOT NULL,cycle INTEGER NOT NULL DEFAULT 0,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS user_achievement_progress(
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       metric TEXT NOT NULL,value DOUBLE PRECISION NOT NULL DEFAULT 0,PRIMARY KEY(user_id,metric))`);
+    await pool.query("DELETE FROM user_achievement_progress WHERE metric=ANY($1::text[])",[['guardian','forest','ember']]);
     await pool.query(`CREATE TABLE IF NOT EXISTS achievement_events(
       id BIGSERIAL PRIMARY KEY,kind TEXT NOT NULL CHECK(kind IN ('event','marathon')),
       starts_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,ends_at TIMESTAMPTZ NOT NULL,
@@ -82,7 +82,6 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
     const user=(await client.query('SELECT creature_id,xp,total_lovys_hatched FROM users WHERE id=$1',[userId])).rows[0];
     const lovys=(await client.query('SELECT creature_id,xp,rank,is_active FROM user_lovys WHERE user_id=$1',[userId])).rows;
     const progress=(await client.query('SELECT fight_key,wins FROM user_pve_progress WHERE user_id=$1',[userId])).rows;
-    const fights=new Map(progress.map(row=>[row.fight_key,Number(row.wins)]));
     const report=(await client.query(`SELECT
       COUNT(DISTINCT report_json->>'creatureId')::int AS variety,
       COUNT(*) FILTER(WHERE (report_json->>'playerMaxHp')::numeric>0 AND (report_json->>'playerRemainingHp')::numeric>0
@@ -108,8 +107,6 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       rank:Math.max(0,...lovys.map(row=>Number(row.rank))),rankTeam:lovys.filter(row=>Number(row.rank)>=5).length,
       level:Math.max(0,...levels),levelTeam:levels.filter(level=>level>=50).length,
       victories:progress.reduce((n,row)=>n+Number(row.wins),0),closeWin:Number(report.close_win),flawless:Number(report.flawless),variety:Number(report.variety),
-      guardian:Number((fights.get('forest_6')||0)>0),forest:Number((fights.get('forest_boss')||0)>0),
-      ember:Number(zones.find(zone=>zone.key==='ember')?.fights.every(fight=>(fights.get(fight.key)||0)>0)||false),
       trades:trades.length,partners:new Set(trades.map(row=>Number(row.other_id)).filter(id=>id&&id!==userId)).size,
       challenges:days.reduce((n,row)=>n+Number(row.count),0),perfectDay:Number(days.some(row=>Number(row.count)>=3)),
       dailyWheel:Number(wheels.find(row=>row.wheel_type==='daily')?.count||0),weeklyWheel:Number(wheels.find(row=>row.wheel_type==='weekly')?.count||0),
