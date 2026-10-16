@@ -1,4 +1,3 @@
-import { existsSync } from 'node:fs';
 
 export const WATCH_HOUR_STAGES=Object.freeze([25,50,100,250,500]);
 
@@ -40,15 +39,14 @@ export const ACHIEVEMENT_FAMILIES = [
 ];
 
 export const WATCH_FAMILIES = [
-  {id:'watch-dofus',key:'challenge:dofus:gardien-emeraude:50h',name:'Gardien d’Émeraude',image:'/DofusEmeraude.webp',base:50,match:r=>String(r.game_name).trim().toLowerCase()==='dofus'},
-  {id:'watch-palworld',key:'challenge:palworld:maitre-des-spheres:50h',name:'Maître des Sphères',image:'/SpherePalworld.webp',base:50,match:r=>String(r.game_name).trim().toLowerCase()==='palworld'},
-  {id:'watch-mw4',key:'challenge:mw4:operateur-elite:50h',name:'Opérateur d’Élite',image:'/MW4.webp',base:50,match:r=>String(r.game_name).trim().toLowerCase().includes('modern warfare 4')},
-  {id:'watch-zombie',key:'mission:zombie:maitre-des-morts:25h',name:'Maître des Morts',image:'/Zombie.webp',base:25,match:r=>r.game_id==='special:zombie'}
+  {id:'watch-dofus',key:'challenge:dofus:gardien-emeraude:50h',name:'Gardien d’Émeraude',base:50,match:r=>String(r.game_name).trim().toLowerCase()==='dofus'},
+  {id:'watch-palworld',key:'challenge:palworld:maitre-des-spheres:50h',name:'Maître des Sphères',base:50,match:r=>String(r.game_name).trim().toLowerCase()==='palworld'},
+  {id:'watch-mw4',key:'challenge:mw4:operateur-elite:50h',name:'Opérateur d’Élite',base:50,match:r=>String(r.game_name).trim().toLowerCase().includes('modern warfare 4')},
+  {id:'watch-zombie',key:'mission:zombie:maitre-des-morts:25h',name:'Maître des Morts',base:25,match:r=>r.game_id==='special:zombie'}
 ];
 
-export function achievementImage(id,stage,fallback=null){
-  const path=`/badges/${id}-${stage}.webp`;
-  return existsSync(new URL(`../public${path}`,import.meta.url))?path:fallback;
+export function achievementImage(id,stage){
+  return `/badges/${id}-${stage}.webp`;
 }
 
 export function createAchievements({pool,creatures,zones,progressionFromXp,awardRewards}){
@@ -141,7 +139,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         // Les clés historiques et les récompenses déjà versées sont conservées.
         const value=f.value||0,earned=f.steps.filter(stage=>value>=stage.goal),current=earned.at(-1),next=f.steps.find(stage=>value<stage.goal)||f.steps.at(-1);
         const stageIndex=current?f.steps.indexOf(current)+1:0,old=owned.find(row=>row.badge_key===f.key);
-        const image=achievementImage(f.id,stageIndex||1,f.image||null);
+        const image=achievementImage(f.id,stageIndex||1);
         if(current&&(old?.tier!==`achievement-${stageIndex}`||Number(old?.threshold_hours)!==current.goal)){
           await client.query(`INSERT INTO user_badges(user_id,badge_key,game_id,game_name,badge_name,badge_image,badge_challenge,tier,threshold_hours)
             VALUES($1,$2,'achievement',$3,$4,$5,$6,$7,$8)
@@ -178,7 +176,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
           celebrationRewardLovysXp:current?(f.base&&current.goal===f.base?(f.base===25?250:500):current.rewards.lovysXp):0,
           celebrationRewardGlobalXp:current?(f.base&&current.goal===f.base?(f.base===25?125:250):current.rewards.globalXp):0,
           celebrationRewardCash:current?(f.base&&current.goal===f.base?(f.base===25?25:50):current.rewards.cash):0,
-          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,unlocked:value>=stage.goal,image:achievementImage(f.id,index+1,f.image||null)}))});
+          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,unlocked:value>=stage.goal,image:achievementImage(f.id,index+1)}))});
       }
       await client.query('COMMIT');return challenges;
     }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}
@@ -205,7 +203,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         continue;
       }
       await client.query(`INSERT INTO user_badges(user_id,badge_key,game_id,game_name,badge_name,badge_image,badge_challenge,tier,threshold_hours)
-        VALUES($1,$2,'special-sub','Spécial · Abonnement','Soutien Absolu','/Loverhi.webp','Abonnement Twitch actif','special',0)
+        VALUES($1,$2,'special-sub','Spécial · Abonnement','Soutien Absolu','/badges/subscription-1.webp','Abonnement Twitch actif','special',0)
         ON CONFLICT(user_id,badge_key) DO NOTHING`,[row.id,key]);
       if(!(initial&&legacy))await awardRewards([Number(row.id)],key,{lovysXp:500,globalXp:250,cash:100},`subscription-cycle-${cycle}-v1`,key+':no-legacy',client);
     }

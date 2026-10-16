@@ -91,13 +91,13 @@ const GLOBAL_LEVEL_XP_REWARDS = Object.freeze(
 // Badge progressif basé sur le nombre de lives Twitch distincts réellement suivis.
 // Un même live ne peut compter qu'une fois, même après une déconnexion/reconnexion.
 const LIVE_ATTENDANCE_STAGES = Object.freeze([
-  { count:1,   nextCount:5,   image:'/Watch1.webp', tier:'attendance-1', evolution:'Premier rendez-vous', titleKey:'reward_title_live_1',   titleName:'Premier rendez-vous', rewards:{ lovysXp:25,   globalXp:10,  cash:5 } },
-  { count:5,   nextCount:10,  image:'/Watch1.webp', tier:'attendance-2', evolution:'Habitué',             titleKey:'reward_title_live_5',   titleName:'Habitué du live',     rewards:{ lovysXp:50,   globalXp:25,  cash:10 } },
-  { count:10,  nextCount:25,  image:'/Watch2.webp', tier:'attendance-3', evolution:'Fidèle',              titleKey:'reward_title_live_10',  titleName:'Fidèle du direct',    rewards:{ lovysXp:100,  globalXp:50,  cash:20 } },
-  { count:25,  nextCount:50,  image:'/Watch2.webp', tier:'attendance-4', evolution:'Pilier',              titleKey:'reward_title_live_25',  titleName:'Pilier du live',      rewards:{ lovysXp:200,  globalXp:100, cash:40 } },
-  { count:50,  nextCount:100, image:'/Watch3.webp', tier:'attendance-5', evolution:'Toujours présent',    titleKey:'reward_title_live_50',  titleName:'Toujours présent',    rewards:{ lovysXp:350,  globalXp:175, cash:70 } },
-  { count:100, nextCount:250, image:'/Watch4.webp', tier:'attendance-6', evolution:'Vétéran',             titleKey:'reward_title_live_100', titleName:'Vétéran du live',     rewards:{ lovysXp:600,  globalXp:300, cash:120 } },
-  { count:250, nextCount:null,image:'/Watch5.webp', tier:'attendance-7', evolution:'Légende des lives',   titleKey:'reward_title_live_250', titleName:'Légende des lives',   rewards:{ lovysXp:1000, globalXp:500, cash:250 } }
+  { count:1,   nextCount:5,   image:'/badges/attendance-1.webp', tier:'attendance-1', evolution:'Premier rendez-vous', titleKey:'reward_title_live_1',   titleName:'Premier rendez-vous', rewards:{ lovysXp:25,   globalXp:10,  cash:5 } },
+  { count:5,   nextCount:10,  image:'/badges/attendance-2.webp', tier:'attendance-2', evolution:'Habitué',             titleKey:'reward_title_live_5',   titleName:'Habitué du live',     rewards:{ lovysXp:50,   globalXp:25,  cash:10 } },
+  { count:10,  nextCount:25,  image:'/badges/attendance-3.webp', tier:'attendance-3', evolution:'Fidèle',              titleKey:'reward_title_live_10',  titleName:'Fidèle du direct',    rewards:{ lovysXp:100,  globalXp:50,  cash:20 } },
+  { count:25,  nextCount:50,  image:'/badges/attendance-4.webp', tier:'attendance-4', evolution:'Pilier',              titleKey:'reward_title_live_25',  titleName:'Pilier du live',      rewards:{ lovysXp:200,  globalXp:100, cash:40 } },
+  { count:50,  nextCount:100, image:'/badges/attendance-5.webp', tier:'attendance-5', evolution:'Toujours présent',    titleKey:'reward_title_live_50',  titleName:'Toujours présent',    rewards:{ lovysXp:350,  globalXp:175, cash:70 } },
+  { count:100, nextCount:250, image:'/badges/attendance-6.webp', tier:'attendance-6', evolution:'Vétéran',             titleKey:'reward_title_live_100', titleName:'Vétéran du live',     rewards:{ lovysXp:600,  globalXp:300, cash:120 } },
+  { count:250, nextCount:null,image:'/badges/attendance-7.webp', tier:'attendance-7', evolution:'Légende des lives',   titleKey:'reward_title_live_250', titleName:'Légende des lives',   rewards:{ lovysXp:1000, globalXp:500, cash:250 } }
 ]);
 
 // Défis journaliers : petites récompenses pour encourager la régularité
@@ -1601,77 +1601,31 @@ async function initDatabase() {
     WHERE leaderboard_slot IS NOT NULL;
   `);
 
-  await pool.query(
-    `
-    UPDATE user_badges
-    SET badge_name = 'Gardien de l’Émeraude',
-        badge_image = '/DofusEmeraude.webp',
-        badge_challenge = 'Regarder 50 h de lives dans la catégorie Dofus'
-    WHERE badge_key = 'challenge:dofus:gardien-emeraude:50h' AND tier = 'special'
-    `
-  );
-
-  await pool.query(
-    `
-    UPDATE user_badges
-    SET badge_name = 'Maître des Sphères',
-        badge_image = '/SpherePalworld.webp',
-        badge_challenge = 'Regarder 50 h de lives dans la catégorie Palworld'
-    WHERE badge_key = 'challenge:palworld:maitre-des-spheres:50h' AND tier = 'special'
-    `
-  );
-
-
-  await pool.query(
-    `
-    UPDATE user_badges
-    SET badge_name = 'Opérateur d’Élite',
-        badge_image = '/MW4.webp',
-        badge_challenge = 'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4'
-    WHERE badge_key = 'challenge:mw4:operateur-elite:50h'
-    `
-  );
-
-
-  await pool.query(
-    `
-    UPDATE user_badges
-    SET badge_name = 'Maître des morts',
-        badge_image = '/Zombie.webp',
-        badge_challenge = 'Regarder 25 h de lives en mode Zombie'
-    WHERE badge_key = 'mission:zombie:maitre-des-morts:25h'
-    `
-  );
-
-  // V103 — Les images ont été converties de PNG vers WebP en V98.
-  // Certains badges déjà débloqués avant cette migration conservaient encore
-  // l'ancien chemin .png en base, ce qui affichait une image cassée.
-  // On réconcilie uniquement les anciens chemins connus avec leurs WebP actuels.
+  // V424 — Tous les visuels de badges sont centralisés, sans toucher aux acquis.
   await pool.query(`
-    UPDATE user_badges
-    SET badge_image = CASE badge_image
-      WHEN '/DofusEmeraude.png' THEN '/DofusEmeraude.webp'
-      WHEN '/SpherePalworld.png' THEN '/SpherePalworld.webp'
-      WHEN '/MW4.png' THEN '/MW4.webp'
-      WHEN '/Zombie.png' THEN '/Zombie.webp'
-      WHEN '/Discord.png' THEN '/Discord.webp'
-      WHEN '/Instagram.png' THEN '/Instagram.webp'
-      WHEN '/Tiktok.png' THEN '/Tiktok.webp'
-      WHEN '/Loverhi.png' THEN '/Loverhi.webp'
-      WHEN '/Watch1.png' THEN '/Watch1.webp'
-      WHEN '/Watch2.png' THEN '/Watch2.webp'
-      WHEN '/Watch3.png' THEN '/Watch3.webp'
-      WHEN '/Watch4.png' THEN '/Watch4.webp'
-      WHEN '/Watch5.png' THEN '/Watch5.webp'
-      ELSE badge_image
-    END
-    WHERE badge_image IN (
-      '/DofusEmeraude.png', '/SpherePalworld.png', '/MW4.png', '/Zombie.png',
-      '/Discord.png', '/Instagram.png', '/Tiktok.png', '/Loverhi.png',
-      '/Watch1.png', '/Watch2.png', '/Watch3.png', '/Watch4.png', '/Watch5.png'
-    )
+    UPDATE user_badges SET badge_image = CASE
+      WHEN badge_key='challenge:dofus:gardien-emeraude:50h' THEN '/badges/watch-dofus-' ||
+        CASE WHEN threshold_hours>=500 THEN '5' WHEN threshold_hours>=250 THEN '4' WHEN threshold_hours>=100 THEN '3' WHEN threshold_hours>=50 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='challenge:palworld:maitre-des-spheres:50h' THEN '/badges/watch-palworld-' ||
+        CASE WHEN threshold_hours>=500 THEN '5' WHEN threshold_hours>=250 THEN '4' WHEN threshold_hours>=100 THEN '3' WHEN threshold_hours>=50 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='challenge:mw4:operateur-elite:50h' THEN '/badges/watch-mw4-' ||
+        CASE WHEN threshold_hours>=500 THEN '5' WHEN threshold_hours>=250 THEN '4' WHEN threshold_hours>=100 THEN '3' WHEN threshold_hours>=50 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='mission:zombie:maitre-des-morts:25h' THEN '/badges/watch-zombie-' ||
+        CASE WHEN threshold_hours>=500 THEN '5' WHEN threshold_hours>=250 THEN '4' WHEN threshold_hours>=100 THEN '3' WHEN threshold_hours>=50 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='mission:global:fidele-chaine' THEN '/badges/watch-global-' ||
+        CASE WHEN threshold_hours>=500 THEN '5' WHEN threshold_hours>=250 THEN '4' WHEN threshold_hours>=100 THEN '3' WHEN threshold_hours>=50 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='mission:attendance:lives-assistes' THEN '/badges/attendance-' ||
+        CASE WHEN threshold_hours>=250 THEN '7' WHEN threshold_hours>=100 THEN '6' WHEN threshold_hours>=50 THEN '5' WHEN threshold_hours>=25 THEN '4' WHEN threshold_hours>=10 THEN '3' WHEN threshold_hours>=5 THEN '2' ELSE '1' END || '.webp'
+      WHEN badge_key='mission:discord:membre-communaute' THEN '/badges/discord-1.webp'
+      WHEN badge_key='mission:instagram:communaute' THEN '/badges/instagram-1.webp'
+      WHEN badge_key='mission:tiktok:communaute' THEN '/badges/tiktok-1.webp'
+      WHEN badge_key='mission:sub:soutien-absolu' THEN '/badges/subscription-1.webp'
+      ELSE badge_image END
+    WHERE badge_key IN ('challenge:dofus:gardien-emeraude:50h','challenge:palworld:maitre-des-spheres:50h',
+      'challenge:mw4:operateur-elite:50h','mission:zombie:maitre-des-morts:25h','mission:global:fidele-chaine',
+      'mission:attendance:lives-assistes','mission:discord:membre-communaute','mission:instagram:communaute',
+      'mission:tiktok:communaute','mission:sub:soutien-absolu')
   `);
-
 
   console.log(
     'PostgreSQL connecté ✅'
@@ -2441,7 +2395,7 @@ async function runTrackerTick() {
                 game_id,
                 game_name,
                 'Gardien de l’Émeraude',
-                '/DofusEmeraude.webp',
+                '/badges/watch-dofus-1.webp',
                 'Regarder 50 h de lives dans la catégorie Dofus',
                 'special',
                 50
@@ -2475,7 +2429,7 @@ async function runTrackerTick() {
                 game_id,
                 game_name,
                 'Maître des Sphères',
-                '/SpherePalworld.webp',
+                '/badges/watch-palworld-1.webp',
                 'Regarder 50 h de lives dans la catégorie Palworld',
                 'special',
                 50
@@ -2510,7 +2464,7 @@ async function runTrackerTick() {
                 game_id,
                 game_name,
                 'Opérateur d’Élite',
-                '/MW4.webp',
+                '/badges/watch-mw4-1.webp',
                 'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
                 'special',
                 50
@@ -2569,7 +2523,7 @@ async function runTrackerTick() {
                 game_id,
                 game_name,
                 'Maître des morts',
-                '/Zombie.webp',
+                '/badges/watch-zombie-1.webp',
                 'Regarder 25 h de lives en mode Zombie',
                 'special',
                 25
@@ -2809,6 +2763,14 @@ app.use(
     }
   })
 );
+// Les visuels en cours de création affichent une icône neutre, sans erreur d'image.
+// express.static ci-dessus sert le vrai fichier dès qu'il est ajouté.
+app.get('/badges/:filename', (req,res,next)=>{
+  if(!/^[a-z0-9-]+\.webp$/i.test(req.params.filename))return next();
+  res.set('Cache-Control','no-store');
+  return res.sendFile('public/badges/placeholder.svg',{root:process.cwd()});
+});
+
 
 function saveSession(req) {
   return new Promise((resolve, reject) => {
@@ -4041,7 +4003,7 @@ app.get('/auth/discord/callback', async (req, res) => {
             'special-discord',
             'Discord',
             'Membre de la communauté',
-            '/Discord.webp',
+            '/badges/discord-1.webp',
             'Rejoindre le serveur Discord de LoVeRDoSeTV',
             'special',
             0
@@ -5141,7 +5103,7 @@ app.get('/api/badges', async (req, res) => {
           'special-discord',
           'Discord',
           'Membre de la communauté',
-          '/Discord.webp',
+          '/badges/discord-1.webp',
           'Rejoindre le serveur Discord de LoVeRDoSeTV',
           'special',
           0
@@ -5167,7 +5129,7 @@ app.get('/api/badges', async (req, res) => {
 
     const globalBadgeStages = WATCH_HOUR_STAGES.map((hours,index)=>({
       minHours:hours,nextHours:WATCH_HOUR_STAGES[index+1]||null,
-      image:`/Watch${index+1}.webp`,tier:`global-${index+1}`,
+      image:`/badges/watch-global-${index+1}.webp`,tier:`global-${index+1}`,
       evolution:['Évolution I · Étincelle fidèle','Évolution II · Éclat fidèle','Évolution III · Cœur de fidélité','Évolution IV · Étoile légendaire','Évolution V · Présence mythique'][index]
     }));
 
@@ -5384,7 +5346,7 @@ app.get('/api/badges', async (req, res) => {
     const globalDisplayStage = currentGlobalStage || {
       minHours: 25,
       nextHours: 25,
-      image: '/Watch1.webp',
+      image: '/badges/watch-global-1.webp',
       tier: 'global-1',
       evolution: 'Évolution I · Étincelle fidèle'
     };
@@ -5440,7 +5402,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: dofusBadgeKey,
           badgeName: 'Gardien de l’Émeraude',
-          badgeImage: '/DofusEmeraude.webp',
+          badgeImage: '/badges/watch-dofus-1.webp',
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Dofus',
           gameName: 'Dofus',
           badgeCategory: 'twitch',
@@ -5462,7 +5424,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: palworldBadgeKey,
           badgeName: 'Maître des Sphères',
-          badgeImage: '/SpherePalworld.webp',
+          badgeImage: '/badges/watch-palworld-1.webp',
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Palworld',
           gameName: 'Palworld',
           badgeCategory: 'twitch',
@@ -5484,7 +5446,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: mw4BadgeKey,
           badgeName: 'Opérateur d’Élite',
-          badgeImage: '/MW4.webp',
+          badgeImage: '/badges/watch-mw4-1.webp',
           badgeChallenge: 'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
           gameName: 'Call of Duty: Modern Warfare 4',
           badgeCategory: 'twitch',
@@ -5506,7 +5468,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: zombieBadgeKey,
           badgeName: 'Maître des morts',
-          badgeImage: '/Zombie.webp',
+          badgeImage: '/badges/watch-zombie-1.webp',
           badgeChallenge: 'Regarder 25 h de lives en mode Zombie',
           gameName: 'Zombie',
           missionType: 'special-mode',
@@ -5529,7 +5491,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: discordBadgeKey,
           badgeName: 'Membre de la communauté',
-          badgeImage: '/Discord.webp',
+          badgeImage: '/badges/discord-1.webp',
           badgeChallenge: 'Rejoindre le serveur Discord de LoVeRDoSeTV',
           gameName: 'Discord',
           missionType: 'discord',
@@ -5554,7 +5516,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: instagramBadgeKey,
           badgeName: 'Communauté Instagram',
-          badgeImage: '/Instagram.webp',
+          badgeImage: '/badges/instagram-1.webp',
           badgeChallenge: 'Visiter le compte Instagram de LoVeRDoSeTV',
           gameName: 'Instagram',
           missionType: 'instagram',
@@ -5580,7 +5542,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: tiktokBadgeKey,
           badgeName: 'Communauté TikTok',
-          badgeImage: '/Tiktok.webp',
+          badgeImage: '/badges/tiktok-1.webp',
           badgeChallenge: 'Visiter le compte TikTok de LoVeRDoSeTV',
           gameName: 'TikTok',
           missionType: 'tiktok',
@@ -5606,7 +5568,7 @@ app.get('/api/badges', async (req, res) => {
         {
           badgeKey: subBadgeKey,
           badgeName: 'Soutien Absolu',
-          badgeImage: '/Loverhi.webp',
+          badgeImage: '/badges/subscription-1.webp',
           badgeChallenge: 'Avoir un abonnement Twitch actif. Le bonus revient après expiration puis réabonnement.',
           gameName: 'Spécial · Abonnement',
           missionType: 'subscription',
@@ -5736,7 +5698,7 @@ app.post('/api/badges/social-click', async (req, res) => {
         gameId: 'social-instagram',
         gameName: 'Instagram',
         badgeName: 'Communauté Instagram',
-        badgeImage: '/Instagram.webp',
+        badgeImage: '/badges/instagram-1.webp',
         badgeChallenge: 'Visiter le compte Instagram de LoVeRDoSeTV',
         url: 'https://www.instagram.com/loverdosetv/'
       },
@@ -5745,7 +5707,7 @@ app.post('/api/badges/social-click', async (req, res) => {
         gameId: 'social-tiktok',
         gameName: 'TikTok',
         badgeName: 'Communauté TikTok',
-        badgeImage: '/Tiktok.webp',
+        badgeImage: '/badges/tiktok-1.webp',
         badgeChallenge: 'Visiter le compte TikTok de LoVeRDoSeTV',
         url: 'https://www.tiktok.com/@loverdosetv'
       }

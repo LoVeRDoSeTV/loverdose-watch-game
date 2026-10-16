@@ -1,8 +1,8 @@
-# Liste des badges et visuels — V423
+# Liste des badges et visuels — V424
 
 23 nouvelles familles, 36 paliers. Les quatre badges de catégorie Twitch disposent de 20 paliers au total (5 par catégorie).
 
-Chaque ligne correspond à un visuel. Format WebP, carré (512 × 512 conseillé), fond transparent. Déposer les fichiers aux chemins indiqués, puis les publier sur GitHub et redéployer. Les visuels absents affichent une icône provisoire ; les badges de visionnage conservent leur image actuelle. L'ajout d'un visuel ne redonne aucune récompense.
+Chaque ligne correspond à un visuel. Format WebP, carré (512 × 512 conseillé), fond transparent. Déposer les fichiers aux chemins indiqués, puis les publier sur GitHub et redéployer. Les visuels absents affichent une icône provisoire. Tous les fichiers sont désormais dans public/badges/. L'ajout d'un visuel ne redonne aucune récompense.
 
 Les badges évoluent sur une seule carte. Les objectifs acquis avant la mise à jour sont repris quand ils sont vérifiables. Les exploits de combat « Sur le fil », « Intouchable » et « Toute la troupe » sont suivis à partir des nouveaux combats.
 
@@ -12,7 +12,7 @@ Les gains des nouvelles familles sont modestes : par famille et par palier, 10/2
 
 Dans Administration → Événements, activer « J'étais là ! » au début d'un événement (15 min de visionnage validé) ou « L'équipe des 24 h » au début du live spécial (3 h cumulées). Le suivi s'arrête automatiquement après 24 h ou manuellement. Une déconnexion ne remet pas le compteur à zéro. Ces badges ne sont pas attribués rétroactivement à des événements non suivis.
 
-Les cinq visuels de « Fidèle de la chaîne » sont public/Watch1.webp (25 h), Watch2.webp (50 h), Watch3.webp (100 h), Watch4.webp (250 h) et Watch5.webp (500 h). Aucun visuel 1 000 h n’est requis. Les récompenses déjà obtenues à 1 000 h restent acquises.
+Les cinq visuels de « Fidèle de la chaîne » sont public/badges/watch-global-1.webp à watch-global-5.webp (25, 50, 100, 250 et 500 h). Les récompenses déjà obtenues à 1 000 h restent acquises.
 
 | Fichier | Badge | Objectif |
 |---|---|---|
@@ -73,7 +73,7 @@ Les cinq visuels de « Fidèle de la chaîne » sont public/Watch1.webp (25 h), 
 | public/badges/watch-zombie-4.webp | Maître des Morts | 250 h |
 | public/badges/watch-zombie-5.webp | Maître des Morts | 500 h |
 
-## Récompenses de visionnage — V423
+## Récompenses de visionnage — V424
 
 Chaque palier donne son propre montant, une fois :
 
@@ -93,11 +93,36 @@ Discord, Instagram et TikTok : chacun 100 XP Lovys en réserve, 50 XP globale et
 
 | Badge | Objectifs / paliers | Visuels |
 |---|---|---|
-| Fidèle de la chaîne | 25 / 50 / 100 / 250 / 500 h, toutes catégories confondues | public/Watch1.webp à public/Watch5.webp, dans cet ordre |
-| Présence en live | 1 / 5 / 10 / 25 / 50 / 100 / 250 lives distincts, au moins 1 h validée par live | Watch1, Watch1, Watch2, Watch2, Watch3, Watch4, Watch5 |
-| Membre de la communauté | Discord vérifié | public/Discord.webp |
-| Communauté Instagram | Visiter le compte Instagram de LoVeRDoSeTV | public/Instagram.webp |
-| Communauté TikTok | Visiter le compte TikTok de LoVeRDoSeTV | public/Tiktok.webp |
-| Soutien Absolu | Abonnement Twitch actif | public/Loverhi.webp |
+| Fidèle de la chaîne | 25 / 50 / 100 / 250 / 500 h, toutes catégories confondues | public/badges/watch-global-1.webp à watch-global-5.webp |
+| Présence en live | 1 / 5 / 10 / 25 / 50 / 100 / 250 lives distincts, au moins 1 h validée par live | public/badges/attendance-1.webp à attendance-7.webp |
+| Membre de la communauté | Discord vérifié | public/badges/discord-1.webp |
+| Communauté Instagram | Visiter le compte Instagram de LoVeRDoSeTV | public/badges/instagram-1.webp |
+| Communauté TikTok | Visiter le compte TikTok de LoVeRDoSeTV | public/badges/tiktok-1.webp |
+| Soutien Absolu | Abonnement Twitch actif | public/badges/subscription-1.webp |
 
 Pour chaque catégorie de visionnage, les fichiers numérotés **1 à 5** correspondent désormais à **25, 50, 100, 250 et 500 h**. Le fichier watch-zombie-6.webp n'est plus utilisé. Les trois badges retirés (Gardien terrassé, La forêt te reconnaît, Cœur de braise) ne figurent plus dans cette liste.
+
+## Fichiers des badges existants à recréer
+
+Tous les fichiers ci-dessous vont dans **public/badges/**, au même titre que les nouveaux badges listés plus haut. Les anciennes images à la racine de public ont été supprimées. Les visuels déjà ajoutés dans public/badges/ sont conservés.
+
+| Fichier | Badge / objectif |
+|---|---|
+| watch-global-1.webp | Fidèle de la chaîne · 25 h |
+| watch-global-2.webp | Fidèle de la chaîne · 50 h |
+| watch-global-3.webp | Fidèle de la chaîne · 100 h |
+| watch-global-4.webp | Fidèle de la chaîne · 250 h |
+| watch-global-5.webp | Fidèle de la chaîne · 500 h |
+| attendance-1.webp | Présence en live · 1 live |
+| attendance-2.webp | Présence en live · 5 lives |
+| attendance-3.webp | Présence en live · 10 lives |
+| attendance-4.webp | Présence en live · 25 lives |
+| attendance-5.webp | Présence en live · 50 lives |
+| attendance-6.webp | Présence en live · 100 lives |
+| attendance-7.webp | Présence en live · 250 lives |
+| discord-1.webp | Membre de la communauté |
+| instagram-1.webp | Communauté Instagram |
+| tiktok-1.webp | Communauté TikTok |
+| subscription-1.webp | Soutien Absolu |
+
+placeholder.svg est une icône technique provisoire : aucun visuel de badge à créer pour ce fichier. Un WebP ajouté avec le bon nom remplace immédiatement cette icône.
