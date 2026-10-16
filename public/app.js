@@ -1358,6 +1358,11 @@ const tutorialSteps = [
     tip:'Ton inventaire se trouve aussi dans la page Boutique, onglet 🎒 Inventaire. Tu peux y essayer et équiper tes titres, fonds et cadres.'
   },
   {
+    icon:'🏅', title:'Des badges qui récompensent ta progression', target:'#playerCardCollection',
+    text:'Débloque des badges en regardant les lives, en découvrant des Lovys ou en relevant des défis. Les badges et leurs paliers donnent de l’XP globale, de l’XP Lovys et du LoVeR’Cash pour faire progresser ton compte et tes compagnons.',
+    tip:'Ouvre « Mes badges » sur ta carte joueur pour voir les objectifs, les prochains paliers et les récompenses. Les gains sont attribués automatiquement à chaque nouveau palier obtenu. Tu peux aussi afficher tes badges favoris sur ta carte de visite.'
+  },
+  {
     icon:'🥚', title:'Œufs et incubateur', target:'.incubator-topbar',
     text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 6 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
     tip:'Le temps se cumule sur plusieurs lives et se met en pause hors ligne. Quand l’œuf est prêt, clique sur « Faire éclore ». Tu peux faire progresser jusqu’à 3 œufs en même temps.'
@@ -1441,16 +1446,17 @@ function renderTutorialStep() {
     if($('tutorialTip')) $('tutorialTip').innerHTML=
       '<div class="mobile-intro-item"><span>📺</span><div><strong>Regarde les lives Twitch</strong><br>Ta présence fait progresser ton compte et tes œufs.</div></div>'+
       '<div class="mobile-intro-item"><span>🐉</span><div><strong>Découvre tes Lovys</strong><br>Fais éclore tes œufs, collectionne les Lovys et pars en combat.</div></div>'+
-      '<div class="mobile-intro-item"><span>🎁</span><div><strong>Récupère tes récompenses</strong><br>Sur l’accueil : défis du jour et roues. Les boutons du bas ouvrent les autres pages.</div></div>';
+      '<div class="mobile-intro-item"><span>🎁</span><div><strong>Récupère tes récompenses</strong><br>Sur l’accueil : défis du jour et roues. Les boutons du bas ouvrent les autres pages.</div></div>'+
+      '<div class="mobile-intro-item"><span>🏅</span><div><strong>Débloque des badges et progresse</strong><br>Visionnage, collection et défis : les badges et leurs paliers donnent de l’XP globale, de l’XP Lovys et du LoVeR’Cash pour améliorer ta progression. Ouvre « Mes badges » sur ta carte joueur pour voir les objectifs et les récompenses, attribuées automatiquement.</div></div>';
     if($('gameIntroClose')) $('gameIntroClose').textContent='C’est parti !';
     return;
   }
   const step = tutorialSteps[Math.max(0, Math.min(tutorialSteps.length - 1, tutorialStepIndex))];
   clearTutorialFocus();
   resetTutorialPanelPosition();
-  // Étape 3 uniquement : le panneau du tutoriel doit rester devant l'Incubateur
+  // Étape Incubateur : le panneau du tutoriel doit rester devant l'Incubateur
   // après le scroll automatique, sans modifier le comportement des autres étapes.
-  $('gameIntroModal')?.classList.toggle('tutorial-step-incubator', tutorialStepIndex === 2);
+  $('gameIntroModal')?.classList.toggle('tutorial-step-incubator', step.target === '.incubator-topbar');
   if ($('tutorialStepLabel')) $('tutorialStepLabel').textContent = `Étape ${tutorialStepIndex + 1} / ${tutorialSteps.length}`;
   if ($('tutorialProgressBar')) $('tutorialProgressBar').style.width = `${((tutorialStepIndex + 1) / tutorialSteps.length) * 100}%`;
   if ($('tutorialIcon')) $('tutorialIcon').textContent = step.icon || '✨';
