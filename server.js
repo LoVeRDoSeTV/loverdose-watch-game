@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { createAchievements } from './src/achievements.js';
 import express from 'express';
 import session from 'express-session';
 import pg from 'pg';
@@ -2361,6 +2362,7 @@ async function runTrackerTick() {
           .filter(Number.isInteger);
 
         if (matchedUserIds.length > 0) {
+          await achievementService.trackEvents(trackerClient,matchedUserIds,deltaSeconds);
           const currentStreamId = String(stream?.id || '').trim();
           if (currentStreamId) {
             await trackerClient.query(
@@ -3489,6 +3491,7 @@ app.post('/api/account/reset-game', async (req, res) => {
 
     await client.query(`DELETE FROM user_pve_progress WHERE user_id = $1`, [user.id]);
     await client.query(`DELETE FROM user_combat_reports WHERE user_id = $1`, [user.id]);
+    await achievementService.reset(client,user.id);
     await client.query(`DELETE FROM shop_inventory WHERE account_id = $1 AND item_key LIKE 'reward_%'`, [account.id]);
 
     await client.query(
@@ -5084,6 +5087,25 @@ app.use('/api/pve', createPveRouter({
   globalThresholdForLevel
 }));
 
+const achievementService=createAchievements({pool,creatures,zones:PVE_ZONES,progressionFromXp,awardRewards:awardBadgeEconomyRewardsOnce});
+
+app.get('/api/admin/events/badges',async(req,res)=>{
+  try{
+    if(!await getBroadcasterAccount(req))return res.status(403).json({error:'Accès réservé au diffuseur.'});
+    res.json({ok:true,events:await achievementService.adminState()});
+  }catch(error){console.error(error);res.status(500).json({error:'Événements indisponibles.'});}
+});
+app.post('/api/admin/events/badges',async(req,res)=>{
+  try{
+    const account=await getBroadcasterAccount(req);if(!account)return res.status(403).json({error:'Accès réservé au diffuseur.'});
+    if(typeof req.body?.enabled!=='boolean'||!['event','marathon'].includes(req.body?.kind))return res.status(400).json({error:'Événement invalide.'});
+    await runTrackerTick();
+    const events=await achievementService.toggleEvent(req.body.kind,req.body.enabled);
+    await logAdminAction(account.id,null,'badge_event',req.body.enabled?'Événement badges activé':'Événement badges arrêté',{kind:req.body.kind});
+    res.json({ok:true,events});
+  }catch(error){console.error(error);res.status(500).json({error:'Impossible de modifier cet événement.'});}
+});
+
 app.get('/api/badges', async (req, res) => {
   try {
     if (!req.session.account || !req.session.user) {
@@ -5409,6 +5431,9 @@ app.get('/api/badges', async (req, res) => {
     const globalRewardStageHours = currentGlobalStage?.nextHours || currentGlobalStage?.minHours || 50;
     const globalDisplayReward = BADGE_GLOBAL_STAGE_REWARDS[globalRewardStageHours] || BADGE_GLOBAL_STAGE_REWARDS[50];
 
+    const achievementChallenges=await achievementService.sync(user.id,req.session.account.id);
+    badgeResult.rows=(await pool.query('SELECT * FROM user_badges WHERE user_id=$1 ORDER BY game_name,threshold_hours',[user.id])).rows;
+
     const badgeEconomyRewards = [
       ['challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]],
       ['challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]],
@@ -5654,6 +5679,7 @@ app.get('/api/badges', async (req, res) => {
             : (attendanceStage ? 'Évolution maximale atteinte · 250 lives assistés' : 'Cumuler 1 h de présence sur un live pour obtenir le badge'),
           gameName: `Lives assistés · ${attendanceDisplayStage.evolution}`,
           missionType: 'live-attendance',
+          stages: LIVE_ATTENDANCE_STAGES.map(stage=>({goal:stage.count,name:stage.evolution,unlocked:liveAttendanceCount>=stage.count,image:stage.image})),
           badgeCategory: 'twitch',
           rewardXp: attendanceRewardStage.rewards.lovysXp,
           rewardLovysXp: attendanceRewardStage.rewards.lovysXp,
@@ -5691,6 +5717,7 @@ app.get('/api/badges', async (req, res) => {
             : 'Atteindre 1000 h de visionnage total sur la chaîne',
           gameName: `Global · ${globalDisplayStage.evolution}`,
           missionType: 'global-evolution',
+          stages: globalBadgeStages.map(stage=>({goal:stage.minHours,name:stage.evolution,unlocked:globalWatchHours>=stage.minHours,image:stage.image})),
           badgeCategory: 'twitch',
           rewardXp: globalDisplayReward.lovysXp,
           rewardLovysXp: globalDisplayReward.lovysXp,
@@ -5718,7 +5745,7 @@ app.get('/api/badges', async (req, res) => {
             ? null
             : Number(globalUnlocked.leaderboard_slot)
         }
-      ],
+      ].filter(challenge=>!achievementChallenges.some(item=>item.badgeKey===challenge.badgeKey)).concat(achievementChallenges),
       badges: badgeResult.rows.map(item => ({
         badgeKey: item.badge_key,
         gameId: item.game_id,
@@ -7596,6 +7623,7 @@ async function start() {
   try {
 
     await initDatabase();
+    await achievementService.init();
 
     // Premier contrôle peu après le démarrage, puis toutes les 15 secondes.
     setTimeout(() => {

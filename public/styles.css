@@ -8899,3 +8899,14 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 
+
+/* Badges évolutifs : paliers et suivi des événements. */
+.badge-stage-list{margin-top:12px;text-align:left;border-top:1px solid #ffffff18;padding-top:10px;font-size:12px}
+.badge-stage-list summary{cursor:pointer;color:#d9bdff;min-height:32px;line-height:1.5}
+.badge-stage-list ol{list-style:none;margin:8px 0 0;padding:0}
+.badge-stage-list li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:8px 0;color:#aaa5bc;border-bottom:1px solid #ffffff0a}
+.badge-stage-list li.obtained{color:#a8eac5}.badge-stage-list strong{font-size:11px;text-align:right;max-width:115px;overflow-wrap:anywhere}
+.achievement-event-controls{margin-top:20px;padding:16px;border:1px solid #67418c;border-radius:16px;background:#131326}
+.achievement-event-controls p{font-size:13px;color:#bbb2cd;line-height:1.6}.achievement-event-controls>div{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #ffffff15}
+.achievement-event-controls small{display:block;margin-top:5px;color:#b3acc7;font-size:12px}
+@media(max-width:600px){.badge-stage-list li{grid-template-columns:minmax(0,1fr);gap:4px}.badge-stage-list strong{text-align:left;max-width:none}.achievement-event-controls>div{flex-wrap:wrap}}

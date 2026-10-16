@@ -46,7 +46,8 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
       if(previous){const pr=await client.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[user.id,previous.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}
       const stats=creatureBattleStats({creature_id:user.creature_id,xp:Number((user.lovys_xp ?? user.xp) || 0),rank:Number(user.rank||1)});
       const multiplier=typeMultiplier(stats.type,fight.type);
-      const state=createBattleState({fight,player:{...stats,lovysId:Number(user.lovys_id)},typeMultiplier:multiplier,bossMechanic:fight.mechanic||null});
+      const state=createBattleState({fight,player:{...stats,lovysId:Number(user.lovys_id),creatureId:user.creature_id},typeMultiplier:multiplier,bossMechanic:fight.mechanic||null});
+      state.achievementDamageTaken=0;
       await client.query(`INSERT INTO user_pve_battles(user_id,fight_key,state_json,updated_at) VALUES($1,$2,$3::jsonb,CURRENT_TIMESTAMP)
                           ON CONFLICT(user_id) DO UPDATE SET fight_key=EXCLUDED.fight_key,state_json=EXCLUDED.state_json,updated_at=CURRENT_TIMESTAMP`,[user.id,fight.key,JSON.stringify(state)]);
       await client.query('COMMIT');
@@ -67,8 +68,14 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
       const fight=fightByKey(br.rows[0].fight_key);
       if(!fight){await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[user.id]);await client.query('COMMIT');return res.status(400).json({error:'Combat introuvable.'});}
       const state=br.rows[0].state_json;
+      const beforeHp=Number(state.player.hp),beforeFatal=Boolean(state.player.talentState?.fatalUsed);
       let resolved;
       try{resolved=resolveBattleAction(state,action);}catch(err){await client.query('ROLLBACK');return res.status(400).json({error:err.message||'Action impossible.'});}
+      if(typeof state.achievementDamageTaken==='number'){
+        const damage=resolved.events.filter(event=>event.type==='damage'&&event.target==='player').reduce((total,event)=>total+Math.max(0,Number(event.amount||0)),0);
+        const fatalSaved=!beforeFatal&&Boolean(resolved.state.player.talentState?.fatalUsed);
+        resolved.state.achievementDamageTaken=state.achievementDamageTaken+Math.max(damage,beforeHp-Number(resolved.state.player.hp),fatalSaved?1:0);
+      }
       const final=resolved.state.status!=='active';
       let firstWin=false,reward={creatureXp:0,globalXp:0,fragments:0};
       if(final){
@@ -88,7 +95,7 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         }
         // Report power columns are INTEGER; battle attacks may contain decimals.
         await client.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Math.round(Number(resolved.state.player.attack||0)),Math.round(Number(resolved.state.enemy.attack||fight.power||0)),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key})]);
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Math.round(Number(resolved.state.player.attack||0)),Math.round(Number(resolved.state.enemy.attack||fight.power||0)),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({creatureId:resolved.state.player.creatureId||null,playerMaxHp:resolved.state.player.maxHp,flawless:resolved.state.achievementDamageTaken===0,rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key})]);
         await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[user.id]);
       }else{
         await client.query(`UPDATE user_pve_battles SET state_json=$2::jsonb,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,[user.id,JSON.stringify(resolved.state)]);

@@ -1666,7 +1666,7 @@ function badgeCelebrationStorageKey() {
 
 function badgeCelebrationSignature(challenge) {
   if (!challenge?.unlocked || !challenge?.badgeKey) return '';
-  if (challenge.missionType === 'live-attendance' || challenge.missionType === 'global-evolution') {
+  if (['live-attendance','global-evolution','achievement'].includes(challenge.missionType)) {
     const stageId = Number(challenge.celebrationStageId || challenge.evolutionLevel || 0);
     return stageId > 0 ? `${challenge.badgeKey}:stage:${stageId}` : '';
   }
@@ -1674,7 +1674,7 @@ function badgeCelebrationSignature(challenge) {
 }
 
 function badgeCelebrationDescriptor(challenge) {
-  const progressive = challenge.missionType === 'live-attendance' || challenge.missionType === 'global-evolution';
+  const progressive = ['live-attendance','global-evolution','achievement'].includes(challenge.missionType);
   const lovysXp = Number(progressive ? challenge.celebrationRewardLovysXp : challenge.rewardLovysXp || challenge.rewardXp) || 0;
   const globalXp = Number(progressive ? challenge.celebrationRewardGlobalXp : challenge.rewardGlobalXp) || 0;
   const cash = Number(progressive ? challenge.celebrationRewardCash : challenge.rewardCash) || 0;
@@ -1791,7 +1791,7 @@ function badgeVisual(badge, className = 'badge-art') {
     ? 'leaderboard-badge-placeholder'
     : 'badge-art-placeholder';
 
-  return `<span class="${placeholderClass}" aria-hidden="true">🏆</span>`;
+  return `<span class="${placeholderClass}" aria-hidden="true">${escapeHtml(badge?.badgeIcon||'🏆')}</span>`;
 }
 
 
@@ -2042,13 +2042,26 @@ function renderBadgeShowcase() {
 function badgeCategoryOf(challenge) {
   const category = String(challenge.badgeCategory || '').toLowerCase();
   const mission = String(challenge.missionType || '').toLowerCase();
+  if (['eggs','collection','evolution','combat','trade','challenges','wheel','style','event'].includes(category)) return category;
   if (category === 'social' || ['discord', 'instagram', 'tiktok'].includes(mission)) return 'social';
   if (category === 'support' || category === 'soutien' || mission === 'subscription') return 'support';
   if (category === 'special' || category === 'special-mode' || mission === 'special-mode') return 'special';
   return 'watch';
 }
 
+function badgeStagesMarkup(challenge){
+  if(!challenge?.stages?.length)return '';
+  const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h');
+  return '<details class="badge-stage-list"><summary>Voir les '+challenge.stages.length+' paliers</summary><ol>'+
+    challenge.stages.map(stage=>'<li class="'+(stage.unlocked?'obtained':'')+'"><span>'+ (stage.unlocked?'✓':'🔒')+' '+escapeHtml(stage.name)+'</span><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong></li>').join('')+
+    '</ol></details>';
+}
 function badgeMobileProgress(challenge) {
+  if(challenge.missionType==='achievement'){
+    const current=Math.max(0,Number(challenge.progressValue||0)),target=Math.max(1,Number(challenge.progressTarget||1));
+    const format=value=>(Math.floor(value*10)/10).toLocaleString('fr-FR');
+    return {percent:Math.min(100,current/target*100),label:format(current)+' / '+format(target)+' '+(challenge.progressUnit||''),remaining:format(Math.max(0,target-current))+' '+(challenge.progressUnit||'')+' restant(s)'};
+  }
   const type = String(challenge.missionType || '');
   if (type === 'live-attendance') {
     const current = Math.max(0, Number(challenge.attendanceCount || 0));
@@ -2067,7 +2080,7 @@ function badgeMobileProgress(challenge) {
 
 function renderMobileNextBadges(challenges) {
   if (!isMobileGameUi()) return '';
-  const next = challenges.filter(challenge => !challenge.maxed && (!challenge.unlocked || ['global-evolution', 'live-attendance'].includes(challenge.missionType)))
+  const next = challenges.filter(challenge => !challenge.maxed && (!challenge.unlocked || ['global-evolution', 'live-attendance', 'achievement'].includes(challenge.missionType)))
     .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
     .sort((a, b) => b.progress.percent - a.progress.percent)
     .slice(0, 3);
@@ -2120,7 +2133,7 @@ function openMobileBadgeDetail(key) {
   if (!badge) return;
   mobileBadgeCollectionScroll=document.querySelector('.badge-collection-panel')?.scrollTop||0;
   const category = badgeCategoryOf(badge);
-  const label = { watch: 'Visionnage', social: 'Réseaux sociaux', support: 'Soutien', special: 'Spéciaux' }[category];
+  const label = { watch:'Visionnage',social:'Réseaux sociaux',support:'Soutien',special:'Spéciaux',eggs:'Éclosions',collection:'Collection',evolution:'Rangs et niveaux',combat:'Combat',trade:'Échanges',challenges:'Défis',wheel:'Roues',style:'Personnalisation',event:'Événements' }[category];
   const progress = challenge ? badgeMobileProgress(challenge) : null;
   const unlocked = Boolean(challenge?.unlocked || owned);
   const rewards = challenge ? [
@@ -2137,6 +2150,8 @@ function openMobileBadgeDetail(key) {
     <div class="badge-mobile-detail-section"><h4>Comment l’obtenir</h4><p>${escapeHtml(badge.badgeChallenge || 'Mission à venir')}</p>
       ${progress ? `<div class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></div><small>${escapeHtml(progress.label)}${challenge.maxed ? ' · Évolution maximale' : ''}</small>` : ''}</div>
     ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>Récompense</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
+    ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
+    ${badgeStagesMarkup(challenge)}
     ${!unlocked && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
@@ -2158,6 +2173,15 @@ function renderBadgeCollection() {
   const categoryOf = badgeCategoryOf;
 
   const categoryMeta = {
+    eggs: { label:'Éclosions', icon:'🥚' },
+    collection: { label:'Collection', icon:'🐉' },
+    evolution: { label:'Rangs et niveaux', icon:'⭐' },
+    combat: { label:'Combat et exploration', icon:'⚔️' },
+    trade: { label:'Échanges', icon:'🤝' },
+    challenges: { label:'Défis', icon:'✅' },
+    wheel: { label:'Roues', icon:'🎡' },
+    style: { label:'Personnalisation', icon:'🎨' },
+    event: { label:'Événements', icon:'🎉' },
     watch: { label: 'Visionnage', icon: '👀' },
     social: { label: 'Réseaux sociaux', icon: '🌐' },
     support: { label: 'Soutien', icon: '⭐' },
@@ -2169,6 +2193,7 @@ function renderBadgeCollection() {
     const isSubscriptionMission = challenge.missionType === 'subscription';
     const isGlobalEvolution = challenge.missionType === 'global-evolution';
     const isLiveAttendance = challenge.missionType === 'live-attendance';
+    const isAchievement = challenge.missionType === 'achievement';
     const isSpecialModeMission = challenge.missionType === 'special-mode';
     const isSocialMission = categoryOf(challenge) === 'social';
     const isInstantMission = isSocialMission || isSubscriptionMission;
@@ -2176,13 +2201,13 @@ function renderBadgeCollection() {
     const targetHours = Number(challenge.targetHours ?? 0);
     const attendanceCount = Math.max(0, Number(challenge.attendanceCount || 0));
     const targetCount = Math.max(1, Number(challenge.targetCount || 1));
-    const percent = isInstantMission
+    const percent = isAchievement ? badgeMobileProgress(challenge).percent : isInstantMission
       ? (unlocked ? 100 : 0)
       : isLiveAttendance
         ? Math.min(100, attendanceCount / targetCount * 100)
         : Math.min(100, targetHours > 0 ? watchedHours / targetHours * 100 : 0);
 
-    const progressText = isSubscriptionMission
+    const progressText = isAchievement ? (challenge.maxed?'Évolution maximale · '+badgeMobileProgress(challenge).label:badgeMobileProgress(challenge).label) : isSubscriptionMission
       ? (unlocked ? 'Abonnement détecté · Badge débloqué' : 'S’abonner pour débloquer ce badge')
       : isSocialMission
         ? (unlocked ? 'Condition validée · Badge débloqué' : 'Action requise sur le réseau social')
@@ -2194,7 +2219,7 @@ function renderBadgeCollection() {
               ? `${watchedHours.toFixed(1).replace('.', ',')} h · Évolution maximale`
               : `${watchedHours.toFixed(1).replace('.', ',')} h / ${targetHours} h`);
 
-    const missionSource = isSocialMission
+    const missionSource = isAchievement ? (challenge.progressHint||challenge.gameName) : isSocialMission
       ? (challenge.socialNetwork === 'discord'
           ? 'Rejoins la communauté sur Discord'
           : challenge.socialNetwork === 'instagram'
@@ -2254,7 +2279,7 @@ function renderBadgeCollection() {
     const reserveNote = challenge.lovysXpToReserve && rewardLovysXp > 0
       ? `<span class="badge-reward-reserve">L’XP Lovys est ajoutée à ta réserve.</span>`
       : '';
-    const rewardLabel = isGlobalEvolution
+    const rewardLabel = isAchievement ? (challenge.maxed?'✓ Récompense finale obtenue':'🎁 Prochain palier : '+challenge.progressTarget+' '+challenge.progressUnit) : isGlobalEvolution
       ? (challenge.maxed
           ? '✓ Récompense finale obtenue'
           : `🎁 Palier ${Number(challenge.rewardStageHours || challenge.targetHours || 0)} h`)
@@ -2270,10 +2295,10 @@ function renderBadgeCollection() {
     if(isMobileGameUi()){
       const progress=badgeMobileProgress(challenge);
       return `<article class="badge-challenge-card mobile-badge-card ${unlocked?'unlocked':'locked'}" data-badge-key="${escapeHtml(challenge.badgeKey)}">
-        <div class="badge-challenge-top"><div class="badge-challenge-icon badge-challenge-art-wrap">${badgeVisual(challenge)}</div><div class="badge-challenge-info"><div class="badge-challenge-name">${escapeHtml(challenge.badgeName||'Badge')}</div><div class="badge-challenge-state">${unlocked?'✓ Débloqué':'🔒 À débloquer'}${(isGlobalEvolution||isLiveAttendance)&&unlocked?` · Niveau ${Number(challenge.evolutionLevel||1)}/${Number(challenge.maxEvolutionLevel||1)}`:''}</div></div></div>
+        <div class="badge-challenge-top"><div class="badge-challenge-icon badge-challenge-art-wrap">${badgeVisual(challenge)}</div><div class="badge-challenge-info"><div class="badge-challenge-name">${escapeHtml(challenge.badgeName||'Badge')}</div><div class="badge-challenge-state">${unlocked?'✓ Débloqué':'🔒 À débloquer'}${(isGlobalEvolution||isLiveAttendance||isAchievement)&&unlocked?` · Niveau ${Number(challenge.evolutionLevel||1)}/${Number(challenge.maxEvolutionLevel||1)}`:''}</div></div></div>
         <div class="badge-mobile-progress" role="progressbar" aria-label="Progression du badge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progress.percent)}"><span style="width:${progress.percent}%"></span></div>
         <p class="mobile-badge-progress-copy">${escapeHtml(challenge.maxed?'Évolution maximale':progress.label)}</p>
-        <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Objectif et récompenses <span aria-hidden="true">›</span></button>${actions}
+        <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Objectif et récompenses <span aria-hidden="true">›</span></button>${actions}${badgeStagesMarkup(challenge)}
       </article>`;
     }
     return `
@@ -2286,11 +2311,12 @@ function renderBadgeCollection() {
             <div class="badge-challenge-name">${escapeHtml(challenge.badgeName)}</div>
             <div class="badge-challenge-game">${escapeHtml(missionSource)}</div>
           </div>
-          <div class="badge-challenge-state">${(isGlobalEvolution || isLiveAttendance) && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
+          <div class="badge-challenge-state">${(isGlobalEvolution || isLiveAttendance || isAchievement) && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
         </div>
         ${progressBlock}
         ${isSocialMission ? `<div class="badge-challenge-bottom"><span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span></div>` : ''}
         ${rewardBlock}
+        ${badgeStagesMarkup(challenge)}
         ${actions}
         <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Voir le détail →</button>
       </div>`;
@@ -2302,7 +2328,7 @@ function renderBadgeCollection() {
       ? items
       : items.filter(item => categoryOf(item) === activeCategoryFilter);
 
-    const groups = ['watch', 'social', 'support', 'special'].map(category => {
+    const groups = Object.keys(categoryMeta).map(category => {
       const grouped = visibleItems.filter(item => categoryOf(item) === category);
       if (!grouped.length) return '';
       const meta = categoryMeta[category];
@@ -2318,10 +2344,7 @@ function renderBadgeCollection() {
         <span>Catégorie</span>
         <select class="badge-status-select" data-badge-category-filter="${unlocked ? 'unlocked' : 'locked'}">
           <option value="all" ${activeCategoryFilter === 'all' ? 'selected' : ''}>Toutes les catégories</option>
-          <option value="watch" ${activeCategoryFilter === 'watch' ? 'selected' : ''}>Visionnage</option>
-          <option value="social" ${activeCategoryFilter === 'social' ? 'selected' : ''}>Réseaux sociaux</option>
-          <option value="support" ${activeCategoryFilter === 'support' ? 'selected' : ''}>Soutien</option>
-          <option value="special" ${activeCategoryFilter === 'special' ? 'selected' : ''}>Spéciaux</option>
+          ${Object.entries(categoryMeta).map(([key,meta])=>`<option value="${key}" ${activeCategoryFilter===key?'selected':''}>${meta.label}</option>`).join('')}
         </select>
       </label>`;
 
@@ -6462,11 +6485,36 @@ function stopEventsRefresh() {
   }
 }
 
+
+async function refreshBadgeEvents(){
+  const box=$('eventBadgeControls');if(!box)return;
+  try{
+    const response=await fetch('/api/admin/events/badges',{cache:'no-store'}),data=await response.json();
+    if(!response.ok)throw new Error(data.error||'État indisponible.');
+    for(const button of box.querySelectorAll('[data-badge-event]')){
+      const active=(data.events||[]).some(event=>event.kind===button.dataset.badgeEvent);
+      button.dataset.enabled=String(active);button.textContent=active?'Arrêter':'Activer';
+      const label=$('badgeEventState-'+button.dataset.badgeEvent);if(label)label.textContent=active?'🟢 Actif':'⚪ Inactif';
+    }
+  }catch(error){const label=$('badgeEventStatus');if(label)label.textContent=error.message;}
+}
+$('eventBadgeControls')?.addEventListener('click',async event=>{
+  const button=event.target.closest('[data-badge-event]');if(!button||button.disabled)return;
+  const enabled=button.dataset.enabled!=='true',kind=button.dataset.badgeEvent;
+  if(!confirm(enabled?'Activer le suivi de cet événement pendant 24 h ? Seul le visionnage réel du live sera compté.':'Arrêter le suivi de cet événement ? Les progressions déjà gagnées seront conservées.'))return;
+  button.disabled=true;
+  try{
+    const response=await fetch('/api/admin/events/badges',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,enabled})}),data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Action impossible.');
+    await refreshBadgeEvents();
+  }catch(error){alert(error.message);}finally{button.disabled=false;}
+});
+
 async function openEventsModal() {
   const modal = $('eventsModal');
   if (!modal) return;
   modal.classList.remove('hidden');
-  await refreshEventsState();
+  await Promise.all([refreshEventsState(),refreshBadgeEvents()]);
   stopEventsRefresh();
   eventsRefreshTimer = setInterval(refreshEventsState, 1500);
 }
