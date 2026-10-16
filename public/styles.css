@@ -4956,7 +4956,7 @@ body:has(#pveModal:not(.hidden)){
   #badgeCollectionModal .badge-challenge-state{display:block;margin-top:4px;padding:0;border:0;background:none;font-size:11px;line-height:1.5;white-space:normal}
   #badgeCollectionModal .mobile-badge-card>.badge-mobile-progress{margin-top:12px}
   #badgeCollectionModal .mobile-badge-progress-copy{margin:7px 0 0;color:#b9bfd8;font-size:12px;line-height:1.5}
-  #badgeCollectionModal .badge-card-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:9px}
+  #badgeCollectionModal .badge-card-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;margin-top:9px}
   #badgeCollectionModal .badge-action{min-height:44px;min-width:0;padding:9px 6px;white-space:normal;line-height:1.4;font-size:11px}
   #badgeCollectionModal .badge-mobile-detail-button{display:flex;align-items:center;justify-content:space-between;margin-top:12px;min-height:44px;padding:10px 12px;font-size:12px}
   #badgeCollectionModal .badge-mobile-next{display:block;margin:0 0 16px;padding:0;border:1px solid #4b3869;border-radius:12px;background:#1c1830;overflow:hidden}

@@ -2205,13 +2205,9 @@ function renderBadgeCollection() {
 
     const actions = unlocked ? `
       <div class="badge-card-actions">
-        <button class="badge-action ${challenge.equippedSlot ? 'active' : ''}"
-          type="button" data-showcase-badge="${escapeHtml(challenge.badgeKey)}">
-          ${challenge.equippedSlot ? `Vitrine ${challenge.equippedSlot}` : 'Ajouter vitrine'}
-        </button>
         <button class="badge-action ${challenge.leaderboardSlot ? 'active' : ''}"
           type="button" data-leaderboard-badge="${escapeHtml(challenge.badgeKey)}">
-          ${challenge.leaderboardSlot ? `Classement ${challenge.leaderboardSlot}` : 'Ajouter à la carte de visite'}
+          ${challenge.leaderboardSlot ? 'Retirer de la carte de visite' : 'Afficher sur la carte de visite'}
         </button>
       </div>` : '';
 
