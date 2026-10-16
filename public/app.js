@@ -2088,12 +2088,11 @@ function renderMobileNextBadges(challenges) {
     .map(challenge => ({ challenge, progress: badgeMobileProgress(challenge) }))
     .sort((a, b) => b.progress.percent - a.progress.percent)
     .slice(0, 3);
-  return `<details class="badge-mobile-next" open>
-    <summary>✨ Prochains objectifs <span>${next.length}</span></summary>
-    ${next.length ? next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
-      ${badgeVisual({...challenge,badgeImage:challenge.stages?.find(stage=>!stage.unlocked)?.image||challenge.badgeImage})}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span></span><span aria-hidden="true">›</span>
-    </button>`).join('') : '<p>Tous les badges disponibles sont obtenus !</p>'}
-  </details>`;
+  const cards=next.map(({ challenge, progress }) => `<button type="button" class="badge-mobile-next-card" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">
+      ${badgeVisual({...challenge,badgeImage:challenge.stages?.find(stage=>!stage.unlocked)?.image||challenge.badgeImage})}<span class="badge-mobile-next-copy"><strong>${escapeHtml(challenge.badgeName || 'Badge')}</strong><small>${escapeHtml(progress.remaining)}</small><span class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></span><small>${Math.floor(progress.percent)} % réalisé</small></span><span aria-hidden="true">›</span>
+    </button>`).join('');
+  if(!isMobileGameUi())return next.length?`<section class="badge-nearby" aria-label="Objectifs les plus proches"><h3>✨ Tes 3 objectifs les plus proches</h3><div class="badge-nearby-grid">${cards}</div></section>`:'';
+  return `<details class="badge-mobile-next" open><summary>✨ Prochains objectifs <span>${next.length}</span></summary>${cards||'<p>Tous les badges disponibles sont obtenus !</p>'}</details>`;
 }
 
 async function activateBadgeSocialMission(challenge) {
@@ -2274,10 +2273,7 @@ function renderBadgeCollection() {
           : socialCta)
       : `
         <div class="badge-challenge-progress"><span style="width:${percent}%"></span></div>
-        <div class="badge-challenge-bottom">
-          <span class="challenge-progress-value">${progressText}</span>
-          <span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span>
-        </div>`;
+        <div class="badge-challenge-bottom"><span class="challenge-progress-value">${progressText}</span></div>`;
 
     const rewardLovysXp = Math.max(0, Number(challenge.rewardLovysXp ?? challenge.rewardXp ?? 0));
     const rewardGlobalXp = Math.max(0, Number(challenge.rewardGlobalXp || 0));
@@ -2322,14 +2318,13 @@ function renderBadgeCollection() {
           <div class="badge-challenge-icon badge-challenge-art-wrap">${badgeVisual(challenge)}${unlocked ? '' : '<span class="badge-challenge-lock">🔒</span>'}</div>
           <div class="badge-challenge-info">
             <div class="badge-challenge-name">${escapeHtml(challenge.badgeName)}</div>
-            <div class="badge-challenge-game">${escapeHtml(missionSource)}</div>
+            <div class="badge-challenge-game">${escapeHtml(categoryMeta[categoryOf(challenge)]?.label||missionSource)}</div>
           </div>
           <div class="badge-challenge-state">${(isGlobalEvolution || isLiveAttendance || isAchievement) && unlocked ? `Niveau ${challenge.evolutionLevel}/${challenge.maxEvolutionLevel}` : (unlocked ? 'Débloqué' : 'À débloquer')}</div>
         </div>
         ${progressBlock}
-        ${isSocialMission ? `<div class="badge-challenge-bottom"><span class="challenge-text">${escapeHtml(challenge.badgeChallenge)}</span></div>` : ''}
-        ${rewardBlock}
-        ${badgeStagesMarkup(challenge)}
+        
+        
         ${actions}
         <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Voir le détail →</button>
       </div>`;
@@ -2416,7 +2411,7 @@ function renderBadgeCollection() {
   const selectedHtml = badgeCollectionView === 'locked' ? lockedHtml : unlockedHtml;
   const ownedCount=unlockedChallenges.length+extraBadges.length,total=challenges.length+extraBadges.length;
   const summary=isMobileGameUi()?`<section class="badge-mobile-summary" aria-label="Progression de la collection"><div><span>TA COLLECTION</span><strong>${ownedCount} <small>/ ${total} badges</small></strong></div><span class="badge-mobile-summary-percent">${total?Math.round(ownedCount/total*100):0} %</span><div class="badge-mobile-progress"><span style="width:${total?ownedCount/total*100:0}%"></span></div><p>Gagne des badges et affiche tes favoris sur ton profil.</p></section>`:'';
-  container.innerHTML = isMobileGameUi()?summary+filterTabs+renderMobileNextBadges(challenges)+selectedHtml:filterTabs+selectedHtml;
+  container.innerHTML = isMobileGameUi()?summary+filterTabs+renderMobileNextBadges(challenges)+selectedHtml:renderMobileNextBadges(challenges)+filterTabs+selectedHtml;
 
   if (badgeCollectionView === 'unlocked' && extraHtml) container.insertAdjacentHTML('beforeend', extraHtml);
 
