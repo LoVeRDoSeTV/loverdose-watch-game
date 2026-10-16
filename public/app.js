@@ -1915,6 +1915,14 @@ function applyProfileCosmetics(element, backgroundKey, frameKey) {
 
 let progressionTitlePreview = null;
 
+function renderBadgeVisitPreview(){
+  const host=$('badgeVisitPreviewVisual');
+  if(!host)return;
+  host.innerHTML=renderDesktopVisitCardPreview(null,'badgeVisitPreviewCard');
+  const count=(badgeData.badges||[]).filter(badge=>Number(badge.leaderboardSlot)>0).length;
+  if($('badgeVisitPreviewCount'))$('badgeVisitPreviewCount').textContent=Math.min(2,count)+' / 2 badges affichés';
+}
+
 function renderPlayerVisitCard() {
   const nameEl = $('playerCardName');
   const titleEl = $('playerCardTitle');
@@ -1971,6 +1979,7 @@ function renderPlayerVisitCard() {
       : '🏅';
   });
   renderAccountBadgeShowcase();
+  renderBadgeVisitPreview();
 }
 
 function applyBadgeRewardSummary(summary){
@@ -2180,6 +2189,7 @@ function openMobileBadgeDetail(key,stageGoal=null) {
 }
 
 function renderBadgeCollection() {
+  renderBadgeVisitPreview();
   const container = $('badgeCollectionContent');
   if (!container) return;
 

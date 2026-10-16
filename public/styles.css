@@ -8904,6 +8904,18 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 
+.badge-visit-preview{display:grid;grid-template-columns:minmax(220px,.65fr) minmax(0,1fr);align-items:center;gap:26px;margin:16px 0 28px;padding:20px 24px;border:1px solid #a97be933;border-radius:18px;background:linear-gradient(120deg,#241b373d,#15182c55)}
+.badge-visit-preview-copy>span{color:#bda1e3;font-size:10px;font-weight:800;letter-spacing:.12em}.badge-visit-preview-copy h3{margin:8px 0;font-size:20px;color:#f4edff}
+.badge-visit-preview-copy p{max-width:420px;margin:0 0 12px;color:#bdb6ce;font-size:13px;line-height:1.6}.badge-visit-preview-copy small{color:#d8b9ff;font-size:12px}
+#badgeVisitPreviewVisual{min-width:0;width:100%;max-width:700px}
+#badgeVisitPreviewVisual .player-visit-card{width:100%;max-width:none;min-height:0;margin:0;padding:18px;border-radius:14px;pointer-events:none}
+#badgeVisitPreviewVisual .player-card-main{padding-right:0;min-width:0}
+#badgeVisitPreviewVisual .player-card-kicker{padding-right:56px;font-size:13px}
+#badgeVisitPreviewVisual .player-card-name{font-size:20px;white-space:normal;overflow-wrap:anywhere}
+#badgeVisitPreviewVisual .player-card-rankbadges{position:static;margin-top:14px;cursor:default;transform:none}
+#badgeVisitPreviewVisual .player-card-rankbadge img{width:100%;height:100%;object-fit:contain}
+@media(max-width:900px){.badge-visit-preview{grid-template-columns:minmax(0,1fr);gap:14px;padding:16px;margin:0 0 18px}.badge-visit-preview-copy h3{font-size:18px}.badge-visit-preview-copy p{max-width:none;font-size:12px}#badgeVisitPreviewVisual{max-width:none}#badgeVisitPreviewVisual .player-card-avatar{width:56px;height:56px;flex:0 0 56px}#badgeVisitPreviewVisual .player-card-main{gap:12px}#badgeVisitPreviewVisual .player-card-name{font-size:18px}}
+
 /* Collection PC : une seule zone de défilement et navigation par catégorie. */
 @media(min-width:901px){
   html:has(#badgeCollectionModal:not(.hidden)),body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden;height:100%;overscroll-behavior:none}
