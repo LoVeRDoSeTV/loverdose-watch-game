@@ -2060,6 +2060,7 @@ async function syncSubscriberStatus(row) {
       `
     );
 
+    await achievementService.syncSubscriptionTransitions(client);
     await client.query('COMMIT');
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
@@ -5160,36 +5161,7 @@ app.get('/api/badges', async (req, res) => {
       await awardBadgeEconomyRewardsOnce([user.id], 'mission:discord:membre-communaute', BADGE_SOCIAL_REWARD);
     }
 
-    if (user.is_sub) {
-      await pool.query(
-        `
-        INSERT INTO user_badges (
-          user_id,
-          badge_key,
-          game_id,
-          game_name,
-          badge_name,
-          badge_image,
-          badge_challenge,
-          tier,
-          threshold_hours
-        )
-        VALUES (
-          $1,
-          'mission:sub:soutien-absolu',
-          'special-sub',
-          'Spécial · Abonnement',
-          'Soutien Absolu',
-          '/Loverhi.webp',
-          'S’abonner à la chaîne LoVeRDoSeTV',
-          'special',
-          0
-        )
-        ON CONFLICT (user_id, badge_key) DO NOTHING
-        `,
-        [user.id]
-      );
-    }
+    await achievementService.syncSubscriptionBadges(user.id);
 
     // Badge global évolutif : Fidèle de la chaîne
     // Il évolue automatiquement avec le temps total de visionnage du joueur.
@@ -5436,7 +5408,7 @@ app.get('/api/badges', async (req, res) => {
       ['mission:discord:membre-communaute', BADGE_SOCIAL_REWARD],
       ['mission:instagram:communaute', BADGE_SOCIAL_REWARD],
       ['mission:tiktok:communaute', BADGE_SOCIAL_REWARD],
-      ['mission:sub:soutien-absolu', BADGE_SUB_REWARD]
+      // Le bonus abonné est géré par période active dans achievementService.
     ];
     for (const [badgeKey, rewards] of badgeEconomyRewards) {
       await awardBadgeEconomyRewardsOnce([user.id], badgeKey, rewards);
@@ -5645,7 +5617,7 @@ app.get('/api/badges', async (req, res) => {
           badgeKey: subBadgeKey,
           badgeName: 'Soutien Absolu',
           badgeImage: '/Loverhi.webp',
-          badgeChallenge: 'S’abonner à la chaîne LoVeRDoSeTV',
+          badgeChallenge: 'Avoir un abonnement Twitch actif. Le bonus revient après expiration puis réabonnement.',
           gameName: 'Spécial · Abonnement',
           missionType: 'subscription',
           badgeCategory: 'twitch',

@@ -55,6 +55,7 @@ export function achievementImage(id,stage,fallback=null){
 
 export function createAchievements({pool,creatures,zones,progressionFromXp,awardRewards}){
   async function init(){
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_subscription_badge_state(user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,is_active BOOLEAN NOT NULL,cycle INTEGER NOT NULL DEFAULT 0,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
     await pool.query(`CREATE TABLE IF NOT EXISTS user_achievement_progress(
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       metric TEXT NOT NULL,value DOUBLE PRECISION NOT NULL DEFAULT 0,PRIMARY KEY(user_id,metric))`);
@@ -182,6 +183,38 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
     }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}
   }
 
+
+  async function syncSubscriptionTransitions(client,userIds=null){
+    const rows=(await client.query(`SELECT u.id,u.is_sub,s.is_active,s.cycle FROM users u
+      LEFT JOIN user_subscription_badge_state s ON s.user_id=u.id
+      WHERE ($1::int[] IS NULL OR u.id=ANY($1::int[]))
+        AND (s.user_id IS NULL OR s.is_active IS DISTINCT FROM u.is_sub)
+      ORDER BY u.id FOR UPDATE OF u`,[userIds])).rows;
+    const key='mission:sub:soutien-absolu';
+    for(const row of rows){
+      const active=Boolean(row.is_sub);
+      const legacy=(await client.query('SELECT 1 FROM user_xp_rewards WHERE user_id=$1 AND reward_key=$2',[row.id,key+':economy-v1'])).rows.length>0;
+      const initial=row.cycle===null||row.cycle===undefined;
+      let cycle=initial?(legacy?1:0):Number(row.cycle);
+      if(active)cycle=initial?Math.max(1,cycle):cycle+1;
+      await client.query(`INSERT INTO user_subscription_badge_state(user_id,is_active,cycle) VALUES($1,$2,$3)
+        ON CONFLICT(user_id) DO UPDATE SET is_active=EXCLUDED.is_active,cycle=EXCLUDED.cycle,updated_at=CURRENT_TIMESTAMP`,[row.id,active,cycle]);
+      if(!active){
+        await client.query('DELETE FROM user_badges WHERE user_id=$1 AND badge_key=$2',[row.id,key]);
+        continue;
+      }
+      await client.query(`INSERT INTO user_badges(user_id,badge_key,game_id,game_name,badge_name,badge_image,badge_challenge,tier,threshold_hours)
+        VALUES($1,$2,'special-sub','Spécial · Abonnement','Soutien Absolu','/Loverhi.webp','Abonnement Twitch actif','special',0)
+        ON CONFLICT(user_id,badge_key) DO NOTHING`,[row.id,key]);
+      if(!(initial&&legacy))await awardRewards([Number(row.id)],key,{lovysXp:500,globalXp:250,cash:100},`subscription-cycle-${cycle}-v1`,key+':no-legacy',client);
+    }
+  }
+  async function syncSubscriptionBadges(userId){
+    const client=await pool.connect();try{
+      await client.query('BEGIN');await syncSubscriptionTransitions(client,[userId]);await client.query('COMMIT');
+    }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}
+  }
+
   async function reconcileGlobalWatch(userId,hours){
     if(hours<100)return 0;
     const key='mission:global:fidele-chaine';
@@ -204,7 +237,8 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
   }
   async function reset(client,userId){
     await client.query('DELETE FROM user_achievement_progress WHERE user_id=$1',[userId]);
+    await client.query('DELETE FROM user_subscription_badge_state WHERE user_id=$1',[userId]);
     await client.query('DELETE FROM user_achievement_event_watch WHERE user_id=$1',[userId]);
   }
-  return {init,sync,trackEvents,adminState,toggleEvent,reset,reconcileGlobalWatch};
+  return {init,sync,trackEvents,adminState,toggleEvent,reset,reconcileGlobalWatch,syncSubscriptionBadges,syncSubscriptionTransitions};
 }

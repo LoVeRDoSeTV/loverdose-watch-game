@@ -92,4 +92,4 @@ Chaque palier donne son propre montant, une fois :
 
 Ce barème s’applique aux quatre catégories Twitch et au badge global, selon leurs seuils disponibles. Pour les joueurs ayant déjà reçu les petits gains V418, seul le complément est crédité, une seule fois. Les anciens 100 h globaux sont complétés de 250 XP Lovys, 125 XP globale et 25 Cash.
 
-Discord, Instagram et TikTok : chacun 100 XP Lovys en réserve, 50 XP globale et 25 Cash, une fois. Abonnement : 500 XP Lovys, 250 XP globale et 100 Cash, une seule fois au premier déblocage. Les autres familles conservent leurs récompenses actuelles.
+Discord, Instagram et TikTok : chacun 100 XP Lovys en réserve, 50 XP globale et 25 Cash, une fois. Abonnement : 500 XP Lovys, 250 XP globale et 100 Cash au premier déblocage, puis à chaque reprise après une expiration détectée. Le badge est disponible uniquement pendant l’abonnement actif. Une reconduction continue, un rafraîchissement ou une reconnexion ne redonne pas le bonus. Les autres avantages d’abonnement suivent également le statut Twitch actif. Les autres familles conservent leurs récompenses actuelles.
