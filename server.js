@@ -5963,6 +5963,14 @@ app.post('/api/badges/unequip', async (req, res) => {
 
 
 
+async function visitCardBadgeSlots(client,userId){
+  const result=await client.query(
+    'SELECT badge_key,leaderboard_slot FROM user_badges WHERE user_id=$1 AND leaderboard_slot IS NOT NULL ORDER BY leaderboard_slot',
+    [userId]
+  );
+  return result.rows.map(row=>({badgeKey:row.badge_key,slot:Number(row.leaderboard_slot)}));
+}
+
 app.post('/api/badges/leaderboard/equip', async (req, res) => {
   const client = await pool.connect();
 
@@ -6006,8 +6014,9 @@ app.post('/api/badges/leaderboard/equip', async (req, res) => {
     // Si le badge est déjà affiché, on ne modifie rien ici :
     // le client utilise la route unequip pour le retirer.
     if (badge.leaderboard_slot) {
+      const slots=await visitCardBadgeSlots(client,user.id);
       await client.query('COMMIT');
-      return res.json({ ok: true, slot: Number(badge.leaderboard_slot), unchanged: true });
+      return res.json({ ok: true, slot: Number(badge.leaderboard_slot), unchanged: true, slots });
     }
 
     const equippedResult = await client.query(
@@ -6070,8 +6079,9 @@ app.post('/api/badges/leaderboard/equip', async (req, res) => {
       [user.id, badgeKey, slot]
     );
 
+    const slots=await visitCardBadgeSlots(client,user.id);
     await client.query('COMMIT');
-    res.json({ ok: true, slot });
+    res.json({ ok: true, slot, slots });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur badge classement :', error);
@@ -6130,8 +6140,9 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
       }
     }
 
+    const slots=await visitCardBadgeSlots(client,user.id);
     await client.query('COMMIT');
-    res.json({ ok: true });
+    res.json({ ok: true, slots });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur retrait badge classement :', error);

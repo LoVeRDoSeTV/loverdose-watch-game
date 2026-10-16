@@ -2207,7 +2207,7 @@ function renderBadgeCollection() {
       <div class="badge-card-actions">
         <button class="badge-action ${challenge.leaderboardSlot ? 'active' : ''}"
           type="button" data-leaderboard-badge="${escapeHtml(challenge.badgeKey)}">
-          ${challenge.leaderboardSlot ? 'Retirer de la carte de visite' : 'Afficher sur la carte de visite'}
+          ${challenge.leaderboardSlot ? 'Retirer' : 'Afficher'}
         </button>
       </div>` : '';
 
@@ -2451,40 +2451,51 @@ async function unequipBadge(slot) {
   await loadBadges();
 }
 
-async function equipLeaderboardBadge(badgeKey) {
-  const badge = (badgeData.badges || []).find(item => item.badgeKey === badgeKey);
-  if (!badge) return;
-
-  if (badge.leaderboardSlot) {
-    await unequipLeaderboardBadge(Number(badge.leaderboardSlot));
-    return;
+let visitCardBadgeBusy=false;
+function applyVisitCardBadgeSlots(slots){
+  const byKey=new Map(slots.map(item=>[item.badgeKey,Number(item.slot)]));
+  for(const item of [...(badgeData.badges||[]),...(badgeData.challenges||[])])item.leaderboardSlot=byKey.get(item.badgeKey)||null;
+  const selected=(badgeData.badges||[]).filter(item=>item.leaderboardSlot).sort((a,b)=>a.leaderboardSlot-b.leaderboardSlot);
+  for(const player of leaderboardPlayers||[]){
+    if(String(player.twitch_id||'')===String(me?.user?.twitch_id||'')){
+      player.leaderboard_badges=selected.map(item=>({...item,slot:item.leaderboardSlot}));
+    }
   }
-
-  const response = await fetch('/api/badges/leaderboard/equip', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ badgeKey })
-  });
-
-  const data = await response.json();
-  if (!response.ok) return alert(data.error || 'Impossible d’afficher ce badge dans le classement.');
-
-  await loadBadges();
-  await loadLeaderboard();
+  renderPlayerVisitCard();
+  renderBadgeCollection();
 }
-
-async function unequipLeaderboardBadge(slot) {
-  const response = await fetch('/api/badges/leaderboard/unequip', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ slot })
+async function updateVisitCardBadge(action,payload){
+  if(visitCardBadgeBusy)return;
+  visitCardBadgeBusy=true;
+  document.querySelectorAll('[data-leaderboard-badge]').forEach(button=>{
+    button.disabled=true;
+    if(button.dataset.leaderboardBadge===payload.badgeKey || (action==='unequip'&&Number((badgeData.badges||[]).find(b=>b.badgeKey===button.dataset.leaderboardBadge)?.leaderboardSlot)===payload.slot))button.textContent='…';
   });
-
-  const data = await response.json();
-  if (!response.ok) return alert(data.error || 'Impossible de retirer ce badge du classement.');
-
-  await loadBadges();
-  await loadLeaderboard();
+  try{
+    const response=await fetch('/api/badges/leaderboard/'+action,{
+      method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Impossible de modifier le badge de la carte de visite.');
+    if(Array.isArray(data.slots))applyVisitCardBadgeSlots(data.slots);
+    else await loadBadges();
+    void loadLeaderboard();
+  }catch(error){
+    alert(error.message||'Impossible de contacter le serveur.');
+  }finally{
+    visitCardBadgeBusy=false;
+    renderBadgeCollection();
+  }
+}
+async function equipLeaderboardBadge(badgeKey){
+  const badge=(badgeData.badges||[]).find(item=>item.badgeKey===badgeKey);
+  if(!badge)return;
+  return badge.leaderboardSlot
+    ?updateVisitCardBadge('unequip',{slot:Number(badge.leaderboardSlot)})
+    :updateVisitCardBadge('equip',{badgeKey});
+}
+async function unequipLeaderboardBadge(slot){
+  return updateVisitCardBadge('unequip',{slot:Number(slot)});
 }
 
 function openBadgeShowcaseModal() {
