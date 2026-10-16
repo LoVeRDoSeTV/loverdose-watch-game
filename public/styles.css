@@ -821,7 +821,7 @@ body.auth-locked .wrap { visibility:hidden; }
 .badge-collection-modal{position:fixed;inset:0;width:100%;height:100dvh;z-index:1000100;display:flex;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020}
 .badge-collection-modal.hidden{display:none}
 .badge-collection-panel{box-sizing:border-box;width:100%;max-width:none;height:100%;max-height:none;min-width:0;margin:0;overflow:auto;overscroll-behavior:contain;padding:26px;border:0;border-radius:0;background:#111528;box-shadow:none}
-.badge-collection-head{position:sticky;top:0;z-index:5;margin:-26px -26px 18px;padding:20px 26px;border-bottom:1px solid #35304f;background:#12172c;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.badge-collection-head{position:relative;top:auto;z-index:5;margin:-26px -26px 18px;padding:20px 26px;border-bottom:1px solid #35304f;background:#12172c;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .badge-collection-head h2{margin:0}
 .badge-collection-help{margin:8px 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
 .badge-game-group{margin:18px 0 24px}
