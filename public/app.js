@@ -2049,15 +2049,15 @@ function badgeCategoryOf(challenge) {
   return 'watch';
 }
 
-function badgeStagesMarkup(challenge,expanded=false){
+function badgeStagesMarkup(challenge,expanded=false,selectedGoal=null){
   if(!challenge?.stages?.length)return '';
   const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h');
   const nextIndex=challenge.stages.findIndex(stage=>!stage.unlocked);
   return '<details class="badge-stage-list"'+(expanded?' open':'')+'><summary>Les '+challenge.stages.length+' paliers du badge</summary><ol>'+
     challenge.stages.map((stage,index)=>'<li class="'+(stage.unlocked?'obtained':index===nextIndex?'next-stage':'locked-stage')+'">'+
-      badgeVisual({badgeImage:stage.image,badgeName:stage.name,badgeIcon:challenge.badgeIcon})+
+      '<button type="button" class="badge-stage-button" data-badge-stage="'+Number(stage.goal)+'" data-badge-stage-key="'+escapeHtml(challenge.badgeKey)+'" aria-pressed="'+(Number(selectedGoal)===Number(stage.goal))+'">'+badgeVisual({badgeImage:stage.image,badgeName:stage.name,badgeIcon:challenge.badgeIcon})+
       '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong><small>'+
-      (stage.unlocked?'✓ Obtenu':index===nextIndex?'Prochain badge':'À débloquer')+'</small></span></li>').join('')+
+      (stage.unlocked?'✓ Obtenu':index===nextIndex?'Prochain badge':'À débloquer')+'</small></span></button></li>').join('')+
     '</ol></details>';
 }
 
@@ -2129,16 +2129,26 @@ function closeMobileBadgeDetail() {
   }
 }
 
-function openMobileBadgeDetail(key) {
-  const challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
+function openMobileBadgeDetail(key,stageGoal=null) {
+  let challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
+  const selectedStage=stageGoal===null?null:challenge?.stages?.find(stage=>Number(stage.goal)===Number(stageGoal));
+  if(selectedStage){
+    const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h de visionnage');
+    const rewards=selectedStage.rewards||{};
+    challenge={...challenge,badgeName:selectedStage.name,badgeImage:selectedStage.image,
+      badgeChallenge:selectedStage.goal+' '+unit,unlocked:Boolean(selectedStage.unlocked),maxed:false,
+      progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
+      rewardLovysXp:rewards.lovysXp||0,rewardXp:rewards.lovysXp||0,
+      rewardGlobalXp:rewards.globalXp||0,rewardCash:rewards.cash||0,rewardTitle:selectedStage.rewardTitle||null};
+  }
   const owned = (badgeData.badges || []).find(item => item.badgeKey === key);
   const badge = challenge || owned;
   if (!badge) return;
-  mobileBadgeCollectionScroll=document.querySelector('.badge-collection-panel')?.scrollTop||0;
+  if($('badgeMobileDetail')?.classList.contains('hidden'))mobileBadgeCollectionScroll=document.querySelector('.badge-collection-panel')?.scrollTop||0;
   const category = badgeCategoryOf(badge);
   const label = { watch:'Visionnage',social:'Réseaux sociaux',support:'Soutien',special:'Spéciaux',eggs:'Éclosions',collection:'Collection',evolution:'Rangs et niveaux',combat:'Combat',trade:'Échanges',challenges:'Défis',wheel:'Roues',style:'Personnalisation',event:'Événements' }[category];
   const progress = challenge ? badgeMobileProgress(challenge) : null;
-  const unlocked = Boolean(challenge?.unlocked || owned);
+  const unlocked = selectedStage?Boolean(selectedStage.unlocked):Boolean(challenge?.unlocked || owned);
   const rewards = challenge ? [
     Number(challenge.rewardLovysXp || challenge.rewardXp || 0) > 0 ? `🐉 +${Number(challenge.rewardLovysXp || challenge.rewardXp)} XP Lovys` : '',
     Number(challenge.rewardGlobalXp || 0) > 0 ? `⭐ +${Number(challenge.rewardGlobalXp)} XP globale` : '',
@@ -2152,9 +2162,9 @@ function openMobileBadgeDetail(key) {
     </div>
     <div class="badge-mobile-detail-section"><h4>Comment l’obtenir</h4><p>${escapeHtml(badge.badgeChallenge || 'Mission à venir')}</p>
       ${progress ? `<div class="badge-mobile-progress"><span style="width:${progress.percent}%"></span></div><small>${escapeHtml(progress.label)}${challenge.maxed ? ' · Évolution maximale' : ''}</small>` : ''}</div>
-    ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>Récompense</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
+    ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>${selectedStage?.unlocked?'Récompense déjà obtenue':selectedStage?'Récompense de ce palier':'Prochaine récompense'}</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
     ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
-    ${badgeStagesMarkup(challenge,true)}
+    ${badgeStagesMarkup(challenge,true,selectedStage?.goal??null)}
     ${!unlocked && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
@@ -2577,6 +2587,8 @@ $('badgeCollectionClose')?.addEventListener('click', () => {
 });
 $('badgeMobileDetailBack')?.addEventListener('click', closeMobileBadgeDetail);
 $('badgeMobileDetailBody')?.addEventListener('click', event => {
+  const stageButton=event.target.closest('[data-badge-stage]');
+  if(stageButton){openMobileBadgeDetail(stageButton.dataset.badgeStageKey,Number(stageButton.dataset.badgeStage));return;}
   const button = event.target.closest('[data-mobile-social-mission]');
   if (!button) return;
   const challenge = (badgeData.challenges || []).find(item => item.badgeKey === button.dataset.mobileSocialMission);
@@ -2601,6 +2613,8 @@ $('badgeCollectionModal')?.addEventListener('mouseup', event => {
 });
 
 $('badgeCollectionContent')?.addEventListener('click', event => {
+  const stageButton=event.target.closest('[data-badge-stage]');
+  if(stageButton){openMobileBadgeDetail(stageButton.dataset.badgeStageKey,Number(stageButton.dataset.badgeStage));return;}
   const detailButton = event.target.closest('[data-mobile-badge-detail]');
   const badgeCard = isMobileGameUi() ? event.target.closest('.badge-challenge-card[data-badge-key]') : null;
   if (detailButton || (badgeCard && !event.target.closest('button,details'))) {

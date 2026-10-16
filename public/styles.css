@@ -8922,9 +8922,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .badge-stage-list{margin-top:16px;text-align:left;border-top:1px solid #ffffff18;padding-top:12px;font-size:12px}
 .badge-stage-list summary{cursor:pointer;color:#d9bdff;min-height:36px;line-height:1.5;font-weight:800}
 .badge-stage-list ol{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;list-style:none;margin:10px 0 0;padding:0}
-.badge-stage-list li{display:flex;align-items:center;gap:12px;min-width:0;padding:12px;border:1px solid #ffffff18;border-radius:12px;background:#101427;color:#c6bed8}
+.badge-stage-list li{display:block;min-width:0;padding:0;border:1px solid #ffffff18;border-radius:12px;background:#101427;color:#c6bed8}
 .badge-stage-list li.obtained{border-color:#61c98a66}.badge-stage-list li.next-stage{border-color:#bd8cff;background:#2b2042}
 .badge-stage-list .badge-art,.badge-stage-list .badge-art-placeholder{width:64px;height:64px;flex:0 0 64px;filter:none;opacity:1}
+.badge-stage-button{display:flex;align-items:center;gap:12px;width:100%;min-height:88px;padding:12px;border:0;border-radius:11px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}.badge-stage-button:hover{background:#b985ff15}.badge-stage-button:focus-visible{outline:2px solid #d4aeff;outline-offset:2px}.badge-stage-button[aria-pressed="true"]{background:#b985ff25;box-shadow:0 0 0 2px #d4aeff inset}
 .badge-stage-copy{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
 .badge-stage-copy b{font-size:12px;color:#f3edff}.badge-stage-copy strong{font-size:12px;color:#ddd2f3}.badge-stage-copy small{font-size:11px;color:#c3b8d3}
 .badge-mobile-detail .badge-stage-list ol{grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}

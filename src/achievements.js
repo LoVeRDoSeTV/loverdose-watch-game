@@ -176,7 +176,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
           celebrationRewardLovysXp:current?(f.base&&current.goal===f.base?(f.base===25?250:500):current.rewards.lovysXp):0,
           celebrationRewardGlobalXp:current?(f.base&&current.goal===f.base?(f.base===25?125:250):current.rewards.globalXp):0,
           celebrationRewardCash:current?(f.base&&current.goal===f.base?(f.base===25?25:50):current.rewards.cash):0,
-          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,unlocked:value>=stage.goal,image:achievementImage(f.id,index+1)}))});
+          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,unlocked:value>=stage.goal,image:achievementImage(f.id,index+1),rewards:stage.rewards}))});
       }
       await client.query('COMMIT');return challenges;
     }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}
