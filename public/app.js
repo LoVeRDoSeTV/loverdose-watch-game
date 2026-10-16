@@ -2342,14 +2342,22 @@ function renderBadgeCollection() {
         </section>`;
     }).join('');
 
-    const filterSelect = `
+    const filterSelect = isMobileGameUi() ? `
       <label class="badge-status-filter">
         <span>Catégorie</span>
         <select class="badge-status-select" data-badge-category-filter="${unlocked ? 'unlocked' : 'locked'}">
           <option value="all" ${activeCategoryFilter === 'all' ? 'selected' : ''}>Toutes les catégories</option>
           ${Object.entries(categoryMeta).map(([key,meta])=>`<option value="${key}" ${activeCategoryFilter===key?'selected':''}>${meta.label}</option>`).join('')}
         </select>
-      </label>`;
+      </label>` : '';
+    const categoryNavigation=isMobileGameUi()?'':`<nav class="badge-category-nav" aria-label="Catégories de badges">
+      <button type="button" class="badge-category-tile ${activeCategoryFilter==='all'?'active':''}" data-badge-category="all" data-badge-status="${unlocked?'unlocked':'locked'}" aria-pressed="${activeCategoryFilter==='all'}"><span aria-hidden="true">🏆</span><strong>Tous les badges</strong><small>${items.length}</small></button>
+      ${Object.entries(categoryMeta).map(([key,meta])=>{
+        const count=items.filter(item=>categoryOf(item)===key).length;if(!count)return '';
+        return `<button type="button" class="badge-category-tile ${activeCategoryFilter===key?'active':''}" data-badge-category="${key}" data-badge-status="${unlocked?'unlocked':'locked'}" aria-pressed="${activeCategoryFilter===key}"><span aria-hidden="true">${meta.icon}</span><strong>${escapeHtml(meta.label)}</strong><small>${count}</small></button>`;
+      }).join('')}
+    </nav>`;
+
 
     const emptyMessage = unlocked
       ? (activeCategoryFilter === 'all'
@@ -2365,6 +2373,7 @@ function renderBadgeCollection() {
           <div class="badge-status-header-main">${unlocked ? '✅ Badges débloqués' : '🔒 Badges à débloquer'}</div>
           ${filterSelect}
         </div>
+        ${categoryNavigation}
         ${groups || `<div class="badge-empty">${emptyMessage}</div>`}
       </section>`;
   }
@@ -2402,6 +2411,14 @@ function renderBadgeCollection() {
   container.querySelectorAll('[data-badge-view]').forEach(button => {
     button.addEventListener('click', () => {
       badgeCollectionView = button.dataset.badgeView === 'locked' ? 'locked' : 'unlocked';
+      renderBadgeCollection();
+    });
+  });
+
+  container.querySelectorAll('[data-badge-category]').forEach(button=>{
+    button.addEventListener('click',()=>{
+      if(button.dataset.badgeStatus==='unlocked')unlockedBadgeCategoryFilter=button.dataset.badgeCategory;
+      else badgeCategoryFilter=button.dataset.badgeCategory;
       renderBadgeCollection();
     });
   });

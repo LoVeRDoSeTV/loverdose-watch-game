@@ -8903,6 +8903,21 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 
 
+/* Collection PC : une seule zone de défilement et navigation par catégorie. */
+@media(min-width:901px){
+  html:has(#badgeCollectionModal:not(.hidden)),body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden;height:100%;overscroll-behavior:none}
+  #badgeCollectionModal{overflow:hidden}
+  #badgeCollectionModal>.badge-collection-panel{overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+  #badgeCollectionModal .badge-category-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:0 0 26px}
+  .badge-category-tile{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:66px;padding:12px;text-align:left;border:1px solid #403854;border-radius:14px;background:linear-gradient(135deg,#211c35,#15182b);color:#cdc6df;cursor:pointer;font:inherit;transition:border-color .15s,background .15s}
+  .badge-category-tile>span{font-size:24px;text-align:center}.badge-category-tile strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
+  .badge-category-tile small{display:grid;place-items:center;min-width:25px;height:25px;padding:0 6px;border-radius:8px;background:#ffffff0c;font-size:11px}
+  .badge-category-tile:hover{border-color:#9e75d5;background:#2b2241}.badge-category-tile.active{border-color:#bd91ff;background:linear-gradient(125deg,#473067,#27213e);color:#fff;box-shadow:0 0 0 1px #b780ff30 inset}
+  .badge-category-tile:focus-visible{outline:2px solid #d2b1ff;outline-offset:3px}
+  #badgeCollectionModal .badge-category-heading{padding:12px 0;border-bottom:1px solid #69518366;margin-bottom:16px;color:#e0c9ff;font-size:14px}
+  #badgeCollectionModal .badge-category-block{margin-bottom:30px}
+  #badgeCollectionModal .badge-challenge-grid{grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:18px}
+}
 /* Badges évolutifs : paliers et suivi des événements. */
 .badge-stage-list{margin-top:16px;text-align:left;border-top:1px solid #ffffff18;padding-top:12px;font-size:12px}
 .badge-stage-list summary{cursor:pointer;color:#d9bdff;min-height:36px;line-height:1.5;font-weight:800}
