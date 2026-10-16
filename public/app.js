@@ -2341,7 +2341,9 @@ function renderBadgeCollection() {
       ? items
       : items.filter(item => categoryOf(item) === activeCategoryFilter);
 
-    const groups = Object.keys(categoryMeta).map(category => {
+    const groups = activeCategoryFilter==='all'
+      ? (visibleItems.length?`<div class="badge-challenge-grid badge-all-grid">${visibleItems.map(renderChallengeCard).join('')}</div>`:'')
+      : Object.keys(categoryMeta).map(category => {
       const grouped = visibleItems.filter(item => categoryOf(item) === category);
       if (!grouped.length) return '';
       const meta = categoryMeta[category];
