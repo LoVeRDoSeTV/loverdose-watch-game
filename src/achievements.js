@@ -162,7 +162,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         }
         const reward=current&&current===next?current.rewards:next.rewards;
         challenges.push({badgeKey:f.key,badgeName:current?.name||f.steps[0].name,badgeIcon:f.icon,badgeImage:image,
-          badgeChallenge:`${next.goal} ${f.unit}`,gameName:f.category==='watch'?`${f.name} · Visionnage`:`${f.unit}`,
+          badgeChallenge:f.id==='partners'?'Réalise des échanges avec 5 joueurs différents.':`${next.goal} ${f.unit}`,gameName:f.category==='watch'?`${f.name} · Visionnage`:`${f.unit}`,
           badgeCategory:f.category,missionType:'achievement',unlocked:Boolean(current),maxed:earned.length===f.steps.length,
           progressValue:value,progressTarget:next.goal,progressUnit:f.unit,progressHint:['close-win','flawless','variety'].includes(f.id)?'Suivi des nouveaux combats après cette mise à jour.':f.category==='event'?'Pendant un événement activé par LoVeRDoSe.':null,
           evolutionLevel:stageIndex,maxEvolutionLevel:f.steps.length,evolutionName:current?.name||'',
