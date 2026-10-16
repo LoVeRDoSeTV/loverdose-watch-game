@@ -1,12 +1,13 @@
 import { existsSync } from 'node:fs';
 
+export const WATCH_HOUR_STAGES=Object.freeze([25,50,100,250,500]);
+
 export const WATCH_STAGE_REWARDS=Object.freeze({
   25:{lovysXp:250,globalXp:125,cash:25},
   50:{lovysXp:500,globalXp:250,cash:50},
   100:{lovysXp:750,globalXp:375,cash:75},
   250:{lovysXp:1500,globalXp:750,cash:150},
-  500:{lovysXp:2500,globalXp:1250,cash:250},
-  1000:{lovysXp:5000,globalXp:2500,cash:500}
+  500:{lovysXp:2500,globalXp:1250,cash:250}
 });
 
 // Une famille = un badge évolutif. Les gains sont incrémentaux, jamais horaires.
@@ -131,17 +132,17 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       const watch=(await client.query('SELECT game_id,game_name,watch_seconds FROM user_game_watch WHERE user_id=$1',[userId])).rows;
       const definitions=[...ACHIEVEMENT_FAMILIES.map(f=>({...f,value:values[f.metric]})),...WATCH_FAMILIES.map(f=>({
         ...f,category:'watch',icon:'👀',unit:'h de visionnage',value:watch.filter(f.match).reduce((n,row)=>n+Number(row.watch_seconds)/3600,0),
-        steps:[f.base,...[50,100,250,500,1000].filter(goal=>goal>f.base)].map((goal,index)=>({goal,name:f.name,rewards:WATCH_STAGE_REWARDS[goal]}))
+        steps:WATCH_HOUR_STAGES.map((goal,index)=>({goal,name:f.name,rewards:WATCH_STAGE_REWARDS[goal]}))
       }))];
-      const owned=(await client.query('SELECT badge_key,tier,badge_image,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1',[userId])).rows;
+      const owned=(await client.query('SELECT badge_key,tier,threshold_hours,badge_image,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1',[userId])).rows;
       const paid=new Set((await client.query('SELECT reward_key FROM user_xp_rewards WHERE user_id=$1',[userId])).rows.map(row=>row.reward_key));
       const challenges=[];
       for(const f of definitions){
-        // Les récompenses historiques 25/50 h restent inchangées dans le tracker.
+        // Les clés historiques et les récompenses déjà versées sont conservées.
         const value=f.value||0,earned=f.steps.filter(stage=>value>=stage.goal),current=earned.at(-1),next=f.steps.find(stage=>value<stage.goal)||f.steps.at(-1);
         const stageIndex=current?f.steps.indexOf(current)+1:0,old=owned.find(row=>row.badge_key===f.key);
         const image=achievementImage(f.id,stageIndex||1,f.image||null);
-        if(current&&old?.tier!==`achievement-${stageIndex}`){
+        if(current&&(old?.tier!==`achievement-${stageIndex}`||Number(old?.threshold_hours)!==current.goal)){
           await client.query(`INSERT INTO user_badges(user_id,badge_key,game_id,game_name,badge_name,badge_image,badge_challenge,tier,threshold_hours)
             VALUES($1,$2,'achievement',$3,$4,$5,$6,$7,$8)
             ON CONFLICT(user_id,badge_key) DO UPDATE SET game_name=EXCLUDED.game_name,badge_name=EXCLUDED.badge_name,
@@ -152,10 +153,13 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
           await client.query('UPDATE user_badges SET badge_image=$3 WHERE user_id=$1 AND badge_key=$2 AND badge_image IS DISTINCT FROM $3',[userId,f.key,image]);
         }
         for(const stage of earned){
-          if(f.base&&stage.goal===f.base)continue;
+          if(f.base&&stage.goal===f.base){
+            await awardRewards([userId],f.key,stage.rewards,'economy-v1',f.key,client);
+            continue;
+          }
           const version=f.base?`watch-${stage.goal}-v2`:`achievement-${stage.goal}-v1`;
           if(!paid.has(`${f.key}:${version}`)){
-            const old=f.base&&paid.has(`${f.key}:achievement-${stage.goal}-v1`)?rewards(f.steps.indexOf(stage)):{lovysXp:0,globalXp:0,cash:0};
+            const old=f.base&&paid.has(`${f.key}:achievement-${stage.goal}-v1`)?rewards([f.base,...[50,100,250,500,1000].filter(goal=>goal>f.base)].indexOf(stage.goal)):{lovysXp:0,globalXp:0,cash:0};
             const grant=Object.fromEntries(['lovysXp','globalXp','cash'].map(key=>[key,Math.max(0,stage.rewards[key]-old[key])]));
             await awardRewards([userId],f.key,grant,version,`${f.key}:no-legacy`,client);
           }

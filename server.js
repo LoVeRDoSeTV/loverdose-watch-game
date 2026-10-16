@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { createAchievements, WATCH_STAGE_REWARDS } from './src/achievements.js';
+import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import session from 'express-session';
 import pg from 'pg';
@@ -1607,7 +1607,7 @@ async function initDatabase() {
     SET badge_name = 'Gardien de l’Émeraude',
         badge_image = '/DofusEmeraude.webp',
         badge_challenge = 'Regarder 50 h de lives dans la catégorie Dofus'
-    WHERE badge_key = 'challenge:dofus:gardien-emeraude:50h'
+    WHERE badge_key = 'challenge:dofus:gardien-emeraude:50h' AND tier = 'special'
     `
   );
 
@@ -1617,7 +1617,7 @@ async function initDatabase() {
     SET badge_name = 'Maître des Sphères',
         badge_image = '/SpherePalworld.webp',
         badge_challenge = 'Regarder 50 h de lives dans la catégorie Palworld'
-    WHERE badge_key = 'challenge:palworld:maitre-des-spheres:50h'
+    WHERE badge_key = 'challenge:palworld:maitre-des-spheres:50h' AND tier = 'special'
     `
   );
 
@@ -2453,7 +2453,6 @@ async function runTrackerTick() {
               `,
               [matchedUserIds]
             );
-            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:dofus:gardien-emeraude:50h', trackerClient);
           }
 
           if (currentGameName.trim().toLowerCase() === 'palworld') {
@@ -2488,7 +2487,6 @@ async function runTrackerTick() {
               `,
               [matchedUserIds]
             );
-            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:palworld:maitre-des-spheres:50h', trackerClient);
           }
 
 
@@ -2524,7 +2522,6 @@ async function runTrackerTick() {
               `,
               [matchedUserIds]
             );
-            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50], 'economy-v1', 'challenge:mw4:operateur-elite:50h', trackerClient);
           }
 
           if (specialMode === 'zombie') {
@@ -2584,7 +2581,6 @@ async function runTrackerTick() {
               `,
               [matchedUserIds]
             );
-            await awardBadgeEconomyRewardsOnce(matchedUserIds, 'mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25], 'economy-v1', 'mission:zombie:maitre-des-morts:25h', trackerClient);
           }
 
         }
@@ -5169,13 +5165,11 @@ app.get('/api/badges', async (req, res) => {
     const globalWatchHours = globalWatchSeconds / 3600;
     const globalBadgeKey = 'mission:global:fidele-chaine';
 
-    const globalBadgeStages = [
-      { minHours: 50,  nextHours: 100,  image: '/Watch1.webp', tier: 'global-1', evolution: 'Évolution I · Étincelle fidèle' },
-      { minHours: 100, nextHours: 250,  image: '/Watch2.webp', tier: 'global-2', evolution: 'Évolution II · Éclat fidèle' },
-      { minHours: 250, nextHours: 500,  image: '/Watch3.webp', tier: 'global-3', evolution: 'Évolution III · Cœur de fidélité' },
-      { minHours: 500, nextHours: 1000, image: '/Watch4.webp', tier: 'global-4', evolution: 'Évolution IV · Étoile légendaire' },
-      { minHours: 1000, nextHours: null, image: '/Watch5.webp', tier: 'global-5', evolution: 'Évolution V · Présence mythique' }
-    ];
+    const globalBadgeStages = WATCH_HOUR_STAGES.map((hours,index)=>({
+      minHours:hours,nextHours:WATCH_HOUR_STAGES[index+1]||null,
+      image:`/Watch${index+1}.webp`,tier:`global-${index+1}`,
+      evolution:['Évolution I · Étincelle fidèle','Évolution II · Éclat fidèle','Évolution III · Cœur de fidélité','Évolution IV · Étoile légendaire','Évolution V · Présence mythique'][index]
+    }));
 
     let globalStage = null;
     for (const stage of globalBadgeStages) {
@@ -5222,7 +5216,7 @@ app.get('/api/badges', async (req, res) => {
           globalStage.image,
           globalStage.nextHours
             ? `Cumuler ${globalStage.nextHours} h de visionnage total pour faire évoluer le badge`
-            : 'Évolution maximale atteinte · 1000 h de visionnage total',
+            : 'Évolution maximale atteinte · 500 h de visionnage total',
           globalStage.tier,
           globalStage.minHours
         ]
@@ -5386,25 +5380,21 @@ app.get('/api/badges', async (req, res) => {
     const currentGlobalStage = globalStage;
     const nextGlobalTargetHours = currentGlobalStage
       ? (currentGlobalStage.nextHours || currentGlobalStage.minHours)
-      : 50;
+      : 25;
     const globalDisplayStage = currentGlobalStage || {
-      minHours: 50,
-      nextHours: 50,
+      minHours: 25,
+      nextHours: 25,
       image: '/Watch1.webp',
       tier: 'global-1',
       evolution: 'Évolution I · Étincelle fidèle'
     };
-    const globalRewardStageHours = currentGlobalStage?.nextHours || currentGlobalStage?.minHours || 50;
-    const globalDisplayReward = BADGE_GLOBAL_STAGE_REWARDS[globalRewardStageHours] || BADGE_GLOBAL_STAGE_REWARDS[50];
+    const globalRewardStageHours = currentGlobalStage?.nextHours || currentGlobalStage?.minHours || 25;
+    const globalDisplayReward = BADGE_GLOBAL_STAGE_REWARDS[globalRewardStageHours] || BADGE_GLOBAL_STAGE_REWARDS[25];
 
     const achievementChallenges=await achievementService.sync(user.id,req.session.account.id);
     badgeResult.rows=(await pool.query('SELECT * FROM user_badges WHERE user_id=$1 ORDER BY game_name,threshold_hours',[user.id])).rows;
 
     const badgeEconomyRewards = [
-      ['challenge:dofus:gardien-emeraude:50h', BADGE_TIME_REWARDS[50]],
-      ['challenge:palworld:maitre-des-spheres:50h', BADGE_TIME_REWARDS[50]],
-      ['challenge:mw4:operateur-elite:50h', BADGE_TIME_REWARDS[50]],
-      ['mission:zombie:maitre-des-morts:25h', BADGE_TIME_REWARDS[25]],
       ['mission:discord:membre-communaute', BADGE_SOCIAL_REWARD],
       ['mission:instagram:communaute', BADGE_SOCIAL_REWARD],
       ['mission:tiktok:communaute', BADGE_SOCIAL_REWARD],
@@ -5680,7 +5670,7 @@ app.get('/api/badges', async (req, res) => {
           badgeImage: globalDisplayStage.image,
           badgeChallenge: currentGlobalStage?.nextHours
             ? `Cumuler ${currentGlobalStage.nextHours} h de visionnage total pour faire évoluer le badge`
-            : 'Atteindre 1000 h de visionnage total sur la chaîne',
+            : (currentGlobalStage ? 'Évolution maximale atteinte · 500 h de visionnage total' : 'Atteindre 25 h de visionnage total sur la chaîne'),
           gameName: `Global · ${globalDisplayStage.evolution}`,
           missionType: 'global-evolution',
           stages: globalBadgeStages.map(stage=>({goal:stage.minHours,name:stage.evolution,unlocked:globalWatchHours>=stage.minHours,image:stage.image})),
