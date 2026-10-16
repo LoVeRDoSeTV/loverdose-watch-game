@@ -1967,6 +1967,19 @@ function renderPlayerVisitCard() {
   renderAccountBadgeShowcase();
 }
 
+function applyBadgeRewardSummary(summary){
+  if(!summary||!me?.user)return;
+  const fields={xp:'xp',pendingXp:'pending_xp',globalXp:'global_xp',points:'points',lifetimeCashEarned:'lifetime_lovercash_earned'};
+  for(const [source,target] of Object.entries(fields)){
+    if(summary[source]!==undefined)me.user[target]=Number(summary[source]||0);
+  }
+  if(summary.creatureProgression)me.user.progression=summary.creatureProgression;
+  if(summary.globalProgression)me.user.global_progression=summary.globalProgression;
+  if(summary.globalGrade)me.user.global_grade=summary.globalGrade;
+  syncLoverCashDisplays(me.user);
+  renderGame();
+}
+
 async function loadBadges() {
   try {
     const response = await fetch('/api/badges', { cache: 'no-store' });
@@ -1975,12 +1988,8 @@ async function loadBadges() {
     if (!response.ok) throw new Error(data.error || 'Impossible de charger les badges.');
 
     badgeData = data;
+    applyBadgeRewardSummary(data.xpSummary);
     syncBadgeUnlockCelebrations(data.challenges || []);
-    if (data.xpSummary && me?.user) {
-      me.user.xp = Number(data.xpSummary.xp || 0);
-      me.user.pending_xp = Number(data.xpSummary.pendingXp || 0);
-      if (me.egg) updateEgg(me.egg);
-    }
   } catch (error) {
     console.error('Erreur badges :', error);
     badgeData = { gameWatch: [], challenges: [], badges: [], showcaseSettings: { isPublic: true, theme: 'classic' } };

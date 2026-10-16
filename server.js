@@ -5427,7 +5427,7 @@ app.get('/api/badges', async (req, res) => {
     // Ainsi, les badges déjà débloqués avant l'ajout des récompenses créditent
     // aussi leur XP une seule fois, y compris pendant l'incubation.
     const xpStateResult = await pool.query(
-      `SELECT xp, pending_xp FROM users WHERE id = $1 LIMIT 1`,
+      `SELECT xp, pending_xp, global_xp, points, lifetime_lovercash_earned FROM users WHERE id = $1 LIMIT 1`,
       [user.id]
     );
     const xpState = xpStateResult.rows[0] || { xp: 0, pending_xp: 0 };
@@ -5436,7 +5436,13 @@ app.get('/api/badges', async (req, res) => {
       ok: true,
       xpSummary: {
         xp: Number(xpState.xp || 0),
-        pendingXp: Number(xpState.pending_xp || 0)
+        pendingXp: Number(xpState.pending_xp || 0),
+        globalXp: Number(xpState.global_xp || 0),
+        points: Number(xpState.points || 0),
+        lifetimeCashEarned: Number(xpState.lifetime_lovercash_earned || 0),
+        creatureProgression: progressionFromXp(Number(xpState.xp || 0)),
+        globalProgression: globalProgressionFromXp(Number(xpState.global_xp || 0)),
+        globalGrade: globalGradeForLevel(globalProgressionFromXp(Number(xpState.global_xp || 0)).level)
       },
       showcaseSettings: {
         isPublic: Boolean(showcaseSettings.badge_showcase_public),
