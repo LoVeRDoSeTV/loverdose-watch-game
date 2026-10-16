@@ -821,7 +821,8 @@ body.auth-locked .wrap { visibility:hidden; }
 .badge-collection-modal{position:fixed;inset:0;width:100%;height:100dvh;z-index:1000100;display:flex;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020}
 .badge-collection-modal.hidden{display:none}
 .badge-collection-panel{box-sizing:border-box;width:100%;max-width:none;height:100%;max-height:none;min-width:0;margin:0;overflow:auto;overscroll-behavior:contain;padding:26px;border:0;border-radius:0;background:#111528;box-shadow:none}
-.badge-collection-head{position:relative;top:auto;z-index:5;margin:-26px -26px 18px;padding:20px 26px;border-bottom:1px solid #35304f;background:#12172c;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.badge-collection-inner{width:100%;max-width:1440px;margin:0 auto}
+.badge-collection-head{position:relative;top:auto;z-index:5;margin:0 0 18px;padding:20px 0;border-bottom:1px solid #35304f;background:#12172c;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .badge-collection-head h2{margin:0}
 .badge-collection-help{margin:8px 0 18px;color:var(--muted);font-size:12px;line-height:1.5}
 .badge-game-group{margin:18px 0 24px}
@@ -8908,6 +8909,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   html:has(#badgeCollectionModal:not(.hidden)),body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden;height:100%;overscroll-behavior:none}
   #badgeCollectionModal{overflow:hidden}
   #badgeCollectionModal>.badge-collection-panel{overflow-y:auto;overflow-x:hidden;scrollbar-gutter:stable}
+  #badgeCollectionModal .badge-status-header{display:none}
   #badgeCollectionModal .badge-category-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:10px;margin:0 0 26px}
   .badge-category-tile{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:9px;min-height:66px;padding:12px;text-align:left;border:1px solid #403854;border-radius:14px;background:linear-gradient(135deg,#211c35,#15182b);color:#cdc6df;cursor:pointer;font:inherit;transition:border-color .15s,background .15s}
   .badge-category-tile>span{font-size:24px;text-align:center}.badge-category-tile strong{font-size:13px;line-height:1.4;overflow-wrap:anywhere}
