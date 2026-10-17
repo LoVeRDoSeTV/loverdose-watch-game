@@ -6847,12 +6847,12 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .leaderboard-v154-profile-card>.leaderboard-v154-card-shade{position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(8,10,24,.18),rgba(8,10,24,.52));border-radius:inherit}
   .leaderboard-v154-card-content{position:relative;z-index:1}
   .leaderboard-v154-row-content{position:relative;z-index:1;width:100%;display:grid;grid-template-columns:56px 52px minmax(180px,1.3fr) 130px minmax(180px,1fr) 150px;align-items:center;gap:13px}
-  .leaderboard-v154-badges{display:flex;justify-content:center;align-items:center;gap:7px;min-height:30px;margin:7px 0 1px}
-  .leaderboard-v154-badges.compact{justify-content:flex-start;min-height:24px;margin:5px 0 0}
-  .leaderboard-v154-badge{width:30px;height:30px;display:grid;place-items:center;border-radius:9px;background:rgba(8,10,24,.58);border:1px solid rgba(255,255,255,.16);box-shadow:0 5px 14px rgba(0,0,0,.22)}
-  .leaderboard-v154-badges.compact .leaderboard-v154-badge{width:24px;height:24px;border-radius:7px}
-  .leaderboard-v154-badge img{display:block;width:22px;height:22px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
-  .leaderboard-v154-badges.compact .leaderboard-v154-badge img{width:18px;height:18px}
+  .leaderboard-v154-badges{display:flex;justify-content:center;align-items:center;gap:8px;min-height:52px;margin:7px 0 1px}
+  .leaderboard-v154-badges.compact{justify-content:flex-start;min-height:36px;margin:5px 0 0}
+  .leaderboard-v154-badge{width:52px;height:52px;flex:0 0 52px;display:grid;place-items:center;background:transparent;border:0}
+  .leaderboard-v154-badges.compact .leaderboard-v154-badge{width:36px;height:36px;flex-basis:36px}
+  .leaderboard-v154-badge img{display:block;width:48px;height:48px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
+  .leaderboard-v154-badges.compact .leaderboard-v154-badge img{width:34px;height:34px}
   .leaderboard-v154-profile-card .leaderboard-v150-name,.leaderboard-v154-profile-card .leaderboard-v150-row-main>strong,.leaderboard-v154-profile-card .leaderboard-v150-global,.leaderboard-v154-profile-card .leaderboard-v150-row-level,.leaderboard-v154-profile-card .leaderboard-v150-row-rank{text-shadow:0 2px 8px rgba(0,0,0,.72)}
 }
 /* ===== /V154 ===== */
@@ -8067,7 +8067,9 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   body.mobile-leaderboard-open .leaderboard-v150-lovys.large{display:none}
   body.mobile-leaderboard-open .leaderboard-v150-global{grid-column:3;grid-row:3;font-size:9px;color:#9ea7c6;margin-top:1px}
   body.mobile-leaderboard-open .leaderboard-v150-score{grid-column:4;grid-row:1/4;align-self:center;margin:0;padding:6px 8px;border-radius:9px;background:rgba(145,71,255,.12);font-size:10px;font-weight:950;color:#fff}
-  body.mobile-leaderboard-open .leaderboard-v154-badges{display:none}
+  body.mobile-leaderboard-open .leaderboard-v154-badges{display:flex;grid-column:3/5;grid-row:4;align-items:center;justify-content:flex-start;gap:6px;margin:5px 0 0}
+  body.mobile-leaderboard-open .leaderboard-v154-badge{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;background:transparent;border:0}
+  body.mobile-leaderboard-open .leaderboard-v154-badge img{display:block;width:30px;height:30px;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))}
   body.mobile-leaderboard-open .leaderboard-v150-list-title{margin:16px 0 8px;color:#fff;font-size:14px;font-weight:950}
   body.mobile-leaderboard-open .leaderboard-v150-list{display:flex;flex-direction:column;gap:7px}
   body.mobile-leaderboard-open .leaderboard-v150-row{appearance:none;display:grid!important;grid-template-columns:32px 38px minmax(0,1fr) auto!important;align-items:center;gap:8px;width:100%;padding:9px 10px!important;text-align:left;color:inherit;border:1px solid rgba(255,255,255,.07);border-radius:12px;background:rgba(16,20,39,.94)}
