@@ -1980,7 +1980,8 @@ html, body{
   .commerce-equipment-slot span,.commerce-equipment-slot strong{display:block;overflow-wrap:anywhere}
   .commerce-equipment-slot span{color:#a6afca;font-size:11px;margin-bottom:4px}
   .commerce-slot-remove{color:#ef9caf!important;font-size:11px!important}
-  body[data-desktop-view="shop"] #shopModal .commerce-catalog :is(.shop-grid,.inventory-grid){grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))!important;gap:12px}
+  body[data-desktop-view="shop"] #shopModal .commerce-catalog .shop-grid{grid-template-columns:repeat(auto-fill,minmax(min(190px,100%),1fr))!important;gap:12px}
+  body[data-desktop-view="shop"] #shopModal .commerce-catalog .inventory-grid{grid-template-columns:repeat(auto-fit,minmax(min(190px,100%),1fr))!important;gap:12px}
   body[data-desktop-view="shop"] #shopModal .commerce-catalog :is(.shop-item,.inventory-item){padding:12px;gap:8px;min-width:0}
   .commerce-catalog :is(.shop-item-desc,.inventory-item-desc),.commerce-catalog #inventoryCount{display:none}
   .commerce-catalog .shop-item-preview{min-height:94px!important;height:94px!important;margin:0!important}
