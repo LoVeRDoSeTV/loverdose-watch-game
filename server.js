@@ -1534,6 +1534,7 @@ async function initDatabase() {
     expires_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+  await pool.query('ALTER TABLE admin_live_boosts ADD COLUMN IF NOT EXISTS streamdeck_xp_expires_at TIMESTAMPTZ');
   await pool.query(`INSERT INTO admin_live_boosts(id) VALUES(1) ON CONFLICT(id) DO NOTHING`);
 
   // V108 — les statistiques de combat sont définies uniquement dans le code.
@@ -1825,19 +1826,23 @@ async function getTrackerAuthRow() {
 
 async function getActiveAdminLiveBoosts() {
   try {
-    const result = await pool.query(`SELECT xp_multiplier,cash_multiplier,global_xp_multiplier,expires_at FROM admin_live_boosts WHERE id=1`);
+    const result = await pool.query(`SELECT xp_multiplier,cash_multiplier,global_xp_multiplier,expires_at,streamdeck_xp_expires_at FROM admin_live_boosts WHERE id=1`);
     const row = result.rows[0];
-    if (!row?.expires_at || new Date(row.expires_at).getTime() <= Date.now()) {
-      return { xp:1, cash:1, globalXp:1, expiresAt:null };
-    }
+    const now = Date.now();
+    const adminActive = new Date(row?.expires_at || 0).getTime() > now;
+    const deckActive = new Date(row?.streamdeck_xp_expires_at || 0).getTime() > now;
+    const xp = adminActive ? Math.max(1, Math.min(3, Number(row.xp_multiplier || 1))) : 1;
+    const adminXpEnd = adminActive && xp > 1 ? new Date(row.expires_at).getTime() : 0;
+    const deckXpEnd = deckActive ? new Date(row.streamdeck_xp_expires_at).getTime() : 0;
     return {
-      xp: Math.max(1, Math.min(3, Number(row.xp_multiplier || 1))),
-      cash: Math.max(1, Math.min(3, Number(row.cash_multiplier || 1))),
-      globalXp: Math.max(1, Math.min(3, Number(row.global_xp_multiplier || 1))),
-      expiresAt: row.expires_at
+      xp: deckActive ? Math.max(2, xp) : xp,
+      cash: adminActive ? Math.max(1, Math.min(3, Number(row.cash_multiplier || 1))) : 1,
+      globalXp: adminActive ? Math.max(1, Math.min(3, Number(row.global_xp_multiplier || 1))) : 1,
+      expiresAt: adminActive ? row.expires_at : deckActive ? row.streamdeck_xp_expires_at : null,
+      xpExpiresAt: Math.max(adminXpEnd, deckXpEnd) ? new Date(Math.max(adminXpEnd, deckXpEnd)).toISOString() : null
     };
   } catch {
-    return { xp:1, cash:1, globalXp:1, expiresAt:null };
+    return { xp:1, cash:1, globalXp:1, expiresAt:null, xpExpiresAt:null };
   }
 }
 
@@ -3640,7 +3645,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }));
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -3711,8 +3716,9 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
       if(kind==='global_xp'||kind==='all') globalXp=2;
       expiresAt=new Date(Date.now()+minutes*60000);
     }
-    await pool.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt]);
+    await pool.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,streamdeck_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_xp_expires_at END,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt,kind==='off']);
     await logAdminAction(account.id,null,'live_boost',kind==='off'?'Boost live désactivé':`Boost live ${kind} activé`,{kind,xp,cash,globalXp,expiresAt});
+    pushLiveUpdate('live-boost-update', {});
     res.json({ok:true,liveBoosts:await getActiveAdminLiveBoosts()});
   } catch(error){
     console.error('Erreur boost live admin :',error);
@@ -3743,6 +3749,18 @@ app.get('/api/game/online-players', async(req,res)=>{
     res.setHeader('Cache-Control','no-store');
     res.json({ok:true,players:result.rows.map(p=>({accountId:Number(p.account_id),userId:p.user_id?Number(p.user_id):null,username:p.username,avatar:p.profile_image_url||null,title:cosmeticTitleForTwitchId(p.twitch_id,p.equipped_title_key)}))});
   }catch(error){console.error('Joueurs en ligne :',error);res.status(500).json({error:'Liste indisponible.'});}
+});
+
+// Lecture publique limitée au bonus XP : aucune commande ni clé exposée à OBS.
+app.get('/api/game/live-xp-boost', async (req, res) => {
+  const boosts = await getActiveAdminLiveBoosts();
+  res.setHeader('Cache-Control', 'no-store');
+  res.json({
+    active: Number(boosts.xp) >= 2 && new Date(boosts.xpExpiresAt || 0).getTime() > Date.now(),
+    multiplier: boosts.xp,
+    expiresAt: boosts.xpExpiresAt,
+    serverNow: Date.now()
+  });
 });
 
 app.get('/api/game/live-status', async (req, res) => {

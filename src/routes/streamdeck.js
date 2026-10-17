@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 
-export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate }) {
+export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts }) {
   const router = express.Router();
 
   function tokenIsValid(req) {
@@ -66,6 +66,37 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       res.status(500).json({ error:'Impossible de charger le mode Zombie.' });
     }
   });
+
+  async function setXpBoost(req, res, enabled) {
+    let client;
+    try {
+      if (enabled && !await getTrackerAuthRow()) return res.status(409).send('Tracker Twitch non configuré.');
+      // Solde les gains déjà écoulés avant de changer le multiplicateur.
+      await runTrackerTick();
+      client = await pool.connect();
+      await client.query('BEGIN');
+      const result = await client.query('SELECT streamdeck_xp_expires_at FROM admin_live_boosts WHERE id=1 FOR UPDATE');
+      const expires = result.rows[0]?.streamdeck_xp_expires_at;
+      if (!enabled) {
+        await client.query('UPDATE admin_live_boosts SET streamdeck_xp_expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=1');
+      } else if (!expires || new Date(expires).getTime() <= Date.now()) {
+        // Un double clic ne remet pas le compteur à zéro et ne cumule pas les heures.
+        await client.query("UPDATE admin_live_boosts SET streamdeck_xp_expires_at=CURRENT_TIMESTAMP+INTERVAL '1 hour',updated_at=CURRENT_TIMESTAMP WHERE id=1");
+      }
+      await client.query('COMMIT');
+      const liveBoosts = await getActiveAdminLiveBoosts();
+      pushLiveUpdate('live-boost-update', {});
+      res.json({ ok:true, liveBoosts });
+    } catch (error) {
+      if (client) await client.query('ROLLBACK').catch(() => {});
+      console.error('Erreur Stream Deck XP :', error);
+      res.status(500).json({ error:'Impossible de modifier le boost XP.' });
+    } finally { if (client) client.release(); }
+  }
+  router.get('/xp/on', requireToken, (req,res) => setXpBoost(req,res,true));
+  router.post('/xp/on', requireToken, (req,res) => setXpBoost(req,res,true));
+  router.get('/xp/off', requireToken, (req,res) => setXpBoost(req,res,false));
+  router.post('/xp/off', requireToken, (req,res) => setXpBoost(req,res,false));
 
   return router;
 }

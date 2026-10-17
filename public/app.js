@@ -8305,6 +8305,8 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('connected', () => {
     if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
   });
+  liveUpdates.addEventListener('live-boost-update', () => window.refreshLiveXpBoost?.());
+  liveUpdates.addEventListener('connected', () => window.refreshLiveXpBoost?.());
   liveUpdates.addEventListener('connected', refreshDesktopHomeLiveStatus);
   liveUpdates.addEventListener('connected', refreshMobileHomeLiveStatus);
   liveUpdates.addEventListener('tracker-update', refreshDesktopHomeLiveStatus);
