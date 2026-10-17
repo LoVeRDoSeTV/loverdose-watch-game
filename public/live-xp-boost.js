@@ -2,6 +2,32 @@
   'use strict';
   const panel = document.querySelector('[data-live-xp-boost]');
   if (!panel) return;
+
+  const isOverlay = document.body.classList.contains('boost-overlay-page');
+  let hideTimer = null, revealFrame = 0;
+  function setVisibility(show) {
+    if (!isOverlay) { panel.hidden = !show; return; }
+    if (show) {
+      if (hideTimer !== null) { clearTimeout(hideTimer); hideTimer = null; }
+      if (panel.hidden) {
+        panel.hidden = false;
+        // Deux images assurent que le fondu part bien d'une opacité nulle.
+        revealFrame = requestAnimationFrame(() => {
+          revealFrame = requestAnimationFrame(() => {
+            panel.classList.add('is-visible');
+            revealFrame = 0;
+          });
+        });
+      } else if (!revealFrame) { panel.classList.add('is-visible'); }
+    } else {
+      if (revealFrame) { cancelAnimationFrame(revealFrame); revealFrame = 0; }
+      panel.classList.remove('is-visible');
+      if (!panel.hidden && hideTimer === null) {
+        hideTimer = setTimeout(() => { panel.hidden = true; hideTimer = null; }, 550);
+      }
+    }
+  }
+
   const labels = { xp:'XP Lovys', cash:'LoVeR’Cash', globalXp:'XP globale' };
   const icons = { xp:'⚡', cash:'💰', globalXp:'⭐' };
   let boosts = [], clockOffset = 0, pending = false, queued = false;
@@ -18,7 +44,7 @@
   function render() {
     const now = Date.now() + clockOffset;
     const active = boosts.map(item => ({ ...item, remaining:Math.max(0,Math.ceil((item.end-now)/1000)) })).filter(item=>item.remaining>0);
-    panel.hidden = active.length === 0;
+    setVisibility(active.length > 0);
     if (!active.length) return;
     const multiple = active.length > 1;
     panel.classList.toggle('has-multiple-boosts', multiple);

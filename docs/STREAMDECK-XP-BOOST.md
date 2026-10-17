@@ -27,6 +27,6 @@ Le site PC/mobile affiche chaque bonus actif et son décompte. L’overlay OBS u
 
 Dans OBS, ajouter une source Navigateur de **600 × 140 px** :
 
-`https://loverwatchgame.fr/overlays/xp-boost.html?v=448`
+`https://loverwatchgame.fr/overlays/xp-boost.html?v=449`
 
-Le texte est sur fond transparent, sans contour ni barre décorative. L’affichage disparaît lorsqu’il n’y a plus de bonus actif. La clé privée n’est pas nécessaire dans OBS.
+Le fond cristallin fourni est intégré à l’overlay, avec un extérieur transparent. Le fond et les textes apparaissent et disparaissent ensemble avec un fondu de 0,5 seconde. Aucun fond séparé n’est nécessaire dans OBS. L’affichage disparaît lorsqu’il n’y a plus de bonus actif. La clé privée n’est pas nécessaire dans OBS.
