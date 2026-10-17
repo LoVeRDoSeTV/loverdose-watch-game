@@ -1,29 +1,32 @@
-# Boost XP Lovys ×2 — Stream Deck et OBS
+# Stream Deck — les boosts du live
 
-Le bouton active 60 minutes réelles de bonus XP Lovys pour les joueurs dont la présence est comptabilisée par le tracker Twitch. Il ne multiplie ni les récompenses fixes (défis, badges, combats), ni le LoVeR’Cash, ni l’XP globale. Le boost expire même si le live s’arrête. Il persiste après un redémarrage du serveur.
+Chaque bouton active 60 minutes réelles de bonus pour les joueurs dont la présence est comptabilisée par le tracker Twitch. Les récompenses fixes de badges, défis et combats ne sont pas concernées. Les échéances sont conservées en base après un redémarrage.
 
-## Stream Deck
+Dans Stream Deck, dupliquer le bouton existant et conserver « Demande GET en arrière-plan » et le même paramètre privé `?token=...`. Modifier seulement le chemin avant `?token=` :
 
-Utiliser l’action Site Web, option « Demande GET en arrière-plan », comme pour le mode Zombie. Remplacer uniquement la partie `/zombie/on` de l’URL actuelle par `/xp/on` et conserver le même paramètre privé `?token=...`.
+| Bouton | Chemin |
+| --- | --- |
+| XP Lovys ×2 | `/api/streamdeck/xp/on` |
+| LoVeR’Cash ×2 | `/api/streamdeck/cash/on` |
+| XP globale ×2 | `/api/streamdeck/global-xp/on` |
+| Les 3 bonus ×2 | `/api/streamdeck/all/on` |
+| Stop tous les bonus du live | `/api/streamdeck/boost/off` |
 
-- Activer : `https://loverwatchgame.fr/api/streamdeck/xp/on?token=VOTRE_CLE_EXISTANTE`
-- Arrêter : `https://loverwatchgame.fr/api/streamdeck/xp/off?token=VOTRE_CLE_EXISTANTE`
+Exemple sans clé réelle : `https://loverwatchgame.fr/api/streamdeck/cash/on?token=VOTRE_CLE_EXISTANTE`.
 
-Un second clic pendant les 60 minutes ne prolonge pas le boost. L’arrêt ne retire pas un autre boost lancé depuis l’administration. Les multiplicateurs XP globaux ne s’additionnent pas : deux boosts ×2 restent ×2.
+- Les bonus peuvent coexister et possèdent chacun leur heure de fin.
+- Un second clic sur un bonus actif ne prolonge pas son heure de fin et ne multiplie pas son effet.
+- « Les 3 » démarre les bonus inactifs pour 60 minutes et conserve les échéances de ceux déjà actifs.
+- « Stop » arrête les trois bonus collectifs, y compris ceux activés dans Administration. Les boosts personnels des joueurs restent en place.
+- Pour arrêter un seul bonus Stream Deck, remplacer `/on` par `/off` dans son chemin. `/all/off` est aussi un alias de Stop.
+- Les mêmes chemins acceptent POST avec l’en-tête `x-stream-deck-token`. La clé reste celle de `STREAM_DECK_TOKEN`.
 
-Les mêmes chemins acceptent POST avec l’en-tête `x-stream-deck-token`, pour une action compatible. La clé est celle de `STREAM_DECK_TOKEN` déjà configurée ; aucune clé n’est présente dans l’overlay public.
+## Compteurs du site et d’OBS
 
-## OBS
+Le site PC/mobile affiche chaque bonus actif et son décompte. L’overlay OBS utilise le même état et se met à jour dès que le serveur confirme le changement.
 
-Ajouter une source Navigateur :
+Dans OBS, ajouter une source Navigateur de **600 × 140 px** :
 
-- URL : `https://loverwatchgame.fr/overlays/xp-boost.html?v=447`
-- Largeur : 600 px
-- Hauteur : 140 px
-- Conserver le fond transparent et déplacer la source à l’endroit souhaité.
+`https://loverwatchgame.fr/overlays/xp-boost.html?v=448`
 
-Le texte apparaît dès que le serveur confirme l’activation grâce à un flux temps réel public réservé aux changements du boost, puis disparaît à l’expiration. Le fond, le contour et la barre décorative sont retirés de l’overlay OBS : ajouter son propre rectangle dans OBS sous la source Navigateur. Il reste invisible sans boost. Le compteur se cale sur l’heure du serveur et reprend le temps restant lorsqu’on change de scène ou recharge la source.
-
-## Site
-
-Le même décompte apparaît dans l’en-tête du jeu sur PC et mobile. Les connexions déjà ouvertes sont averties immédiatement par le flux du jeu ; une lecture régulière du statut assure aussi la reprise après une coupure réseau. Aucune recharge de la page n’est nécessaire.
+Le texte est sur fond transparent, sans contour ni barre décorative. L’affichage disparaît lorsqu’il n’y a plus de bonus actif. La clé privée n’est pas nécessaire dans OBS.

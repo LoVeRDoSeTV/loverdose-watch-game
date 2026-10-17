@@ -1542,6 +1542,7 @@ async function initDatabase() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
   await pool.query('ALTER TABLE admin_live_boosts ADD COLUMN IF NOT EXISTS streamdeck_xp_expires_at TIMESTAMPTZ');
+  await pool.query('ALTER TABLE admin_live_boosts ADD COLUMN IF NOT EXISTS streamdeck_cash_expires_at TIMESTAMPTZ, ADD COLUMN IF NOT EXISTS streamdeck_global_xp_expires_at TIMESTAMPTZ');
   await pool.query(`INSERT INTO admin_live_boosts(id) VALUES(1) ON CONFLICT(id) DO NOTHING`);
 
   // V108 — les statistiques de combat sont définies uniquement dans le code.
@@ -1833,23 +1834,29 @@ async function getTrackerAuthRow() {
 
 async function getActiveAdminLiveBoosts() {
   try {
-    const result = await pool.query(`SELECT xp_multiplier,cash_multiplier,global_xp_multiplier,expires_at,streamdeck_xp_expires_at FROM admin_live_boosts WHERE id=1`);
-    const row = result.rows[0];
+    const result = await pool.query(`SELECT xp_multiplier,cash_multiplier,global_xp_multiplier,expires_at,streamdeck_xp_expires_at,streamdeck_cash_expires_at,streamdeck_global_xp_expires_at FROM admin_live_boosts WHERE id=1`);
+    const row = result.rows[0] || {};
     const now = Date.now();
-    const adminActive = new Date(row?.expires_at || 0).getTime() > now;
-    const deckActive = new Date(row?.streamdeck_xp_expires_at || 0).getTime() > now;
-    const xp = adminActive ? Math.max(1, Math.min(3, Number(row.xp_multiplier || 1))) : 1;
-    const adminXpEnd = adminActive && xp > 1 ? new Date(row.expires_at).getTime() : 0;
-    const deckXpEnd = deckActive ? new Date(row.streamdeck_xp_expires_at).getTime() : 0;
+    const adminEnd = new Date(row.expires_at || 0).getTime();
+    const active = adminEnd > now;
+    const state = (multiplierColumn, deckColumn) => {
+      const adminMultiplier = active ? Math.max(1, Math.min(3, Number(row[multiplierColumn] || 1))) : 1;
+      const end = new Date(row[deckColumn] || 0).getTime();
+      const deckActive = end > now;
+      const expires = Math.max(adminMultiplier > 1 ? adminEnd : 0, deckActive ? end : 0);
+      return { multiplier:deckActive ? Math.max(2, adminMultiplier) : adminMultiplier, expiresAt:expires ? new Date(expires).toISOString() : null };
+    };
+    const xp = state('xp_multiplier','streamdeck_xp_expires_at');
+    const cash = state('cash_multiplier','streamdeck_cash_expires_at');
+    const globalXp = state('global_xp_multiplier','streamdeck_global_xp_expires_at');
+    const end = Math.max(...[xp,cash,globalXp].map(item=>new Date(item.expiresAt || 0).getTime()));
     return {
-      xp: deckActive ? Math.max(2, xp) : xp,
-      cash: adminActive ? Math.max(1, Math.min(3, Number(row.cash_multiplier || 1))) : 1,
-      globalXp: adminActive ? Math.max(1, Math.min(3, Number(row.global_xp_multiplier || 1))) : 1,
-      expiresAt: adminActive ? row.expires_at : deckActive ? row.streamdeck_xp_expires_at : null,
-      xpExpiresAt: Math.max(adminXpEnd, deckXpEnd) ? new Date(Math.max(adminXpEnd, deckXpEnd)).toISOString() : null
+      xp:xp.multiplier, cash:cash.multiplier, globalXp:globalXp.multiplier,
+      expiresAt:end ? new Date(end).toISOString() : null,
+      xpExpiresAt:xp.expiresAt, cashExpiresAt:cash.expiresAt, globalXpExpiresAt:globalXp.expiresAt
     };
   } catch {
-    return { xp:1, cash:1, globalXp:1, expiresAt:null, xpExpiresAt:null };
+    return { xp:1, cash:1, globalXp:1, expiresAt:null, xpExpiresAt:null, cashExpiresAt:null, globalXpExpiresAt:null };
   }
 }
 
@@ -3723,7 +3730,7 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
       if(kind==='global_xp'||kind==='all') globalXp=2;
       expiresAt=new Date(Date.now()+minutes*60000);
     }
-    await pool.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,streamdeck_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_xp_expires_at END,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt,kind==='off']);
+    await pool.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,streamdeck_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_xp_expires_at END,streamdeck_cash_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_cash_expires_at END,streamdeck_global_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_global_xp_expires_at END,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt,kind==='off']);
     await logAdminAction(account.id,null,'live_boost',kind==='off'?'Boost live désactivé':`Boost live ${kind} activé`,{kind,xp,cash,globalXp,expiresAt});
     pushLiveUpdate('live-boost-update', {});
     res.json({ok:true,liveBoosts:await getActiveAdminLiveBoosts()});
@@ -3781,11 +3788,15 @@ app.get('/api/game/live-xp-boost/events', (req, res) => {
 app.get('/api/game/live-xp-boost', async (req, res) => {
   const boosts = await getActiveAdminLiveBoosts();
   res.setHeader('Cache-Control', 'no-store');
+  const now = Date.now();
+  const items = [
+    { key:'xp', label:'XP Lovys', multiplier:boosts.xp, expiresAt:boosts.xpExpiresAt },
+    { key:'cash', label:'LoVeR’Cash', multiplier:boosts.cash, expiresAt:boosts.cashExpiresAt },
+    { key:'globalXp', label:'XP globale', multiplier:boosts.globalXp, expiresAt:boosts.globalXpExpiresAt }
+  ].filter(item=>item.multiplier>1 && new Date(item.expiresAt || 0).getTime()>now);
   res.json({
-    active: Number(boosts.xp) >= 2 && new Date(boosts.xpExpiresAt || 0).getTime() > Date.now(),
-    multiplier: boosts.xp,
-    expiresAt: boosts.xpExpiresAt,
-    serverNow: Date.now()
+    active:items.length>0, items,
+    multiplier:boosts.xp, expiresAt:boosts.xpExpiresAt, serverNow:now
   });
 });
 

@@ -67,36 +67,41 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
     }
   });
 
-  async function setXpBoost(req, res, enabled) {
-    let client;
+  const boostColumns = {
+    xp:'streamdeck_xp_expires_at',
+    cash:'streamdeck_cash_expires_at',
+    globalXp:'streamdeck_global_xp_expires_at'
+  };
+  async function setLiveBoost(req, res, kind, enabled) {
     try {
       if (enabled && !await getTrackerAuthRow()) return res.status(409).send('Tracker Twitch non configuré.');
-      // Solde les gains déjà écoulés avant de changer le multiplicateur.
       await runTrackerTick();
-      client = await pool.connect();
-      await client.query('BEGIN');
-      const result = await client.query('SELECT streamdeck_xp_expires_at FROM admin_live_boosts WHERE id=1 FOR UPDATE');
-      const expires = result.rows[0]?.streamdeck_xp_expires_at;
-      if (!enabled) {
-        await client.query('UPDATE admin_live_boosts SET streamdeck_xp_expires_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=1');
-      } else if (!expires || new Date(expires).getTime() <= Date.now()) {
-        // Un double clic ne remet pas le compteur à zéro et ne cumule pas les heures.
-        await client.query("UPDATE admin_live_boosts SET streamdeck_xp_expires_at=CURRENT_TIMESTAMP+INTERVAL '1 hour',updated_at=CURRENT_TIMESTAMP WHERE id=1");
+      const columns = kind === 'all' ? Object.values(boostColumns) : [boostColumns[kind]];
+      // Les colonnes proviennent exclusivement de la liste interne ci-dessus.
+      // UPDATE verrouille la ligne ; les clics simultanés ne prolongent pas le bonus.
+      let assignments = columns.map(column => enabled
+        ? `${column}=CASE WHEN ${column}>CURRENT_TIMESTAMP THEN ${column} ELSE CURRENT_TIMESTAMP+INTERVAL '1 hour' END`
+        : `${column}=NULL`);
+      if (kind === 'all' && !enabled) {
+        assignments.push('xp_multiplier=1','cash_multiplier=1','global_xp_multiplier=1','expires_at=NULL');
       }
-      await client.query('COMMIT');
+      await pool.query(`UPDATE admin_live_boosts SET ${assignments.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=1`);
       const liveBoosts = await getActiveAdminLiveBoosts();
       pushLiveUpdate('live-boost-update', {});
       res.json({ ok:true, liveBoosts });
     } catch (error) {
-      if (client) await client.query('ROLLBACK').catch(() => {});
-      console.error('Erreur Stream Deck XP :', error);
-      res.status(500).json({ error:'Impossible de modifier le boost XP.' });
-    } finally { if (client) client.release(); }
+      console.error('Erreur Stream Deck boost :', error);
+      res.status(500).json({ error:'Impossible de modifier les boosts du live.' });
+    }
   }
-  router.get('/xp/on', requireToken, (req,res) => setXpBoost(req,res,true));
-  router.post('/xp/on', requireToken, (req,res) => setXpBoost(req,res,true));
-  router.get('/xp/off', requireToken, (req,res) => setXpBoost(req,res,false));
-  router.post('/xp/off', requireToken, (req,res) => setXpBoost(req,res,false));
+  for (const [path,kind] of [['xp','xp'],['cash','cash'],['global-xp','globalXp'],['all','all']]) {
+    for (const [action,enabled] of [['on',true],['off',false]]) {
+      router.get(`/${path}/${action}`, requireToken, (req,res) => setLiveBoost(req,res,kind,enabled));
+      router.post(`/${path}/${action}`, requireToken, (req,res) => setLiveBoost(req,res,kind,enabled));
+    }
+  }
+  router.get('/boost/off', requireToken, (req,res) => setLiveBoost(req,res,'all',false));
+  router.post('/boost/off', requireToken, (req,res) => setLiveBoost(req,res,'all',false));
 
   return router;
 }
