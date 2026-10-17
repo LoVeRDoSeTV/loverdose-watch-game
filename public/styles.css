@@ -7950,14 +7950,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 /* ===== V242 — TOPBAR : MEME CADRE QUE L'ACCUEIL SUR TOUTES LES PAGES ===== */
 @media (min-width:901px){
-  /*
-     Les pages internes élargissent .wrap à 100% pour leur contenu.
-     On recadre uniquement le bandeau logo / compte sur le gabarit de l'accueil,
-     sans modifier la navigation, les en-têtes ni le contenu des pages.
-  */
+  /* L'accueil réserve 24px de chaque côté dans son cadre de 2000px.
+     Les pages internes gardent ce même cadre pour le bandeau uniquement. */
   body[data-desktop-view]:not([data-desktop-view="home"]) .top{
-    width:min(1652px,calc(100vw - 96px))!important;
-    max-width:1652px!important;
+    width:100%!important;
+    max-width:calc(var(--desktop-page-width,2000px) - 48px)!important;
     margin-left:auto!important;
     margin-right:auto!important;
   }
