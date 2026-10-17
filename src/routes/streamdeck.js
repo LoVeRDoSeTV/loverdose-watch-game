@@ -1,7 +1,7 @@
 import express from 'express';
 import crypto from 'crypto';
 
-export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts }) {
+export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts, mutateLiveBoosts, publicLiveBoostStatus }) {
   const router = express.Router();
 
   function tokenIsValid(req) {
@@ -75,7 +75,6 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
   async function setLiveBoost(req, res, kind, enabled) {
     try {
       if (enabled && !await getTrackerAuthRow()) return res.status(409).send('Tracker Twitch non configuré.');
-      await runTrackerTick();
       const columns = kind === 'all' ? Object.values(boostColumns) : [boostColumns[kind]];
       // Les colonnes proviennent exclusivement de la liste interne ci-dessus.
       // UPDATE verrouille la ligne ; les clics simultanés ne prolongent pas le bonus.
@@ -85,9 +84,9 @@ export function createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick
       if (kind === 'all' && !enabled) {
         assignments.push('xp_multiplier=1','cash_multiplier=1','global_xp_multiplier=1','expires_at=NULL');
       }
-      await pool.query(`UPDATE admin_live_boosts SET ${assignments.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=1`);
+      await mutateLiveBoosts(pool,client=>client.query(`UPDATE admin_live_boosts SET ${assignments.join(',')},updated_at=CURRENT_TIMESTAMP WHERE id=1`));
       const liveBoosts = await getActiveAdminLiveBoosts();
-      pushLiveUpdate('live-boost-update', {});
+      pushLiveUpdate('live-boost-update',publicLiveBoostStatus(liveBoosts));
       res.json({ ok:true, liveBoosts });
     } catch (error) {
       console.error('Erreur Stream Deck boost :', error);

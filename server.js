@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveBoostStatus } from './src/live-boost-timeline.js';
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
@@ -259,8 +260,9 @@ const LIVE_XP_OVERLAY_CLIENTS = new Set();
 function pushLiveUpdate(type = 'game-update', payload = {}) {
   const message = `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
   if (type === 'live-boost-update') {
+    const overlayPayload=Array.isArray(payload.items)?{serverNow:Number(payload.serverNow)||Date.now(),items:payload.items.filter(item=>['xp','cash','globalXp'].includes(item.key)).map(({key,multiplier,expiresAt})=>({key,multiplier,expiresAt}))}:{};
     for (const client of [...LIVE_XP_OVERLAY_CLIENTS]) {
-      try { client.write('event: boost-change\ndata: {}\n\n'); }
+      try { client.write(`event: boost-change\ndata: ${JSON.stringify(overlayPayload)}\n\n`);client.flush?.(); }
       catch { LIVE_XP_OVERLAY_CLIENTS.delete(client); }
     }
   }
@@ -1550,6 +1552,7 @@ async function initDatabase() {
 
   // V108 — les statistiques de combat sont définies uniquement dans le code.
   // Nettoie l'ancienne table d'override V107 si elle existe.
+  await initLiveBoostTimeline(pool);
   await pool.query(`DROP TABLE IF EXISTS admin_lovys_balance`);
 
   // V109 — Lobby communautaire et bourse d'échanges.
@@ -2230,7 +2233,7 @@ async function runTrackerTick() {
     row = await getTrackerAuthRow();
 
     const specialMode = String(row?.special_mode || '').trim().toLowerCase();
-    const adminLiveBoosts = await getActiveAdminLiveBoosts();
+    const adminLiveBoosts = await averageLiveBoosts(pool,now-deltaSeconds*1000,now);
 
     if (!isLive) {
       // Si le live vient juste de se terminer, coupe automatiquement le mode spécial.
@@ -3662,7 +3665,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
 });
 
 
-app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts }));
+app.use('/api/streamdeck', createStreamDeckRouter({ pool, getTrackerAuthRow, runTrackerTick, pushLiveUpdate, getActiveAdminLiveBoosts, mutateLiveBoosts, publicLiveBoostStatus }));
 
 
 // Panneau Événements du site : permet au diffuseur connecté de piloter
@@ -3724,7 +3727,6 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
     const kind = String(req.body?.kind || 'off').trim().toLowerCase();
     const allowed = new Set(['off','xp','cash','global_xp','all']);
     if (!allowed.has(kind)) return res.status(400).json({ error:'Boost inconnu.' });
-    await runTrackerTick();
     let xp=1,cash=1,globalXp=1,expiresAt=null;
     if(kind!=='off'){
       const minutes=Math.max(15,Math.min(240,Math.floor(Number(req.body?.minutes||60))));
@@ -3733,10 +3735,11 @@ app.post('/api/admin/events/live-boost', async (req, res) => {
       if(kind==='global_xp'||kind==='all') globalXp=2;
       expiresAt=new Date(Date.now()+minutes*60000);
     }
-    await pool.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,streamdeck_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_xp_expires_at END,streamdeck_cash_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_cash_expires_at END,streamdeck_global_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_global_xp_expires_at END,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt,kind==='off']);
+    await mutateLiveBoosts(pool,client=>client.query(`UPDATE admin_live_boosts SET xp_multiplier=$1,cash_multiplier=$2,global_xp_multiplier=$3,expires_at=$4,streamdeck_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_xp_expires_at END,streamdeck_cash_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_cash_expires_at END,streamdeck_global_xp_expires_at=CASE WHEN $5 THEN NULL ELSE streamdeck_global_xp_expires_at END,updated_at=CURRENT_TIMESTAMP WHERE id=1`,[xp,cash,globalXp,expiresAt,kind==='off']));
     await logAdminAction(account.id,null,'live_boost',kind==='off'?'Boost live désactivé':`Boost live ${kind} activé`,{kind,xp,cash,globalXp,expiresAt});
-    pushLiveUpdate('live-boost-update', {});
-    res.json({ok:true,liveBoosts:await getActiveAdminLiveBoosts()});
+    const liveBoosts=await getActiveAdminLiveBoosts();
+    pushLiveUpdate('live-boost-update',publicLiveBoostStatus(liveBoosts));
+    res.json({ok:true,liveBoosts});
   } catch(error){
     console.error('Erreur boost live admin :',error);
     res.status(500).json({error:'Impossible de modifier le boost live.'});
@@ -3776,7 +3779,7 @@ app.get('/api/game/live-xp-boost/events', (req, res) => {
   res.flushHeaders?.();
   // Flux public dédié : il ne diffuse que le signal de changement du boost.
   LIVE_XP_OVERLAY_CLIENTS.add(res);
-  res.write('event: connected\ndata: {}\n\n');
+  res.write('event: connected\ndata: {}\n\n');res.flush?.();
   const heartbeat = setInterval(() => {
     try { res.write(': keepalive\n\n'); } catch { cleanup(); }
   }, 25000);
@@ -3788,19 +3791,12 @@ app.get('/api/game/live-xp-boost/events', (req, res) => {
   res.on('close', cleanup);
 });
 
-app.get('/api/game/live-xp-boost', async (req, res) => {
-  const boosts = await getActiveAdminLiveBoosts();
-  res.setHeader('Cache-Control', 'no-store');
-  const now = Date.now();
-  const items = [
-    { key:'xp', label:'XP Lovys', multiplier:boosts.xp, expiresAt:boosts.xpExpiresAt },
-    { key:'cash', label:'LoVeR’Cash', multiplier:boosts.cash, expiresAt:boosts.cashExpiresAt },
-    { key:'globalXp', label:'XP globale', multiplier:boosts.globalXp, expiresAt:boosts.globalXpExpiresAt }
-  ].filter(item=>item.multiplier>1 && new Date(item.expiresAt || 0).getTime()>now);
-  res.json({
-    active:items.length>0, items,
-    multiplier:boosts.xp, expiresAt:boosts.xpExpiresAt, serverNow:now
-  });
+app.get('/api/game/live-xp-boost', async (req,res)=>{
+  try{
+    const boosts=await getActiveAdminLiveBoosts();
+    res.setHeader('Cache-Control','no-store');
+    res.json(publicLiveBoostStatus(boosts));
+  }catch(error){res.status(503).json({error:'Boosts temporairement indisponibles.'});}
 });
 
 app.get('/api/game/live-status', async (req, res) => {

@@ -9000,6 +9000,8 @@ body:not(.auth-locked) #badgeCollectionModal>.badge-collection-panel{background-
 body:not(.auth-locked) #badgeCollectionModal .badge-collection-head{background:transparent!important;box-shadow:none!important}
 body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-challenge-card,.badge-mobile-next-card){background:rgba(15,19,37,.34)!important}
 @media(min-width:901px){
+  /* La boutique PC défile dans le document : un seul décor, porté par body. */
+  body:not(.auth-locked) #shopModal.shop-modal{background:transparent!important}
   body:not(.auth-locked) :is(#progressionModal,#pveModal)>.game-panel{background:transparent!important;box-shadow:none!important}
 }
 @media(max-width:900px){

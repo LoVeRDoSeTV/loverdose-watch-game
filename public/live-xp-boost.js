@@ -30,7 +30,7 @@
 
   const labels = { xp:'XP Lovys', cash:'LoVeR’Cash', globalXp:'XP globale' };
   const icons = { xp:'⚡', cash:'💰', globalXp:'⭐' };
-  let boosts = [], clockOffset = 0, pending = false, queued = false;
+  let boosts = [], clockOffset = 0, pending = false, queued = false, signalRevision = 0;
   const timer = panel.querySelector('[data-boost-countdown]');
   const copy = panel.querySelector('.live-xp-boost-copy');
   const list = document.createElement('span');
@@ -58,32 +58,42 @@
     } else { timer.textContent = format(active[0].remaining); }
     panel.querySelector('[data-boost-progress]').style.width = Math.min(100,Math.min(...active.map(item=>item.remaining))/36) + '%';
   }
+  function applyStatus(data, started=Date.now()) {
+    const serverNow=Number(data.serverNow);
+    if(Number.isFinite(serverNow))clockOffset=serverNow-(started+Date.now())/2;
+    const items=Array.isArray(data.items)?data.items:data.active?[{key:'xp',multiplier:data.multiplier||2,expiresAt:data.expiresAt}]:[];
+    const seen=new Set();
+    boosts=items.filter(item=>Object.hasOwn(labels,item.key)&&!seen.has(item.key)&&seen.add(item.key))
+      .map(item=>({key:item.key,multiplier:Math.max(1,Math.min(3,Number(item.multiplier)||1)),end:Date.parse(item.expiresAt)||0})).filter(item=>item.multiplier>1);
+    render();
+  }
   async function refresh() {
     if (pending) { queued = true; return; }
     pending = true;
-    const started = Date.now();
+    const started = Date.now(), revision=signalRevision;
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),4000);
     try {
-      const response = await fetch('/api/game/live-xp-boost', { cache:'no-store', credentials:'omit' });
+      const response = await fetch('/api/game/live-xp-boost', { cache:'no-store', credentials:'omit', signal:controller.signal });
       if (!response.ok) return;
       const data = await response.json();
-      const serverNow = Number(data.serverNow);
-      if (Number.isFinite(serverNow)) clockOffset = serverNow - (started+Date.now())/2;
-      const items = Array.isArray(data.items) ? data.items : data.active ? [{key:'xp',multiplier:data.multiplier||2,expiresAt:data.expiresAt}] : [];
-      const seen = new Set();
-      boosts = items.filter(item=>Object.hasOwn(labels,item.key) && !seen.has(item.key) && seen.add(item.key))
-        .map(item=>({key:item.key,multiplier:Math.max(1,Math.min(3,Number(item.multiplier)||1)),end:Date.parse(item.expiresAt)||0})).filter(item=>item.multiplier>1);
-      render();
+      if(revision===signalRevision)applyStatus(data,started);
     } catch (_) { /* Le décompte continue à partir des échéances connues. */ }
-    finally { pending=false; if (queued) { queued=false; refresh(); } }
+    finally { clearTimeout(timeout);pending=false; if (queued) { queued=false; refresh(); } }
   }
   if (document.body.classList.contains('boost-overlay-page') && window.EventSource) {
     const events = new window.EventSource('/api/game/live-xp-boost/events');
-    events.addEventListener('boost-change', refresh);
+    events.addEventListener('boost-change',event=>{
+      signalRevision++;
+      try{const data=JSON.parse(event.data);if(Array.isArray(data.items)){applyStatus(data);return;}}catch{}
+      refresh();
+    });
     events.addEventListener('connected', refresh);
   }
   window.refreshLiveXpBoost = refresh;
   setInterval(render,1000);
-  setInterval(refresh,10000);
+  // OBS conserve une réaction rapide même si le proxy interrompt le flux temps réel.
+  setInterval(refresh,isOverlay?1000:10000);
   window.addEventListener('online',refresh);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
   refresh();
