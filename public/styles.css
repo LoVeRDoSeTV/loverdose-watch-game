@@ -8980,3 +8980,23 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .achievement-event-controls p{font-size:13px;color:#bbb2cd;line-height:1.6}.achievement-event-controls>div{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid #ffffff15}
 .achievement-event-controls small{display:block;margin-top:5px;color:#b3acc7;font-size:12px}
 @media(max-width:600px){.badge-stage-list ol{grid-template-columns:minmax(0,1fr)}.achievement-event-controls>div{flex-wrap:wrap}}
+
+/* V453 — même ambiance que l’accueil public, derrière chaque destination. */
+body.game-ambient-surface{isolation:isolate;background-color:#090b17!important}
+.game-ambient-surface:not(body){isolation:isolate;background:transparent!important}
+.game-ambient-surface>.game-page-ambience{position:fixed;inset:0;z-index:-1;pointer-events:none;background-color:#090b17;background-image:radial-gradient(ellipse at 68% 12%,rgba(123,60,209,.24),transparent 48%),radial-gradient(ellipse at 94% 48%,rgba(88,160,241,.09),transparent 40%),radial-gradient(ellipse at 18% 86%,rgba(145,71,255,.17),transparent 42%)}
+body.auth-locked>.game-page-ambience{display:none}
+.game-page-ambience .public-floating-egg.egg-one{top:17%;left:8%;width:68px;height:86px;opacity:.22}
+.game-page-ambience .public-floating-egg.egg-two{top:59%;left:79%;width:54px;height:70px;opacity:.18}
+.game-page-ambience .public-floating-egg.egg-three{top:85%;right:62%;width:58px;height:76px;opacity:.18}
+.game-page-ambience .public-floating-twitch{top:37%;left:88%;width:44px;height:44px;opacity:.19}
+.game-page-ambience .public-floating-twitch.game-twitch-2{top:72%;left:5%;width:36px;height:36px;animation-delay:-3s}
+.game-page-ambience .public-floating-twitch.game-twitch-3{top:10%;left:63%;width:30px;height:30px;animation-delay:-5s}
+.game-page-ambience .crystal-one{top:45%;left:47%}
+.game-page-ambience .crystal-two{top:91%;right:9%}
+/* Les enveloppes opaques d’anciennes pages ne masquent plus l’ambiance partagée. */
+body.game-ambient-surface:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
+.admin-reset-label{display:block;margin:18px 0 8px;color:#e9defa}
+.admin-reset-input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #69518c;border-radius:10px;background:#111528;color:#fff;font:inherit}
+.admin-confirm-actions [data-reset-approve]:disabled{opacity:.45;cursor:not-allowed}
+@media(max-width:900px){.game-page-ambience .public-floating-egg.egg-one{left:3%;width:48px;height:64px}.game-page-ambience .public-floating-twitch{left:85%;width:32px;height:32px}.game-page-ambience .public-floating-egg.egg-two{left:82%;width:42px;height:56px}}

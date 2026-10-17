@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { resetPlayerProgress } from './src/reset-player.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import session from 'express-session';
@@ -6391,7 +6392,7 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
     await client.query('BEGIN');
     const target=(await client.query(`SELECT a.id,a.username,a.twitch_id,u.id user_id FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1 FOR UPDATE OF a`,[accountId])).rows[0];
     if(!target){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
-    if(!target.user_id && action!=='grant_egg'){await client.query('ROLLBACK');return res.status(400).json({error:'Ce compte doit d’abord être lié à Twitch.'});}
+    if(!target.user_id && !['grant_egg','reset_account'].includes(action)){await client.query('ROLLBACK');return res.status(400).json({error:'Ce compte doit d’abord être lié à Twitch.'});}
     let summary='',details={reason};
     const boundedDelta=(limit=1000000)=>Math.max(-limit,Math.min(limit,Math.round(Number(req.body?.amount||0))));
     if(action==='cash'||action==='global_xp'||action==='pending_xp'||action==='egg_fragments'||action==='universal_fragments'){
@@ -6407,6 +6408,13 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
       const quantity=Math.max(1,Math.min(20,Math.floor(Number(req.body?.amount||1))));await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[accountId,quantity]);summary=`+${quantity} œuf(s) mystère · ${target.username}`;details={...details,quantity};
     }else if(action==='lovys_fragments'){
       const lovysId=Number.parseInt(req.body?.lovysId,10),delta=boundedDelta(100000);if(!lovysId||!delta){await client.query('ROLLBACK');return res.status(400).json({error:'Lovys ou montant invalide.'});}const lr=await client.query(`UPDATE user_lovys SET fragments=GREATEST(0,fragments+$3),updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND user_id=$2 RETURNING creature_id,fragments`,[lovysId,target.user_id,delta]);if(!lr.rowCount){await client.query('ROLLBACK');return res.status(404).json({error:'Lovys introuvable.'});}summary=`${delta>0?'+':''}${delta} fragments ${creatures.find(c=>c.id===lr.rows[0].creature_id)?.name||lr.rows[0].creature_id} · ${target.username}`;details={...details,lovysId,delta};
+    }else if(action==='reset_account'){
+      if(String(req.body?.confirmUsername||'')!==target.username){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Recopie exactement le pseudo du joueur pour confirmer la réinitialisation.'});
+      }
+      await resetPlayerProgress(client,target,{achievementService,changeTradeAsset});
+      summary=`Compte remis à zéro · ${target.username}`;
+      details={...details,username:target.username,identitiesPreserved:true};
     }else if(action==='reset_battle'){
       await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);summary=`Combat actif réinitialisé · ${target.username}`;
     }else if(action==='reset_pve'){
@@ -6415,6 +6423,7 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
     await logAdminAction(admin.id,accountId,action,summary,details,client);
     await client.query('COMMIT');
     if(target.twitch_id){pushLiveUpdate('game-update',{twitchId:target.twitch_id,at:Date.now()});pushLiveUpdate('shop-update',{twitchId:target.twitch_id});}
+    if(action==='reset_account')pushLiveUpdate('trade-update',{at:Date.now()});
     res.json({ok:true,summary});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur action joueur admin :',error);res.status(500).json({error:'Impossible d’appliquer cette correction.'});}finally{client.release();}
 });

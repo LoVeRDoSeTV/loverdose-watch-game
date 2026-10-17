@@ -151,11 +151,24 @@ if (carouselCard) {
 }
 renderHomeMonster();
 
+const gameAmbienceTemplate=document.querySelector('.public-page-ambience');
+const gameAmbientSurfaces=[document.body,...document.querySelectorAll('.shop-panel,.inventory-panel,.account-panel,.player-profile-panel,.badge-collection-panel,.admin-players-panel,.desktop-admin-panel,.events-panel,.sub-benefits-panel,.lovys-collection-panel,#progressionModal .game-panel,#pveModal .game-panel,.desktop-lobby-page,.global-leaderboard,.mobile-more-page')];
+for(const surface of gameAmbientSurfaces){
+  if(!gameAmbienceTemplate)break;
+  const ambience=gameAmbienceTemplate.cloneNode(true);
+  ambience.classList.add('game-page-ambience');
+  // Six large decorations suffice on the game screens; keep the landing artwork intact.
+  ambience.querySelectorAll('.public-mobile-decoration,.egg-four,.crystal-three,.crystal-four').forEach(el=>el.remove());
+  const twitch=ambience.querySelector('svg');
+  for(let i=2;i<=3;i++){const icon=twitch.cloneNode(true);icon.classList.add(`game-twitch-${i}`);ambience.appendChild(icon);}
+  surface.classList.add('game-ambient-surface');surface.prepend(ambience);
+}
 let publicMotionPaused=false;
 const publicMotionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
 function syncPublicMotion(){
   const paused=publicMotionPaused||publicMotionPreference.matches;
   authHome?.classList.toggle('public-motion-paused',paused);
+  for(const surface of gameAmbientSurfaces)surface.querySelector(':scope > .game-page-ambience')?.classList.toggle('public-motion-paused',paused);
   const button=$('publicMotionToggle');
   if(button){button.hidden=publicMotionPreference.matches;button.setAttribute('aria-pressed',String(paused));button.setAttribute('aria-label',paused?'Reprendre les animations et le carrousel':'Mettre les animations et le carrousel en pause');button.textContent=paused?'▶ Animer':'Ⅱ Pause';}
 }
@@ -6762,6 +6775,7 @@ function renderAdminPlayerEditor(player){
       <div class="admin-editor-section"><h3>🏅 Badges</h3><div class="admin-badge-admin-list">${badges.length?badges.slice(0,12).map(b=>`<span class="admin-player-pill">${escapeHtml(b.badge_name||b.badge_key)}</span>`).join(''):'<span class="admin-player-meta">Aucun badge.</span>'}</div></div>
     </div>
     <div class="admin-editor-section admin-danger-section"><h3>⚔️ Réparation PvE</h3><p class="admin-player-meta">Ces outils servent à débloquer un joueur en cas de problème. Ils ne modifient pas les réglages des boss.</p><div class="admin-editor-actions"><button class="btn secondary" data-admin-action="reset_battle">↻ Annuler le combat actif</button><button class="btn warning" data-admin-action="reset_pve">⚠️ Réinitialiser la progression PvE</button></div></div>
+    <div class="admin-editor-section admin-danger-section"><h3>⚠️ Réinitialiser le compte</h3><p class="admin-player-meta">Efface les Lovys, les œufs, l’inventaire, les monnaies, l’XP, les badges et la progression. Annule les offres en attente. Les identifiants, les comptes liés et l’historique des échanges restent conservés.</p><button type="button" class="btn warning" data-admin-action="reset_account">Remettre le compte à zéro</button></div>
     <div id="adminPlayerActionMessage" class="admin-action-message"></div>`;
 }
 function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
@@ -6769,6 +6783,7 @@ function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
 }
 function adminActionConfirmationDetails(action, amount, button, editor){
   const username=editor?.dataset?.playerUsername||'ce joueur';
+  if(action==='reset_account')return resetAccountConfirmationDetails(username);
   const numeric=Number(amount);
   const signed=(Number.isFinite(numeric)&&numeric>0?'+':'')+(Number.isFinite(numeric)?numeric:amount);
   const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d’œuf",universal_fragments:'fragments universels'};
@@ -6809,7 +6824,27 @@ function trapDesktopAdminFocus(event,container){
   if(event.shiftKey && (document.activeElement===first || !container.contains(document.activeElement))){event.preventDefault();last.focus();}
   else if(!event.shiftKey && (document.activeElement===last || !container.contains(document.activeElement))){event.preventDefault();first.focus();}
 }
+function resetAccountConfirmationDetails(username){
+  return {username,requireUsername:true,actionText:'Remettre toute la progression à zéro',question:'Cette action efface définitivement la progression et tout l’inventaire. Les comptes liés et les identifiants sont conservés. Recopie le pseudo du joueur pour confirmer.'};
+}
+function showResetAccountConfirmation(details){
+  return new Promise(resolve=>{
+    const previousFocus=document.activeElement;
+    const overlay=document.createElement('div');
+    overlay.className='admin-confirm-overlay';overlay.setAttribute('data-admin-confirm-overlay','');
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="resetAccountTitle"><h3 id="resetAccountTitle">Réinitialiser ${escapeHtml(details.username)} ?</h3><p>${escapeHtml(details.question)}</p><label class="admin-reset-label" for="adminResetUsername">Pseudo : <strong>${escapeHtml(details.username)}</strong></label><input id="adminResetUsername" class="admin-reset-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-reset-cancel>Annuler</button><button type="button" class="btn warning" data-reset-approve disabled>Réinitialiser définitivement</button></div></div>`;
+    document.body.appendChild(overlay);
+    const input=overlay.querySelector('input'),approve=overlay.querySelector('[data-reset-approve]');
+    let finished=false;
+    const finish=value=>{if(finished)return;finished=true;overlay.remove();document.removeEventListener('keydown',onKey);if(previousFocus?.isConnected)previousFocus.focus();resolve(value);};
+    const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);}if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+    input.addEventListener('input',()=>{approve.disabled=input.value!==details.username;});
+    overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-reset-cancel]'))finish(false);else if(event.target.closest('[data-reset-approve]')&&!approve.disabled)finish(true);});
+    document.addEventListener('keydown',onKey);input.focus();
+  });
+}
 function showAdminActionConfirmation(details){
+  if(details.requireUsername)return showResetAccountConfirmation(details);
   if(!isDesktopGameUi())return showLegacyAdminActionConfirmation(details);
   if(desktopActionSuccessTimer)clearTimeout(desktopActionSuccessTimer);
   desktopActionSuccessTimer=null;
@@ -6844,6 +6879,7 @@ function showAdminActionConfirmation(details){
 }
 function desktopAdminActionConfirmationDetails(action,amount,button,editor){
   const username=editor.dataset.playerUsername||'ce joueur';
+  if(action==='reset_account')return resetAccountConfirmationDetails(username);
   const numeric=Number(amount),qty=Math.abs(numeric).toLocaleString('fr-FR');
   const verb=numeric<0?'Retirer':'Donner';
   const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:'fragments d’œuf',universal_fragments:'fragments universels'};
@@ -6858,7 +6894,7 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
   return {username,actionText:'Réinitialiser la progression PvE',question:`Réinitialiser toute la progression PvE de ${username} ? Les victoires enregistrées seront effacées.`};
 }
 function validateDesktopAdminAmount(action,amount){
-  if(action==='reset_battle' || action==='reset_pve')return;
+  if(['reset_battle','reset_pve','reset_account'].includes(action))return;
   const value=Number(amount);
   const limit=action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
   if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (action==='grant_egg' && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
@@ -6888,6 +6924,7 @@ function desktopAdminPlayerSuccessMessage(action,amount,details){
   if(action==='lovys_fragments')return removing?`Fragments de ${details.lovysName||'Lovys'} de ${name} bien mis à jour.`:`${qty} fragments de ${details.lovysName||'Lovys'} bien donnés à ${name}.`;
   if(action==='prestige')return `Prestige de ${name} bien réglé à ${amount}.`;
   if(action==='reset_battle')return `Combat actif de ${name} bien annulé.`;
+  if(action==='reset_account')return `Compte de ${name} bien remis à zéro.`;
   if(action==='reset_pve')return `Progression PvE de ${name} bien réinitialisée.`;
   return `${details.actionText} : modification bien appliquée à ${name}.`;
 }
@@ -6906,7 +6943,7 @@ async function runAdminPlayerAction(button){
   if(!approved)return;
   button.disabled=true;const old=button.textContent;button.textContent='…';
   try{
-    const body={action,reason,amount};if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+    const body={action,reason,amount};if(action==='reset_account')body.confirmUsername=details.username;if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const msg=$('adminPlayerActionMessage');if(msg){msg.textContent=`✅ ${data.summary}`;msg.className='admin-action-message success';}
     await openAdminPlayerEditor(accountId);await loadAdminPlayers();
@@ -6928,6 +6965,7 @@ async function runDesktopAdminPlayerAction(button){
   const old=button.textContent;button.disabled=true;
   try{
     if(!await showAdminActionConfirmation(details))return;
+    if(action==='reset_account')body.confirmUsername=details.username;
     button.textContent='Application…';
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     showDesktopActionSuccess(desktopAdminPlayerSuccessMessage(action,body.amount,details));
