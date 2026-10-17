@@ -151,24 +151,11 @@ if (carouselCard) {
 }
 renderHomeMonster();
 
-const gameAmbienceTemplate=document.querySelector('.public-page-ambience');
-const gameAmbientSurfaces=[document.body,...document.querySelectorAll('.shop-panel,.inventory-panel,.account-panel,.player-profile-panel,.badge-collection-panel,.admin-players-panel,.desktop-admin-panel,.events-panel,.sub-benefits-panel,.lovys-collection-panel,#progressionModal .game-panel,#pveModal .game-panel,.desktop-lobby-page,.global-leaderboard,.mobile-more-page')];
-for(const surface of gameAmbientSurfaces){
-  if(!gameAmbienceTemplate)break;
-  const ambience=gameAmbienceTemplate.cloneNode(true);
-  ambience.classList.add('game-page-ambience');
-  // Six large decorations suffice on the game screens; keep the landing artwork intact.
-  ambience.querySelectorAll('.public-mobile-decoration,.egg-four,.crystal-three,.crystal-four').forEach(el=>el.remove());
-  const twitch=ambience.querySelector('svg');
-  for(let i=2;i<=3;i++){const icon=twitch.cloneNode(true);icon.classList.add(`game-twitch-${i}`);ambience.appendChild(icon);}
-  surface.classList.add('game-ambient-surface');surface.prepend(ambience);
-}
 let publicMotionPaused=false;
 const publicMotionPreference=window.matchMedia('(prefers-reduced-motion: reduce)');
 function syncPublicMotion(){
   const paused=publicMotionPaused||publicMotionPreference.matches;
   authHome?.classList.toggle('public-motion-paused',paused);
-  for(const surface of gameAmbientSurfaces)surface.querySelector(':scope > .game-page-ambience')?.classList.toggle('public-motion-paused',paused);
   const button=$('publicMotionToggle');
   if(button){button.hidden=publicMotionPreference.matches;button.setAttribute('aria-pressed',String(paused));button.setAttribute('aria-label',paused?'Reprendre les animations et le carrousel':'Mettre les animations et le carrousel en pause');button.textContent=paused?'▶ Animer':'Ⅱ Pause';}
 }
