@@ -8981,16 +8981,16 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .achievement-event-controls small{display:block;margin-top:5px;color:#b3acc7;font-size:12px}
 @media(max-width:600px){.badge-stage-list ol{grid-template-columns:minmax(0,1fr)}.achievement-event-controls>div{flex-wrap:wrap}}
 
-/* V455 — Décor partagé dans le fond CSS : aucun calque devant le contenu. */
+/* V456 — Une composition continue avec des objets animés indépendamment. */
 :root{
-  --game-page-art:url('/assets/game-ambience.svg?v=455'),radial-gradient(ellipse at 70% 15%,rgba(123,60,209,.23),transparent 58%),radial-gradient(ellipse at 18% 80%,rgba(91,88,196,.13),transparent 50%);
-  --game-page-art-size:900px 1200px,100% 1200px,100% 1200px;
+  --game-page-art:url('/assets/game-ambience.svg?v=456');
+  --game-page-art-size:100% 100%;
 }
-body:not(.auth-locked){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:repeat!important;background-attachment:scroll!important}
+body:not(.auth-locked){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
 body:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
 /* Les destinations qui défilent dans leur propre panneau gardent le même décor. */
 body:not(.auth-locked) :is(#shopModal,#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal>.badge-collection-panel,.admin-players-modal>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#desktopLobbyPage,.global-leaderboard,#mobileMorePage){
-  background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:repeat!important;background-attachment:local!important;
+  background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important;
 }
 /* Supprime l’enveloppe sombre de la collection, sans toucher aux cartes des Lovys. */
 body:not(.auth-locked) #lovysCollectionModal>.lovys-collection-panel{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
@@ -9003,9 +9003,8 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
   body:not(.auth-locked) :is(#progressionModal,#pveModal)>.game-panel{background:transparent!important;box-shadow:none!important}
 }
 @media(max-width:900px){
-  :root{--game-page-art-size:450px 600px,100% 900px,100% 900px}
   body:not(.auth-locked) :is(#lovysCollectionModal,#progressionModal,#pveModal){background:#090b17!important;backdrop-filter:none!important}
-  body:not(.auth-locked) :is(#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:repeat!important;background-attachment:local!important}
+  body:not(.auth-locked) :is(#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
 }
 .admin-reset-label{display:block;margin:18px 0 8px;color:#e9defa}
 .admin-reset-input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #69518c;border-radius:10px;background:#111528;color:#fff;font:inherit}
@@ -9035,3 +9034,5 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
 .admin-player-history-cost{flex-shrink:0;color:#f0c7d1;font-weight:800;white-space:nowrap}
 .admin-player-history [data-admin-history-more]{margin-top:14px}
 @media(max-width:900px){.admin-player-history-row{flex-direction:column;gap:6px}.admin-player-history-cost{white-space:normal}.admin-editor-identity .admin-player-avatar{width:46px;height:46px;flex-basis:46px}.admin-history-filter{align-items:flex-start;flex-direction:column;gap:6px}.admin-history-filter select{width:100%}}
+
+@media(prefers-reduced-motion:reduce){:root{--game-page-art:url('/assets/game-ambience.svg?v=456#still')}}
