@@ -74,7 +74,7 @@
     const controller=new AbortController();
     const timeout=setTimeout(()=>controller.abort(),4000);
     try {
-      const response = await fetch('/api/game/live-xp-boost', { cache:'no-store', credentials:'omit', signal:controller.signal });
+      const response = await fetch('/api/game/live-xp-boost?client=460&_='+Date.now(), { cache:'no-store', credentials:'omit', signal:controller.signal });
       if (!response.ok) return;
       const data = await response.json();
       if(revision===signalRevision)applyStatus(data,started);
@@ -82,7 +82,7 @@
     finally { clearTimeout(timeout);pending=false; if (queued) { queued=false; refresh(); } }
   }
   if (document.body.classList.contains('boost-overlay-page') && window.EventSource) {
-    const events = new window.EventSource('/api/game/live-xp-boost/events');
+    const events = new window.EventSource('/api/game/live-xp-boost/events?client=460&_='+Date.now());
     events.addEventListener('boost-change',event=>{
       signalRevision++;
       try{const data=JSON.parse(event.data);if(Array.isArray(data.items)){applyStatus(data);return;}}catch{}

@@ -262,7 +262,7 @@ function pushLiveUpdate(type = 'game-update', payload = {}) {
   if (type === 'live-boost-update') {
     const overlayPayload=Array.isArray(payload.items)?{serverNow:Number(payload.serverNow)||Date.now(),items:payload.items.filter(item=>['xp','cash','globalXp'].includes(item.key)).map(({key,multiplier,expiresAt})=>({key,multiplier,expiresAt}))}:{};
     for (const client of [...LIVE_XP_OVERLAY_CLIENTS]) {
-      try { client.write(`event: boost-change\ndata: ${JSON.stringify(overlayPayload)}\n\n`);client.flush?.(); }
+      try { client.write(`event: boost-change\ndata: ${JSON.stringify(overlayPayload)}\n\n:${' '.repeat(8192)}\n\n`);client.flush?.(); }
       catch { LIVE_XP_OVERLAY_CLIENTS.delete(client); }
     }
   }
@@ -3649,12 +3649,15 @@ app.get('/api/game/live-xp-boost/events', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('X-Accel-Buffering', 'no');
+  res.setHeader('Content-Encoding','identity');
+  res.socket?.setNoDelay?.(true);
   res.flushHeaders?.();
   // Flux public dédié : il ne diffuse que le signal de changement du boost.
   LIVE_XP_OVERLAY_CLIENTS.add(res);
-  res.write('event: connected\ndata: {}\n\n');res.flush?.();
+  // Les commentaires SSE forcent aussi l’envoi derrière les proxys qui tamponnent.
+  res.write(`:${' '.repeat(8192)}\n\nevent: connected\ndata: {}\n\n`);res.flush?.();
   const heartbeat = setInterval(() => {
-    try { res.write(': keepalive\n\n'); } catch { cleanup(); }
+    try { res.write(': keepalive\n\n');res.flush?.(); } catch { cleanup(); }
   }, 25000);
   heartbeat.unref?.();
   function cleanup() {
@@ -5061,6 +5064,12 @@ app.get('/api/badges', async (req, res) => {
     if (!user) {
       return res.status(404).json({ error: 'Joueur introuvable.' });
     }
+
+    // Initialise les joueurs sans badge avant d’évaluer leur premier défi.
+    // Les anciens comptes gardent la reprise silencieuse prévue pour leurs badges acquis.
+    await pool.query(`INSERT INTO user_badge_celebrations(user_id,seen_signatures)
+      SELECT $1,'{}'::text[] WHERE NOT EXISTS(SELECT 1 FROM user_badges WHERE user_id=$1)
+      ON CONFLICT(user_id) DO NOTHING`,[user.id]);
 
     if (Boolean(showcaseSettings.discord_member_verified)) {
       await pool.query(

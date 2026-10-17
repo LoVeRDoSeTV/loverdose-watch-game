@@ -27,6 +27,8 @@ export async function resetPlayerProgress(client, target, { achievementService, 
       'user_lovys','trade_wishes','trade_notifications'];
     for (const table of tables) await client.query(`DELETE FROM ${table} WHERE user_id=$1`, [userId]);
     await achievementService.reset(client, userId);
+    // Un reset commence un nouveau cycle : le premier badge doit être célébré.
+    await client.query("INSERT INTO user_badge_celebrations(user_id,seen_signatures) VALUES($1,'{}') ON CONFLICT(user_id) DO UPDATE SET seen_signatures='{}'",[userId]);
     await client.query(`UPDATE users SET creature_id=NULL,xp=0,pending_xp=0,global_xp=0,prestige=0,
       egg_fragments=0,universal_lovys_fragments=0,points=0,lifetime_lovercash_earned=0,
       lifetime_lovercash_spent=0,watch_seconds=0,incubator_accelerated_seconds=0,

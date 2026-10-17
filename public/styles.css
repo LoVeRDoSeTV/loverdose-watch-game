@@ -4301,7 +4301,7 @@ body:has(#pveModal:not(.hidden)){
 
 
 /* V72 · Célébration premium lors du déblocage / de l'évolution d'un badge */
-.badge-unlock-celebration{position:fixed;inset:0;z-index:1000025;display:grid;place-items:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .24s ease}
+.badge-unlock-celebration{position:fixed;inset:0;z-index:1100200;display:grid;place-items:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .24s ease}
 .badge-unlock-celebration.show{opacity:1;pointer-events:auto}
 .badge-unlock-card{position:relative;width:min(520px,calc(100vw - 32px));overflow:hidden;border:1px solid rgba(162,104,255,.58);border-radius:28px;padding:30px 28px 24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 34%),linear-gradient(180deg,#171a34 0%,#0d1021 100%);box-shadow:0 30px 100px rgba(0,0,0,.68),0 0 55px rgba(145,71,255,.18);text-align:center;transform:translateY(22px) scale(.92);opacity:0;transition:transform .42s cubic-bezier(.2,.85,.25,1.15),opacity .28s ease}
 .badge-unlock-celebration.show .badge-unlock-card{transform:translateY(0) scale(1);opacity:1}
@@ -4932,12 +4932,12 @@ body:has(#pveModal:not(.hidden)){
 .badge-mobile-next{display:none}
 
 body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
-.badge-mobile-detail{max-width:1040px;margin:0 auto}
+.badge-mobile-detail{box-sizing:border-box;width:100%;max-width:1040px;min-width:0;margin:0 auto}
   .badge-mobile-detail-button{display:block;width:100%;min-height:42px;margin-top:12px;border:1px solid #8050ca;border-radius:11px;background:#2b2050;color:#f1e8ff;font-weight:850;cursor:pointer}
   .badge-collection-panel.mobile-detail-open .badge-collection-help,.badge-collection-panel.mobile-detail-open .badge-collection-title{display:none}
   .badge-mobile-detail:not(.hidden){display:block}
   .badge-mobile-back{min-height:44px;padding:8px 12px;border:1px solid #7652b0;border-radius:11px;background:#272045;color:#fff;font-weight:800}
-  .badge-mobile-detail-hero{text-align:center;padding:16px 12px 22px}
+  .badge-mobile-detail-hero{display:flex;flex-direction:column;align-items:center;box-sizing:border-box;width:100%;min-width:0;text-align:center;padding:16px 12px 22px}
   .badge-mobile-detail-hero .badge-art,.badge-mobile-detail-hero .badge-art-placeholder{width:144px;height:144px;margin:0 auto 12px}
   .badge-mobile-detail-category{display:block;color:#bf9dff;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em}
   .badge-mobile-detail-hero h3{margin:8px 0;font-size:21px}
@@ -8972,8 +8972,8 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 .badge-stage-list li{display:block;min-width:0;padding:0;border:1px solid #ffffff18;border-radius:12px;background:#101427;color:#c6bed8}
 .badge-stage-list li.obtained{border-color:#61c98a66}.badge-stage-list li.next-stage{border-color:#bd8cff;background:#2b2042}
 .badge-stage-list .badge-art,.badge-stage-list .badge-art-placeholder{width:64px;height:64px;flex:0 0 64px;filter:none;opacity:1}
-.badge-stage-button{display:flex;align-items:center;gap:12px;width:100%;min-height:88px;padding:12px;border:0;border-radius:11px;background:transparent;color:inherit;text-align:left;cursor:pointer;font:inherit}.badge-stage-button:hover{background:#b985ff15}.badge-stage-button:focus-visible{outline:2px solid #d4aeff;outline-offset:2px}.badge-stage-button[aria-pressed="true"]{background:#b985ff25;box-shadow:0 0 0 2px #d4aeff inset}
-.badge-stage-copy{display:grid;gap:6px;min-width:0;overflow-wrap:anywhere}
+.badge-stage-button{display:flex;align-items:center;gap:12px;width:100%;min-height:88px;padding:12px;border:0;border-radius:11px;background:transparent;color:inherit;text-align:center;cursor:pointer;font:inherit;flex-direction:column;justify-content:center}.badge-stage-button:hover{background:#b985ff15}.badge-stage-button:focus-visible{outline:2px solid #d4aeff;outline-offset:2px}.badge-stage-button[aria-pressed="true"]{background:#b985ff25;box-shadow:0 0 0 2px #d4aeff inset}
+.badge-stage-copy{display:grid;justify-items:center;gap:6px;min-width:0;overflow-wrap:anywhere;text-align:center}
 .badge-stage-copy b{font-size:12px;color:#f3edff}.badge-stage-copy strong{font-size:12px;color:#ddd2f3}.badge-stage-copy small{font-size:11px;color:#c3b8d3}
 .badge-mobile-detail .badge-stage-list ol{grid-template-columns:repeat(auto-fit,minmax(225px,1fr))}
 .achievement-event-controls{margin-top:20px;padding:16px;border:1px solid #67418c;border-radius:16px;background:#131326}

@@ -864,6 +864,7 @@ async function loadRewardWheels() {
 function closeRewardWheelWinPopup() {
   const modal=$('rewardWheelWinPopup');
   if(modal) modal.classList.add('hidden');
+  showNextBadgeCelebration();
 }
 function showRewardWheelWinPopup(reward,wheelType='daily') {
   const modal=$('rewardWheelWinPopup');
@@ -910,7 +911,7 @@ async function spinRewardWheel() {
       if(resultEl){ const jackpot=data.reward?.key==='mystery_egg'; resultEl.textContent=`${jackpot?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${jackpot?' jackpot':''}`; resultEl.dataset.keep='1'; }
       showRewardWheelWinPopup(data.reward,spunWheelType);
       if(data.balances && me?.user){ me.user.points=Number(data.balances.points??me.user.points); me.user.global_xp=Number(data.balances.global_xp??me.user.global_xp); me.user.pending_xp=Number(data.balances.pending_xp??me.user.pending_xp); me.user.egg_fragments=Number(data.balances.egg_fragments??me.user.egg_fragments); syncLoverCashDisplays(me.user); }
-      await Promise.all([loadRewardWheels(),loadIncubatorSlots(),syncDesktopLovysHub()]);
+      await Promise.all([loadRewardWheels(),loadIncubatorSlots(),syncDesktopLovysHub(),loadBadges()]);
       if(resultEl){ resultEl.textContent=`${data.reward?.key==='mystery_egg'?'✨ JACKPOT · ':''}${data.reward?.icon||'🎁'} ${data.reward?.label||'Récompense gagnée !'}`; resultEl.className=`reward-wheel-result${data.reward?.key==='mystery_egg'?' jackpot':''}`; resultEl.dataset.keep='1'; }
     },4500);
   } catch(error) { rewardWheelSpinning=false; if(resultEl){resultEl.textContent=error.message||'Impossible de lancer la roue.';resultEl.dataset.keep='1';} renderRewardWheel(); }
@@ -1725,7 +1726,7 @@ function ensureBadgeCelebrationModal() {
 }
 
 function showNextBadgeCelebration() {
-  if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
+  if (badgeCelebrationActive || !badgeCelebrationQueue.length || rewardWheelSpinning || !$('rewardWheelWinPopup')?.classList.contains('hidden')) return;
   const item = badgeCelebrationQueue.shift();
   if (!item) return;
   badgeCelebrationActive = true;
@@ -2010,7 +2011,7 @@ async function loadBadges() {
 
     badgeData = data;
     applyBadgeRewardSummary(data.xpSummary);
-    syncBadgeUnlockCelebrations(data.challenges || []);
+    await syncBadgeUnlockCelebrations(data.challenges || []);
   } catch (error) {
     console.error('Erreur badges :', error);
     badgeData = { gameWatch: [], challenges: [], badges: [], showcaseSettings: { isPublic: true, theme: 'classic' } };
