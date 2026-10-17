@@ -1004,6 +1004,7 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS lifetime_lovercash_spent DOUBLE PRECISION NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS prestige INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS total_lovys_hatched INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS progress_reset_at TIMESTAMPTZ`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS universal_lovys_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_live_seen_at TIMESTAMPTZ`);
@@ -3367,152 +3368,24 @@ app.post('/api/account/logout', (req, res) => {
    COMPTE - RÉINITIALISER LE JEU
 ========================================= */
 
-app.post('/api/account/reset-game', async (req, res) => {
-  const client = await pool.connect();
-
-  try {
-    if (!req.session.account) {
-      return res.status(401).json({ error: 'Connexion requise.' });
-    }
-
+app.post('/api/account/reset-game', async(req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!req.session.account)return res.status(401).json({error:'Connexion requise.'});
     await client.query('BEGIN');
-
-    const accountResult = await client.query(
-      `
-      SELECT id, twitch_id
-      FROM accounts
-      WHERE id = $1
-      FOR UPDATE
-      `,
-      [req.session.account.id]
-    );
-
-    const account = accountResult.rows[0];
-
-    if (!account) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Compte introuvable.' });
-    }
-
-    if (!account.twitch_id) {
-      await client.query('ROLLBACK');
-      return res.status(400).json({ error: 'Aucun compte Twitch n’est lié.' });
-    }
-
-    const userResult = await client.query(
-      `
-      SELECT id
-      FROM users
-      WHERE twitch_id = $1
-      FOR UPDATE
-      `,
-      [account.twitch_id]
-    );
-
-    const user = userResult.rows[0];
-
-    if (!user) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Profil de jeu introuvable.' });
-    }
-
-    await client.query(
-      `DELETE FROM sessions_watch WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_badges WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_xp_rewards WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_daily_challenge_state WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_daily_activity WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_global_lovys_xp_rewards WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_global_xp_level_rewards WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_global_cash_level_rewards WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_live_attendance WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(
-      `DELETE FROM user_game_watch WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(`DELETE FROM user_reward_wheel_spins WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM user_reward_wheels WHERE user_id = $1`, [user.id]);
-
-    await client.query(
-      `DELETE FROM user_active_boosts WHERE user_id = $1`,
-      [user.id]
-    );
-
-    await client.query(`DELETE FROM user_pve_progress WHERE user_id = $1`, [user.id]);
-    await client.query(`DELETE FROM user_combat_reports WHERE user_id = $1`, [user.id]);
-    await achievementService.reset(client,user.id);
-    await client.query(`DELETE FROM shop_inventory WHERE account_id = $1 AND item_key LIKE 'reward_%'`, [account.id]);
-
-    await client.query(
-      `
-      UPDATE users
-      SET
-        creature_id = NULL,
-        xp = 0,
-        pending_xp = 0,
-        global_xp = 0,
-        prestige = 0,
-        egg_fragments = 0,
-        points = 0,
-        lifetime_lovercash_earned = 0,
-        lifetime_lovercash_spent = 0,
-        watch_seconds = 0,
-        incubator_accelerated_seconds = 0,
-        updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
-      `,
-      [user.id]
-    );
-
+    const target=(await client.query(`SELECT a.id,a.username,a.twitch_id,u.id user_id FROM accounts a
+      LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1 FOR UPDATE OF a`,[req.session.account.id])).rows[0];
+    if(!target){await client.query('ROLLBACK');return res.status(404).json({error:'Compte introuvable.'});}
+    if(!target.twitch_id){await client.query('ROLLBACK');return res.status(400).json({error:'Aucun compte Twitch n’est lié.'});}
+    if(!target.user_id){await client.query('ROLLBACK');return res.status(404).json({error:'Profil de jeu introuvable.'});}
+    await resetPlayerProgress(client,target,{achievementService,changeTradeAsset});
+    await logAdminAction(target.id,target.id,'self_reset','Progression remise à zéro par le joueur',{username:target.username},client);
     await client.query('COMMIT');
-
-    res.json({
-      ok: true,
-      message: 'Progression du jeu réinitialisée.'
-    });
-  } catch (error) {
-    try { await client.query('ROLLBACK'); } catch {}
-    console.error('Erreur réinitialisation jeu :', error);
-    res.status(500).json({ error: 'Impossible de réinitialiser la progression.' });
-  } finally {
-    client.release();
-  }
+    pushLiveUpdate('account-reset',{twitchId:target.twitch_id,at:Date.now()});
+    pushLiveUpdate('trade-update',{at:Date.now()});
+    res.json({ok:true,message:'Progression du jeu réinitialisée, Prestige et badges compris.'});
+  }catch(error){try{await client.query('ROLLBACK');}catch{}console.error('Erreur réinitialisation jeu :',error);res.status(500).json({error:'Impossible de réinitialiser la progression.'});}
+  finally{client.release();}
 });
 
 
@@ -6426,7 +6299,7 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
     await logAdminAction(admin.id,accountId,action,summary,details,client);
     await client.query('COMMIT');
     if(target.twitch_id){pushLiveUpdate('game-update',{twitchId:target.twitch_id,at:Date.now()});pushLiveUpdate('shop-update',{twitchId:target.twitch_id});}
-    if(action==='reset_account')pushLiveUpdate('trade-update',{at:Date.now()});
+    if(action==='reset_account'){pushLiveUpdate('account-reset',{twitchId:target.twitch_id,at:Date.now()});pushLiveUpdate('trade-update',{at:Date.now()});}
     res.json({ok:true,summary});
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur action joueur admin :',error);res.status(500).json({error:'Impossible d’appliquer cette correction.'});}finally{client.release();}
 });

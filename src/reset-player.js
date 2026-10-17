@@ -30,7 +30,7 @@ export async function resetPlayerProgress(client, target, { achievementService, 
     await client.query(`UPDATE users SET creature_id=NULL,xp=0,pending_xp=0,global_xp=0,prestige=0,
       egg_fragments=0,universal_lovys_fragments=0,points=0,lifetime_lovercash_earned=0,
       lifetime_lovercash_spent=0,watch_seconds=0,incubator_accelerated_seconds=0,
-      total_lovys_hatched=0,last_live_seen_at=NULL,updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [userId]);
+      total_lovys_hatched=0,last_live_seen_at=NULL,progress_reset_at=clock_timestamp(),updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [userId]);
   }
   await client.query('DELETE FROM shop_inventory WHERE account_id=$1', [target.id]);
   await client.query(`UPDATE accounts SET equipped_title_key=NULL,equipped_background_key=NULL,

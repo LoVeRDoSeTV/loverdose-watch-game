@@ -7587,7 +7587,7 @@ function closeAccountConfirmation() {
 $('resetGameButton')?.addEventListener('click', () => {
   openAccountConfirmation({
     title: 'Réinitialiser le jeu ?',
-    message: "Ton compte et ton lien Twitch seront conservés. Ton monstre, ton œuf, ton XP, ton LoVeR'Cash et ton temps de jeu seront remis à zéro. Cette action est définitive.",
+    message: "Ton compte et tes comptes liés seront conservés. Tes Lovys, tes œufs, ton inventaire, ton XP, ton Prestige, ton LoVeR’Cash et tes badges de progression seront remis à zéro. Les offres en attente seront annulées. Cette action est définitive.",
     buttonText: 'Oui, réinitialiser',
     mode: 'reset'
   });
@@ -8380,6 +8380,9 @@ function startLiveUpdates() {
   if (!me?.user || !window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
+  liveUpdates.addEventListener('account-reset', event => {
+    try{const data=JSON.parse(event.data);if(data.twitchId&&String(data.twitchId)===String(me?.user?.twitch_id))location.reload();}catch{}
+  });
   liveUpdates.addEventListener('special-mode-update', event => {
     try { applySpecialModeUpdate(JSON.parse(event.data)); } catch {}
   });

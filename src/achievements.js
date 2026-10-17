@@ -112,7 +112,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
   }
 
   async function metrics(client,userId,accountId){
-    const user=(await client.query('SELECT creature_id,xp,total_lovys_hatched FROM users WHERE id=$1',[userId])).rows[0];
+    const user=(await client.query('SELECT creature_id,xp,total_lovys_hatched,progress_reset_at FROM users WHERE id=$1',[userId])).rows[0];
     const lovys=(await client.query('SELECT creature_id,xp,rank,is_active FROM user_lovys WHERE user_id=$1',[userId])).rows;
     const progress=(await client.query('SELECT fight_key,wins FROM user_pve_progress WHERE user_id=$1',[userId])).rows;
     const report=(await client.query(`SELECT
@@ -124,8 +124,10 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
     const trades=(await client.query(`SELECT other_id FROM (
       SELECT CASE WHEN creator_user_id=$1 THEN accepted_by_user_id ELSE creator_user_id END other_id FROM trade_offers
         WHERE status='completed' AND (creator_user_id=$1 OR accepted_by_user_id=$1)
+          AND ($2::timestamptz IS NULL OR accepted_at>=$2)
       UNION ALL SELECT CASE WHEN creator_user_id=$1 THEN target_user_id ELSE creator_user_id END FROM player_trade_offers
-        WHERE status='completed' AND (creator_user_id=$1 OR target_user_id=$1)) t`,[userId])).rows;
+        WHERE status='completed' AND (creator_user_id=$1 OR target_user_id=$1)
+          AND ($2::timestamptz IS NULL OR accepted_at>=$2)) t`,[userId,user.progress_reset_at||null])).rows;
     const days=(await client.query(`SELECT challenge_date,COUNT(*)::int count FROM user_daily_challenge_state
       WHERE user_id=$1 AND claimed_at IS NOT NULL GROUP BY challenge_date`,[userId])).rows;
     const wheels=(await client.query(`SELECT wheel_type,COUNT(*)::int count FROM user_reward_wheel_spins WHERE user_id=$1 GROUP BY wheel_type`,[userId])).rows;
