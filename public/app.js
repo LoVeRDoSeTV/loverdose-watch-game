@@ -1665,6 +1665,7 @@ let unlockedBadgeCategoryFilter = 'all';
 
 const badgeCelebrationQueue = [];
 let badgeCelebrationActive = false;
+let badgeCelebrationRetry = null;
 
 function badgeCelebrationStorageKey() {
   const userKey = String(me?.user?.twitch_id || me?.user?.id || me?.user?.game_username || 'player');
@@ -1676,6 +1677,9 @@ function badgeCelebrationSignature(challenge) {
   if (['live-attendance','global-evolution','achievement'].includes(challenge.missionType)) {
     const stageId = Number(challenge.celebrationStageId || challenge.evolutionLevel || 0);
     return stageId > 0 ? `${challenge.badgeKey}:stage:${stageId}` : '';
+  }
+  if (challenge.missionType === 'subscription' && Number(challenge.celebrationCycleId) > 1) {
+    return `${challenge.badgeKey}:cycle:${Number(challenge.celebrationCycleId)}`;
   }
   return `${challenge.badgeKey}:unlocked`;
 }
@@ -1697,6 +1701,25 @@ function badgeCelebrationDescriptor(challenge) {
     rewardTitle,
     reserve: Boolean(challenge.lovysXpToReserve && lovysXp > 0)
   };
+}
+
+// Une animation par palier obtenu, même si plusieurs seuils sont franchis entre deux visites.
+function badgeCelebrationDescriptors(challenge) {
+  if (!challenge?.unlocked) return [];
+  if (!['live-attendance','global-evolution','achievement'].includes(challenge.missionType) || !challenge.stages?.length) {
+    return [badgeCelebrationDescriptor(challenge)];
+  }
+  return challenge.stages.filter(stage => stage.unlocked).map(stage => badgeCelebrationDescriptor({
+    ...challenge,
+    badgeName: challenge.missionType === 'achievement' ? stage.name : challenge.badgeName,
+    badgeImage: stage.image || challenge.badgeImage,
+    celebrationStageId: stage.goal,
+    celebrationStageName: stage.name,
+    celebrationRewardLovysXp: stage.rewards?.lovysXp || 0,
+    celebrationRewardGlobalXp: stage.rewards?.globalXp || 0,
+    celebrationRewardCash: stage.rewards?.cash || 0,
+    celebrationRewardTitle: stage.rewardTitle || ''
+  }));
 }
 
 function ensureBadgeCelebrationModal() {
@@ -1726,7 +1749,14 @@ function ensureBadgeCelebrationModal() {
 }
 
 function showNextBadgeCelebration() {
-  if (badgeCelebrationActive || !badgeCelebrationQueue.length || rewardWheelSpinning || !$('rewardWheelWinPopup')?.classList.contains('hidden')) return;
+  clearTimeout(badgeCelebrationRetry);
+  if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
+  const wheelPopup = $('rewardWheelWinPopup');
+  if (document.hidden || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
+      || pveBattleState.running || activeTradeExchange) {
+    badgeCelebrationRetry = setTimeout(showNextBadgeCelebration, 400);
+    return;
+  }
   const item = badgeCelebrationQueue.shift();
   if (!item) return;
   badgeCelebrationActive = true;
@@ -1764,10 +1794,10 @@ function closeBadgeCelebration() {
 }
 
 async function syncBadgeUnlockCelebrations(challenges = []) {
-  if (!me?.user) return;
+  if (!me?.user || document.hidden) return;
   const descriptors = (Array.isArray(challenges) ? challenges : [])
     .filter(challenge => challenge?.unlocked)
-    .map(badgeCelebrationDescriptor)
+    .flatMap(badgeCelebrationDescriptors)
     .filter(item => item.signature);
   const currentSignatures = [...new Set(descriptors.map(item => item.signature))];
   const storageKey = badgeCelebrationStorageKey();
@@ -1783,7 +1813,7 @@ async function syncBadgeUnlockCelebrations(challenges = []) {
     // Une réponse arrivée après un changement de compte est ignorée.
     if (storageKey !== badgeCelebrationStorageKey() || !me?.user) return;
     const claimed = new Set(Array.isArray(data.claimed) ? data.claimed : []);
-    const queued = new Set();
+    const queued = new Set(badgeCelebrationQueue.map(item => item.signature));
     descriptors.filter(item => claimed.has(item.signature)).forEach(item => {
       if (!queued.has(item.signature)) badgeCelebrationQueue.push(item);
       queued.add(item.signature);
@@ -8400,6 +8430,10 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
   liveUpdates.addEventListener('trade-update', () => { void refreshLobbyNotifications();void refreshLobbySilently(); });
+  // Ces actions peuvent valider des badges sans passer par le tracker Twitch.
+  for (const type of ['game-update','incubator-update','trade-update']) {
+    liveUpdates.addEventListener(type, () => { if (me?.user && !document.hidden) void loadBadges(); });
+  }
   liveUpdates.onerror = () => {
     // EventSource tente automatiquement de se reconnecter.
   };
@@ -8415,6 +8449,10 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/service-worker.js?v=109').catch(error => console.warn('Service worker non disponible :', error));
   });
 }
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && me?.user) { void loadBadges(); showNextBadgeCelebration(); }
+});
 
 startLiveUpdates();
 

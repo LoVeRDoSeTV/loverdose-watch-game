@@ -4216,6 +4216,9 @@ app.get(
         ]
       );
 
+      await pool.query(`INSERT INTO user_badge_celebrations(user_id,seen_signatures)
+        SELECT id,'{}'::text[] FROM users WHERE twitch_id=$1 ON CONFLICT(user_id) DO NOTHING`,[t.id]);
+
 await pool.query(
   `
   UPDATE accounts
@@ -5024,8 +5027,20 @@ app.post('/api/badges/celebrations/claim', async (req, res) => {
     );
     const state = await client.query('SELECT seen_signatures FROM user_badge_celebrations WHERE user_id = $1', [user.id]);
     const seen = new Set(state.rows[0].seen_signatures);
-    const claimed = [...new Set(req.body.signatures)].filter(signature => !seen.has(signature));
-    claimed.forEach(signature => seen.add(signature));
+    // Les anciennes versions ne mémorisaient que le dernier palier affiché.
+    // Ses paliers antérieurs sont déjà acquis : ne pas les rejouer à la mise à jour.
+    const stageMax = new Map();
+    for (const signature of seen) {
+      const match = /^(.*):stage:(\d+)$/.exec(signature);
+      if (match) stageMax.set(match[1], Math.max(stageMax.get(match[1]) || 0, Number(match[2])));
+    }
+    const requested = [...new Set(req.body.signatures)];
+    const claimed = requested.filter(signature => {
+      if (seen.has(signature)) return false;
+      const match = /^(.*):stage:(\d+)$/.exec(signature);
+      return !match || Number(match[2]) > (stageMax.get(match[1]) || 0);
+    });
+    requested.forEach(signature => seen.add(signature));
     await client.query('UPDATE user_badge_celebrations SET seen_signatures = $2::text[] WHERE user_id = $1', [user.id, [...seen]]);
     await client.query('COMMIT');
     res.set('Cache-Control', 'no-store');
@@ -5108,6 +5123,7 @@ app.get('/api/badges', async (req, res) => {
     }
 
     await achievementService.syncSubscriptionBadges(user.id);
+    const subscriptionCycle = (await pool.query('SELECT cycle FROM user_subscription_badge_state WHERE user_id=$1',[user.id])).rows[0]?.cycle || 0;
 
     // Badge global évolutif : Fidèle de la chaîne
     // Il évolue automatiquement avec le temps total de visionnage du joueur.
@@ -5560,6 +5576,7 @@ app.get('/api/badges', async (req, res) => {
           badgeChallenge: 'Aie un abonnement Twitch actif à LoVeRDoSeTV sur le compte lié au jeu. Le badge reste disponible pendant l’abonnement. Un nouveau bonus est accordé si ton abonnement expire puis que tu te réabonnes.',
           gameName: 'Spécial · Abonnement',
           missionType: 'subscription',
+          celebrationCycleId: Number(subscriptionCycle),
           badgeCategory: 'twitch',
           rewardXp: BADGE_SUB_REWARD.lovysXp,
           rewardLovysXp: BADGE_SUB_REWARD.lovysXp,
@@ -7541,6 +7558,23 @@ async function start() {
 
     await initDatabase();
     await achievementService.init();
+    // Fige les badges historiques avant que le tracker puisse attribuer les nouveaux.
+    // Les comptes sans badge ont une liste vide ; les nouveaux comptes sont initialisés à la liaison Twitch.
+    await pool.query(`INSERT INTO user_badge_celebrations(user_id,seen_signatures)
+      SELECT u.id,COALESCE(array_agg(CASE
+        WHEN b.badge_key LIKE 'achievement:%' OR b.badge_key IN (
+          'challenge:dofus:gardien-emeraude:50h','challenge:palworld:maitre-des-spheres:50h',
+          'challenge:mw4:operateur-elite:50h','mission:zombie:maitre-des-morts:25h',
+          'mission:global:fidele-chaine','mission:attendance:lives-assistes')
+          THEN b.badge_key||':stage:'||b.threshold_hours::text
+        WHEN b.badge_key='mission:sub:soutien-absolu' AND s.cycle>1
+          THEN b.badge_key||':cycle:'||s.cycle::text
+        ELSE b.badge_key||':unlocked' END) FILTER(WHERE b.badge_key IS NOT NULL),'{}'::text[])
+      FROM users u LEFT JOIN user_badges b ON b.user_id=u.id
+      LEFT JOIN user_subscription_badge_state s ON s.user_id=u.id
+      WHERE NOT EXISTS(SELECT 1 FROM user_badge_celebrations c WHERE c.user_id=u.id)
+      GROUP BY u.id ON CONFLICT(user_id) DO NOTHING`);
+
 
     // Premier contrôle peu après le démarrage, puis toutes les 15 secondes.
     setTimeout(() => {
