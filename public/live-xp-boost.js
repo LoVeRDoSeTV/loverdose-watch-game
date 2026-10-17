@@ -5,6 +5,7 @@
   let expiresAt = 0;
   let clockOffset = 0;
   let pending = false;
+  let queued = false;
   const timer = panel.querySelector('[data-boost-countdown]');
   function render() {
     const remaining = Math.max(0, Math.ceil((expiresAt - (Date.now() + clockOffset)) / 1000));
@@ -18,7 +19,7 @@
     panel.querySelector('[data-boost-progress]').style.width = Math.min(100, remaining / 36) + '%';
   }
   async function refresh() {
-    if (pending) return;
+    if (pending) { queued = true; return; }
     pending = true;
     const started = Date.now();
     try {
@@ -31,7 +32,17 @@
       render();
     } catch (_) {
       // L'échéance connue reste valable même si la connexion est interrompue.
-    } finally { pending = false; }
+    } finally {
+      pending = false;
+      if (queued) { queued = false; refresh(); }
+    }
+  }
+  // OBS ne possède pas de session de jeu : son flux public ne reçoit que
+  // les changements du boost, sans aucune information de joueur.
+  if (document.body.classList.contains('boost-overlay-page') && window.EventSource) {
+    const events = new window.EventSource('/api/game/live-xp-boost/events');
+    events.addEventListener('boost-change', refresh);
+    events.addEventListener('connected', refresh);
   }
   window.refreshLiveXpBoost = refresh;
   setInterval(render, 1000);

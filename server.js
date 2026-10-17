@@ -252,9 +252,16 @@ const TRACKER_MAX_GAP_SECONDS = 5 * 60;
 const TRACKER_MAX_CREDIT_SECONDS = 3 * 60;
 const TRACKER_SUB_SYNC_MS = 60 * 1000;
 const LIVE_UPDATE_CLIENTS = new Set();
+const LIVE_XP_OVERLAY_CLIENTS = new Set();
 
 function pushLiveUpdate(type = 'game-update', payload = {}) {
   const message = `event: ${type}\ndata: ${JSON.stringify(payload)}\n\n`;
+  if (type === 'live-boost-update') {
+    for (const client of [...LIVE_XP_OVERLAY_CLIENTS]) {
+      try { client.write('event: boost-change\ndata: {}\n\n'); }
+      catch { LIVE_XP_OVERLAY_CLIENTS.delete(client); }
+    }
+  }
   for (const client of [...LIVE_UPDATE_CLIENTS]) {
     try {
       client.write(message);
@@ -3752,6 +3759,25 @@ app.get('/api/game/online-players', async(req,res)=>{
 });
 
 // Lecture publique limitée au bonus XP : aucune commande ni clé exposée à OBS.
+app.get('/api/game/live-xp-boost/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('X-Accel-Buffering', 'no');
+  res.flushHeaders?.();
+  // Flux public dédié : il ne diffuse que le signal de changement du boost.
+  LIVE_XP_OVERLAY_CLIENTS.add(res);
+  res.write('event: connected\ndata: {}\n\n');
+  const heartbeat = setInterval(() => {
+    try { res.write(': keepalive\n\n'); } catch { cleanup(); }
+  }, 25000);
+  heartbeat.unref?.();
+  function cleanup() {
+    clearInterval(heartbeat);
+    LIVE_XP_OVERLAY_CLIENTS.delete(res);
+  }
+  res.on('close', cleanup);
+});
+
 app.get('/api/game/live-xp-boost', async (req, res) => {
   const boosts = await getActiveAdminLiveBoosts();
   res.setHeader('Cache-Control', 'no-store');

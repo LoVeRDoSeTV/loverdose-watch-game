@@ -17,12 +17,12 @@ Les mêmes chemins acceptent POST avec l’en-tête `x-stream-deck-token`, pour 
 
 Ajouter une source Navigateur :
 
-- URL : `https://loverwatchgame.fr/overlays/xp-boost.html?v=446`
+- URL : `https://loverwatchgame.fr/overlays/xp-boost.html?v=447`
 - Largeur : 600 px
 - Hauteur : 140 px
 - Conserver le fond transparent et déplacer la source à l’endroit souhaité.
 
-Le bloc apparaît dans les 10 secondes après activation et disparaît à l’expiration. Il reste invisible sans boost. Le compteur se cale sur l’heure du serveur et reprend le temps restant lorsqu’on change de scène ou recharge la source.
+Le texte apparaît dès que le serveur confirme l’activation grâce à un flux temps réel public réservé aux changements du boost, puis disparaît à l’expiration. Le fond, le contour et la barre décorative sont retirés de l’overlay OBS : ajouter son propre rectangle dans OBS sous la source Navigateur. Il reste invisible sans boost. Le compteur se cale sur l’heure du serveur et reprend le temps restant lorsqu’on change de scène ou recharge la source.
 
 ## Site
 

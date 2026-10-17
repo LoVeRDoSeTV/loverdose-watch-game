@@ -7,8 +7,9 @@
 .live-xp-boost time{flex:0 0 auto;font-size:22px;font-weight:850;letter-spacing:.04em;font-variant-numeric:tabular-nums;color:#e1c2ff}
 .live-xp-boost-progress{position:absolute;bottom:0;left:0;height:3px;background:linear-gradient(90deg,#9147ff,#e1c2ff);transition:width 1s linear}
 .boost-overlay-page{margin:0;padding:12px;box-sizing:border-box;background:transparent;color:#fff}
-.boost-overlay-page .live-xp-boost{width:min(100%,576px);margin:0;padding:18px 24px;justify-content:flex-start;border-radius:20px;box-shadow:0 5px 18px #0005}
+.boost-overlay-page .live-xp-boost{width:min(100%,576px);margin:0;padding:18px 24px;justify-content:flex-start;border:0;border-radius:0;background:transparent;box-shadow:none}
 .boost-overlay-page .live-xp-boost-copy{flex:1}
+.boost-overlay-page .live-xp-boost-progress{display:none}
 .boost-overlay-page .live-xp-boost-copy strong{font-size:23px}
 .boost-overlay-page .live-xp-boost-copy small{font-size:13px}
 .boost-overlay-page .live-xp-boost time{font-size:32px}
