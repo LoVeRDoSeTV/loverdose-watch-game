@@ -7479,6 +7479,8 @@ $('accountModal')?.addEventListener('mouseup', event => {
 $('accountModal')?.addEventListener('mouseleave', () => {
   accountBackdropMouseDown = false;
 });
+// Le raccourci d’en-tête réutilise la déconnexion du compte.
+$('headerLogout')?.addEventListener('click', () => $('accountLogout')?.click());
 $('accountLogout')?.addEventListener('click', async () => {
   await fetch('/api/account/logout', { method: 'POST' });
   location.reload();

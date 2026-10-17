@@ -658,6 +658,13 @@ body.auth-locked .wrap { visibility:hidden; }
    ACCÈS / GESTION DU COMPTE
 ========================================= */
 .account-access{display:flex;align-items:center;gap:10px}
+.account-logout-button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 12px;border:1px solid rgba(226,157,188,.24);border-radius:12px;background:rgba(31,25,44,.84);color:#efcfdf;font:inherit;font-size:11px;font-weight:800;white-space:nowrap;cursor:pointer;touch-action:manipulation}
+.account-logout-button svg{width:16px;height:16px;flex:0 0 16px}
+.account-logout-button:hover{background:rgba(104,43,76,.32);border-color:rgba(226,157,188,.5)}
+.account-logout-button:focus-visible{outline:2px solid #cf9af5;outline-offset:3px}
+@media(max-width:900px){.account-logout-button{padding:0 9px;gap:5px;font-size:11px}.account-logout-button svg{width:14px;height:14px;flex-basis:14px}}
+@media(min-width:901px) and (max-width:1200px){.top .account-access{flex-wrap:wrap;justify-content:flex-end;max-width:calc(50% - 150px)}}
+
 .account-icon-button{
   width:44px;height:44px;border:1px solid rgba(255,255,255,.14);border-radius:50%;
   background:#1a1f35;color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;
