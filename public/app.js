@@ -6659,6 +6659,12 @@ function formatAdminHours(seconds) {
   return `${hours.toFixed(hours >= 10 ? 0 : 1).replace('.', ',')} h`;
 }
 
+function adminPlayerAvatar(player){
+  let image='';
+  try{const url=new URL(player.profileImageUrl);if(url.protocol==='https:')image=`<img src="${escapeHtml(url.href)}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer">`;}catch{}
+  const initial=Array.from(String(player.username||'?').trim())[0]||'?';
+  return `<span class="admin-player-avatar" aria-hidden="true"><span>${escapeHtml(initial.toUpperCase())}</span>${image}</span>`;
+}
 function renderAdminPlayers(data) {
   const list = $('adminPlayersList');
   const total = $('adminPlayersTotal');
@@ -6688,10 +6694,10 @@ function renderAdminPlayers(data) {
 
     return `
       <div class="admin-player-card ${player.online ? 'is-online' : 'is-offline'} ${player.isBroadcaster ? 'is-broadcaster' : ''}" data-account-id="${player.accountId}">
-        <div>
-          <div class="admin-player-name">${escapeHtml(player.username || 'Sans pseudo')}${player.isBroadcaster ? ' · 👑 Admin' : ''} <span class="admin-player-presence">${player.online ? '● En ligne' : '● Hors ligne'}</span></div>
-          <div class="admin-player-meta">Inscrit le ${formatAdminDate(player.createdAt)}<br>${escapeHtml(player.email || '—')}</div>
-        </div>
+        <button type="button" class="admin-player-identity" data-admin-open-player="${player.accountId}" aria-label="Gérer ${escapeHtml(player.username||'ce joueur')}">${adminPlayerAvatar(player)}<span class="admin-player-identity-copy">
+          <span class="admin-player-name">${escapeHtml(player.username || 'Sans pseudo')}${player.isBroadcaster ? ' · 👑 Admin' : ''} <span class="admin-player-presence">${player.online ? '● En ligne' : '● Hors ligne'}</span></span>
+          <span class="admin-player-meta">Inscrit le ${formatAdminDate(player.createdAt)}<br>${escapeHtml(player.email || '—')}</span>
+        </span></button>
         <div>
           <div class="admin-player-meta">${stateText}</div>
           <div class="admin-player-status"><span class="admin-player-pill">${player.isSub ? '⭐ Sub' : '☆ Non sub'}</span><span class="admin-player-pill">💰 ${Math.round(Number(player.points || 0))} LoVeR'Cash</span></div>
@@ -6724,7 +6730,9 @@ async function adminFetch(url, options={}){
   return data;
 }
 
+let adminPlayerEditorRequest=0;
 async function openAdminPlayerEditor(accountId){
+  const requestId=++adminPlayerEditorRequest;
   const editor=$('adminPlayerEditor'); if(!editor)return;
   editor.dataset.accountId=String(accountId);
   document.querySelectorAll('.admin-player-card.editor-selected').forEach(el=>el.classList.remove('editor-selected'));
@@ -6734,8 +6742,10 @@ async function openAdminPlayerEditor(accountId){
   editor.scrollIntoView({behavior:'smooth',block:'start'});
   try{
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/detail`);
+    if(requestId!==adminPlayerEditorRequest)return;
     renderAdminPlayerEditor(data.player);
-  }catch(error){editor.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(error.message)}</div>`;}
+    loadAdminPlayerHistory();
+  }catch(error){if(requestId!==adminPlayerEditorRequest)return;editor.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(error.message)}</div>`;}
 }
 function renderAdminPlayerEditor(player){
   const editor=$('adminPlayerEditor');if(!editor)return;
@@ -6747,7 +6757,7 @@ function renderAdminPlayerEditor(player){
   const eggs=Array.isArray(player.inventory)?player.inventory.find(x=>x.item_key==='mystery_egg')?.quantity||0:0;
   const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
   editor.innerHTML=`
-    <div class="admin-editor-head"><div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
     <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
@@ -6759,6 +6769,9 @@ function renderAdminPlayerEditor(player){
       ${adminStatCard('🥚','Œufs inventaire',eggs)}
       ${adminStatCard('🏅','Badges',badges.length)}
     </div>
+    <div class="admin-editor-section"><h3>💰 Suivi de l’économie</h3><div class="admin-player-summary">${adminStatCard('↗','Cash gagné au total',formatAdminNumber(player.cashEarned))}${adminStatCard('↘','Cash dépensé au total',formatAdminNumber(player.cashSpent))}${adminStatCard('🧩','Fragments d’œuf',formatAdminNumber(player.eggFragments))}${adminStatCard('✨','Fragments universels',formatAdminNumber(player.universalFragments))}</div></div>
+    <div class="admin-editor-section"><h3>🎒 Inventaire actuel</h3><div class="admin-player-stock">${(player.inventory||[]).length?(player.inventory||[]).map(item=>`<div><span>${escapeHtml(item.name||item.item_key)}</span><strong>×${formatAdminNumber(item.quantity)}</strong></div>`).join(''):'<p class="admin-player-meta">Inventaire vide.</p>'}</div></div>
+    <section class="admin-editor-section admin-player-history" data-player-history data-offset="0"><div class="admin-player-history-head"><h3>📜 Historique du joueur</h3><button type="button" class="btn secondary" data-admin-history-refresh>Actualiser</button></div><p class="admin-player-meta">Les achats et utilisations détaillés sont enregistrés à partir de cette mise à jour. Les anciens achats ne peuvent pas être reconstitués. Le journal est conservé après une remise à zéro du compte.</p><label class="admin-history-filter">Afficher <select data-admin-history-type><option value="all">Toutes les opérations</option><option value="purchase">Achats</option><option value="use">Objets utilisés</option><option value="admin">Actions administrateur</option></select></label><div data-admin-history-list aria-live="polite"><p class="admin-player-meta">Chargement de l’historique…</p></div><button type="button" class="btn secondary hidden" data-admin-history-more>Voir les opérations précédentes</button></section>
     <div class="admin-editor-reason"><label>Motif de la correction <span>(facultatif mais conseillé)</span></label><input id="adminPlayerActionReason" maxlength="180" placeholder="Ex. récompense événement, correction support…"></div>
     <div class="admin-editor-section"><h3>🛠 Corrections du compte</h3><div class="admin-adjust-grid">
       ${adminAdjustRow('💰',"LoVeR'Cash",'cash','+ / −')}
@@ -6777,6 +6790,42 @@ function renderAdminPlayerEditor(player){
     <div class="admin-editor-section admin-danger-section"><h3>⚔️ Réparation PvE</h3><p class="admin-player-meta">Ces outils servent à débloquer un joueur en cas de problème. Ils ne modifient pas les réglages des boss.</p><div class="admin-editor-actions"><button class="btn secondary" data-admin-action="reset_battle">↻ Annuler le combat actif</button><button class="btn warning" data-admin-action="reset_pve">⚠️ Réinitialiser la progression PvE</button></div></div>
     <div class="admin-editor-section admin-danger-section"><h3>⚠️ Réinitialiser le compte</h3><p class="admin-player-meta">Efface les Lovys, les œufs, l’inventaire, les monnaies, l’XP, les badges et la progression. Annule les offres en attente. Les identifiants, les comptes liés et l’historique des échanges restent conservés.</p><button type="button" class="btn warning" data-admin-action="reset_account">Remettre le compte à zéro</button></div>
     <div id="adminPlayerActionMessage" class="admin-action-message"></div>`;
+}
+function adminPlayerHistoryRow(item){
+  const currency=item.currency==='cash'?"LoVeR’Cash":"fragments d’œuf";
+  const date=new Date(item.created_at).toLocaleString('fr-FR');
+  let title='',description='',amount='';
+  if(item.kind==='admin'){
+    title=item.summary||'Action administrateur';
+    description=`Par ${item.admin_name||'un administrateur'}${item.details?.reason?' · Motif : '+item.details.reason:''}`;
+  }else{
+    title=`${item.kind==='purchase'?'Achat':'Utilisation'} · ${item.item_name} ×${formatAdminNumber(item.quantity)}`;
+    if(item.kind==='purchase'){
+      amount=`−${formatAdminNumber(item.total_cost,2)} ${currency}`;
+      description=`Prix unitaire : ${formatAdminNumber(item.unit_price,2)} ${currency} · Solde : ${formatAdminNumber(item.balance_before,2)} → ${formatAdminNumber(item.balance_after,2)} ${currency}`;
+    }else description=item.details?.message||'Objet consommé dans le jeu.';
+  }
+  return `<article class="admin-player-history-row"><div><strong>${escapeHtml(title)}</strong><time>${escapeHtml(date)}</time><p>${escapeHtml(description)}</p></div>${amount?`<span class="admin-player-history-cost">${escapeHtml(amount)}</span>`:''}</article>`;
+}
+async function loadAdminPlayerHistory(append=false){
+  const editor=$('adminPlayerEditor'),section=editor?.querySelector('[data-player-history]');if(!section)return;
+  const list=section.querySelector('[data-admin-history-list]'),more=section.querySelector('[data-admin-history-more]');
+  const requestId=String(Number(section.dataset.requestId||0)+1);section.dataset.requestId=requestId;
+  const type=section.querySelector('select').value,offset=append?Number(section.dataset.offset||0):0;
+  more.disabled=true;section.setAttribute('aria-busy','true');
+  if(!append)list.innerHTML='<p class="admin-player-meta">Chargement de l’historique…</p>';
+  try{
+    const data=await adminFetch(`/api/admin/players/${encodeURIComponent(editor.dataset.accountId)}/history?type=${encodeURIComponent(type)}&offset=${offset}`);
+    if(!section.isConnected||section.dataset.requestId!==requestId)return;
+    const html=(data.items||[]).map(adminPlayerHistoryRow).join('');
+    if(append)list.insertAdjacentHTML('beforeend',html);else list.innerHTML=html||'<p class="admin-player-meta">Aucune opération enregistrée pour ce filtre.</p>';
+    section.dataset.offset=String(data.nextOffset);more.classList.toggle('hidden',!data.hasMore);
+    section.querySelector('[data-admin-history-error]')?.remove();
+  }catch(error){
+    if(!section.isConnected||section.dataset.requestId!==requestId)return;
+    const html=`<p class="admin-action-message error" data-admin-history-error>${escapeHtml(error.message)}</p>`;
+    if(append){section.querySelector('[data-admin-history-error]')?.remove();list.insertAdjacentHTML('beforeend',html);}else{list.innerHTML=html;more.classList.add('hidden');}
+  }finally{if(section.isConnected&&section.dataset.requestId===requestId){more.disabled=false;section.removeAttribute('aria-busy');}}
 }
 function adminAdjustRow(icon,label,action,placeholder,positiveOnly=false){
   return `<div class="admin-adjust-row"><div><strong>${icon} ${escapeHtml(label)}</strong><div class="admin-player-meta">${positiveOnly?'Valeur ou quantité':'Montant positif ou négatif'}</div></div><input type="number" step="1" value="${action==='prestige'?0:10}" ${positiveOnly&&action!=='prestige'?'min="1"':''} data-admin-amount="${action}" placeholder="${escapeHtml(placeholder)}"><button class="btn secondary" data-admin-action="${action}">Appliquer</button></div>`;
@@ -7104,7 +7153,7 @@ $('adminPlayersList')?.addEventListener('click', async event => {
   const manageButton=event.target.closest('[data-admin-open-player]');
   if(manageButton){await openAdminPlayerEditor(manageButton.getAttribute('data-admin-open-player'));return;}
   const button = event.target.closest('[data-delete-account]');
-  if (!button) return;
+  if (!button){const card=event.target.closest('.admin-player-card');if(card&&!event.target.closest('a,input,select,button')&&!window.getSelection()?.toString())await openAdminPlayerEditor(card.dataset.accountId);return;}
   if(isDesktopGameUi()){await deleteDesktopAdminAccount(button);return;}
 
   const accountId = button.getAttribute('data-delete-account');
@@ -7148,8 +7197,13 @@ async function deleteDesktopAdminAccount(button){
   finally{button.disabled=false;button.textContent=old;if(button.isConnected)button.focus();}
 }
 
+$('adminPlayersList')?.addEventListener('error',event=>{const image=event.target;if(image.matches?.('.admin-player-avatar img'))image.remove();},true);
+$('adminPlayerEditor')?.addEventListener('error',event=>{const image=event.target;if(image.matches?.('.admin-player-avatar img'))image.remove();},true);
+$('adminPlayerEditor')?.addEventListener('change',event=>{if(event.target.matches('[data-admin-history-type]'))loadAdminPlayerHistory();});
 $('adminPlayerEditor')?.addEventListener('click', async event=>{
-  if(event.target.closest('[data-admin-close-editor]')){$('adminPlayerEditor')?.classList.add('hidden');return;}
+  if(event.target.closest('[data-admin-history-refresh]')){await loadAdminPlayerHistory();return;}
+  if(event.target.closest('[data-admin-history-more]')){await loadAdminPlayerHistory(true);return;}
+  if(event.target.closest('[data-admin-close-editor]')){adminPlayerEditorRequest++;$('adminPlayerEditor')?.classList.add('hidden');return;}
   const saveEmail=event.target.closest('[data-admin-email-save]');
   if(saveEmail){
     const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-email]'),message=editor?.querySelector('[data-admin-email-message]');

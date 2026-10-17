@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
@@ -1532,6 +1533,7 @@ async function initDatabase() {
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC)`);
   await initWizebotAlerts(pool);
+  await initPlayerHistory(pool);
 
   // V107 — boosts live globaux pilotés depuis le panneau Événements.
   await pool.query(`CREATE TABLE IF NOT EXISTS admin_live_boosts (
@@ -5085,6 +5087,7 @@ app.post('/api/fragments/buy-egg', async (req,res)=>{
     if(balance<total){await client.query('ROLLBACK');return res.status(400).json({error:`Il te faut ${total} fragments pour cet achat.`});}
     await client.query(`UPDATE users SET egg_fragments=egg_fragments-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,total]);
     await client.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT (account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[req.session.account.id,quantity]);
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'purchase',itemKey:'mystery_egg',itemName:'Œuf mystère',quantity,currency:'egg_fragments',unitPrice:FRAGMENT_EGG_PRICE,totalCost:total,balanceBefore:balance,balanceAfter:balance-total});
     await client.query('COMMIT');
     const fragments=balance-total;
     pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
@@ -6215,6 +6218,8 @@ app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
 const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:EGG_HATCH_SECONDS});
 app.use('/api',wizebotAlerts.router);
 
+registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
+
 app.get('/api/admin/players', async (req, res) => {
   try {
     const broadcaster = await getBroadcasterAccount(req);
@@ -6238,6 +6243,7 @@ app.get('/api/admin/players', async (req, res) => {
           a.created_at,
           u.login AS twitch_login,
           u.display_name AS twitch_display_name,
+          u.profile_image_url,
           u.creature_id,
           u.xp,
           u.pending_xp,
@@ -6275,6 +6281,7 @@ app.get('/api/admin/players', async (req, res) => {
         createdAt: player.created_at,
         twitchConnected: Boolean(player.twitch_id),
         twitchLogin: player.twitch_login || null,
+        profileImageUrl: player.profile_image_url || null,
         discordConnected: Boolean(player.discord_user_id),
         discordUsername: player.discord_username || null,
         discordVerified: Boolean(player.discord_member_verified),
@@ -6339,17 +6346,17 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
     const accountId=Number.parseInt(req.params.accountId,10);if(!Number.isInteger(accountId)||accountId<=0)return res.status(400).json({error:'Compte invalide.'});
     const ar=await pool.query(`SELECT a.*,u.id user_id,u.login twitch_login,u.display_name twitch_display_name,u.profile_image_url,u.is_sub,u.creature_id,u.xp,u.pending_xp,u.points,u.watch_seconds,u.global_xp,u.prestige,u.egg_fragments,u.universal_lovys_fragments,u.lifetime_lovercash_earned,u.lifetime_lovercash_spent FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1`,[accountId]);
     const row=ar.rows[0];if(!row)return res.status(404).json({error:'Joueur introuvable.'});
-    let lovys=[],incubator=[],badges=[],pve=[],inventory=[];
+    let lovys=[],incubator=[],badges=[],pve=[];
+    const inventory=(await pool.query(`SELECT item_key,quantity,purchased_at FROM shop_inventory WHERE account_id=$1 AND quantity>0 ORDER BY item_key`,[accountId])).rows.map(item=>({...item,name:shopItemByKey(item.item_key)?.name||item.item_key}));
     if(row.user_id){
       const results=await Promise.all([
         pool.query(`SELECT id,creature_id,xp,is_active,fragments,rank,hatched_at FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at`,[row.user_id]),
         pool.query(`SELECT id,slot,egg_key,watched_seconds,status,placed_at FROM user_incubator_eggs WHERE user_id=$1 ORDER BY slot`,[row.user_id]),
         pool.query(`SELECT badge_key,badge_name,badge_image,tier,unlocked_at FROM user_badges WHERE user_id=$1 ORDER BY unlocked_at DESC`,[row.user_id]),
-        pool.query(`SELECT fight_key,wins,attempts,first_won_at,last_fought_at FROM user_pve_progress WHERE user_id=$1 ORDER BY last_fought_at DESC NULLS LAST`,[row.user_id]),
-        pool.query(`SELECT item_key,quantity FROM shop_inventory WHERE account_id=$1 AND quantity>0 ORDER BY item_key`,[accountId])
+        pool.query(`SELECT fight_key,wins,attempts,first_won_at,last_fought_at FROM user_pve_progress WHERE user_id=$1 ORDER BY last_fought_at DESC NULLS LAST`,[row.user_id])
       ]);
       lovys=results[0].rows.map(l=>{const c=creatures.find(x=>x.id===l.creature_id);return {...l,name:c?.name||l.creature_id,rarity:c?.rarity||'—',type:c?.type||'—',level:progressionFromXp(Number(l.xp||0)).level};});
-      incubator=results[1].rows;badges=results[2].rows;pve=results[3].rows;inventory=results[4].rows;
+      incubator=results[1].rows;badges=results[2].rows;pve=results[3].rows;
     }
     res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),lovys,incubator,badges,pve,inventory}});
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
@@ -6583,6 +6590,7 @@ app.post('/api/incubator/place', async (req, res) => {
       `UPDATE shop_inventory SET quantity=quantity-1 WHERE account_id=$1 AND item_key='mystery_egg'`,
       [req.session.account.id]
     );
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:'mystery_egg',itemName:'Œuf mystère',quantity:1,details:{slot,message:`Œuf placé dans l’emplacement ${slot}.`}});
     await client.query('COMMIT');
     pushLiveUpdate('incubator-update', { twitchId:req.session.user.twitchId });
     res.json({ ok:true, slot, message:'Œuf placé dans l’incubateur.' });
@@ -6792,6 +6800,7 @@ app.post('/api/shop/buy', economyWriteRateLimit, async (req, res) => {
        ON CONFLICT (account_id,item_key) DO UPDATE SET quantity = shop_inventory.quantity + EXCLUDED.quantity, purchased_at = CURRENT_TIMESTAMP`,
       [req.session.account.id, key, quantity]
     );
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'purchase',itemKey:key,itemName:item.name,quantity,currency:'cash',unitPrice:item.price,totalCost,balanceBefore:balance,balanceAfter:balance-totalCost});
     await client.query('COMMIT');
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
     res.json({ ok:true, itemKey:key, quantity, totalCost, balance:balance - totalCost });
@@ -6998,6 +7007,7 @@ app.post('/api/shop/use', async (req, res) => {
     }
 
     await client.query(`UPDATE shop_inventory SET quantity = quantity - $3 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key, requestedQuantity]);
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:key,itemName:item.name,quantity:requestedQuantity,details:{message,acceleration,boostExpiresAt}});
     await client.query('COMMIT');
     await wizebotAlerts.collect();
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });

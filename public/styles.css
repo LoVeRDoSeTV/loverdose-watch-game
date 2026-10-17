@@ -9000,3 +9000,27 @@ body.game-ambient-surface:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,
 .admin-reset-input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #69518c;border-radius:10px;background:#111528;color:#fff;font:inherit}
 .admin-confirm-actions [data-reset-approve]:disabled{opacity:.45;cursor:not-allowed}
 @media(max-width:900px){.game-page-ambience .public-floating-egg.egg-one{left:3%;width:48px;height:64px}.game-page-ambience .public-floating-twitch{left:85%;width:32px;height:32px}.game-page-ambience .public-floating-egg.egg-two{left:82%;width:42px;height:56px}}
+
+/* V454 — Identités et journal individuel dans l’administration. */
+.admin-player-identity{display:flex;align-items:center;gap:12px;min-width:0;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.admin-player-identity-copy{display:block;min-width:0;overflow-wrap:anywhere}
+.admin-player-identity-copy>.admin-player-name,.admin-player-identity-copy>.admin-player-meta{display:block}
+.admin-player-avatar{position:relative;display:grid;place-items:center;flex:0 0 48px;width:48px;height:48px;overflow:hidden;border:1px solid #7b5ba0;border-radius:50%;background:#29203d;color:#eadcff;font-size:20px;font-weight:900}
+.admin-player-avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.admin-player-identity:focus-visible{outline:2px solid #bf94ff;outline-offset:6px;border-radius:8px}
+.admin-player-card{cursor:pointer}.admin-player-card:hover{box-shadow:0 0 0 1px rgba(189,143,255,.45)}
+.admin-editor-identity{display:flex;align-items:center;gap:14px;min-width:0;overflow-wrap:anywhere}
+.admin-editor-identity .admin-player-avatar{width:60px;height:60px;flex-basis:60px}
+.admin-player-stock{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:8px}
+.admin-player-stock>div{display:flex;justify-content:space-between;gap:14px;padding:10px 12px;background:#ffffff06;border:1px solid #ffffff12;border-radius:10px;overflow-wrap:anywhere}
+.admin-player-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.admin-player-history-head h3{margin:0}
+.admin-history-filter{display:flex;align-items:center;gap:12px;margin:16px 0;color:#cdd3e8;font-size:13px}
+.admin-history-filter select{max-width:100%;min-width:0;padding:10px;border:1px solid #52416d;border-radius:9px;background:#111528;color:#fff;font:inherit}
+.admin-player-history-row{display:flex;justify-content:space-between;gap:16px;padding:14px 0;border-top:1px solid #ffffff14;font-size:13px;line-height:1.5}
+.admin-player-history-row>div{min-width:0;overflow-wrap:anywhere}
+.admin-player-history-row time{display:block;margin-top:3px;color:#b3bdd7;font-size:12px}
+.admin-player-history-row p{margin:6px 0 0;color:#bfc8df}
+.admin-player-history-cost{flex-shrink:0;color:#f0c7d1;font-weight:800;white-space:nowrap}
+.admin-player-history [data-admin-history-more]{margin-top:14px}
+@media(max-width:900px){.admin-player-history-row{flex-direction:column;gap:6px}.admin-player-history-cost{white-space:normal}.admin-editor-identity .admin-player-avatar{width:46px;height:46px;flex-basis:46px}.admin-history-filter{align-items:flex-start;flex-direction:column;gap:6px}.admin-history-filter select{width:100%}}
