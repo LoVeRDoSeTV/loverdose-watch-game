@@ -1762,7 +1762,7 @@ function closeBadgeCelebration() {
   setTimeout(showNextBadgeCelebration, 220);
 }
 
-function syncBadgeUnlockCelebrations(challenges = []) {
+async function syncBadgeUnlockCelebrations(challenges = []) {
   if (!me?.user) return;
   const descriptors = (Array.isArray(challenges) ? challenges : [])
     .filter(challenge => challenge?.unlocked)
@@ -1770,22 +1770,28 @@ function syncBadgeUnlockCelebrations(challenges = []) {
     .filter(item => item.signature);
   const currentSignatures = [...new Set(descriptors.map(item => item.signature))];
   const storageKey = badgeCelebrationStorageKey();
-  let previous = null;
+
   try {
-    const raw = localStorage.getItem(storageKey);
-    previous = raw ? JSON.parse(raw) : null;
-  } catch (_) { previous = null; }
-
-  // Première visite avec V72 : on mémorise l'existant sans rejouer tous les anciens badges.
-  if (!Array.isArray(previous)) {
-    try { localStorage.setItem(storageKey, JSON.stringify(currentSignatures)); } catch (_) {}
-    return;
+    const response = await fetch('/api/badges/celebrations/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ signatures: currentSignatures })
+    });
+    if (!response.ok) return;
+    const data = await response.json();
+    // Une réponse arrivée après un changement de compte est ignorée.
+    if (storageKey !== badgeCelebrationStorageKey() || !me?.user) return;
+    const claimed = new Set(Array.isArray(data.claimed) ? data.claimed : []);
+    const queued = new Set();
+    descriptors.filter(item => claimed.has(item.signature)).forEach(item => {
+      if (!queued.has(item.signature)) badgeCelebrationQueue.push(item);
+      queued.add(item.signature);
+    });
+    showNextBadgeCelebration();
+  } catch (error) {
+    // Réessaie au prochain chargement des badges sans rejouer localement.
+    console.error('Synchronisation animations badges :', error);
   }
-
-  const seen = new Set(previous);
-  descriptors.filter(item => !seen.has(item.signature)).forEach(item => badgeCelebrationQueue.push(item));
-  try { localStorage.setItem(storageKey, JSON.stringify(currentSignatures)); } catch (_) {}
-  showNextBadgeCelebration();
 }
 
 function badgeVisual(badge, className = 'badge-art') {

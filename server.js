@@ -1340,6 +1340,15 @@ async function initDatabase() {
     );
   `);
 
+
+  // Animations de badges déjà vues, partagées entre les appareils du joueur.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_badge_celebrations (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      seen_signatures TEXT[] NOT NULL DEFAULT '{}'
+    );
+  `);
+
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS user_badges_equipped_slot_unique
     ON user_badges (user_id, equipped_slot)
@@ -5055,6 +5064,48 @@ app.post('/api/admin/events/badges',async(req,res)=>{
     await logAdminAction(account.id,null,'badge_event',req.body.enabled?'Événement badges activé':'Événement badges arrêté',{kind:req.body.kind});
     res.json({ok:true,events});
   }catch(error){console.error(error);res.status(500).json({error:'Impossible de modifier cet événement.'});}
+});
+
+
+app.post('/api/badges/celebrations/claim', async (req, res) => {
+  if (!req.session.account || !req.session.user) {
+    return res.status(401).json({ error: 'Connexion requise.' });
+  }
+  const validList = value => Array.isArray(value) && value.length <= 500
+    && value.every(signature => typeof signature === 'string' && signature.length > 0 && signature.length <= 200);
+  if (!validList(req.body?.signatures)) {
+    return res.status(400).json({ error: 'Animations invalides.' });
+  }
+  let client;
+  try {
+    client = await pool.connect();
+    await client.query('BEGIN');
+    // Sérialise les demandes PC/mobile : une seule peut obtenir une animation.
+    const result = await client.query('SELECT id FROM users WHERE twitch_id = $1 FOR UPDATE', [req.session.user.twitchId]);
+    const user = result.rows[0];
+    if (!user) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Joueur introuvable.' });
+    }
+    await client.query(
+      'INSERT INTO user_badge_celebrations (user_id, seen_signatures) VALUES ($1, $2::text[]) ON CONFLICT (user_id) DO NOTHING',
+      [user.id, [...new Set(req.body.signatures)]]
+    );
+    const state = await client.query('SELECT seen_signatures FROM user_badge_celebrations WHERE user_id = $1', [user.id]);
+    const seen = new Set(state.rows[0].seen_signatures);
+    const claimed = [...new Set(req.body.signatures)].filter(signature => !seen.has(signature));
+    claimed.forEach(signature => seen.add(signature));
+    await client.query('UPDATE user_badge_celebrations SET seen_signatures = $2::text[] WHERE user_id = $1', [user.id, [...seen]]);
+    await client.query('COMMIT');
+    res.set('Cache-Control', 'no-store');
+    res.json({ claimed });
+  } catch (error) {
+    if (client) await client.query('ROLLBACK').catch(() => {});
+    console.error('Erreur animations badges :', error);
+    res.status(500).json({ error: 'Impossible de synchroniser les animations.' });
+  } finally {
+    if (client) client.release();
+  }
 });
 
 app.get('/api/badges', async (req, res) => {
