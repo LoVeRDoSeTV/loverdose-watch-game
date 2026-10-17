@@ -45,6 +45,40 @@ export const WATCH_FAMILIES = [
   {id:'watch-zombie',key:'mission:zombie:maitre-des-morts:25h',name:'Maître des Morts',base:25,match:r=>r.game_id==='special:zombie'}
 ];
 
+
+export function achievementDescription(id, goal) {
+  const plural = goal > 1;
+  const descriptions = {
+    eggs: `Fais éclore ${goal} œuf${plural ? 's' : ''} dans tes incubateurs, au total.`,
+    collection: `Réunis ${goal} espèces de Lovys différentes dans ta collection.`,
+    rare: 'Possède au moins un Lovys de rareté Rare dans ta collection.',
+    epic: 'Possède au moins un Lovys de rareté Épique dans ta collection.',
+    mimo: 'Ajoute Mimo à ta collection de Lovys.',
+    rank: `Fais atteindre le rang ${goal} à au moins un de tes Lovys.`,
+    'rank-team': `Possède ${goal} Lovys au rang 5 dans ta collection.`,
+    level: `Fais atteindre le niveau ${goal} à au moins un de tes Lovys. Il s’agit du niveau du Lovys, pas de ton niveau global.`,
+    'level-team': `Possède ${goal} Lovys ayant chacun atteint le niveau 50.`,
+    victories: `Remporte ${goal} combat${plural ? 's' : ''} PvE au total. Les combats rejoués comptent aussi.`,
+    'close-win': 'Remporte un combat PvE avec ton Lovys encore en vie et moins de 10 % de ses PV maximum restants.',
+    flawless: 'Remporte un combat PvE sans que ton Lovys subisse le moindre dégât.',
+    variety: `Remporte au moins un combat PvE avec chacune de ${goal} espèces de Lovys différentes.`,
+    trades: `Termine ${goal} échange${plural ? 's' : ''} avec d’autres joueurs. Les offres simplement créées ou annulées ne comptent pas.`,
+    partners: `Termine des échanges avec ${goal} joueurs différents. Plusieurs échanges avec le même joueur comptent pour un seul partenaire.`,
+    challenges: `Récupère les récompenses de ${goal} défi${plural ? 's' : ''} quotidien${plural ? 's' : ''}, au total.`,
+    'perfect-day': 'Termine les 3 défis quotidiens d’une même journée et récupère leurs 3 récompenses.',
+    'daily-wheel': `Lance la roue quotidienne ${goal} fois au total.`,
+    'weekly-wheel': 'Lance la roue bonus débloquée après 7 lives validés.',
+    style: 'Équipe au moins un cosmétique sur ta carte de visite : titre, fond, cadre de carte ou cadre de photo de profil.',
+    'full-style': 'Équipe en même temps un titre, un fond, un cadre de carte et un cadre de photo de profil.',
+    event: 'Cumule 15 minutes de visionnage comptabilisées pendant un même événement activé par LoVeRDoSe.',
+    marathon: 'Cumule 3 heures de visionnage comptabilisées pendant un même live marathon activé par LoVeRDoSe.'
+  };
+  const game = {'watch-dofus':'Dofus','watch-palworld':'Palworld','watch-mw4':'Call of Duty: Modern Warfare 4','watch-zombie':'Zombie'}[id];
+  return game
+    ? `Cumule ${goal} h de visionnage comptabilisées sur les lives de LoVeRDoSeTV dans la catégorie ${game}. Tu peux les cumuler sur plusieurs lives.`
+    : descriptions[id];
+}
+
 export function achievementImage(id,stage){
   return `/badges/${id}-${stage}.webp`;
 }
@@ -132,7 +166,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         ...f,category:'watch',icon:'👀',unit:'h de visionnage',value:watch.filter(f.match).reduce((n,row)=>n+Number(row.watch_seconds)/3600,0),
         steps:WATCH_HOUR_STAGES.map((goal,index)=>({goal,name:f.name,rewards:WATCH_STAGE_REWARDS[goal]}))
       }))];
-      const owned=(await client.query('SELECT badge_key,tier,threshold_hours,badge_image,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1',[userId])).rows;
+      const owned=(await client.query('SELECT badge_key,tier,threshold_hours,badge_image,badge_challenge,equipped_slot,leaderboard_slot FROM user_badges WHERE user_id=$1',[userId])).rows;
       const paid=new Set((await client.query('SELECT reward_key FROM user_xp_rewards WHERE user_id=$1',[userId])).rows.map(row=>row.reward_key));
       const challenges=[];
       for(const f of definitions){
@@ -145,10 +179,10 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
             VALUES($1,$2,'achievement',$3,$4,$5,$6,$7,$8)
             ON CONFLICT(user_id,badge_key) DO UPDATE SET game_name=EXCLUDED.game_name,badge_name=EXCLUDED.badge_name,
               badge_image=EXCLUDED.badge_image,badge_challenge=EXCLUDED.badge_challenge,tier=EXCLUDED.tier,threshold_hours=EXCLUDED.threshold_hours`,
-            [userId,f.key,f.category,current.name,image,`${current.goal} ${f.unit}`,`achievement-${stageIndex}`,current.goal]);
-        }else if(current&&old.badge_image!==image){
+            [userId,f.key,f.category,current.name,image,achievementDescription(f.id,current.goal),`achievement-${stageIndex}`,current.goal]);
+        }else if(current&&(old.badge_image!==image||old.badge_challenge!==achievementDescription(f.id,current.goal))){
           // L’ajout d’un visuel est pris en compte sans redébloquer le badge.
-          await client.query('UPDATE user_badges SET badge_image=$3 WHERE user_id=$1 AND badge_key=$2 AND badge_image IS DISTINCT FROM $3',[userId,f.key,image]);
+          await client.query('UPDATE user_badges SET badge_image=$3,badge_challenge=$4 WHERE user_id=$1 AND badge_key=$2',[userId,f.key,image,achievementDescription(f.id,current.goal)]);
         }
         for(const stage of earned){
           if(f.base&&stage.goal===f.base){
@@ -164,7 +198,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
         }
         const reward=current&&current===next?current.rewards:next.rewards;
         challenges.push({badgeKey:f.key,badgeName:current?.name||f.steps[0].name,badgeIcon:f.icon,badgeImage:image,
-          badgeChallenge:f.id==='partners'?'Réalise des échanges avec 5 joueurs différents.':`${next.goal} ${f.unit}`,gameName:f.category==='watch'?`${f.name} · Visionnage`:`${f.unit}`,
+          badgeChallenge:achievementDescription(f.id,next.goal),gameName:f.category==='watch'?`${f.name} · Visionnage`:`${f.unit}`,
           badgeCategory:f.category,missionType:'achievement',unlocked:Boolean(current),maxed:earned.length===f.steps.length,
           progressValue:value,progressTarget:next.goal,progressUnit:f.unit,progressHint:['close-win','flawless','variety'].includes(f.id)?'Suivi des nouveaux combats après cette mise à jour.':f.category==='event'?'Pendant un événement activé par LoVeRDoSe.':null,
           evolutionLevel:stageIndex,maxEvolutionLevel:f.steps.length,evolutionName:current?.name||'',
@@ -176,7 +210,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
           celebrationRewardLovysXp:current?(f.base&&current.goal===f.base?(f.base===25?250:500):current.rewards.lovysXp):0,
           celebrationRewardGlobalXp:current?(f.base&&current.goal===f.base?(f.base===25?125:250):current.rewards.globalXp):0,
           celebrationRewardCash:current?(f.base&&current.goal===f.base?(f.base===25?25:50):current.rewards.cash):0,
-          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,unlocked:value>=stage.goal,image:achievementImage(f.id,index+1),rewards:stage.rewards}))});
+          stages:f.steps.map((stage,index)=>({goal:stage.goal,name:stage.name,badgeChallenge:achievementDescription(f.id,stage.goal),unlocked:value>=stage.goal,image:achievementImage(f.id,index+1),rewards:stage.rewards}))});
       }
       await client.query('COMMIT');return challenges;
     }catch(error){try{await client.query('ROLLBACK');}catch{}throw error;}finally{client.release();}

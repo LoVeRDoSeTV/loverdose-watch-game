@@ -2156,7 +2156,7 @@ function openMobileBadgeDetail(key,stageGoal=null) {
     const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h de visionnage');
     const rewards=selectedStage.rewards||{};
     challenge={...challenge,badgeName:selectedStage.name,badgeImage:selectedStage.image,
-      badgeChallenge:selectedStage.goal+' '+unit,unlocked:Boolean(selectedStage.unlocked),maxed:false,
+      badgeChallenge:selectedStage.badgeChallenge||selectedStage.goal+' '+unit,unlocked:Boolean(selectedStage.unlocked),maxed:false,
       progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
       rewardLovysXp:rewards.lovysXp||0,rewardXp:rewards.lovysXp||0,
       rewardGlobalXp:rewards.globalXp||0,rewardCash:rewards.cash||0,rewardTitle:selectedStage.rewardTitle||null};
