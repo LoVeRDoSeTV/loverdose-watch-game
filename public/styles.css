@@ -4953,7 +4953,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #badgeCollectionModal{inset:0;width:100%;height:100dvh;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020;backdrop-filter:none;z-index:1000100}
   #badgeCollectionModal>.badge-collection-panel{box-sizing:border-box;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0 16px calc(24px + env(safe-area-inset-bottom));border:0;border-radius:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:linear-gradient(180deg,#15132b,#0d1020 420px);box-shadow:none;scroll-padding-top:90px}
-  #badgeCollectionModal .badge-collection-head{position:sticky;top:0;z-index:5;min-height:72px;margin:0 -16px 16px;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#121226;border-bottom:1px solid #35304f}
+  #badgeCollectionModal .badge-collection-head{position:sticky;top:0;z-index:5;min-height:calc(72px + env(safe-area-inset-top));margin:0 -16px 0;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#121226;border-bottom:1px solid #35304f}
   #badgeCollectionModal .badge-collection-head h2{min-width:0;font-size:clamp(16px,4.6vw,20px);line-height:1.3}
   #badgeCollectionModal #badgeCollectionClose{flex:0 0 44px;width:44px;height:44px;font-size:27px;border-radius:12px}
   #badgeCollectionModal .badge-collection-help,#badgeCollectionModal .badge-collection-title{display:none}
@@ -4965,7 +4965,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #badgeCollectionModal .badge-mobile-summary-percent{font-size:20px;font-weight:800;color:#dbbdff}
   #badgeCollectionModal .badge-mobile-summary>.badge-mobile-progress{flex-basis:100%}
   #badgeCollectionModal .badge-mobile-summary p{width:100%;margin:0;font-size:12px;line-height:1.5;color:#c5bed8}
-  #badgeCollectionModal .badge-filter-tabs{position:sticky;top:calc(72px + env(safe-area-inset-top));z-index:4;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 -2px 14px;padding:8px 2px;background:#121226}
+  #badgeCollectionModal .badge-filter-tabs{position:sticky;top:calc(72px + env(safe-area-inset-top));z-index:4;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 -16px 14px;padding:8px 16px;background:#121226;border-bottom:1px solid #35304f}
   #badgeCollectionModal .badge-filter-tab{min-width:0;min-height:46px;padding:10px 6px;font-size:12px;white-space:normal}
   #badgeCollectionModal .badge-filter-count{margin-left:4px}
   #badgeCollectionModal .badge-status-section{margin:14px 0 24px}
@@ -8997,7 +8997,7 @@ body:not(.auth-locked) #lovysCollectionModal>.lovys-collection-panel{background:
 body:not(.auth-locked) #shopModal>.shop-panel{background:transparent!important;box-shadow:none!important}
 body:not(.auth-locked) #badgeCollectionModal{background-color:#090b17}
 body:not(.auth-locked) #badgeCollectionModal>.badge-collection-panel{background-color:transparent!important;box-shadow:none!important}
-body:not(.auth-locked) #badgeCollectionModal .badge-collection-head{background:transparent!important;box-shadow:none!important}
+@media(min-width:901px){body:not(.auth-locked) #badgeCollectionModal .badge-collection-head{background:transparent!important;box-shadow:none!important}}
 body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-challenge-card,.badge-mobile-next-card){background:rgba(15,19,37,.34)!important}
 @media(min-width:901px){
   /* La boutique PC défile dans le document : un seul décor, porté par body. */
