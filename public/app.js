@@ -1976,6 +1976,15 @@ function profileAvatarFrameStyle(key) {
 function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   if (!element) return;
   const frame = profileAvatarFrameStyle(avatarFrameKey);
+  let photo = element.querySelector(':scope > .cosmetic-avatar-photo');
+  if (frame?.art && !photo) {
+    photo = document.createElement('span');
+    photo.className = 'cosmetic-avatar-photo';
+    photo.append(...element.childNodes);
+    element.append(photo);
+  } else if (!frame?.art && photo) {
+    photo.replaceWith(...photo.childNodes);
+  }
   element.classList.toggle('cosmetic-avatar-decoration', Boolean(frame?.art));
   element.style.setProperty('--avatar-frame-art', frame?.art ? `url("${frame.art}")` : 'none');
   element.style.borderColor = frame?.border || '';
@@ -2017,7 +2026,6 @@ function renderPlayerVisitCard() {
   titleEl.classList.toggle('visible', Boolean(cosmeticTitle));
   titleEl.style.color = previewTitle ? (progressionTitlePreview.color || me.user.cosmetic_title_color || '') : (me.user.cosmetic_title_color || '');
   applyProfileCosmetics(document.querySelector('.player-visit-card'), me.user.cosmetic_background, me.user.cosmetic_frame);
-  applyAvatarFrameCosmetics(avatarEl, me.user.cosmetic_avatar_frame);
   setHubFragmentsButton(Number(me.user.egg_fragments || 0));
   levelValueEl.textContent = `Niveau : ${me.user.global_progression?.level || 1} · ${me.user.global_grade?.name || 'Recrue'}`;
   const gradeEmblem = $('playerGradeEmblem'); if (gradeEmblem) { gradeEmblem.textContent = me.user.global_grade?.icon || '◆'; gradeEmblem.style.color = me.user.global_grade?.color || '#9aa3b8'; }
@@ -2035,6 +2043,8 @@ function renderPlayerVisitCard() {
   } else {
     avatarEl.innerHTML = eggIconMarkup('egg-inline-icon egg-inline-icon-avatar');
   }
+
+  applyAvatarFrameCosmetics(avatarEl, me.user.cosmetic_avatar_frame);
 
   const selected = (badgeData.badges || [])
     .filter(badge => Number(badge.leaderboardSlot) > 0)
@@ -3224,7 +3234,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const avatarHtml = (player, cls='') => {
       const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
       const frameStyle = frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '';
-      if (frame?.art) return `<span class="leaderboard-v150-avatar cosmetic-avatar-decoration ${cls}" style="--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
+      if (frame?.art) return `<span class="leaderboard-v150-avatar cosmetic-avatar-decoration ${cls}" style="--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);${escapeHtml(frameStyle)}"><span class="cosmetic-avatar-photo">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span></span>`;
       return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frameStyle)}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
     };
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
@@ -5262,7 +5272,7 @@ function shopPreview(item) {
   if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
   if (item.category === 'avatar_frame') {
     const frame = profileAvatarFrameStyle(item.key);
-    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.art ? ' cosmetic-avatar-decoration' : ''}" style="${frame?.art ? `--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}"></div></div>`;
+    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.art ? ' cosmetic-avatar-decoration' : ''}" style="${frame?.art ? `--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}">${frame?.art ? '<span class="cosmetic-avatar-photo"></span>' : ''}</div></div>`;
   }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
