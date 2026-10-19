@@ -1881,6 +1881,7 @@ function renderPlayerSubscriptionStatus() {
 
 function profileBackgroundValue(key) {
   const map = {
+    bg_camo_kawaii: 'linear-gradient(110deg,rgba(36,20,43,.76),rgba(36,20,43,.43)),url("/assets/profile-camo-kawaii.webp")',
     bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
     bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
     bg_ember: 'radial-gradient(circle at 22% 90%,rgba(255,102,40,.42),transparent 34%),linear-gradient(150deg,rgba(55,18,16,.96),rgba(18,15,29,.98))',
@@ -1928,6 +1929,7 @@ function profileAvatarFrameStyle(key) {
     avatarframe_cyan: { border:'#4de4ff', shadow:'0 0 16px rgba(77,228,255,.32)' },
     avatarframe_silver: { border:'#d9e2ef', shadow:'0 0 16px rgba(217,226,239,.28)' },
     avatarframe_emerald: { border:'#53e6a8', shadow:'0 0 16px rgba(83,230,168,.30)' },
+    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)' },
     avatarframe_rose: { border:'#ff7ad9', shadow:'0 0 16px rgba(255,122,217,.30)' },
     avatarframe_gold: { border:'#f3c85b', shadow:'0 0 16px rgba(243,200,91,.32)' },
     avatarframe_crimson: { border:'#ff5b73', shadow:'0 0 16px rgba(255,91,115,.32)' },
@@ -1946,6 +1948,7 @@ function profileAvatarFrameStyle(key) {
 function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   if (!element) return;
   const frame = profileAvatarFrameStyle(avatarFrameKey);
+  element.classList.toggle('cosmetic-avatar-hearts', avatarFrameKey === 'avatarframe_hearts');
   element.style.borderColor = frame?.border || '';
   element.style.boxShadow = frame?.shadow || '';
 }
@@ -3187,7 +3190,12 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const creatureMeta = player => player.creature_id ? resolveLovysEntry(player.creature_id) : null;
     const leaderboardLovysImage = player => { const id = String(player.creature_id || '').toLowerCase(); const images = {water:'/Nymea.webp',plant:'/Mossy.webp',lightning:'/Voltis.webp',mist:'/Brumee.webp',fire:'/Flamby.webp',crystal:'/Crysal.webp',forge:'/Ferox.webp',dark:'/Nocty.webp',solar:'/Solka.webp',dream:'/Mimo.webp',nyméa:'/Nymea.webp',nymea:'/Nymea.webp',mossy:'/Mossy.webp',voltis:'/Voltis.webp',brumee:'/Brumee.webp',flamby:'/Flamby.webp',crysal:'/Crysal.webp',ferox:'/Ferox.webp',nocty:'/Nocty.webp',solka:'/Solka.webp',mimo:'/Mimo.webp'}; return images[id] || creatureMeta(player)?.image || ''; };
     const playerTitle = player => player.cosmetic_title ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>` : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
-    const avatarHtml = (player, cls='') => { const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame); return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '')}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`; };
+    const avatarHtml = (player, cls='') => {
+      const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
+      const frameStyle = frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '';
+      if (player.cosmetic_avatar_frame === 'avatarframe_hearts') return `<span class="leaderboard-v150-avatar cosmetic-avatar-hearts ${cls}" style="${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
+      return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frameStyle)}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
+    };
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
     const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};` : ''}`; };
@@ -5215,7 +5223,7 @@ function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
   if (item.category === 'background') return `<div class="shop-item-preview shop-preview-bg bg-${escapeHtml(item.preview || 'violet')}"></div>`;
   if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
-  if (item.category === 'avatar_frame') return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner"></div></div>`;
+  if (item.category === 'avatar_frame') return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${item.key === 'avatarframe_hearts' ? ' cosmetic-avatar-hearts' : ''}"></div></div>`;
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
 }
