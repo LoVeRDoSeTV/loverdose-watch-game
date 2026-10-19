@@ -3243,29 +3243,71 @@ async function openLovysXpTransferConfirm(amount,lovysName=null,forcedLovysId=nu
   if($('lovysXpTransferValue')){$('lovysXpTransferValue').max=String(lovysXpTransferAmount);$('lovysXpTransferValue').value=String(lovysXpTransferAmount);}
   if($('lovysXpTransferCopy')) $('lovysXpTransferCopy').textContent='Choisis le Lovys et la quantité d’XP à lui transférer. Une confirmation est demandée avant application.';
   if($('lovysXpTransferAmount')) $('lovysXpTransferAmount').textContent=`⚡ ${lovysXpTransferAmount.toLocaleString('fr-FR')} XP disponibles`;
+  $('lovysXpTransferCopy')?.removeAttribute('role');
   $('lovysXpTransferModal')?.classList.remove('hidden');
 }
 function closeLovysXpTransferConfirm(){$('lovysXpTransferModal')?.classList.add('hidden');}
 $('lovysXpTransferTarget')?.addEventListener('change',e=>{lovysXpTransferTargetId=Number(e.target.value)||null;});
 $('lovysXpTransferCancel')?.addEventListener('click',closeLovysXpTransferConfirm);
 $('lovysXpTransferModal')?.addEventListener('click',e=>{if(e.target.id==='lovysXpTransferModal')closeLovysXpTransferConfirm();});
+function confirmMobileLovysXpTransfer(amount, name) {
+  return new Promise(resolve => {
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.className = 'lovys-xp-transfer-modal mobile-xp-transfer-check';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','mobileXpTransferCheckTitle');
+    overlay.setAttribute('aria-describedby','mobileXpTransferCheckCopy');
+    overlay.innerHTML = `<div class="lovys-xp-transfer-panel"><div class="lovys-xp-transfer-icon" aria-hidden="true">⚡</div><h2 id="mobileXpTransferCheckTitle" class="lovys-xp-transfer-title">Confirmer le transfert</h2><p id="mobileXpTransferCheckCopy" class="lovys-xp-transfer-copy">Tu vas transférer <strong>${amount.toLocaleString('fr-FR')} XP</strong> de ta réserve à <strong>${escapeHtml(name)}</strong>.</p><div class="lovys-xp-transfer-actions"><button type="button" class="hub-btn" data-xp-check-cancel>Annuler</button><button type="button" class="hub-btn lovys-xp-transfer-confirm" data-xp-check-confirm>⚡ Transférer</button></div></div>`;
+    let finished = false;
+    const finish = approved => {
+      if (finished) return;
+      finished = true;
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+      if (previousFocus?.isConnected) previousFocus.focus();
+      resolve(approved);
+    };
+    const onKey = event => {
+      if (event.key === 'Escape') { event.preventDefault(); event.stopImmediatePropagation(); finish(false); }
+      else if (event.key === 'Tab') trapDesktopAdminFocus(event, overlay);
+    };
+    overlay.addEventListener('click', event => {
+      if (event.target === overlay || event.target.closest('[data-xp-check-cancel]')) finish(false);
+      else if (event.target.closest('[data-xp-check-confirm]')) finish(true);
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown', onKey, true);
+    overlay.querySelector('[data-xp-check-cancel]').focus();
+  });
+}
+function showLovysXpTransferError(message) {
+  if (!isMobileGameUi()) { alert(message); return; }
+  const copy = $('lovysXpTransferCopy');
+  if (copy) { copy.textContent = message; copy.setAttribute('role','alert'); }
+}
 $('lovysXpTransferConfirm')?.addEventListener('click',async()=>{
   const btn=$('lovysXpTransferConfirm');
   const amount=Math.max(0,Math.min(lovysXpTransferAmount,Math.floor(Number($('lovysXpTransferValue')?.value||0))));
   const lovysId=Number($('lovysXpTransferTarget')?.value||lovysXpTransferTargetId||0);
-  if(!btn||amount<=0||!lovysId)return;
+  if(!btn||btn.disabled||amount<=0||!lovysId)return;
   const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===lovysId);
-  if(!confirm(`Transférer ${amount.toLocaleString('fr-FR')} XP à ${chosen?.name||'ce Lovys'} ?`)) return;
-  btn.disabled=true;btn.textContent='Transfert…';
+  btn.disabled=true;
   try{
+    const approved = isMobileGameUi()
+      ? await confirmMobileLovysXpTransfer(amount, chosen?.name||'ce Lovy')
+      : confirm(`Transférer ${amount.toLocaleString('fr-FR')} XP à ${chosen?.name||'ce Lovys'} ?`);
+    if (!approved) return;
+    btn.textContent='Transfert…';
     const r=await fetch('/api/progression/transfer-lovys-xp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId,amount})});
     const d=await r.json();
-    if(!r.ok){alert(d.error||'Transfert impossible.');return;}
+    if(!r.ok){showLovysXpTransferError(d.error||'Transfert impossible.');return;}
     closeLovysXpTransferConfirm();
     await loadGame();
     await loadLovysCollection();
     if(!$('progressionModal')?.classList.contains('hidden')) await loadProgression();
-  }catch(e){alert('Impossible de contacter le serveur.');}
+  }catch(e){showLovysXpTransferError('Impossible de contacter le serveur.');}
   finally{btn.disabled=false;btn.textContent='⚡ Confirmer le transfert';}
 });
 
