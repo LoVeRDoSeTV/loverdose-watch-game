@@ -241,6 +241,7 @@ body.auth-locked .wrap { visibility:hidden; }
  .public-floating-egg.egg-three{right:1%;top:49%;opacity:.2}
  .public-floating-twitch{left:2%;top:66%;width:36px;height:36px;opacity:.18}
  .public-mobile-decoration{display:block}
+ .public-page-ambience :is(.egg-two,.egg-four,.egg-five,.egg-seven,.egg-nine,.twitch-two,.twitch-five,.twitch-six){display:none}
  .public-floating-egg.egg-seven{left:3%;right:auto;top:8%;width:40px;height:52px;opacity:.14;animation-delay:-1s}
  .public-floating-egg.egg-eight{left:auto;right:2%;top:37%;width:46px;height:60px;opacity:.14;animation-delay:-4s}
  .public-floating-egg.egg-nine{left:auto;right:4%;top:60%;width:42px;height:55px;opacity:.15;animation-delay:-7s}
@@ -8986,6 +8987,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   --game-page-art:url('/assets/game-ambience.svg?v=456');
   --game-page-art-size:100% 100%;
 }
+@media(max-width:900px){:root{--game-page-art:url('/assets/game-ambience-mobile.svg?v=464')}}
 body:not(.auth-locked){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
 body:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
 /* Les destinations qui défilent dans leur propre panneau gardent le même décor. */
@@ -9039,3 +9041,4 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
 @media(max-width:900px){.admin-player-history-row{flex-direction:column;gap:6px}.admin-player-history-cost{white-space:normal}.admin-editor-identity .admin-player-avatar{width:46px;height:46px;flex-basis:46px}.admin-history-filter{align-items:flex-start;flex-direction:column;gap:6px}.admin-history-filter select{width:100%}}
 
 @media(prefers-reduced-motion:reduce){:root{--game-page-art:url('/assets/game-ambience.svg?v=456#still')}}
+@media(max-width:900px) and (prefers-reduced-motion:reduce){:root{--game-page-art:url('/assets/game-ambience-mobile.svg?v=464#still')}}
