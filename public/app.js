@@ -1879,8 +1879,26 @@ function renderPlayerSubscriptionStatus() {
   }
 }
 
+function profilePatternImage(theme) {
+  const motifs = {
+    hearts:'<path d="M21 13C12 3 1 12 9 21L21 33 33 21C41 12 30 3 21 13Z" fill="none" stroke="#f3a8cb" stroke-width="2" opacity=".3"/>',
+    clouds:'<path d="M8 29C-2 29-2 17 8 16C8 3 27 1 32 14C47 9 53 29 39 29Z" fill="#e9cbed" opacity=".15"/>',
+    forest:'<path d="M7 32Q0 5 33 4Q37 34 7 32ZM7 32L28 10" fill="none" stroke="#8fcea4" stroke-width="1.6" opacity=".22"/><circle cx="61" cy="48" r="1.7" fill="#d3f5a9" opacity=".6"/>',
+    runes:'<path d="M19 5L32 19 19 33 6 19ZM19 10V28M10 19H28M59 42L65 48 59 54 53 48Z" fill="none" stroke="#b4a2f5" stroke-width="1.3" opacity=".26"/>'
+  };
+  const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="720" height="360"><defs><pattern id="p" width="110" height="78" patternUnits="userSpaceOnUse" patternTransform="rotate(-12)">${motifs[theme]||''}</pattern></defs><rect width="100%" height="100%" fill="url(#p)"/></svg>`;
+  return `url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
+}
+
 function profileBackgroundValue(key) {
   const map = {
+    bg_tiny_hearts: `${profilePatternImage('hearts')},linear-gradient(135deg,#503247,#291f39)`,
+    bg_soft_clouds: `${profilePatternImage('clouds')},radial-gradient(ellipse at 80% 5%,#7a658e,transparent 65%),linear-gradient(135deg,#493853,#30283f)`,
+    bg_retro_grid: 'repeating-linear-gradient(0deg,transparent 0 23px,rgba(140,112,221,.18) 24px 25px),repeating-linear-gradient(90deg,transparent 0 23px,rgba(101,202,221,.14) 24px 25px),radial-gradient(ellipse at 85% 20%,#373566,transparent 65%),linear-gradient(135deg,#15182c,#29203e)',
+    bg_forest_sparks: `${profilePatternImage('forest')},radial-gradient(ellipse at 85% 15%,#305a48,transparent 65%),linear-gradient(135deg,#142a27,#1c2834)`,
+    bg_volcanic_cracks: 'linear-gradient(125deg,transparent 0 62%,rgba(234,133,85,.34) 62.2% 62.5%,transparent 62.8%),linear-gradient(38deg,transparent 0 72%,rgba(234,133,85,.24) 72.2% 72.6%,transparent 72.9%),radial-gradient(ellipse at 95% 90%,#62382f,transparent 65%),linear-gradient(135deg,#231e29,#30242a)',
+    bg_night_runes: `${profilePatternImage('runes')},radial-gradient(ellipse at 85% 25%,#3c335f,transparent 65%),linear-gradient(135deg,#171d30,#292239)`,
+
     bg_camo_kawaii: 'linear-gradient(110deg,rgba(36,20,43,.76),rgba(36,20,43,.43)),url("/assets/profile-camo-kawaii.webp")',
     bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
     bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
@@ -1904,6 +1922,11 @@ function profileBackgroundValue(key) {
 
 function profileFrameStyle(key) {
   const map = {
+    frame_pastel: { border:'#e9abc7', shadow:'0 0 14px rgba(233,171,199,.14)' },
+    frame_arcade: { border:'#67d9ea', shadow:'0 0 14px rgba(103,217,234,.22)' },
+    frame_moss: { border:'#86bc98', shadow:'0 0 14px rgba(134,188,152,.18)' },
+    frame_cinder: { border:'#e49a70', shadow:'0 0 14px rgba(228,154,112,.18)' },
+
     frame_violet: { border:'#a76fff', shadow:'0 0 20px rgba(167,111,255,.26)' },
     frame_cyan: { border:'#4de4ff', shadow:'0 0 20px rgba(77,228,255,.23)' },
     frame_silver: { border:'#d9e2ef', shadow:'0 0 20px rgba(217,226,239,.22)' },
@@ -1925,11 +1948,16 @@ function profileFrameStyle(key) {
 
 function profileAvatarFrameStyle(key) {
   const map = {
+    avatarframe_stars: { border:'#e4c3ef', shadow:'0 0 8px #e4c3ef22', accent:'✦' },
+    avatarframe_crystals: { border:'#a4ddec', shadow:'0 0 8px #a4ddec22', accent:'◆' },
+    avatarframe_pixels: { border:'#9ab7fa', shadow:'0 0 8px #9ab7fa22', accent:'▪' },
+    avatarframe_embers: { border:'#edb08b', shadow:'0 0 8px #edb08b22', accent:'✧' },
+
     avatarframe_violet: { border:'#a76fff', shadow:'0 0 16px rgba(167,111,255,.34)' },
     avatarframe_cyan: { border:'#4de4ff', shadow:'0 0 16px rgba(77,228,255,.32)' },
     avatarframe_silver: { border:'#d9e2ef', shadow:'0 0 16px rgba(217,226,239,.28)' },
     avatarframe_emerald: { border:'#53e6a8', shadow:'0 0 16px rgba(83,230,168,.30)' },
-    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)' },
+    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)', accent:'♥' },
     avatarframe_rose: { border:'#ff7ad9', shadow:'0 0 16px rgba(255,122,217,.30)' },
     avatarframe_gold: { border:'#f3c85b', shadow:'0 0 16px rgba(243,200,91,.32)' },
     avatarframe_crimson: { border:'#ff5b73', shadow:'0 0 16px rgba(255,91,115,.32)' },
@@ -1948,7 +1976,9 @@ function profileAvatarFrameStyle(key) {
 function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   if (!element) return;
   const frame = profileAvatarFrameStyle(avatarFrameKey);
-  element.classList.toggle('cosmetic-avatar-hearts', avatarFrameKey === 'avatarframe_hearts');
+  element.classList.toggle('cosmetic-avatar-decoration', Boolean(frame?.accent));
+  element.dataset.avatarAccent = frame?.accent || '';
+  element.style.setProperty('--avatar-accent-color', frame?.border || '');
   element.style.borderColor = frame?.border || '';
   element.style.boxShadow = frame?.shadow || '';
 }
@@ -3193,7 +3223,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const avatarHtml = (player, cls='') => {
       const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
       const frameStyle = frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '';
-      if (player.cosmetic_avatar_frame === 'avatarframe_hearts') return `<span class="leaderboard-v150-avatar cosmetic-avatar-hearts ${cls}" style="${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
+      if (frame?.accent) return `<span class="leaderboard-v150-avatar cosmetic-avatar-decoration ${cls}" data-avatar-accent="${escapeHtml(frame.accent)}" style="--avatar-accent-color:${escapeHtml(frame.border)};${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
       return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frameStyle)}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
     };
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
@@ -5221,9 +5251,17 @@ function shopSuccessLabel(url, itemKey, fallback) {
 
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
+  if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
+  if (item.collection === 'atelier' && item.category === 'frame') {
+    const frame = profileFrameStyle(item.key);
+    return `<div class="shop-item-preview"><div class="shop-preview-frame" style="border:1px solid ${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)}"></div></div>`;
+  }
   if (item.category === 'background') return `<div class="shop-item-preview shop-preview-bg bg-${escapeHtml(item.preview || 'violet')}"></div>`;
   if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
-  if (item.category === 'avatar_frame') return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${item.key === 'avatarframe_hearts' ? ' cosmetic-avatar-hearts' : ''}"></div></div>`;
+  if (item.category === 'avatar_frame') {
+    const frame = profileAvatarFrameStyle(item.key);
+    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.accent ? ' cosmetic-avatar-decoration' : ''}" data-avatar-accent="${escapeHtml(frame?.accent || '')}" style="${frame?.accent ? `--avatar-accent-color:${escapeHtml(frame.border)};border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}"></div></div>`;
+  }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
 }

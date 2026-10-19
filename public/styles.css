@@ -1719,12 +1719,12 @@ html, body{
 .player-card-avatar .twitch-profile-avatar{width:100%;height:100%;object-fit:cover;display:block}
 .leaderboard-twitch-avatar{width:40px;height:40px;flex:0 0 40px;display:block;border-radius:10px;object-fit:cover;object-position:center;border:1px solid rgba(145,71,255,.38);background:#161a30;box-shadow:0 4px 10px rgba(0,0,0,.28)}
 /* Cosmétiques kawaii : motif léger et contour de profil fin. */
-.cosmetic-avatar-hearts:not(img){position:relative;overflow:visible;isolation:isolate}
-.cosmetic-avatar-hearts>img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
-.cosmetic-avatar-hearts::before,.cosmetic-avatar-hearts::after{position:absolute;z-index:2;content:'\2665';color:#f5a6c2;font-family:Arial,sans-serif;font-size:12px;line-height:1;text-shadow:0 1px 2px #45263c;pointer-events:none}
-.cosmetic-avatar-hearts::before{top:-4px;left:2px;transform:rotate(-18deg)}
-.cosmetic-avatar-hearts::after{bottom:-4px;right:1px;transform:rotate(16deg)}
-.leaderboard-v150-avatar.cosmetic-avatar-hearts{display:inline-grid;place-items:center;vertical-align:middle;flex-shrink:0}
+.cosmetic-avatar-decoration:not(img){position:relative;overflow:visible;isolation:isolate}
+.cosmetic-avatar-decoration>img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+.cosmetic-avatar-decoration::before,.cosmetic-avatar-decoration::after{position:absolute;z-index:2;content:attr(data-avatar-accent);color:var(--avatar-accent-color,#f5a6c2);font-family:Arial,sans-serif;font-size:12px;line-height:1;text-shadow:0 1px 2px #45263c;pointer-events:none}
+.cosmetic-avatar-decoration::before{top:-4px;left:2px;transform:rotate(-18deg)}
+.cosmetic-avatar-decoration::after{bottom:-4px;right:1px;transform:rotate(16deg)}
+.leaderboard-v150-avatar.cosmetic-avatar-decoration{display:inline-grid;place-items:center;vertical-align:middle;flex-shrink:0}
 .shop-preview-avatarframe.frame-hearts .shop-preview-avatarframe-inner{border:1px solid #f3a6c1;box-shadow:0 0 8px rgba(243,166,193,.16)}
 .shop-preview-bg.bg-camo-kawaii{background:#f5c7d7 url('/assets/profile-camo-kawaii.webp') center/cover no-repeat}
 .shop-preview-avatarframe{margin:8px;width:calc(100% - 16px);height:54px;display:flex;align-items:center;justify-content:center}.shop-preview-avatarframe-inner{width:46px;height:46px;border-radius:14px;background:linear-gradient(145deg,#2f3f72,#11182f);border:2px solid rgba(145,71,255,.40);box-shadow:0 0 12px rgba(145,71,255,.18)}
