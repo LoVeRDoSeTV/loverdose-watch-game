@@ -4304,6 +4304,14 @@ body:has(#pveModal:not(.hidden)){
 /* V72 · Célébration premium lors du déblocage / de l'évolution d'un badge */
 .badge-unlock-celebration{position:fixed;inset:0;z-index:1100200;display:grid;place-items:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .24s ease}
 .badge-unlock-celebration.show{opacity:1;pointer-events:auto}
+.badge-unlock-confetti{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}
+.badge-unlock-celebration:not(.social-celebration) .badge-unlock-confetti{display:none}
+.badge-unlock-confetti i{position:absolute;top:-18px;left:var(--confetti-x);width:7px;height:12px;border-radius:2px;background:var(--confetti-color);opacity:0}
+.badge-unlock-confetti i:nth-child(3n){width:9px;height:9px;border-radius:50%}
+.badge-unlock-celebration.show .badge-unlock-confetti i{animation:badgeConfettiFall 3.2s var(--confetti-delay) ease-in both}
+@keyframes badgeConfettiFall{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(0)}8%{opacity:.95}85%{opacity:.85}100%{opacity:0;transform:translate3d(var(--confetti-drift),105dvh,0) rotate(var(--confetti-turn))}}
+@media(prefers-reduced-motion:reduce){.badge-unlock-confetti{display:none}}
+
 .badge-unlock-card{position:relative;width:min(520px,calc(100vw - 32px));overflow:hidden;border:1px solid rgba(162,104,255,.58);border-radius:28px;padding:30px 28px 24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 34%),linear-gradient(180deg,#171a34 0%,#0d1021 100%);box-shadow:0 30px 100px rgba(0,0,0,.68),0 0 55px rgba(145,71,255,.18);text-align:center;transform:translateY(22px) scale(.92);opacity:0;transition:transform .42s cubic-bezier(.2,.85,.25,1.15),opacity .28s ease}
 .badge-unlock-celebration.show .badge-unlock-card{transform:translateY(0) scale(1);opacity:1}
 .badge-unlock-glow{position:absolute;left:50%;top:-110px;width:340px;height:340px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(173,119,255,.34),rgba(145,71,255,.08) 48%,transparent 70%);filter:blur(3px);pointer-events:none;animation:badgeUnlockGlow 2.1s ease-in-out infinite}

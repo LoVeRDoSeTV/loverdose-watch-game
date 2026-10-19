@@ -1670,6 +1670,7 @@ let unlockedBadgeCategoryFilter = 'all';
 
 const badgeCelebrationQueue = [];
 let badgeCelebrationActive = false;
+let badgeCelebrationCurrentSignature = '';
 let badgeCelebrationRetry = null;
 
 function badgeCelebrationStorageKey() {
@@ -1734,7 +1735,7 @@ function ensureBadgeCelebrationModal() {
   modal.id = 'badgeUnlockCelebration';
   modal.className = 'badge-unlock-celebration';
   modal.setAttribute('aria-hidden', 'true');
-  modal.innerHTML = `<div class="badge-unlock-card" role="dialog" aria-modal="true" aria-labelledby="badgeUnlockTitle">
+  modal.innerHTML = `<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:48},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#b78aff','#69ddff','#ffd76b','#ff8bc7','#8af0b4'][i%5]}"></i>`).join('')}</div><div class="badge-unlock-card" role="dialog" aria-modal="true" aria-labelledby="badgeUnlockTitle">
     <div class="badge-unlock-glow"></div>
     ${Array.from({length:18},(_,i)=>`<i class="badge-unlock-particle" style="--x:${8 + ((i*29)%84)}%;--y:${18 + ((i*17)%67)}%;--delay:${((i%7)*.13).toFixed(2)}s"></i>`).join('')}
     <div class="badge-unlock-kicker">✦ Badge débloqué</div>
@@ -1765,7 +1766,9 @@ function showNextBadgeCelebration() {
   const item = badgeCelebrationQueue.shift();
   if (!item) return;
   badgeCelebrationActive = true;
+  badgeCelebrationCurrentSignature = item.signature;
   const modal = ensureBadgeCelebrationModal();
+  modal.classList.toggle('social-celebration',/^mission:(instagram|tiktok):/.test(item.signature));
   const logo = modal.querySelector('#badgeUnlockLogo');
   const stage = modal.querySelector('#badgeUnlockStage');
   const name = modal.querySelector('#badgeUnlockName');
@@ -1795,6 +1798,7 @@ function closeBadgeCelebration() {
   modal.classList.remove('show');
   modal.setAttribute('aria-hidden', 'true');
   badgeCelebrationActive = false;
+  badgeCelebrationCurrentSignature = '';
   setTimeout(showNextBadgeCelebration, 220);
 }
 
@@ -2057,6 +2061,7 @@ async function loadBadges() {
   syncShowcaseSettingsUI();
   renderPlayerVisitCard();
   scheduleTopDashboardSync();
+  void completePendingBadgeSocialVisit();
 }
 
 
@@ -2152,11 +2157,69 @@ function renderMobileNextBadges(challenges) {
   return `<details class="badge-mobile-next" open><summary>✨ Prochains objectifs <span>${next.length}</span></summary>${cards||'<p>Tous les badges disponibles sont obtenus !</p>'}</details>`;
 }
 
+let pendingBadgeSocialVisit=null;
+let badgeSocialVisitLeaving=false;
+let badgeSocialVisitBusy=false;
+function readPendingBadgeSocialVisit(){
+  const storageKey=badgeCelebrationStorageKey()+':social-return';
+  try{
+    const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');
+    if(saved?.challenge&&['instagram','tiktok'].includes(saved.challenge.socialNetwork))return {...saved,storageKey};
+  }catch{}
+  return pendingBadgeSocialVisit?.storageKey===storageKey?pendingBadgeSocialVisit:null;
+}
+function rememberBadgeSocialVisit(challenge){
+  const storageKey=badgeCelebrationStorageKey()+':social-return';
+  pendingBadgeSocialVisit={storageKey,createdAt:Date.now(),challenge:{badgeKey:challenge.badgeKey,badgeName:challenge.badgeName,badgeImage:challenge.badgeImage,gameName:challenge.gameName,missionType:challenge.missionType,socialNetwork:challenge.socialNetwork,lovysXpToReserve:challenge.lovysXpToReserve}};
+  try{sessionStorage.setItem(storageKey,JSON.stringify(pendingBadgeSocialVisit));}catch{}
+}
+function clearPendingBadgeSocialVisit(visit){
+  const current=readPendingBadgeSocialVisit();
+  if(current?.createdAt!==visit.createdAt||current?.challenge.badgeKey!==visit.challenge.badgeKey)return;
+  try{sessionStorage.removeItem(visit.storageKey);}catch{}
+  pendingBadgeSocialVisit=null;
+}
+async function completePendingBadgeSocialVisit(){
+  if(!me?.user||document.hidden||badgeSocialVisitLeaving||badgeSocialVisitBusy)return;
+  const visit=readPendingBadgeSocialVisit();if(!visit)return;
+  badgeSocialVisitBusy=true;
+  const accountKey=badgeCelebrationStorageKey();
+  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),10000);
+  try{
+    const response=await fetch('/api/badges/social-click',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({network:visit.challenge.socialNetwork}),signal:controller.signal
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Impossible de débloquer le badge.');
+    if(accountKey!==badgeCelebrationStorageKey()||document.hidden)return;
+    await loadBadges();
+    if(accountKey!==badgeCelebrationStorageKey()||document.hidden)return;
+    const item=badgeCelebrationDescriptor({...visit.challenge,unlocked:true,rewardXp:0,rewardLovysXp:data.rewardLovysXp||0,rewardGlobalXp:data.rewardGlobalXp||0,rewardCash:data.rewardCash||0});
+    // Une visite explicite permet aussi de revoir une animation sociale manquée.
+    if(item.signature&&badgeCelebrationCurrentSignature!==item.signature&&!badgeCelebrationQueue.some(queued=>queued.signature===item.signature)){
+      badgeCelebrationQueue.push(item);
+    }
+    clearPendingBadgeSocialVisit(visit);
+    showNextBadgeCelebration();
+    void Promise.allSettled([loadGame(),loadLeaderboard()]);
+  }catch(error){
+    // La visite reste en attente : nouvel essai au prochain retour / chargement.
+    console.error('Validation du badge réseau social au retour :',error);
+  }finally{clearTimeout(timeout);badgeSocialVisitBusy=false;}
+}
 async function activateBadgeSocialMission(challenge) {
   const url = challenge?.socialActionUrl;
   if (!url) return;
   if (challenge.socialNetwork === 'discord') {
     window.location.href = url;
+    return;
+  }
+  if(isMobileGameUi()){
+    rememberBadgeSocialVisit(challenge);
+    badgeSocialVisitLeaving=true;
+    // Un seul lien, dans l’onglet courant : le système peut ouvrir l’application.
+    window.location.assign(url);
     return;
   }
   window.open(url, '_blank', 'noopener,noreferrer');
@@ -2173,6 +2236,14 @@ async function activateBadgeSocialMission(challenge) {
     console.error('Erreur mission réseau social :', error);
   }
 }
+window.addEventListener('pagehide',()=>{badgeSocialVisitLeaving=false;});
+window.addEventListener('blur',()=>{badgeSocialVisitLeaving=false;});
+window.addEventListener('pageshow',()=>{badgeSocialVisitLeaving=false;void completePendingBadgeSocialVisit();});
+window.addEventListener('focus',()=>{void completePendingBadgeSocialVisit();});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)badgeSocialVisitLeaving=false;
+  else void completePendingBadgeSocialVisit();
+});
 
 let mobileBadgeCollectionScroll=0;
 function closeMobileBadgeDetail() {
@@ -2221,7 +2292,7 @@ function openMobileBadgeDetail(key,stageGoal=null) {
     ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>${selectedStage?.unlocked?'Récompense déjà obtenue':selectedStage?'Récompense de ce palier':'Prochaine récompense'}</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
     ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
     ${badgeStagesMarkup(challenge,true,selectedStage?.goal??null)}
-    ${!unlocked && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
+    ${(!unlocked || ['instagram','tiktok'].includes(challenge.socialNetwork)) && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
   $('badgeMobileDetail')?.classList.remove('hidden');
