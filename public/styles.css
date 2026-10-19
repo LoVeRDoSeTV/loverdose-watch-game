@@ -4830,7 +4830,7 @@ body:has(#pveModal:not(.hidden)){
  .mobile-pve-adventure.theme-forest{--mobile-pve-card-art:url('/assets/pve-battle-forest-mobile.webp')}
  .mobile-pve-adventure.theme-ember{--mobile-pve-card-art:url('/assets/pve-battle-ember-mobile.webp')}
  .mobile-pve-adventure.theme-night{--mobile-pve-card-art:url('/assets/pve-battle-night-mobile.webp')}
- .mobile-pve-opponent{position:relative;isolation:isolate;overflow:hidden;padding:14px;border:1px solid rgba(160,126,215,.28);border-radius:22px;background-color:#080e1b;background-image:linear-gradient(180deg,rgba(3,8,18,.3),rgba(3,8,18,.04) 200px,#080e1b 360px),var(--mobile-pve-card-art);background-size:100% 100%,100% auto;background-position:center,center top;background-repeat:no-repeat;text-align:center}
+ .mobile-pve-opponent{position:relative;isolation:isolate;overflow:hidden;padding:14px;border:1px solid rgba(160,126,215,.28);border-radius:22px;background-color:#080e1b;background-image:linear-gradient(180deg,rgba(3,8,18,.3),rgba(3,8,18,.04) 200px,#080e1b 360px),var(--mobile-pve-card-art);background-size:100% 100%,100% auto;background-position:center,center -30px;background-repeat:no-repeat;text-align:center}
  .mobile-pve-opponent-heading{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;color:#e1d3f7;text-shadow:0 2px 8px #030713}
  .mobile-pve-opponent-heading strong{color:#b5bfd7;font-size:12px}
  .mobile-pve-opponent-art{position:relative;z-index:1;display:grid;place-items:center;min-height:200px;height:clamp(200px,58vw,260px);margin:8px 0 16px;overflow:visible}

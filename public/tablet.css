@@ -19,7 +19,7 @@
   #mobileHomeActionsList{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .mobile-pve-adventure{grid-template-columns:minmax(220px,.85fr) minmax(0,1.15fr);gap:18px;align-items:start}
   .mobile-pve-adventure> :not(.mobile-pve-opponent){grid-column:1}
-  .mobile-pve-opponent{background-position:center,center 38%;grid-column:2;grid-row:1/span 6;width:100%;max-width:480px;justify-self:center}
+  .mobile-pve-opponent{background-position:center,center -50px;grid-column:2;grid-row:1/span 6;width:100%;max-width:480px;justify-self:center}
   .mobile-pve-opponent-art{height:260px}
   .mobile-pve-opponent-art :is(img,svg){max-height:240px}
   .mobile-pve-active{grid-template-columns:86px minmax(0,1fr)}
