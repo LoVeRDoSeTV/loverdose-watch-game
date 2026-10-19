@@ -1922,10 +1922,10 @@ function profileBackgroundValue(key) {
 
 function profileFrameStyle(key) {
   const map = {
-    frame_pastel: { border:'#e9abc7', shadow:'0 0 14px rgba(233,171,199,.14)' },
-    frame_arcade: { border:'#67d9ea', shadow:'0 0 14px rgba(103,217,234,.22)' },
-    frame_moss: { border:'#86bc98', shadow:'0 0 14px rgba(134,188,152,.18)' },
-    frame_cinder: { border:'#e49a70', shadow:'0 0 14px rgba(228,154,112,.18)' },
+    frame_pastel: { border:'#e9abc7', shadow:'inset 0 0 0 1px rgba(255,255,255,.12),0 0 14px rgba(233,171,199,.14)', corner:'/assets/profile-frame-corner-pastel.webp' },
+    frame_arcade: { border:'#67d9ea', shadow:'inset 0 0 0 1px rgba(255,255,255,.12),0 0 14px rgba(103,217,234,.22)', corner:'/assets/profile-frame-corner-arcade.webp' },
+    frame_moss: { border:'#86bc98', shadow:'inset 0 0 0 1px rgba(255,255,255,.12),0 0 14px rgba(134,188,152,.18)', corner:'/assets/profile-frame-corner-moss.webp' },
+    frame_cinder: { border:'#e49a70', shadow:'inset 0 0 0 1px rgba(255,255,255,.12),0 0 14px rgba(228,154,112,.18)', corner:'/assets/profile-frame-corner-cinder.webp' },
 
     frame_violet: { border:'#a76fff', shadow:'0 0 20px rgba(167,111,255,.26)' },
     frame_cyan: { border:'#4de4ff', shadow:'0 0 20px rgba(77,228,255,.23)' },
@@ -1948,16 +1948,16 @@ function profileFrameStyle(key) {
 
 function profileAvatarFrameStyle(key) {
   const map = {
-    avatarframe_stars: { border:'#e4c3ef', shadow:'0 0 8px #e4c3ef22', accent:'✦' },
-    avatarframe_crystals: { border:'#a4ddec', shadow:'0 0 8px #a4ddec22', accent:'◆' },
-    avatarframe_pixels: { border:'#9ab7fa', shadow:'0 0 8px #9ab7fa22', accent:'▪' },
-    avatarframe_embers: { border:'#edb08b', shadow:'0 0 8px #edb08b22', accent:'✧' },
+    avatarframe_stars: { border:'#e4c3ef', shadow:'0 0 8px #e4c3ef22', art:'/assets/profile-frame-avatar-stars.webp' },
+    avatarframe_crystals: { border:'#a4ddec', shadow:'0 0 8px #a4ddec22', art:'/assets/profile-frame-avatar-crystals.webp' },
+    avatarframe_pixels: { border:'#9ab7fa', shadow:'0 0 8px #9ab7fa22', art:'/assets/profile-frame-avatar-pixels.webp' },
+    avatarframe_embers: { border:'#edb08b', shadow:'0 0 8px #edb08b22', art:'/assets/profile-frame-avatar-embers.webp' },
 
     avatarframe_violet: { border:'#a76fff', shadow:'0 0 16px rgba(167,111,255,.34)' },
     avatarframe_cyan: { border:'#4de4ff', shadow:'0 0 16px rgba(77,228,255,.32)' },
     avatarframe_silver: { border:'#d9e2ef', shadow:'0 0 16px rgba(217,226,239,.28)' },
     avatarframe_emerald: { border:'#53e6a8', shadow:'0 0 16px rgba(83,230,168,.30)' },
-    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)', accent:'♥' },
+    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)', art:'/assets/profile-frame-avatar-hearts.webp' },
     avatarframe_rose: { border:'#ff7ad9', shadow:'0 0 16px rgba(255,122,217,.30)' },
     avatarframe_gold: { border:'#f3c85b', shadow:'0 0 16px rgba(243,200,91,.32)' },
     avatarframe_crimson: { border:'#ff5b73', shadow:'0 0 16px rgba(255,91,115,.32)' },
@@ -1976,9 +1976,8 @@ function profileAvatarFrameStyle(key) {
 function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   if (!element) return;
   const frame = profileAvatarFrameStyle(avatarFrameKey);
-  element.classList.toggle('cosmetic-avatar-decoration', Boolean(frame?.accent));
-  element.dataset.avatarAccent = frame?.accent || '';
-  element.style.setProperty('--avatar-accent-color', frame?.border || '');
+  element.classList.toggle('cosmetic-avatar-decoration', Boolean(frame?.art));
+  element.style.setProperty('--avatar-frame-art', frame?.art ? `url("${frame.art}")` : 'none');
   element.style.borderColor = frame?.border || '';
   element.style.boxShadow = frame?.shadow || '';
 }
@@ -1987,6 +1986,8 @@ function applyProfileCosmetics(element, backgroundKey, frameKey) {
   if (!element) return;
   element.style.setProperty('--profile-card-image', profileBackgroundValue(backgroundKey));
   const frame = profileFrameStyle(frameKey);
+  element.classList.toggle('cosmetic-card-decoration', Boolean(frame?.corner));
+  element.style.setProperty('--profile-frame-corner', frame?.corner ? `url("${frame.corner}")` : 'none');
   element.style.borderColor = frame?.border || '';
   element.style.boxShadow = frame?.shadow || '';
 }
@@ -3223,13 +3224,13 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const avatarHtml = (player, cls='') => {
       const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
       const frameStyle = frame ? `border-color:${frame.border};box-shadow:${frame.shadow};` : '';
-      if (frame?.accent) return `<span class="leaderboard-v150-avatar cosmetic-avatar-decoration ${cls}" data-avatar-accent="${escapeHtml(frame.accent)}" style="--avatar-accent-color:${escapeHtml(frame.border)};${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
+      if (frame?.art) return `<span class="leaderboard-v150-avatar cosmetic-avatar-decoration ${cls}" style="--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);${escapeHtml(frameStyle)}">${player.profile_image_url ? `<img loading="lazy" decoding="async" src="${escapeHtml(player.profile_image_url)}" alt="">` : '👤'}</span>`;
       return player.profile_image_url ? `<img loading="lazy" decoding="async" class="leaderboard-v150-avatar ${cls}" style="${escapeHtml(frameStyle)}" src="${escapeHtml(player.profile_image_url)}" alt="">` : `<div class="leaderboard-v150-avatar leaderboard-v150-avatar-fallback ${cls}">👤</div>`;
     };
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
-    const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};` : ''}`; };
-    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}`;
+    const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};${frame.corner ? `--profile-frame-corner:url("${frame.corner}");` : ''}` : ''}`; };
+    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}`;
     const leaderboardBadgesHtml = (player, compact=false) => { const badges = Array.isArray(player.leaderboard_badges) ? player.leaderboard_badges.slice(0, 2) : []; if (!badges.length) return ''; return `<div class="leaderboard-v154-badges${compact ? ' compact' : ''}" aria-label="Badges affichés">${badges.map(badge => { const label = badge.badgeName || 'Badge'; const tooltip = `${label}${badge.badgeChallenge ? ` — ${badge.badgeChallenge}` : ''}`; return `<span class="leaderboard-v154-badge" title="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(label)}">` : '🏅'}</span>`; }).join('')}</div>`; };
     const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card leaderboard-v154-profile-card rank-${rank}${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${players.indexOf(player)}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-card-content"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${leaderboardBadgesHtml(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></div></button>`; };
     const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row leaderboard-v154-profile-card${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${idx}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-row-content"><div class="leaderboard-v150-row-rank">${player.excluded_from_ranking ? '—' : rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${player.excluded_from_ranking ? '<div class="leaderboard-v150-title muted">Hors classement</div>' : ''}${playerTitle(player)}${leaderboardBadgesHtml(player, true)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></div></button>`; };
@@ -4969,6 +4970,7 @@ function openPlayerProfile(playerData) {
     <section class="player-profile-section"><h3>🏆 Badges débloqués</h3><div class="player-profile-badges">${badgeHtml}</div></section>
   </div>`;
 
+  applyProfileCosmetics($('playerProfileHero'), playerData.cosmetic_background, playerData.cosmetic_frame);
   applyAvatarFrameCosmetics($('playerProfileAvatar'), playerData.cosmetic_avatar_frame);
   $('playerProfileModal')?.classList.remove('hidden');
   syncMobileNavState?.();
@@ -5254,13 +5256,13 @@ function shopPreview(item) {
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);
-    return `<div class="shop-item-preview"><div class="shop-preview-frame" style="border:1px solid ${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)}"></div></div>`;
+    return `<div class="shop-item-preview"><div class="shop-preview-frame cosmetic-card-decoration" style="--profile-frame-corner:url(&quot;${escapeHtml(frame.corner)}&quot;);border:1px solid ${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)}"></div></div>`;
   }
   if (item.category === 'background') return `<div class="shop-item-preview shop-preview-bg bg-${escapeHtml(item.preview || 'violet')}"></div>`;
   if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
   if (item.category === 'avatar_frame') {
     const frame = profileAvatarFrameStyle(item.key);
-    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.accent ? ' cosmetic-avatar-decoration' : ''}" data-avatar-accent="${escapeHtml(frame?.accent || '')}" style="${frame?.accent ? `--avatar-accent-color:${escapeHtml(frame.border)};border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}"></div></div>`;
+    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.art ? ' cosmetic-avatar-decoration' : ''}" style="${frame?.art ? `--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}"></div></div>`;
   }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
