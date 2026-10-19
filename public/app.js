@@ -1,3 +1,8 @@
+// Même seuil tactile que les styles : navigation mobile sur téléphone et tablette.
+const TABLET_GAME_MEDIA = '(max-width:1366px) and (hover:none) and (pointer:coarse)';
+const MOBILE_GAME_MEDIA = `(max-width:900px), ${TABLET_GAME_MEDIA}`;
+const DESKTOP_GAME_MEDIA = `(min-width:901px) and (not (${TABLET_GAME_MEDIA}))`;
+
 let me = null;
 let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
@@ -588,7 +593,7 @@ function syncTopDashboardHeights() {
   const leftStack = document.querySelector('.dashboard-left-stack');
   const dailyCard = document.querySelector('.dashboard-side-stack .daily-challenges-card');
   if (dailyCard) {
-    if (window.matchMedia('(min-width:1181px)').matches && leftStack) {
+    if ((isDesktopGameUi() && window.matchMedia('(min-width:1181px)').matches) && leftStack) {
       const leftStyles = window.getComputedStyle(leftStack);
       const topPadding = parseFloat(leftStyles.paddingTop || '0') || 0;
       const targetHeight = Math.max(0, leftStack.getBoundingClientRect().height - topPadding);
@@ -3210,7 +3215,7 @@ async function loadProgression(){
       ? `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">🐉 Progression du Lovys</div><span class="lovys-progress-level">Niv. ${lovysLevel}</span></div><div class="lovys-progress-meta"><span>${lovysInto.toLocaleString('fr-FR')} XP</span><span>${cp.maxLevel?'Niveau max':lovysNeed.toLocaleString('fr-FR')+' XP'}</span></div><div class="lovys-xp-bar"><span style="width:${lovysPercent}%"></span></div><div class="lovys-progress-note">XP totale du Lovys : ${lovysTotalXp.toLocaleString('fr-FR')} XP</div>${transferHtml}</div>`
       : `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">${eggIconMarkup('egg-inline-icon title-inline-icon')}XP du futur Lovys</div><span class="lovys-progress-level">Réserve</span></div><div class="lovys-progress-meta"><span>XP en attente</span><span>${pendingLovysXp.toLocaleString('fr-FR')} XP</span></div><div class="lovys-progress-note">Cette XP reste en réserve. Après l’éclosion, tu pourras choisir de la transférer à ton Lovys avec confirmation.</div></div>`;
     box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Rapport de progression</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.icon||'◆')}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Certains niveaux globaux donnent un bonus d’XP à ton Lovys. Si ton œuf n’a pas encore éclos, l’XP est conservée en attente.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>`;
-    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if(window.matchMedia('(min-width:801px)').matches){let dragging=false,startX=0,startScroll=0;const stopDrag=()=>{if(!dragging)return;dragging=false;roadEl.classList.remove('dragging');};roadEl.addEventListener('mousedown',e=>{if(e.button!==0)return;dragging=true;startX=e.clientX;startScroll=roadEl.scrollLeft;roadEl.classList.add('dragging');e.preventDefault();});window.addEventListener('mousemove',e=>{if(!dragging)return;if(!(e.buttons&1)){stopDrag();return;}roadEl.scrollLeft=startScroll-(e.clientX-startX);e.preventDefault();});window.addEventListener('mouseup',stopDrag);window.addEventListener('blur',stopDrag);roadEl.addEventListener('mouseleave',e=>{if(!(e.buttons&1))stopDrag();});}}});
+    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){let dragging=false,startX=0,startScroll=0;const stopDrag=()=>{if(!dragging)return;dragging=false;roadEl.classList.remove('dragging');};roadEl.addEventListener('mousedown',e=>{if(e.button!==0)return;dragging=true;startX=e.clientX;startScroll=roadEl.scrollLeft;roadEl.classList.add('dragging');e.preventDefault();});window.addEventListener('mousemove',e=>{if(!dragging)return;if(!(e.buttons&1)){stopDrag();return;}roadEl.scrollLeft=startScroll-(e.clientX-startX);e.preventDefault();});window.addEventListener('mouseup',stopDrag);window.addEventListener('blur',stopDrag);roadEl.addEventListener('mouseleave',e=>{if(!(e.buttons&1))stopDrag();});}}});
     $('prestigeInfoBtn')?.addEventListener('click',()=>{
       let modal=$('prestigeInfoModal');
       if(!modal){
@@ -4012,8 +4017,8 @@ function renderPveAdventureMap(data,zoneIndex=null){
   const reversed=[...(zone.fights||[])].reverse();
   const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const emberPathPos=[[56.25,91.59],[42.29,83.19],[46.36,69.94],[(window.innerWidth>=1024?55.80:60.80),(window.innerWidth>=1024?65.60:62.20)],[65.20,53.60],[49.40,43.90],[52.40,34.70],[58.68,18.00],[56.50,8.50],[66.02,7.76]];const pathPos=zone.key==='forest'?forestPathPos:zone.key==='ember'?emberPathPos:null;const pos=pathPos?pathPos[Math.max(0,Math.min(pathPos.length-1,originalIndex))]:null;const posStyle=(pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" >${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label">${f.boss?`<div class="pve-map-boss-heading"><span class="pve-map-boss-logo ${isFinal?'zone-boss':'mini-boss'}" aria-hidden="true"><span class="pve-map-boss-logo-mark">${isFinal?'B':'M'}</span></span><span class="pve-map-boss-kind">${isFinal?'BOSS DE ZONE':'MINI-BOSS'}</span></div>`:''}<div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
   const mainMarkup=`<div class="pve-desktop-main"><div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter">${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
-  box.innerHTML=window.matchMedia('(min-width:1024px)').matches?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
-  if(window.matchMedia('(min-width:1024px)').matches)$('pveMapDetail')?.classList.remove('detail-open');
+  box.innerHTML=(isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches)?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
+  if((isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches))$('pveMapDetail')?.classList.remove('detail-open');
 }
 async function loadPve(){const box=$('pveContent');if(!box)return;const keepMobileContent=isMobileGameUi()&&Boolean(pveMapState.data);if(!keepMobileContent)box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=isMobileGameUi()?'<div class="combat-report"><h3>Ton premier combat t’attend</h3><p>Fais éclore ton premier œuf pour obtenir un Lovy et commencer le PvE.</p><button class="hub-btn" type="button" data-mobile-pve-lovys>🥚 Voir mon œuf</button></div>':`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){if(!keepMobileContent)box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
 async function refreshPveAfterVictory(zoneIndex=null){
@@ -4384,7 +4389,7 @@ $('progressionModal')?.addEventListener('mouseup',event=>{
 });
 
 
-function isMobileGameUi(){ return window.matchMedia('(max-width:900px)').matches; }
+function isMobileGameUi(){ return window.matchMedia(MOBILE_GAME_MEDIA).matches; }
 function setMobileNavActive(id){
   const destination = ['mobileNavLeaderboard','mobileNavInventory','mobileNavProfile','mobileNavShop'].includes(id) ? 'mobileNavMore' : id;
   document.querySelectorAll('.mobile-game-nav-btn').forEach(btn=>{
@@ -4632,7 +4637,7 @@ function arrangeIncubatorCarousel(){
     updateIncubatorCarousel();
   }
 }
-window.matchMedia('(max-width:900px)').addEventListener?.('change',arrangeIncubatorCarousel);
+window.matchMedia(MOBILE_GAME_MEDIA).addEventListener?.('change',arrangeIncubatorCarousel);
 function updateIncubatorCarousel(){
   const track = $('incubatorCarousel');
   if(!track || !isMobileGameUi() || !track.clientWidth) return;
@@ -4754,7 +4759,7 @@ function closeMobileLeaderboard(){
 }
 $('mobileLeaderboardOpen')?.addEventListener('click',openMobileLeaderboard);
 $('mobileLeaderboardClose')?.addEventListener('click',closeMobileLeaderboard);
-window.matchMedia('(max-width:900px)').addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } renderIncubatorOverview(); renderLovysActiveHero(lovysCollectionData); renderLovysReserve(lovysCollectionData); });
+window.matchMedia(MOBILE_GAME_MEDIA).addEventListener?.('change',e=>{ if(!e.matches){ closeMobileLeaderboard(); closeAllMobilePanels(''); setMobileNavActive('mobileNavHome'); } else { syncMobileNavState(); } renderIncubatorOverview(); renderLovysActiveHero(lovysCollectionData); renderLovysReserve(lovysCollectionData); });
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.body.classList.contains('mobile-leaderboard-open')) closeMobileLeaderboard(); if($('pick')?.classList.contains('egg-details-open')){ $('pick').classList.remove('egg-details-open'); document.body.style.overflow=''; } if(!$('incubatorAddModal')?.classList.contains('hidden')) closeIncubatorAddModal(); } });
 
 const leaderboardSearchInput = $('leaderboardSearch');
@@ -6268,7 +6273,7 @@ function changeMobileShopPage(delta){
 }
 $('shopMobilePrevious')?.addEventListener('click',()=>changeMobileShopPage(-1));
 $('shopMobileNext')?.addEventListener('click',()=>changeMobileShopPage(1));
-window.matchMedia('(max-width:900px)').addEventListener?.('change',()=>{if(shopData)renderShop();});
+window.matchMedia(MOBILE_GAME_MEDIA).addEventListener?.('change',()=>{if(shopData)renderShop();});
 
 $('shopClose')?.addEventListener('click', () => { $('shopModal')?.classList.add('hidden'); closeShopItemPreview(); shopFocusItemKey=null; incubatorShopTargetSlot=null; });
 $('shopItemPreviewClose')?.addEventListener('click', closeShopItemPreview);
@@ -6560,7 +6565,7 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape'){event.preventDefault();closeDesktopAdmin();}
   if(event.key==='Tab')trapDesktopAdminFocus(event,$('desktopAdminModal'));
 });
-window.matchMedia('(min-width:901px)').addEventListener('change',event=>{
+window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change',event=>{
   if(!event.matches)desktopAdminConfirmationCancel?.();
   syncDesktopAdminPlacement();
   if(event.matches)refreshDesktopAdminAccess();
@@ -7869,7 +7874,7 @@ let tradeInventory={eggs:0,lovys:[]};
 let tradeFilter='all';
 let tradeOptionCount=1;
 
-function isDesktopGameUi(){return window.matchMedia('(min-width:901px)').matches;}
+function isDesktopGameUi(){return window.matchMedia(DESKTOP_GAME_MEDIA).matches;}
 function setDesktopNavActive(view){document.querySelectorAll('.desktop-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.desktopView===view));}
 function closeDesktopPrimaryPages(except=''){
   if(except!=='shop')$('inventoryModal')?.classList.add('hidden');
@@ -8380,7 +8385,7 @@ document.addEventListener('keydown', event => {
     if (menus.length) menus.forEach(menu => menu.remove()); else closeTradeComposer();
   }
 });
-window.matchMedia('(min-width:901px)').addEventListener('change', event => {
+window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
   if (!event.matches) {
     closeTradeComposer();
     $('tradeComposer')?.classList.remove('desktop-trade-wizard');
@@ -8516,7 +8521,7 @@ async function inviteFriendToWatchGame(){
 $('lobbyInviteFriend')?.addEventListener('click',inviteFriendToWatchGame);
 $('gameInviteFriend')?.addEventListener('click',inviteFriendToWatchGame);
 
-window.addEventListener('resize',()=>{if(!isDesktopGameUi()){document.body.dataset.desktopView='';document.body.classList.remove('desktop-leaderboard-open');$('desktopLobbyPage')?.classList.add('hidden');}else if(!document.body.dataset.desktopView){openDesktopView('home');}});
+window.addEventListener('resize',()=>{if(!isDesktopGameUi()){document.body.dataset.desktopView='';document.body.classList.remove('desktop-leaderboard-open');if(!document.body.classList.contains('mobile-community-open'))$('desktopLobbyPage')?.classList.add('hidden');}else if(!document.body.dataset.desktopView){openDesktopView('home');}});
 if(isDesktopGameUi())syncDesktopViewFromUrl();
 
 loadLeaderboard();
@@ -8747,7 +8752,7 @@ $('gameFeedbackForm')?.addEventListener('submit',async event=>{
   } catch(error){feedbackMessage(error.message||'Envoi impossible.',true);button.disabled=false;button.textContent='Réessayer l’envoi';}finally{gameFeedbackSending=false;}
 });
 document.addEventListener('keydown',event=>{if($('gameFeedbackModal')?.classList.contains('hidden'))return;if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();closeGameFeedback();}else if(event.key==='Tab')trapDesktopAdminFocus(event,$('gameFeedbackModal'));},true);
-window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches&&!gameFeedbackSending)closeGameFeedback();});
+window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change',event=>{if(!event.matches&&!gameFeedbackSending)closeGameFeedback();});
 let adminFeedbackArchive=false,adminFeedbackPage=1,adminFeedbackSelected=null,adminFeedbackGeneration=0;
 const adminFeedbackSelectedIds=new Set();
 function updateAdminFeedbackSelection(){
@@ -8854,7 +8859,7 @@ function syncMobileFooterPlacement(){
   Object.assign(syncMobileFooterPlacement,{footer,origin,ready:true});
   const observer=new MutationObserver(syncMobileFooterPlacement);
   for(const node of [document.body,$('app'),$('pick'),...['shopModal','inventoryModal','playerProfileModal','lovysCollectionModal','progressionModal','pveModal','desktopLobbyPage'].map($)].filter(Boolean))observer.observe(node,{attributes:true,attributeFilter:['class']});
-  window.matchMedia('(max-width:900px)').addEventListener('change',syncMobileFooterPlacement);
+  window.matchMedia(MOBILE_GAME_MEDIA).addEventListener('change',syncMobileFooterPlacement);
   syncMobileFooterPlacement();
 })();
 // À l'ouverture, afficher immédiatement le début des CGU dans la page courante.
@@ -8925,7 +8930,7 @@ $('lobbyPlayersGrid')?.addEventListener('keydown',event=>{
   const card=event.target.closest('[data-lobby-user]');
   if(card){event.preventDefault();openPlayerCollection(Number(card.dataset.lobbyUser));}
 });
-window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closePlayerCollection();});
+window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change',event=>{if(!event.matches)closePlayerCollection();});
 let playerBundleStage = 1;
 
 function playerBundleComposerMarkup(player) {
@@ -9225,7 +9230,7 @@ document.addEventListener('keydown',event=>{
  if(event.key==='Escape'){event.preventDefault();closeCommunityGuide();}
  if(event.key==='Tab')trapDesktopAdminFocus(event,modal);
 });
-window.matchMedia('(min-width:901px)').addEventListener('change',event=>{if(!event.matches)closeCommunityGuide();});
+window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change',event=>{if(!event.matches)closeCommunityGuide();});
 
 // Mobile uniquement — navigation, raccourcis, pagination et animations visibles.
 const mobileInventoryPaging = { page:0, filter:'', focusKey:null };
@@ -9384,7 +9389,7 @@ document.addEventListener('visibilitychange',()=>{
   if(document.hidden)mobileObservedAssets.forEach(element=>element.classList.add('mobile-animation-paused'));
   else{mobileVisibilityObserver?.disconnect();mobileObservedAssets.clear();scheduleMobileAssetsScan();}
 });
-window.matchMedia('(max-width:900px)').addEventListener('change',updateMobileEnhancements);
+window.matchMedia(MOBILE_GAME_MEDIA).addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
 
 

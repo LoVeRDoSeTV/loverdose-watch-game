@@ -22,7 +22,7 @@ body:not(.boost-overlay-page) .live-boost-list>span{align-items:center;gap:3px;p
 body:not(.boost-overlay-page) .live-boost-list b{font-size:12px;font-weight:650;line-height:1.3;color:#d2c3e4}
 body:not(.boost-overlay-page) .live-boost-list time{font-size:19px;line-height:1.2;color:#f0e7ff}
 body:not(.boost-overlay-page) .live-xp-boost-progress{display:none}
-@media(max-width:900px){
+@media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
  body:not(.boost-overlay-page) .live-xp-boost{width:100%;gap:10px;margin:10px 0 18px;padding:12px}
  body:not(.boost-overlay-page) .live-xp-boost-copy{flex:1}
  body:not(.boost-overlay-page) .live-xp-boost-copy>strong{font-size:14px}
