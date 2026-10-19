@@ -3901,17 +3901,55 @@ async function closeMobilePveBattle(action='zone'){
   }catch(error){$('combatResult').innerHTML=`<p class="combat-report" role="alert">${escapeHtml(error.message||'Actualisation impossible. Rouvre la page Combat pour réessayer.')}</p>`;}
   finally{mobilePveTransitionBusy=false;}
 }
+function confirmMobilePveAbandon() {
+  return new Promise(resolve => {
+    const overlay=document.createElement('div');
+    overlay.className='lovys-xp-transfer-modal mobile-pve-info-modal';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    overlay.setAttribute('aria-labelledby','mobilePveAbandonTitle');
+    overlay.setAttribute('aria-describedby','mobilePveAbandonCopy');
+    overlay.innerHTML=`<div class="lovys-xp-transfer-panel"><h2 id="mobilePveAbandonTitle">Abandonner le combat ?</h2><p id="mobilePveAbandonCopy">Tu quitteras ce combat sans recevoir de récompense.</p><div class="lovys-xp-transfer-actions"><button type="button" class="hub-btn" data-pve-abandon-cancel>Continuer le combat</button><button type="button" class="hub-btn lovys-xp-transfer-confirm" data-pve-abandon-confirm>Abandonner</button></div></div>`;
+    let finished=false;
+    const finish=approved=>{
+      if(finished)return;
+      finished=true;
+      document.removeEventListener('keydown',onKey,true);
+      overlay.remove();
+      resolve(approved);
+    };
+    const onKey=event=>{
+      if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(false);}
+      else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);
+    };
+    overlay.addEventListener('click',event=>{
+      if(event.target===overlay||event.target.closest('[data-pve-abandon-cancel]'))finish(false);
+      else if(event.target.closest('[data-pve-abandon-confirm]'))finish(true);
+    });
+    document.body.appendChild(overlay);
+    document.addEventListener('keydown',onKey,true);
+    overlay.querySelector('[data-pve-abandon-cancel]').focus();
+  });
+}
 async function abandonMobilePveBattle(){
-  if(!pveBattleState.battle||pveBattleState.running||mobilePveTransitionBusy)return;
-  if(!confirm('Abandonner ce combat ? Aucune récompense ne sera donnée.'))return;
-  const wasAuto=pveBattleState.auto;stopPveAutoLoop();
-  const button=$('pveBattleAbandon');button.disabled=true;
+  const button=$('pveBattleAbandon');
+  if(!pveBattleState.battle||pveBattleState.running||mobilePveTransitionBusy||button?.disabled)return;
+  const battle=pveBattleState.battle,wasAuto=pveBattleState.auto;
+  stopPveAutoLoop();button.disabled=true;
   try{
+    if(!(await confirmMobilePveAbandon()))return;
+    if(pveBattleState.battle!==battle)return;
     const response=await fetch('/api/pve/abandon',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
     if(!response.ok)throw new Error('Impossible d’abandonner le combat. Réessaie.');
     await closeMobilePveBattle('zone');
-  }catch(error){$('pveBattleLog').textContent=error.message;if(wasAuto)ensurePveAutoLoop();}
-  finally{button.disabled=false;}
+  }catch(error){$('pveBattleLog').textContent=error.message;}
+  finally{
+    button.disabled=false;
+    if(pveBattleState.battle===battle){
+      button.focus({preventScroll:true});
+      if(wasAuto&&pveBattleState.auto)ensurePveAutoLoop();
+    }
+  }
 }
 $('mobilePveResultPrimary')?.addEventListener('click',event=>{if(isMobileGameUi())closeMobilePveBattle(event.currentTarget.dataset.mobilePveResult||'zone');});
 $('mobilePveResultLovy')?.addEventListener('click',()=>{if(isMobileGameUi())closeMobilePveBattle('lovys');});
