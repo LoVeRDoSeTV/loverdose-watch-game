@@ -1768,7 +1768,6 @@ function showNextBadgeCelebration() {
   badgeCelebrationActive = true;
   badgeCelebrationCurrentSignature = item.signature;
   const modal = ensureBadgeCelebrationModal();
-  modal.classList.toggle('social-celebration',/^mission:(instagram|tiktok):/.test(item.signature));
   const logo = modal.querySelector('#badgeUnlockLogo');
   const stage = modal.querySelector('#badgeUnlockStage');
   const name = modal.querySelector('#badgeUnlockName');

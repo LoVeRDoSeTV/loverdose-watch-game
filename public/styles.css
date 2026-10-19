@@ -4305,7 +4305,6 @@ body:has(#pveModal:not(.hidden)){
 .badge-unlock-celebration{position:fixed;inset:0;z-index:1100200;display:grid;place-items:center;padding:20px;background:rgba(3,5,15,.82);backdrop-filter:blur(12px);opacity:0;pointer-events:none;transition:opacity .24s ease}
 .badge-unlock-celebration.show{opacity:1;pointer-events:auto}
 .badge-unlock-confetti{position:absolute;inset:0;z-index:3;overflow:hidden;pointer-events:none}
-.badge-unlock-celebration:not(.social-celebration) .badge-unlock-confetti{display:none}
 .badge-unlock-confetti i{position:absolute;top:-18px;left:var(--confetti-x);width:7px;height:12px;border-radius:2px;background:var(--confetti-color);opacity:0}
 .badge-unlock-confetti i:nth-child(3n){width:9px;height:9px;border-radius:50%}
 .badge-unlock-celebration.show .badge-unlock-confetti i{animation:badgeConfettiFall 3.2s var(--confetti-delay) ease-in both}
