@@ -4118,7 +4118,7 @@ body:has(#pveModal:not(.hidden)){
     align-items:center!important;
     padding:0 2px 10px!important;
     margin:0!important;
-    background:linear-gradient(180deg,#12172c 82%,rgba(18,23,44,0));
+    background:transparent;
     z-index:20;
   }
   #pveModal .game-head h2{font-size:25px!important;line-height:1.05!important;margin:0!important}
