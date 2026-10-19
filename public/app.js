@@ -1948,16 +1948,16 @@ function profileFrameStyle(key) {
 
 function profileAvatarFrameStyle(key) {
   const map = {
-    avatarframe_stars: { border:'#e4c3ef', shadow:'0 0 8px #e4c3ef22', art:'/assets/profile-frame-avatar-stars.webp' },
-    avatarframe_crystals: { border:'#a4ddec', shadow:'0 0 8px #a4ddec22', art:'/assets/profile-frame-avatar-crystals.webp' },
-    avatarframe_pixels: { border:'#9ab7fa', shadow:'0 0 8px #9ab7fa22', art:'/assets/profile-frame-avatar-pixels.webp' },
-    avatarframe_embers: { border:'#edb08b', shadow:'0 0 8px #edb08b22', art:'/assets/profile-frame-avatar-embers.webp' },
+    avatarframe_stars: { border:'#e4c3ef', shadow:'0 0 8px #e4c3ef22', art:'/assets/profile-frame-avatar-stars.webp?v=483' },
+    avatarframe_crystals: { border:'#a4ddec', shadow:'0 0 8px #a4ddec22', art:'/assets/profile-frame-avatar-crystals.webp?v=483' },
+    avatarframe_pixels: { border:'#9ab7fa', shadow:'0 0 8px #9ab7fa22', art:'/assets/profile-frame-avatar-pixels.webp?v=483' },
+    avatarframe_embers: { border:'#edb08b', shadow:'0 0 8px #edb08b22', art:'/assets/profile-frame-avatar-embers.webp?v=483' },
 
     avatarframe_violet: { border:'#a76fff', shadow:'0 0 16px rgba(167,111,255,.34)' },
     avatarframe_cyan: { border:'#4de4ff', shadow:'0 0 16px rgba(77,228,255,.32)' },
     avatarframe_silver: { border:'#d9e2ef', shadow:'0 0 16px rgba(217,226,239,.28)' },
     avatarframe_emerald: { border:'#53e6a8', shadow:'0 0 16px rgba(83,230,168,.30)' },
-    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)', art:'/assets/profile-frame-avatar-hearts.webp' },
+    avatarframe_hearts: { border:'#f3a6c1', shadow:'0 0 8px rgba(243,166,193,.16)', art:'/assets/profile-frame-avatar-hearts.webp?v=483' },
     avatarframe_rose: { border:'#ff7ad9', shadow:'0 0 16px rgba(255,122,217,.30)' },
     avatarframe_gold: { border:'#f3c85b', shadow:'0 0 16px rgba(243,200,91,.32)' },
     avatarframe_crimson: { border:'#ff5b73', shadow:'0 0 16px rgba(255,91,115,.32)' },
