@@ -8390,7 +8390,8 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 /* Les éléments propres au mobile n'occupent jamais d'espace sur PC. */
 .mobile-more-page,.mobile-home-actions,.mobile-list-pagination,.mobile-page-back{display:none}
 @media(max-width:900px){
-  .mobile-more-page:not(.hidden){position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000055;display:block;overflow-y:auto;overscroll-behavior:contain;padding:calc(20px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(180deg,#12172c,#090d1b)}
+  html:has(#mobileMorePage:not(.hidden)),body:has(#mobileMorePage:not(.hidden)){overflow:hidden;overscroll-behavior:none}
+  .mobile-more-page:not(.hidden){position:fixed;inset:0 0 var(--mobile-page-bottom) 0;z-index:1000055;display:block;overflow-y:auto;overscroll-behavior:none;padding:calc(20px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(180deg,#12172c,#090d1b)}
   .mobile-more-page.hidden{display:none}
   .mobile-page-heading h2{margin:0;color:#f7f5ff;font-size:24px;line-height:1.25}
   .mobile-page-heading p{margin:8px 0 20px;color:#aeb8d4;font-size:13px;line-height:1.5}
