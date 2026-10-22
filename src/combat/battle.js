@@ -1,5 +1,7 @@
 import crypto from 'crypto';
 
+export const MAX_BATTLE_ROUNDS=30;
+
 const clamp=(n,min,max)=>Math.max(min,Math.min(max,n));
 const chance=(pct)=>crypto.randomInt(10000) < clamp(Number(pct||0),0,100)*100;
 const variance=()=>.94 + crypto.randomInt(0,13)/100;
@@ -21,20 +23,67 @@ export function createBattleState({fight, player, typeMultiplier=1, bossMechanic
   const enemyDefense=Number(fight.defense ?? (20+Number(fight.level||1)*3.2));
   const enemySpeed=Number(fight.speed ?? (6+Number(fight.level||1)*.55));
   const state={
-    version:2, fightKey:fight.key, round:1, status:'active', typeMultiplier:Number(typeMultiplier||1),
-    player:{...player,hp:Number(player.hp),maxHp:Number(player.hp),cooldowns:{},attackBuffTurns:0,attackBuffPercent:0,defenseBuffTurns:0,defenseBuffPercent:0,guaranteedDodge:false,talentState:{firstHit:true,firstAttack:true,fatalUsed:false,actionCount:0,secondWindUsed:false}},
+    version:3, fightKey:fight.key, round:1, status:'active', typeMultiplier:Number(typeMultiplier||1),
+    player:{...player,hp:Number(player.hp),maxHp:Number(player.hp),cooldowns:{},attackBuffTurns:0,attackBuffPercent:0,defenseBuffTurns:0,defenseBuffPercent:0,guaranteedDodge:false,frostUntilRound:0,talentState:{firstHit:true,firstAttack:true,fatalUsed:false,actionCount:0,secondWindUsed:false}},
     enemy:{name:fight.name,level:Number(fight.level||1),type:fight.type||'Neutre',hp:Number(fight.hp||1),maxHp:Number(fight.hp||1),attack:Number(fight.attack ?? (Number(fight.power||1)*.90)),defense:enemyDefense,speed:enemySpeed,boss:Boolean(fight.boss),mechanic:bossMechanic||fight.mechanic||null,statuses:{burnTurns:0,burnDamage:0,stunned:false},mechanicState:{dodgesUsed:0,phase:1,specialCounter:0,firstHit:true}},
     createdAt:Date.now()
   };
+  state.enemy.baseAttack=state.enemy.attack;
+  state.enemy.baseDefense=state.enemy.defense;
+  state.enemy.mechanicState.shield = state.enemy.mechanic?.key==='tidal_shell'
+    ? Math.round(state.enemy.maxHp*clamp(Number(state.enemy.mechanic.shieldPercent||10),0,25)/100) : 0;
+  applyNewEnemyTactics(state);
   return state;
 }
 
 export function battlePublicState(state){
   return {
-    fightKey:state.fightKey, round:state.round, status:state.status, typeMultiplier:state.typeMultiplier,
+    fightKey:state.fightKey, round:state.round, status:state.status, endReason:state.endReason||null, maxRounds:MAX_BATTLE_ROUNDS, typeMultiplier:state.typeMultiplier,
     player:{name:state.player.name,level:state.player.level,rank:state.player.rank,type:state.player.type,hp:state.player.hp,maxHp:state.player.maxHp,attack:state.player.attack,defense:state.player.defense,speed:state.player.speed,power:state.player.attack,talent:state.player.talent,skills:state.player.skills,cooldowns:state.player.cooldowns},
-    enemy:{name:state.enemy.name,level:state.enemy.level,type:state.enemy.type,hp:state.enemy.hp,maxHp:state.enemy.maxHp,attack:state.enemy.attack,defense:state.enemy.defense,speed:state.enemy.speed,power:state.enemy.attack,boss:state.enemy.boss,mechanic:state.enemy.mechanic}
+    enemy:{name:state.enemy.name,level:state.enemy.level,type:state.enemy.type,hp:state.enemy.hp,maxHp:state.enemy.maxHp,attack:state.enemy.attack,defense:state.enemy.defense,speed:state.enemy.speed,power:state.enemy.attack,boss:state.enemy.boss,mechanic:state.enemy.mechanic,shield:Number(state.enemy.mechanicState.shield||0),phase:Number(state.enemy.mechanicState.phase||1),intent:enemyIntent(state)}
   };
+}
+
+function enemyIntent(state){
+  const m=state.enemy.mechanic,ms=state.enemy.mechanicState;
+  if(!m||state.status!=='active')return '';
+  const next=Number(ms.specialCounter||0)+1;
+  if(m.key==='tidal_shell')return ms.shield>0?`🛡️ Bouclier : ${ms.shield} PV à briser`:'🫧 Bouclier brisé';
+  if(m.key==='frost_breath')return next%3===0?'❄️ Prochaine attaque : souffle de givre':'❄️ Le givre ralentit, sans bloquer les attaques';
+  if(m.key==='sand_charge')return next%3===0?'⚠️ Prochaine attaque : frappe chargée à 150 %':next%3===2?'🏜️ Préparation : la prochaine attaque est affaiblie':'🏜️ Attaque normale avant la préparation';
+  if(m.key==='dream_stance')return Math.floor((state.round-1)/2)%2===0?'🛡️ Posture défensive : +25 % DEF, -15 % ATQ':'✨ Posture offensive : -15 % DEF, +15 % ATQ';
+  if(m.key==='storm_charge')return next%3===0?'⚠️ Prochaine attaque : décharge à 135 %':`⚡ Charges : ${(next-1)%3} / 2`;
+  if(m.key==='automaton_heat')return Math.floor(Number(ms.specialCounter||0)/2)%2===0?'🔥 Surchauffe : +15 % ATQ':'⚙️ Refroidissement : -30 % ATQ et DEF';
+  if(m.key==='origin_phases')return next%4===0?'⚠️ Prochaine attaque : décharge originelle':`🌌 Résonance originelle · phase ${ms.phase||1} / 3`;
+  return '';
+}
+
+function applyNewEnemyTactics(state,events=[]){
+  const e=state.enemy,m=e.mechanic;if(!m)return;
+  const atk=Number(e.baseAttack??e.attack),def=Number(e.baseDefense??e.defense);
+  if(m.key==='dream_stance'){
+    const defense=Math.floor((state.round-1)/2)%2===0;
+    e.attack=Math.round(atk*(defense?.85:1.15));e.defense=Math.round(def*(defense?1.25:.85));
+  }
+  if(m.key==='automaton_heat'){
+    const hot=Math.floor(Number(e.mechanicState.specialCounter||0)/2)%2===0;
+    e.attack=Math.round(atk*(hot?1.15:.70));e.defense=Math.round(def*(hot?1:.70));
+  }
+  if(m.key==='origin_phases'){
+    const phase=Math.max(Number(e.mechanicState.phase||1),e.hp/e.maxHp<=.30?3:e.hp/e.maxHp<=.65?2:1);
+    if(phase!==e.mechanicState.phase)pushEvent(events,'boss',phase===2?'💎 Phase 2 : la résonance renforce la DEF de 15 %.':'🌌 Phase finale : +12 % ATQ et -10 % DEF.');
+    e.mechanicState.phase=phase;e.attack=Math.round(atk*(phase===3?1.12:1));e.defense=Math.round(def*(phase===3?.9:phase===2?1.15:1));
+  }
+}
+
+function receiveEnemyHit(state,amount,events){
+  let damage=Math.max(0,Number(amount||0));
+  const shield=Math.max(0,Number(state.enemy.mechanicState.shield||0));
+  if(shield>0){
+    const absorbed=Math.min(shield,damage);state.enemy.mechanicState.shield=shield-absorbed;damage-=absorbed;
+    pushEvent(events,'shield',state.enemy.mechanicState.shield>0?`🛡️ Le bouclier absorbe ${absorbed} dégâts (${state.enemy.mechanicState.shield} PV restants).`:'🫧 Le bouclier des marées est brisé !',{target:'enemy',amount:absorbed});
+  }
+  state.enemy.hp=Math.max(0,state.enemy.hp-damage);return damage;
 }
 
 function tickCooldowns(state){ for(const key of Object.keys(state.player.cooldowns||{})) state.player.cooldowns[key]=Math.max(0,Number(state.player.cooldowns[key]||0)-1); }
@@ -108,8 +157,7 @@ function executePlayerAction(state,actionKey,events){
   if(talentKey(state)==='ambush' && state.player.talentState.firstAttack){state.player.talentState.firstAttack=false;mult*=playerTalentValue(state)/100;pushEvent(events,'talent',`🌑 Embuscade renforce la première attaque.`,{target:'player'});}
   if(talentKey(state)==='forge_strike' && state.player.talentState.actionCount%3===0){mult*=playerTalentValue(state)/100;ignore=Math.max(ignore,playerTalentSecondary(state));pushEvent(events,'talent',`🔨 Frappe de forge : coup renforcé et ${ignore} % de DEF ignorée.`,{target:'player'});}
   if(enemyDodge(state,events)){ if(skill) state.player.cooldowns[skill.key]=Number(skill.cooldown||0); return; }
-  const dmg=damageAmount(playerAttackValue(state),state.enemy.defense,mult,typeMultiplierForPlayer(state),ignore);
-  state.enemy.hp=Math.max(0,state.enemy.hp-dmg);
+  const dmg=receiveEnemyHit(state,damageAmount(playerAttackValue(state),state.enemy.defense,mult,typeMultiplierForPlayer(state),ignore),events);
   pushEvent(events,'damage',`${state.player.name} utilise ${action.name} et inflige ${dmg} dégâts.`,{source:'player',target:'enemy',amount:dmg,action:action.name});
   if(skill) state.player.cooldowns[skill.key]=Number(skill.cooldown||0);
   if(action.healPercent){const h=heal(state.player,state.player.maxHp*Number(action.healPercent)/100);if(h)pushEvent(events,'heal',`${state.player.name} récupère ${h} PV.`,{target:'player',amount:h});}
@@ -130,6 +178,7 @@ function executePlayerAction(state,actionKey,events){
 function executeEnemyTurn(state,events){
   if(state.enemy.hp<=0) return;
   applyBossPhase(state,events);
+  applyNewEnemyTactics(state,events);
   if(state.enemy.statuses.burnTurns>0){const d=Math.min(state.enemy.hp,Math.max(1,Number(state.enemy.statuses.burnDamage||1)));state.enemy.hp=Math.max(0,state.enemy.hp-d);state.enemy.statuses.burnTurns--;pushEvent(events,'damage',`🔥 Braise inflige ${d} dégâts à ${state.enemy.name}.`,{source:'status',target:'enemy',amount:d});if(state.enemy.hp<=0)return;}
   if(state.enemy.statuses.stunned){state.enemy.statuses.stunned=false;pushEvent(events,'skip',`⚡ ${state.enemy.name} est étourdi et perd son tour.`,{target:'enemy'});return;}
   if(playerDodge(state,events)) return;
@@ -139,6 +188,16 @@ function executeEnemyTurn(state,events){
   if(m?.key==='magma_core' && state.enemy.mechanicState.specialCounter%3===0){mult=1.35;actionName='Surchauffe';pushEvent(events,'boss',`🔥 Le Cœur de Magma libère sa Surchauffe.`);}
   if(m?.key==='root_guard' && state.enemy.mechanicState.specialCounter%3===0){mult=1.22;actionName='Écrasement racinaire';}
   if(m?.key==='eclipse_phases' && state.enemy.mechanicState.specialCounter%3===0){ignore=30;actionName='Faille d’éclipse';}
+  if(m?.key==='sand_charge'){
+    const step=state.enemy.mechanicState.specialCounter%3;
+    mult=step===2?.55:step===0?1.50:1;actionName=step===2?'Préparation des dunes':step===0?'Frappe chargée':'Coup de sable';
+  }
+  if(m?.key==='storm_charge' && state.enemy.mechanicState.specialCounter%3===0){mult=1.35;actionName='Décharge des cimes';}
+  if(m?.key==='origin_phases' && state.enemy.mechanicState.specialCounter%4===0){mult=1.25;actionName='Décharge originelle';}
+  if(m?.key==='frost_breath' && state.enemy.mechanicState.specialCounter%3===0){
+    state.player.frostUntilRound=state.round+2;actionName='Souffle de givre';
+    pushEvent(events,'status','❄️ Le givre réduit la VIT de ton Lovys pendant 2 tours.',{target:'player'});
+  }
   const dmg=damageAmount(state.enemy.attack,playerDefenseValue(state),mult,1,ignore);
   const dealt=applyIncomingPlayerDamage(state,dmg,events);
   if(dealt>0)pushEvent(events,'damage',`${state.enemy.name} utilise ${actionName} et inflige ${dealt} dégâts.`,{source:'enemy',target:'player',amount:dealt,action:actionName});
@@ -153,11 +212,16 @@ function bossPrePlayerReaction(state,events){
 
 export function resolveBattleAction(state,actionKey){
   if(!state||state.status!=='active') throw new Error('Aucun combat actif.');
+  const action=String(actionKey||'basic');
+  const skill=(state.player.skills||[]).find(item=>item.key===action);
+  if(action!=='basic'&&!skill)throw new Error('Compétence inconnue.');
+  if(skill&&Number(state.player.cooldowns?.[skill.key]||0)>1)throw new Error('Cette compétence est encore en recharge.');
   const events=[];
   tickCooldowns(state);
+  applyNewEnemyTactics(state,events);
   const bossForcesFirst=Boolean(state.enemy.mechanic?.alwaysFirst && state.round===1);
   const noctyForcesFirst=talentKey(state)==='ambush' && state.round===1;
-  const enemyFirst=bossForcesFirst || (!noctyForcesFirst && Number(state.enemy.speed||0)>Number(state.player.speed||0));
+  const enemyFirst=bossForcesFirst || (!noctyForcesFirst && Number(state.enemy.speed||0)>Number(state.player.speed||0)*(Number(state.player.frostUntilRound||0)>=state.round?.65:1));
 
   const doPlayer=()=>{
     if(state.player.hp<=0||state.enemy.hp<=0)return;
@@ -182,7 +246,9 @@ export function resolveBattleAction(state,actionKey){
   if(state.player.hp<=0){state.status='defeat';return {state,events};}
   if(state.player.attackBuffTurns>0)state.player.attackBuffTurns--;
   if(state.player.defenseBuffTurns>0)state.player.defenseBuffTurns--;
-  state.round++;
-  if(state.round>30){state.status=state.enemy.hp<state.player.hp?'victory':'defeat';pushEvent(events,'system','Le combat atteint la limite de 30 tours.');}
+  if(state.round>=MAX_BATTLE_ROUNDS){
+    state.status='defeat';state.endReason='turn_limit';
+    pushEvent(events,'system','La limite de 30 tours est atteinte. L’ennemi doit être vaincu pour obtenir une victoire.');
+  }else {state.round++;applyNewEnemyTactics(state,events);}
   return {state,events};
 }
