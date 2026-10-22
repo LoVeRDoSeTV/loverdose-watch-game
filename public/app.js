@@ -922,6 +922,59 @@ async function spinRewardWheel() {
   } catch(error) { rewardWheelSpinning=false; if(resultEl){resultEl.textContent=error.message||'Impossible de lancer la roue.';resultEl.dataset.keep='1';} renderRewardWheel(); }
 }
 
+// Chaque onglet a son propre identifiant, y compris quand il est dupliqué.
+const returnSummaryTabId=crypto.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
+let returnSummaryBusy=false;
+function showReturnSummary(summary){
+  if(document.getElementById('returnSummaryOverlay'))return;
+  const amount=value=>Number(value||0).toLocaleString('fr-FR',{maximumFractionDigits:2});
+  const minutes=Math.floor(Number(summary.watchSeconds||0)/60);
+  const hours=Math.floor(minutes/60);
+  const duration=minutes<1?'Quelques instants':hours?`${hours} h ${minutes%60} min`:`${minutes} min`;
+  const rows=[
+    ...(summary.hasLovy&&Number(summary.lovysXp)>0?[`<div><span>🐉 XP de ton Lovys</span><strong>+${amount(summary.lovysXp)}</strong></div>`]:[]),
+    ...(Number(summary.globalXp)>0?[`<div><span>✨ XP globale</span><strong>+${amount(summary.globalXp)}</strong></div>`]:[]),
+    ...(Number(summary.loverCash)>0?[`<div><span>🪙 LoVeR’Cash</span><strong>+${amount(summary.loverCash)}</strong></div>`]:[]),
+    `<div><span>📺 Temps de live comptabilisé</span><strong>${duration}</strong></div>`
+  ];
+  const overlay=document.createElement('div');
+  const previousFocus=document.activeElement;
+  overlay.id='returnSummaryOverlay';overlay.className='return-summary-overlay';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','returnSummaryTitle');
+  overlay.innerHTML=`<div class="return-summary-card"><div class="return-summary-icon" aria-hidden="true">🎉</div><h2 id="returnSummaryTitle">Heureux de te revoir !</h2><p>Pendant ton absence, ${summary.hasLovy?'ton Lovys a continué à progresser pendant le live.':'ta présence sur le live a été comptabilisée.'}</p><div class="return-summary-gains">${rows.join('')}</div><button type="button" class="return-summary-continue">Super, continuer</button></div>`;
+  document.body.appendChild(overlay);
+  const close=()=>{document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});};
+  const onKey=event=>{
+    if(event.key==='Escape'){event.preventDefault();close();}
+    if(event.key==='Tab'){event.preventDefault();overlay.querySelector('button').focus();}
+  };
+  overlay.querySelector('button').addEventListener('click',close);
+  document.addEventListener('keydown',onKey,true);
+  overlay.querySelector('button').focus({preventScroll:true});
+}
+async function refreshReturnSummary(){
+  if(returnSummaryBusy||document.hidden||!me?.user)return;
+  returnSummaryBusy=true;
+  try{
+    const response=await fetch('/api/game/return-summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId:returnSummaryTabId}),cache:'no-store'});
+    if(!response.ok)return;
+    const {summary}=await response.json();
+    if(Number(summary?.watchSeconds||0)>0){
+      if(document.hidden)leaveGameTab();
+      else showReturnSummary(summary);
+    }
+  }catch(error){console.warn('Récapitulatif du live indisponible :',error);}
+  finally{if(document.hidden)leaveGameTab();returnSummaryBusy=false;}
+}
+function leaveGameTab(){
+  if(!me?.user)return;
+  void fetch('/api/game/presence/leave',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId:returnSummaryTabId}),keepalive:true}).catch(()=>{});
+}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)leaveGameTab();else void refreshReturnSummary();});
+window.addEventListener('pageshow',()=>{if(me?.user)void refreshReturnSummary();});
+window.addEventListener('pagehide',leaveGameTab);
+setInterval(()=>{if(!document.hidden&&me?.user)void refreshReturnSummary();},30000);
+
 async function loadGame() {
   const cosmeticLoadRevision = cosmeticRevision;
   try {
@@ -939,6 +992,7 @@ async function loadGame() {
       }
     }
     me = data;
+    void refreshReturnSummary();
     reapplyPendingCosmetics();
     startLiveUpdates();
     refreshDesktopHomeLiveStatus();

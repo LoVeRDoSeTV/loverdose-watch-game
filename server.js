@@ -996,6 +996,18 @@ async function initDatabase() {
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS egg_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS universal_lovys_fragments INTEGER NOT NULL DEFAULT 0`);
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_live_seen_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_lovys_xp DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_global_xp DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_lovercash DOUBLE PRECISION NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS away_watch_seconds BIGINT NOT NULL DEFAULT 0`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_game_tabs (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    tab_id TEXT NOT NULL,
+    last_seen_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id,tab_id)
+  )`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS user_game_tabs_recent_idx ON user_game_tabs(user_id,last_seen_at)`);
+  await pool.query(`DELETE FROM user_game_tabs WHERE last_seen_at < CURRENT_TIMESTAMP - INTERVAL '2 days'`);
   // Temps ajouté artificiellement au premier œuf : exclu du classement Visionnage.
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS incubator_accelerated_seconds BIGINT NOT NULL DEFAULT 0`);
 
@@ -2317,6 +2329,26 @@ async function runTrackerTick() {
             ) THEN 2 ELSE 1 END),
             global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END), $9::double precision),
             watch_seconds = watch_seconds + $5::bigint,
+            away_lovys_xp = away_lovys_xp + CASE WHEN NOT EXISTS (
+              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
+                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+            ) THEN (CASE WHEN creature_id IS NULL THEN 0 WHEN is_sub THEN $2::double precision ELSE $1::double precision END)
+              * (CASE WHEN EXISTS (SELECT 1 FROM user_active_boosts b WHERE b.user_id=users.id
+                AND b.boost_key='boost_xp_x2' AND b.expires_at>CURRENT_TIMESTAMP) THEN 2 ELSE 1 END) ELSE 0 END,
+            away_global_xp = away_global_xp + CASE WHEN NOT EXISTS (
+              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
+                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+            ) THEN GREATEST(0,LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END),$9::double precision)-global_xp) ELSE 0 END,
+            away_lovercash = away_lovercash + CASE WHEN NOT EXISTS (
+              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
+                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+            ) THEN (CASE WHEN is_sub THEN $4::double precision ELSE $3::double precision END)
+              * (CASE WHEN EXISTS (SELECT 1 FROM user_active_boosts b WHERE b.user_id=users.id
+                AND b.boost_key='boost_cash_x2' AND b.expires_at>CURRENT_TIMESTAMP) THEN 2 ELSE 1 END) ELSE 0 END,
+            away_watch_seconds = away_watch_seconds + CASE WHEN NOT EXISTS (
+              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
+                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
+            ) THEN $5::bigint ELSE 0 END,
             last_live_seen_at = CURRENT_TIMESTAMP,
             updated_at = CURRENT_TIMESTAMP
           WHERE twitch_id = ANY($6::text[])
@@ -3680,6 +3712,42 @@ app.get('/api/game/live-status', async (req, res) => {
     console.error('Erreur statut accueil :', error);
     res.status(500).json({ error:'Statut indisponible.' });
   }
+});
+
+// Le navigateur annonce sa présence uniquement quand l'onglet du jeu est visible.
+// Les gains gagnés hors du jeu sont comptés par le Tracker dans la même transaction
+// que l'XP réelle. Le récapitulatif est consommé une seule fois sous verrou joueur.
+app.post('/api/game/return-summary', async (req,res)=>{
+  if(!req.session.account || !req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  const tabId=String(req.body?.tabId||'');
+  if(!/^[a-zA-Z0-9-]{8,80}$/.test(tabId))return res.status(400).json({error:'Onglet invalide.'});
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const result=await client.query(`SELECT id,creature_id,away_lovys_xp,away_global_xp,away_lovercash,away_watch_seconds
+      FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]);
+    const player=result.rows[0];
+    if(!player){await client.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});}
+    await client.query(`INSERT INTO user_game_tabs(user_id,tab_id,last_seen_at) VALUES($1,$2,CURRENT_TIMESTAMP)
+      ON CONFLICT(user_id,tab_id) DO UPDATE SET last_seen_at=EXCLUDED.last_seen_at`,[player.id,tabId]);
+    const summary={lovysXp:Number(player.away_lovys_xp||0),globalXp:Number(player.away_global_xp||0),loverCash:Number(player.away_lovercash||0),watchSeconds:Number(player.away_watch_seconds||0),hasLovy:Boolean(player.creature_id)};
+    if(summary.watchSeconds>0){
+      await client.query(`UPDATE users SET away_lovys_xp=0,away_global_xp=0,away_lovercash=0,away_watch_seconds=0 WHERE id=$1`,[player.id]);
+    }
+    await client.query('COMMIT');
+    res.setHeader('Cache-Control','no-store');
+    res.json({ok:true,summary});
+  }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Récapitulatif retour au jeu :',error);res.status(500).json({error:'Récapitulatif indisponible.'});}
+  finally{client.release();}
+});
+app.post('/api/game/presence/leave',async(req,res)=>{
+  if(!req.session.account || !req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  const tabId=String(req.body?.tabId||'');
+  if(!/^[a-zA-Z0-9-]{8,80}$/.test(tabId))return res.status(400).json({error:'Onglet invalide.'});
+  try{
+    await pool.query(`DELETE FROM user_game_tabs WHERE user_id=(SELECT id FROM users WHERE twitch_id=$1) AND tab_id=$2`,[req.session.user.twitchId,tabId]);
+    res.setHeader('Cache-Control','no-store');res.json({ok:true});
+  }catch(error){console.error('Départ du jeu :',error);res.status(500).json({error:'Présence indisponible.'});}
 });
 
 app.get('/api/live-updates', (req, res) => {
