@@ -4,19 +4,33 @@ import fs from 'node:fs';
 import {PVE_ZONES,PVE_FIGHTS,pvePreviousFight,pveFightByKey} from '../src/combat/zones.js';
 import {createBattleState,resolveBattleAction,battlePublicState} from '../src/combat/battle.js';
 import {buildLovysBattleStats,LOVYS_COMBAT_CONFIG} from '../src/combat/lovys.js';
+import {isPveFightUnlocked} from '../src/combat/progression.js';
 const player={name:'Test',level:30,rank:1,type:'Neutre',hp:100000,attack:1,defense:100000,speed:100,skills:[{key:'skill',name:'Skill',multiplier:1,cooldown:3}]};
 const fight={key:'test',name:'Test',level:30,hp:100000,attack:1,defense:10,speed:1};
 const battle=(key)=>createBattleState({fight:{...fight,mechanic:{key}},player});
 const turn=s=>resolveBattleAction(s,'basic');
+test('night expansion preserves old victory keys and gates new fights in order',()=>{
+ const night=PVE_ZONES.find(z=>z.key==='night');
+ assert.deepEqual(night.fights.map(f=>f.key),['night_1','night_2','night_3','night_4','night_5','night_6','night_7','night_8','night_mini','night_boss']);
+ assert.equal(night.fights[8].miniBoss,true);assert.equal(night.fights[9].finalBoss,true);
+ const oldWins=new Map(['night_1','night_2','night_3','night_4','night_mini','night_boss'].map(key=>[key,1]));
+ const unlocked=key=>{const previous=pvePreviousFight(key);return isPveFightUnlocked(previous,oldWins.get(previous?.key),oldWins.get(key));};
+ assert.equal(unlocked('night_5'),true);assert.equal(unlocked('night_6'),false);
+ assert.equal(unlocked('night_mini'),true);assert.equal(unlocked('night_boss'),true);assert.equal(unlocked('tide_1'),true);
+ oldWins.delete('night_mini');oldWins.delete('night_boss');
+ assert.equal(unlocked('night_mini'),false);assert.equal(unlocked('night_boss'),false);assert.equal(unlocked('tide_1'),false);
+ for(const key of ['night_5','night_6','night_7','night_8','night_mini','night_boss']){assert.equal(unlocked(key),true);oldWins.set(key,1);}
+ assert.equal(unlocked('tide_1'),true);
+});
 test('campaign preserves keys, ordered levels, unique assets and cross-zone unlocks',()=>{
- assert.equal(PVE_ZONES.length,10);assert.equal(PVE_FIGHTS.length,96);
- assert.equal(new Set(PVE_FIGHTS.map(f=>f.key)).size,96);
+ assert.equal(PVE_ZONES.length,10);assert.equal(PVE_FIGHTS.length,100);
+ assert.equal(new Set(PVE_FIGHTS.map(f=>f.key)).size,100);
  assert.equal(pvePreviousFight('forest_1'),null);
  assert.equal(pvePreviousFight('tide_1').key,'night_boss');
  assert.equal(pvePreviousFight('origin_1').key,'automata_boss');
  assert.equal(PVE_FIGHTS.at(-1).level,30);
  PVE_FIGHTS.forEach((f,i)=>{assert.ok(f.level>= (PVE_FIGHTS[i-1]?.level||1));assert.equal(pveFightByKey(f.key),f);if(f.visual)assert.ok(fs.existsSync(new URL('../public'+f.visual.image,import.meta.url)));});
- PVE_ZONES.slice(3).forEach(z=>{assert.equal(z.fights.length,10);assert.equal(z.fights.filter(f=>f.miniBoss).length,1);assert.equal(z.fights.filter(f=>f.finalBoss).length,1);assert.ok(fs.existsSync(new URL('../public'+z.visual.background,import.meta.url)));});
+ PVE_ZONES.forEach(z=>{assert.equal(z.fights.length,10);assert.equal(z.fights.filter(f=>f.miniBoss).length,1);assert.equal(z.fights.filter(f=>f.finalBoss).length,1);if(z.visual?.background)assert.ok(fs.existsSync(new URL('../public'+z.visual.background,import.meta.url)));});
 });
 test('invalid actions and unavailable skills cannot mutate persisted battle',()=>{
  const s=battle('');s.enemy.speed=200;const before=JSON.stringify(s);assert.throws(()=>resolveBattleAction(s,'hacked'));assert.equal(JSON.stringify(s),before);

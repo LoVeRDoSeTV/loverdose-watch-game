@@ -1,5 +1,6 @@
 import express from 'express';
 import { createBattleState, battlePublicState, resolveBattleAction } from '../combat/battle.js';
+import { isPveFightUnlocked } from '../combat/progression.js';
 
 export function createPveRouter({ pool, zones, previousFight, fightByKey, creatureBattleStats, typeMultiplier, globalThresholdForLevel }) {
   const router = express.Router();
@@ -21,7 +22,8 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
       const progressMap = new Map(progress.rows.map(row => [row.fight_key, row]));
       const publicZones = zones.map(zone => ({ ...zone, fights:zone.fights.map(fight => {
         const previous = previousFight(fight.key);
-        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:Number(progressMap.get(fight.key)?.wins || 0) > 0, unlocked:!previous || Number(progressMap.get(previous.key)?.wins || 0) > 0 };
+        const ownWins=Number(progressMap.get(fight.key)?.wins || 0);
+        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:ownWins > 0, unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
       }) }));
       const creature=user.creature_id ? creatureBattleStats({creature_id:user.creature_id,xp:Number((user.lovys_xp ?? user.xp) || 0),rank:Number(user.rank||1)}) : null;
       res.json({ ok:true, hasCreature:Boolean(user.creature_id), creature, eggFragments:Number(user.egg_fragments || 0), zones:publicZones });
@@ -43,7 +45,11 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
       const user=await currentUser(req.session.user.twitchId,client,true);
       if(!user?.creature_id||!user?.lovys_id){await client.query('ROLLBACK');return res.status(400).json({error:'Il te faut un Lovys actif pour combattre.'});}
       const previous=previousFight(fight.key);
-      if(previous){const pr=await client.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[user.id,previous.key]);if(!pr.rowCount||Number(pr.rows[0].wins)<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}}
+      if(previous){
+        const pr=await client.query(`SELECT fight_key,wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=ANY($2::text[])`,[user.id,[previous.key,fight.key]]);
+        const wins=new Map(pr.rows.map(row=>[row.fight_key,row.wins]));
+        if(!isPveFightUnlocked(previous,wins.get(previous.key),wins.get(fight.key))){await client.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}
+      }
       const stats=creatureBattleStats({creature_id:user.creature_id,xp:Number((user.lovys_xp ?? user.xp) || 0),rank:Number(user.rank||1)});
       const multiplier=typeMultiplier(stats.type,fight.type);
       const state=createBattleState({fight,player:{...stats,lovysId:Number(user.lovys_id),creatureId:user.creature_id},typeMultiplier:multiplier,bossMechanic:fight.mechanic||null});

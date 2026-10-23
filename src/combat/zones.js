@@ -30,12 +30,16 @@ const LEGACY_ZONES = [
     {key:'night_2',name:'Veilleur brisé',level:11,type:'Cristal',hp:455,power:124,rewards:{creatureXp:11,globalXp:4,fragments:1}},
     {key:'night_3',name:'Spectre du miroir',level:12,type:'Mirage',hp:495,power:132,rewards:{creatureXp:12,globalXp:5,fragments:2}},
     {key:'night_4',name:'Chevalier du Néant',level:13,type:'Néant',hp:540,power:142,rewards:{creatureXp:13,globalXp:5,fragments:2}},
-    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,mechanic:{key:'oracle_dodge',name:'Mirage prophétique',description:'Esquive automatiquement la première attaque du combat.'},rewards:{creatureXp:18,globalXp:7,fragments:4}},
+    {key:'night_5',name:'Chauvebrume astrale',level:16,type:'Mirage',family:'manta',rewards:{creatureXp:14,globalXp:6,fragments:2}},
+    {key:'night_6',name:'Arachnuit des arches',level:16,type:'Cristal',family:'crab',rewards:{creatureXp:15,globalXp:6,fragments:2}},
+    {key:'night_7',name:'Salamandre lunaire',level:16,type:'Mirage',family:'quadruped',rewards:{creatureXp:16,globalXp:7,fragments:2}},
+    {key:'night_8',name:'Basilic d’obsidienne',level:16,type:'Néant',family:'wyrm',rewards:{creatureXp:17,globalXp:7,fragments:2}},
+    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,miniBoss:true,mechanic:{key:'oracle_dodge',name:'Mirage prophétique',description:'Esquive automatiquement la première attaque du combat.'},rewards:{creatureXp:18,globalXp:7,fragments:4}},
     {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,mechanic:{key:'eclipse_phases',name:'Éclipse totale',description:'Peut esquiver au maximum deux attaques. Sous 50 % de PV, gagne ATQ/VIT et perce périodiquement la DEF.',dodgeChance:10,maxDodges:2},rewards:{creatureXp:28,globalXp:10,fragments:7}}
   ]}
 ];
 
-const LEGACY_LEVELS = [[1,2,3,4,5,6,7,8,9,10],[10,10,11,11,12,12,13,13,14,14],[14,15,15,16,16,17]];
+const LEGACY_LEVELS = [[1,2,3,4,5,6,7,8,9,10],[10,10,11,11,12,12,13,13,14,14],[14,15,15,16,16,16,16,16,16,17]];
 const archetypes = {
   slime:[.86,.93,.85,1], crab:[.98,.88,1.12,-2], manta:[.91,.98,.82,3], wyrm:[.95,1.04,.9,2],
   turtle:[1.08,.83,1.15,-3], jelly:[.90,.98,.88,0], quadruped:[.96,1.02,.93,2], owl:[.93,1,.9,2],
@@ -60,13 +64,17 @@ const NIGHT_CREATURE_ART = {
   night_2:{zone:'night',size:.82,glow:'#8ee1ff',image:'/pve/night/veilleur-brise-v491.webp'},
   night_3:{zone:'night',size:.93,glow:'#c298ff',image:'/pve/night/spectre-miroir-v491.webp'},
   night_4:{zone:'night',size:1.05,glow:'#998cff',image:'/pve/night/chevalier-neant-v491.webp'},
+  night_5:{zone:'night',size:.94,glow:'#ae91ff',image:'/pve/night/chauvebrume-astrale-v493.webp'},
+  night_6:{zone:'night',size:.96,glow:'#b69bff',image:'/pve/night/arachnuit-arches-v493.webp'},
+  night_7:{zone:'night',size:1,glow:'#8ddaff',image:'/pve/night/salamandre-lunaire-v493.webp'},
+  night_8:{zone:'night',size:1.06,glow:'#a48cff',image:'/pve/night/basilic-obsidienne-v493.webp'},
   night_mini:{zone:'night',size:1.16,glow:'#caa8ff',image:'/pve/night/oracle-ruines-v491.webp'},
   night_boss:{zone:'night',size:1.32,glow:'#9181ff',image:'/pve/night/seigneur-eclipse-v491.webp'}
 };
 
 const legacy = LEGACY_ZONES.map((zone,zi)=>({...zone,recommendedRank:1,fights:zone.fights.map((fight,fi)=>{
   const level=LEGACY_LEVELS[zi][fi];
-  const stats=balancedStats(level,{position:fi,boss:fight.boss,finalBoss:fight.finalBoss,zoneIndex:zi});
+  const stats=balancedStats(level,{position:fi,boss:fight.boss,finalBoss:fight.finalBoss,zoneIndex:zi,family:fight.family});
   return {...fight,...stats,power:stats.attack,level,zoneKey:zone.key,...(NIGHT_CREATURE_ART[fight.key]?{visual:NIGHT_CREATURE_ART[fight.key]}:{})};
 })}));
 
