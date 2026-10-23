@@ -3911,41 +3911,120 @@ $('lovysDetailPanel')?.addEventListener('click',e=>{if(e.target.closest('[data-c
 
 const FRAGMENT_EGG_PRICE=10;
 let fragmentShopQty=1;
+let fragmentShopPhase='choose';
+let fragmentShopOrder=null;
+let fragmentShopPreviousFocus=null;
 function fragmentCurrentBalance(){return Math.max(0,Number(pveMapState?.data?.eggFragments ?? me?.user?.egg_fragments ?? 0));}
 function fragmentShopEggMarkup(){return `<div class="fragment-shop-egg-premium" aria-hidden="true"></div>`;}
+function fragmentShopBusy(){return ['pending','animating'].includes(fragmentShopPhase);}
 function updateFragmentShopUi(){
   const balance=fragmentCurrentBalance();
-  const max=Math.max(1,Math.floor(balance/FRAGMENT_EGG_PRICE));
-  fragmentShopQty=Math.max(1,Math.min(fragmentShopQty,max));
-  if($('fragmentShopBalance'))$('fragmentShopBalance').textContent=String(balance);
-  if($('fragmentShopQty'))$('fragmentShopQty').textContent=String(fragmentShopQty);
-  if($('fragmentShopTotal'))$('fragmentShopTotal').textContent=String(fragmentShopQty*FRAGMENT_EGG_PRICE);
+  const max=Math.max(1,Math.min(99,Math.floor(balance/FRAGMENT_EGG_PRICE)));
+  if(fragmentShopPhase==='choose')fragmentShopQty=Math.max(1,Math.min(fragmentShopQty,max));
+  $('fragmentShopBalance').textContent=String(balance);
+  $('fragmentShopQty').textContent=String(fragmentShopQty);
+  $('fragmentShopTotal').textContent=String(fragmentShopQty*FRAGMENT_EGG_PRICE);
+  const confirm=fragmentShopPhase==='confirm',busy=fragmentShopBusy(),exchange=busy||fragmentShopPhase==='success';
+  $('fragmentShopModal').dataset.exchangePhase=fragmentShopPhase;
+  $('fragmentShopForm').hidden=exchange;
+  $('fragmentShopExchange').hidden=!exchange;
+  $('fragmentShopConfirmation').hidden=!confirm;
+  $('fragmentShopCancel').hidden=!confirm;
+  $('fragmentShopMinus').disabled=fragmentShopPhase!=='choose'||fragmentShopQty<=1;
+  $('fragmentShopPlus').disabled=fragmentShopPhase!=='choose'||fragmentShopQty>=max;
   const buy=$('fragmentShopBuy');
-  if(buy){buy.disabled=balance<FRAGMENT_EGG_PRICE;buy.textContent=balance<FRAGMENT_EGG_PRICE?`Il faut ${FRAGMENT_EGG_PRICE} fragments`:`Acheter ${fragmentShopQty} œuf${fragmentShopQty>1?'s':''}`;}
+  buy.disabled=busy||balance<fragmentShopQty*FRAGMENT_EGG_PRICE;
+  buy.textContent=confirm?'Confirmer l’échange':balance<FRAGMENT_EGG_PRICE?`Il faut ${FRAGMENT_EGG_PRICE} fragments`:`Acheter ${fragmentShopQty} œuf${fragmentShopQty>1?'s':''}`;
+  $('fragmentShopExchange').setAttribute('aria-busy',String(busy));
+  $('fragmentShopExchangeActions').hidden=fragmentShopPhase!=='success';
+  $('fragmentShopAgain').hidden=balance<FRAGMENT_EGG_PRICE;
 }
-function openFragmentShop(){fragmentShopQty=1;const msg=$('fragmentShopMessage');if(msg){msg.textContent='';msg.className='fragment-shop-message';}const egg=$('fragmentShopModal')?.querySelector('.fragment-shop-egg');if(egg)egg.innerHTML=fragmentShopEggMarkup();updateFragmentShopUi();$('fragmentShopModal')?.classList.remove('hidden');}
-function closeFragmentShop(){$('fragmentShopModal')?.classList.add('hidden');}
+function openFragmentShop(){
+  const modal=$('fragmentShopModal');
+  if(modal.classList.contains('hidden'))fragmentShopPreviousFocus=document.activeElement;
+  if(!fragmentShopBusy()){
+    fragmentShopQty=1;fragmentShopPhase='choose';fragmentShopOrder=null;
+    $('fragmentShopMessage').textContent='';$('fragmentShopMessage').className='fragment-shop-message';
+  }
+  updateFragmentShopUi();modal.classList.remove('hidden');
+  (fragmentShopBusy()?$('fragmentShopClose'):$('fragmentShopBuy').disabled?$('fragmentShopClose'):$('fragmentShopBuy')).focus({preventScroll:true});
+}
+function closeFragmentShop(){
+  $('fragmentShopModal')?.classList.add('hidden');
+  // Une fermeture ne réinitialise pas un achat toujours en cours.
+  if(fragmentShopPreviousFocus?.isConnected)fragmentShopPreviousFocus.focus({preventScroll:true});
+}
+function cancelFragmentShopConfirmation(){
+  if(fragmentShopPhase!=='confirm')return;
+  fragmentShopPhase='choose';fragmentShopOrder=null;updateFragmentShopUi();$('fragmentShopBuy').focus({preventScroll:true});
+}
+async function buyFragmentShopEgg(){
+  if(fragmentShopBusy()||fragmentShopPhase==='success')return;
+  const balance=fragmentCurrentBalance(),msg=$('fragmentShopMessage');
+  if(fragmentShopPhase==='choose'){
+    updateFragmentShopUi();
+    if(balance<fragmentShopQty*FRAGMENT_EGG_PRICE)return;
+    fragmentShopOrder={quantity:fragmentShopQty,spent:fragmentShopQty*FRAGMENT_EGG_PRICE};
+    fragmentShopPhase='confirm';
+    $('fragmentShopConfirmationCopy').textContent=`Échanger ${fragmentShopOrder.spent} fragments contre ${fragmentShopOrder.quantity} œuf${fragmentShopOrder.quantity>1?'s':''} mystère${fragmentShopOrder.quantity>1?'s':''} ?`;
+    $('fragmentShopConfirmationBalance').textContent=`Il te restera ${balance-fragmentShopOrder.spent} fragments.`;
+    msg.textContent='';msg.className='fragment-shop-message';updateFragmentShopUi();
+    $('fragmentShopBuy').scrollIntoView({block:'nearest',behavior:'smooth'});
+    return;
+  }
+  const order={...fragmentShopOrder};
+  if(balance<order.spent){cancelFragmentShopConfirmation();msg.textContent='Ton solde a changé. Vérifie la quantité avant de confirmer.';msg.className='fragment-shop-message error';return;}
+  fragmentShopPhase='pending';
+  $('fragmentShopExchangeTitle').textContent='Échange en cours…';
+  $('fragmentShopExchangeCopy').textContent='Validation de ton achat…';
+  $('fragmentShopExchangeAmounts').textContent=`${order.spent} fragments → ${order.quantity} œuf${order.quantity>1?'s':''}`;
+  $('fragmentShopExchangeBalance').textContent='';updateFragmentShopUi();
+  $('fragmentShopModal').querySelector('.fragment-shop-panel').scrollTop=0;
+  $('fragmentShopClose').focus({preventScroll:true});
+  let data;
+  try{
+    const response=await fetch('/api/fragments/buy-egg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:order.quantity})});
+    data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Achat impossible.');
+  }catch(error){
+    fragmentShopPhase='choose';fragmentShopOrder=null;updateFragmentShopUi();
+    msg.textContent=error instanceof TypeError?'Connexion interrompue. Vérifie ton inventaire avant de réessayer.':error.message||'Achat impossible.';msg.className='fragment-shop-message error';
+    if(!$('fragmentShopModal').classList.contains('hidden')){$('fragmentShopBuy').focus({preventScroll:true});msg.scrollIntoView({block:'nearest'});}
+    return;
+  }
+  // La transformation ne commence qu’après confirmation du serveur.
+  const quantity=Number(data.quantity??order.quantity),spent=Number(data.spent??order.spent),fragments=Number(data.fragments||0);
+  if(me?.user)me.user.egg_fragments=fragments;
+  if(pveMapState?.data)pveMapState.data.eggFragments=fragments;
+  setHubFragmentsButton(fragments);
+  $('fragmentShopExchangeAmounts').textContent=`−${spent} fragments → +${quantity} œuf${quantity>1?'s':''}`;
+  $('fragmentShopExchangeTitle').textContent='Tes fragments prennent forme…';
+  $('fragmentShopExchangeCopy').textContent=quantity>1?'Tes œufs mystères apparaissent !':'Ton œuf mystère apparaît !';
+  fragmentShopPhase='animating';updateFragmentShopUi();
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches)await new Promise(resolve=>setTimeout(resolve,1500));
+  fragmentShopPhase='success';
+  $('fragmentShopExchangeTitle').textContent=quantity>1?'Œufs ajoutés à ton inventaire !':'Œuf ajouté à ton inventaire !';
+  $('fragmentShopExchangeCopy').textContent=quantity>1?'Tu peux maintenant les placer dans les emplacements libres de ton incubateur.':'Tu peux maintenant le placer dans un emplacement libre de ton incubateur.';
+  $('fragmentShopExchangeBalance').textContent=`Solde restant : ${fragments} fragment${fragments>1?'s':''}.`;
+  updateFragmentShopUi();
+  if(!$('fragmentShopModal').classList.contains('hidden'))$('fragmentShopDone').focus({preventScroll:true});
+  // Une actualisation annexe échouée ne transforme pas un achat réussi en erreur.
+  void Promise.allSettled([loadGame(),loadShop(),!$('pveModal')?.classList.contains('hidden')?loadPve():Promise.resolve()]);
+}
 document.addEventListener('click',e=>{const open=e.target.closest('[data-open-fragment-shop]');if(open){e.preventDefault();openFragmentShop();}});
 $('fragmentShopClose')?.addEventListener('click',closeFragmentShop);
+$('fragmentShopDone')?.addEventListener('click',closeFragmentShop);
+$('fragmentShopAgain')?.addEventListener('click',openFragmentShop);
+$('fragmentShopCancel')?.addEventListener('click',cancelFragmentShopConfirmation);
 $('fragmentShopModal')?.addEventListener('click',e=>{if(e.target.id==='fragmentShopModal')closeFragmentShop();});
-$('fragmentShopMinus')?.addEventListener('click',()=>{fragmentShopQty=Math.max(1,fragmentShopQty-1);updateFragmentShopUi();});
-$('fragmentShopPlus')?.addEventListener('click',()=>{const max=Math.max(1,Math.floor(fragmentCurrentBalance()/FRAGMENT_EGG_PRICE));fragmentShopQty=Math.min(max,fragmentShopQty+1);updateFragmentShopUi();});
-$('fragmentShopBuy')?.addEventListener('click',async()=>{
-  const btn=$('fragmentShopBuy'),msg=$('fragmentShopMessage');if(!btn)return;
-  btn.disabled=true;if(msg){msg.textContent='Achat en cours…';msg.className='fragment-shop-message';}
-  try{
-    const r=await fetch('/api/fragments/buy-egg',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({quantity:fragmentShopQty})});
-    const d=await r.json();
-    if(!r.ok)throw new Error(d.error||'Achat impossible.');
-    if(me?.user)me.user.egg_fragments=Number(d.fragments||0);
-    if(pveMapState?.data)pveMapState.data.eggFragments=Number(d.fragments||0);
-    setHubFragmentsButton(Number(d.fragments||0));
-    if(msg){msg.textContent=`✓ ${fragmentShopQty} œuf${fragmentShopQty>1?'s':''} ajouté${fragmentShopQty>1?'s':''} à ton inventaire.`;msg.className='fragment-shop-message ok';}
-    fragmentShopQty=1;updateFragmentShopUi();
-    await loadGame();
-    if(!$('pveModal')?.classList.contains('hidden'))await loadPve();
-  }catch(err){if(msg){msg.textContent=err.message;msg.className='fragment-shop-message error';}updateFragmentShopUi();}
-});
+$('fragmentShopMinus')?.addEventListener('click',()=>{if(fragmentShopPhase!=='choose')return;fragmentShopQty=Math.max(1,fragmentShopQty-1);updateFragmentShopUi();});
+$('fragmentShopPlus')?.addEventListener('click',()=>{if(fragmentShopPhase!=='choose')return;fragmentShopQty++;updateFragmentShopUi();});
+$('fragmentShopBuy')?.addEventListener('click',buyFragmentShopEgg);
+document.addEventListener('keydown',event=>{
+  const modal=$('fragmentShopModal');if(!modal||modal.classList.contains('hidden'))return;
+  if(event.key==='Tab'){event.stopImmediatePropagation();trapDesktopAdminFocus(event,modal);}
+  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();if(fragmentShopPhase==='confirm')cancelFragmentShopConfirmation();else closeFragmentShop();}
+},true);
 
 let pveMapState={data:null,selectedZone:null,selectedFight:null,view:'map'};
 let pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:0};

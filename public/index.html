@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=491">
+<link rel="stylesheet" href="/styles.css?v=492">
 <link rel="stylesheet" href="/pve-expansion.css?v=489">
 <link rel="stylesheet" href="/return-summary.css?v=487">
 <link rel="stylesheet" href="/live-xp-boost.css?v=476">
@@ -1052,14 +1052,33 @@
       <div><div class="fragment-shop-title"><span class="egg-inline-icon title-inline-icon title-inline-icon-lg" aria-hidden="true"></span>Boutique de fragments</div><div class="fragment-shop-sub">Échange tes Fragments d’œuf gagnés en PvE contre des œufs supplémentaires à placer dans l’incubateur.</div></div>
       <button id="fragmentShopClose" class="fragment-shop-close" type="button" aria-label="Fermer">×</button>
     </div>
+    <div id="fragmentShopForm">
     <div class="fragment-shop-balance"><div><div class="fragment-shop-balance-label">Tes fragments</div><div id="fragmentShopBalance" class="fragment-shop-balance-value">0</div></div><div><span class="fragment-inline-icon" aria-hidden="true" style="width:34px;height:34px"></span></div></div>
     <div class="fragment-shop-item">
       <div class="fragment-shop-egg"><div class="fragment-shop-egg-premium" aria-hidden="true"></div></div>
       <div><div class="fragment-shop-item-name">Œuf mystère</div><div class="fragment-shop-item-copy">Ajoute un œuf à ton inventaire. Tu pourras ensuite le placer dans un emplacement libre de ton incubateur.</div><div class="fragment-shop-price"><span class="fragment-inline-icon" aria-hidden="true"></span> 10 fragments / œuf</div></div>
     </div>
     <div class="fragment-shop-qty"><div><div class="fragment-shop-balance-label">Quantité</div><div class="fragment-shop-stepper"><button id="fragmentShopMinus" type="button">−</button><strong id="fragmentShopQty">1</strong><button id="fragmentShopPlus" type="button">+</button></div></div><div class="fragment-shop-total">Total : <b id="fragmentShopTotal">10</b> fragments</div></div>
+    <div id="fragmentShopConfirmation" class="fragment-shop-confirmation" role="status" aria-live="polite" hidden>
+      <strong id="fragmentShopConfirmationCopy"></strong><p id="fragmentShopConfirmationBalance"></p>
+    </div>
     <button id="fragmentShopBuy" class="fragment-shop-buy" type="button">Acheter 1 œuf</button>
-    <div id="fragmentShopMessage" class="fragment-shop-message"></div>
+    <button id="fragmentShopCancel" class="fragment-shop-cancel" type="button" hidden>Annuler</button>
+    <div id="fragmentShopMessage" class="fragment-shop-message" role="status" aria-live="polite"></div>
+    </div>
+    <section id="fragmentShopExchange" class="fragment-shop-exchange" hidden aria-busy="false">
+      <div class="fragment-exchange-visual" aria-hidden="true"><div class="fragment-exchange-halo"></div>
+        <div class="fragment-exchange-particles"><i style="--dx:-100px;--dy:-50px;--turn:0deg;--delay:0.000s"></i><i style="--dx:0px;--dy:-104px;--turn:47deg;--delay:0.025s"></i><i style="--dx:100px;--dy:-50px;--turn:94deg;--delay:0.050s"></i><i style="--dx:112px;--dy:25px;--turn:141deg;--delay:0.075s"></i><i style="--dx:64px;--dy:90px;--turn:188deg;--delay:0.100s"></i><i style="--dx:-55px;--dy:90px;--turn:235deg;--delay:0.125s"></i><i style="--dx:-112px;--dy:25px;--turn:282deg;--delay:0.150s"></i><i style="--dx:-75px;--dy:-90px;--turn:329deg;--delay:0.175s"></i></div>
+        <div class="fragment-exchange-egg"></div><span class="fragment-exchange-check">✓</span>
+      </div>
+      <h3 id="fragmentShopExchangeTitle" tabindex="-1" role="status" aria-live="polite"></h3>
+      <p id="fragmentShopExchangeAmounts" class="fragment-exchange-amounts"></p>
+      <p id="fragmentShopExchangeCopy"></p><p id="fragmentShopExchangeBalance"></p>
+      <div id="fragmentShopExchangeActions" class="fragment-exchange-actions" hidden>
+        <button id="fragmentShopDone" class="fragment-shop-buy" type="button">Terminé</button>
+        <button id="fragmentShopAgain" class="fragment-shop-cancel" type="button">Acheter d’autres œufs</button>
+      </div>
+    </section>
   </div>
 </div>
 
@@ -1317,7 +1336,7 @@
  </section>
 </div>
 <script src="/live-xp-boost.js?v=460"></script>
-<script src="/app.js?v=491"></script>
+<script src="/app.js?v=492"></script>
 <script src="/auth-fallback.js?v=111"></script></body></html>
 
 
