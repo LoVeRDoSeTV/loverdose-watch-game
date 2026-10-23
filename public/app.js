@@ -3465,6 +3465,42 @@ function showLovysXpTransferError(message) {
   const copy = $('lovysXpTransferCopy');
   if (copy) { copy.textContent = message; copy.setAttribute('role','alert'); }
 }
+let closeLovysXpTransferSuccess=null;
+function showLovysXpTransferSuccess(result,lovys){
+  closeLovysXpTransferSuccess?.();
+  const amount=Math.floor(Number(result.transferredXp));
+  const remaining=Math.max(0,Math.floor(Number(result.pendingXp)||0));
+  const name=lovys?.name||'ton Lovys';
+  const previousFocus=document.activeElement;
+  const overlay=document.createElement('div');
+  overlay.className='lovys-xp-success';
+  overlay.setAttribute('role','dialog');
+  overlay.setAttribute('aria-modal','true');
+  overlay.setAttribute('aria-labelledby','lovysXpSuccessTitle');
+  overlay.setAttribute('aria-describedby','lovysXpSuccessCopy');
+  const creature=lovys?.creatureId?artForLovys(lovys.creatureId,lovys.evolution||0,true):'✨';
+  overlay.innerHTML=`<div class="lovys-xp-success-card"><div class="lovys-xp-success-kicker">TRANSFERT TERMINÉ</div><div class="lovys-xp-success-stage" aria-hidden="true"><div class="lovys-xp-success-reserve"><span><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 12 16 5l12 7Z M6 26h20 M4 29h24 M8 15v8 M16 15v8 M24 15v8"/></svg></span><small>Ta réserve</small></div><div class="lovys-xp-success-stream"><i></i><i></i><i></i><i></i><i></i></div><div class="lovys-xp-success-creature">${creature}<span class="lovys-xp-success-check">✓</span></div></div><h2 id="lovysXpSuccessTitle">XP donnée avec succès !</h2><div class="lovys-xp-success-amount">+${amount.toLocaleString('fr-FR')} <span>XP</span></div><p id="lovysXpSuccessCopy"><strong>${escapeHtml(name)}</strong> a bien reçu ton XP.</p><div class="lovys-xp-success-balance">En réserve : <strong>${remaining.toLocaleString('fr-FR')} XP</strong></div><p class="lovys-xp-success-sync" role="status"></p><button class="hub-btn lovys-xp-transfer-confirm" type="button" data-xp-success-close>Continuer</button></div>`;
+  let closed=false;
+  const close=()=>{
+    if(closed)return;
+    closed=true;
+    document.removeEventListener('keydown',onKey,true);
+    overlay.remove();
+    if(closeLovysXpTransferSuccess===close)closeLovysXpTransferSuccess=null;
+    const returnTargets=[previousFocus,document.querySelector(`[data-transfer-lovys="${Number(lovys?.id)||0}"]`),...document.querySelectorAll('[data-transfer-lovys]'),$('transferLovysXpBtn')];
+    returnTargets.find(el=>el?.isConnected&&el.getClientRects().length&&!el.disabled)?.focus({preventScroll:true});
+  };
+  const onKey=event=>{
+    if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}
+    else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);
+  };
+  overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-xp-success-close]'))close();});
+  closeLovysXpTransferSuccess=close;
+  document.body.appendChild(overlay);
+  document.addEventListener('keydown',onKey,true);
+  overlay.querySelector('[data-xp-success-close]').focus({preventScroll:true});
+  return overlay;
+}
 $('lovysXpTransferConfirm')?.addEventListener('click',async()=>{
   const btn=$('lovysXpTransferConfirm');
   const amount=Math.max(0,Math.min(lovysXpTransferAmount,Math.floor(Number($('lovysXpTransferValue')?.value||0))));
@@ -3480,11 +3516,16 @@ $('lovysXpTransferConfirm')?.addEventListener('click',async()=>{
     btn.textContent='Transfert…';
     const r=await fetch('/api/progression/transfer-lovys-xp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lovysId,amount})});
     const d=await r.json();
-    if(!r.ok){showLovysXpTransferError(d.error||'Transfert impossible.');return;}
+    if(!r.ok||!d.ok){showLovysXpTransferError(d.error||'Transfert impossible.');return;}
+    if(!Number.isFinite(Number(d.transferredXp))||Number(d.transferredXp)<=0){showLovysXpTransferError('La confirmation du serveur est incomplète. Actualise la page pour vérifier ta réserve.');return;}
     closeLovysXpTransferConfirm();
-    await loadGame();
-    await loadLovysCollection();
-    if(!$('progressionModal')?.classList.contains('hidden')) await loadProgression();
+    const success=showLovysXpTransferSuccess(d,chosen);
+    // A refresh failure must not turn a confirmed transfer into a failure message.
+    const refreshed=await Promise.allSettled([
+      loadGame(),loadLovysCollection(),
+      ...(!$('progressionModal')?.classList.contains('hidden')?[loadProgression()]:[])
+    ]);
+    if(refreshed.some(update=>update.status==='rejected')||refreshed[1].value===null)success.querySelector('.lovys-xp-success-sync').textContent='Ton don est confirmé. Actualise la page pour afficher les dernières valeurs.';
   }catch(e){showLovysXpTransferError('Impossible de contacter le serveur.');}
   finally{btn.disabled=false;btn.textContent='⚡ Confirmer le transfert';}
 });
