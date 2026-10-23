@@ -569,18 +569,27 @@ const MECHANICS = {
   }
 };
 
+// Illustrations détaillées déjà créées et retrouvées ; noms versionnés pour le cache immuable.
+const EXISTING_CREATURE_ART={
+  tide_1:'/pve/tide/perlune-v489.webp',
+  tide_3:'/pve/tide/raie-courants-v489.webp',
+  tide_4:'/pve/tide/hippocampe-ecume-v489.webp',
+  frost_2:'/pve/frost/renardeau-givre-v489.webp'
+};
+
 const expansion = THEMES.map((zone,zi)=>{
   const visual={accent:zone.accent,secondary:zone.secondary,sky:zone.sky,deep:zone.deep,background:`/assets/pve-battle-${zone.key}.webp`};
   const fights=zone.roster.map((entry,i)=>{
     const miniBoss=i===8,finalBoss=i===9,boss=miniBoss||finalBoss;
+    const key=`${zone.key}_${finalBoss?'boss':i+1}`;
     const level=Math.round(zone.minLevel+(zone.maxLevel-zone.minLevel)*i/9);
     const stats=balancedStats(level,{position:i,boss,finalBoss,family:entry.family,zoneIndex:zi+3});
     const mechanic=(i===3||i===6||boss)?{key:zone.mechanic,...MECHANICS[zone.mechanic],shieldPercent:finalBoss?14:10}:null;
     // Status mechanics are occasional early in a zone, then guaranteed on its guardians.
     const rewardXp=Math.round(10+level*.72+(i%3));
-    return {key:`${zone.key}_${finalBoss?'boss':i+1}`,name:entry.name,level,type:entry.type,...stats,power:stats.attack,
+    return {key,name:entry.name,level,type:entry.type,...stats,power:stats.attack,
       boss,miniBoss,finalBoss,zoneKey:zone.key,recommendedRank:zone.recommendedRank,...(mechanic?{mechanic}:{}),
-      visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:`/pve/${zone.key}/${i+1}.webp`},
+      visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:EXISTING_CREATURE_ART[key]||`/pve/${zone.key}/${i+1}.webp`},
       rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+level*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:finalBoss?6:miniBoss?3:zi>=4?2:1}};
   });
   return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank:zone.recommendedRank,minLevel:zone.minLevel,maxLevel:zone.maxLevel,visual,fights};

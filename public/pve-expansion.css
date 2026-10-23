@@ -12,3 +12,25 @@
  #pveBattleOverlay .pve-battle-stage.has-zone-art::before{background-image:var(--mobile-pve-background)!important}
  .pve-world-atlas{margin:16px 0;padding:13px}.pve-world-atlas-grid{grid-template-columns:1fr}
 }
+
+/* All worlds remain visible; locked worlds can be previewed without starting a fight. */
+@media ((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
+ #pveModal .pve-zone-tabs{flex-wrap:wrap;overflow:visible}
+ #pveModal .pve-zone-tab{white-space:normal;text-align:left;line-height:1.4;font-size:12px}
+ #pveModal .pve-zone-tab.locked{opacity:.72;cursor:pointer}
+ #pveModal .pve-zone-tab.locked.active{opacity:1}
+}
+
+/* The victory result is the celebration on PC, phone and tablet. It stays until dismissed. */
+#pveBattleResult.zone-complete{background:radial-gradient(ellipse at 50% 35%,#64369e55,transparent 65%),#090b18ed;isolation:isolate}
+#pveBattleResult.zone-complete .pve-battle-result-card{position:relative;z-index:1;border-color:#b08ae8;background:linear-gradient(155deg,#28213b,#141526);box-shadow:0 24px 80px #0008,0 0 45px #9147ff20;box-sizing:border-box;max-width:520px;max-height:calc(100dvh - 40px);overflow-y:auto;margin:auto}
+#pveBattleResult.zone-complete .pve-battle-result-title{color:#ffe5a0;font-size:clamp(25px,4vw,34px)}
+#pveBattleResult.zone-complete .pve-battle-result-copy{font-size:15px;line-height:1.65;overflow-wrap:anywhere}
+.pve-zone-complete-summary{margin:16px 0;color:#dbbfff;font-size:15px;font-weight:700;line-height:1.6;overflow-wrap:anywhere}
+#pveBattleResult.zone-complete button{min-width:0;max-width:100%;white-space:normal;line-height:1.4}
+.pve-zone-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:2}
+.pve-zone-confetti i{position:absolute;top:-20px;left:var(--x);width:7px;height:12px;border-radius:2px;background:var(--color);opacity:0}
+.pve-zone-confetti i:nth-child(3n){width:9px;height:9px;border-radius:50%}
+#pveBattleResult.active .pve-zone-confetti i{animation:pveZoneConfetti 3.2s var(--delay) ease-in both}
+@keyframes pveZoneConfetti{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(0)}8%{opacity:.95}85%{opacity:.8}100%{opacity:0;transform:translate3d(var(--drift),100dvh,0) rotate(var(--turn))}}
+@media(prefers-reduced-motion:reduce){.pve-zone-confetti{display:none}}

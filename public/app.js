@@ -3953,7 +3953,6 @@ function pveFightInfoByKey(key){for(const z of (pveMapState.data?.zones||[])){co
 function pveZoneAccessible(zone){return Boolean((zone?.fights||[]).some(f=>f.unlocked||f.won));}
 function pveZoneComplete(zone){const fights=zone?.fights||[];return fights.length>0&&fights.every(f=>f.won);}
 function pveDefaultZoneIndex(data){const zones=data?.zones||[];const pending=zones.findIndex(z=>(z.fights||[]).some(f=>f.unlocked&&!f.won));if(pending>=0)return pending;const lastAccessible=zones.map((z,i)=>pveZoneAccessible(z)?i:-1).filter(i=>i>=0).pop();return Number.isFinite(lastAccessible)?lastAccessible:0;}
-function pveVisibleZoneCount(data){const zones=data?.zones||[];if(!zones.length)return 0;let count=1;while(count<zones.length&&pveZoneComplete(zones[count-1]))count++;return count;}
 function pveSelectedFight(zone){if(!zone)return null;const chosen=(zone.fights||[]).find(f=>f.key===pveMapState.selectedFight&&(f.unlocked||f.won));if(chosen)return chosen;return (zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won)||(zone.fights||[])[0]||null;}
 function pveTravelerMarkup(step=0){const id=me?.user?.creature_id;const evo=me?.user?.progression?.evolution||0;return `<div class="pve-map-traveler" aria-label="Ton Lovys, position actuelle${step?` étape ${step}`:''}"><span class="pve-map-traveler-beam" aria-hidden="true"></span><span class="pve-map-traveler-ring r1" aria-hidden="true"></span><span class="pve-map-traveler-ring r2" aria-hidden="true"></span><span class="pve-map-traveler-art">${id?art(id,evo,true):'🐉'}</span><span class="pve-map-traveler-tag">Ton Lovys${step?`<span class="pve-map-traveler-step">Étape ${step}</span>`:''}</span></div>`;}
 function pveFightDetailMarkup(f){
@@ -4058,6 +4057,31 @@ async function startMobilePveFight(fightKey,button=null){
   }catch(error){const message=error.name==='AbortError'?'Connexion trop lente. Réessaie de lancer le combat.':error.message||'Combat impossible.';if(mobilePveTransitionBusy&&$('pveBattleResult')?.classList.contains('active'))$('pveBattleResultCopy').textContent=message;else $('combatResult').innerHTML=`<p class="combat-report" role="alert">${escapeHtml(message)}</p>`;return false;}
   finally{clearTimeout(timeout);mobilePveStarting=false;if(button)button.disabled=false;}
 }
+function configurePveZoneResult(result){
+  const modal=$('pveBattleResult');
+  const info=pveFightInfoByKey(pveBattleState.fight?.key);
+  const completed=Boolean(result.victory&&result.firstWin&&info&&info.fightIndex===info.zone.fights.length-1);
+  modal.classList.toggle('zone-complete',completed);
+  modal.querySelector('.pve-zone-confetti')?.remove();
+  modal.querySelector('.pve-zone-complete-summary')?.remove();
+  if(!completed)return;
+  const next=pveMapState.data.zones[info.zoneIndex+1];
+  $('pveBattleResultIcon').textContent='🏆';
+  $('pveBattleResultTitle').textContent='Félicitations !';
+  $('pveBattleResultCopy').textContent=`Tu as terminé ${info.zone.name} et vaincu ${info.fight.name} !`;
+  const summary=document.createElement('p');
+  summary.className='pve-zone-complete-summary';
+  summary.textContent=next?`${next.icon||'🗺️'} Nouvelle zone débloquée : ${next.name}`:'Toutes les zones sont terminées. Tu as conquis toute l’aventure !';
+  $('pveBattleResultCopy').after(summary);
+  const confetti=document.createElement('div');
+  confetti.className='pve-zone-confetti';confetti.setAttribute('aria-hidden','true');
+  confetti.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(i*37)%100}%;--drift:${(i%2?-1:1)*(20+(i*11)%80)}px;--delay:${((i%12)*.06).toFixed(2)}s;--turn:${180+(i*79)%540}deg;--color:${['#b78aff','#69ddff','#ffd76b','#ff8bc7','#8af0b4'][i%5]}"></i>`).join('');
+  modal.prepend(confetti);
+  if(isMobileGameUi()){
+    $('mobilePveResultPrimary').textContent=next?'Découvrir la zone suivante':'Voir ma progression';
+    $('mobilePveResultPrimary').dataset.mobilePveResult=next?'next-zone':'zone';
+  }else $('pveBattleContinue').textContent=next?'Découvrir la zone suivante':'Voir ma progression';
+}
 function configureMobilePveResult(result){
   if(!isMobileGameUi())return;
   const victory=Boolean(result.victory),info=pveFightInfoByKey(pveBattleState.fight?.key);
@@ -4108,7 +4132,9 @@ async function closeMobilePveBattle(action='zone'){
     overlay.classList.remove('active');overlay.classList.add('hidden');
     pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};
     if(action==='lovys'){await toggleMobilePanel('creatures');return;}
+    if(action==='next-zone'){pveMapState.selectedFight=null;renderPveAdventureMap(data,Math.min((info?.zoneIndex??0)+1,data.zones.length-1));}
     if(action==='next'){pveMapState.selectedZone=null;renderPveAdventureMap(data,null);}
+    $('pveContent')?.querySelector('[data-mobile-pve-zone]')?.focus({preventScroll:true});
   }catch(error){
     const message=error.name==='AbortError'?'Connexion trop lente. Réessaie le combat suivant.':error.message||'Actualisation impossible. Réessaie.';
     if($('pveBattleResult')?.classList.contains('active'))$('pveBattleResultCopy').textContent=message;
@@ -4186,10 +4212,9 @@ function renderPveAdventureMap(data,zoneIndex=null){
   pveMapState.data=data;
   pveMapState.view='map';
   const zones=data.zones||[];
-  const visibleZoneCount=pveVisibleZoneCount(data);
-  const visibleZones=zones.slice(0,visibleZoneCount||zones.length);
+  const visibleZones=zones;
   if(zoneIndex===null||zoneIndex===undefined)zoneIndex=pveMapState.selectedZone;
-  if(zoneIndex===null||zoneIndex===undefined||zoneIndex>=visibleZoneCount||!zones[zoneIndex]||!pveZoneAccessible(zones[zoneIndex]))zoneIndex=Math.min(pveDefaultZoneIndex(data),Math.max(0,visibleZoneCount-1));
+  if(zoneIndex===null||zoneIndex===undefined||!zones[zoneIndex])zoneIndex=pveDefaultZoneIndex(data);
   pveMapState.selectedZone=zoneIndex;
   const zone=zones[zoneIndex]||visibleZones[0];if(!zone){box.innerHTML='<div class="combat-report">Aucune zone disponible.</div>';return;}
   const visual=pveZoneVisualMeta(zone);
@@ -4197,10 +4222,10 @@ function renderPveAdventureMap(data,zoneIndex=null){
   const current=(zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won);
   const currentKey=current?.key;
   const wonCount=(zone.fights||[]).filter(f=>f.won).length;
-  const zoneTabs=visibleZones.map((z,i)=>`<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''}" type="button" data-pve-zone="${i}">${z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`).join('');
+  const zoneTabs=visibleZones.map((z,i)=>`<button class="pve-zone-tab ${i===zoneIndex?'active':''} ${pveZoneComplete(z)?'complete':''} ${!pveZoneAccessible(z)?'locked':''}" type="button" data-pve-zone="${i}" aria-pressed="${i===zoneIndex}">${!pveZoneAccessible(z)?'🔒':z.icon||'🗺️'} ${escapeHtml(z.name)}</button>`).join('');
   const reversed=[...(zone.fights||[])].reverse();
   const route=reversed.map(f=>{const originalIndex=(zone.fights||[]).findIndex(x=>x.key===f.key);const side=originalIndex%2===0?'left':'right';const isCurrent=f.key===currentKey;const state=f.won?'won':(!f.unlocked?'locked':isCurrent?'current':'');const isFinal=Boolean(f.finalBoss||f.boss&&originalIndex===(zone.fights||[]).length-1);const bossClass=isFinal?'boss final-boss':f.boss?'boss':'';const badge=isFinal?'Boss de zone':f.boss?'Mini-boss':f.won?'Validé':isCurrent?'Position actuelle':'Étape';const forestPathPos=[[63.0,92.0],[47.0,84.0],[39.0,71.0],[53.0,63.0],[68.0,54.0],[61.0,41.0],[47.0,35.0],[39.0,25.0],[58.0,17.0],[51.0,10.0]];const emberPathPos=[[56.25,91.59],[42.29,83.19],[46.36,69.94],[(window.innerWidth>=1024?55.80:60.80),(window.innerWidth>=1024?65.60:62.20)],[65.20,53.60],[49.40,43.90],[52.40,34.70],[58.68,18.00],[56.50,8.50],[66.02,7.76]];const pathPos=zone.key==='forest'?forestPathPos:zone.key==='ember'?emberPathPos:null;const pos=pathPos?pathPos[Math.max(0,Math.min(pathPos.length-1,originalIndex))]:null;const posStyle=(pos)?` style="--pve-x:${pos[0]}%;--pve-y:${pos[1]}%"`:'';return `<div class="pve-map-stop ${side}" data-stop-key="${escapeHtml(f.key)}"${posStyle}><div class="pve-map-node-wrap"><button class="pve-map-node ${state} ${bossClass}" data-step="${originalIndex+1}" type="button" data-pve-node="${escapeHtml(f.key)}" aria-label="Combat ${originalIndex+1} : ${escapeHtml(f.name)}" >${pveMapEnemyNodeMarkup(f)}</button><div class="pve-map-node-label">${f.boss?`<div class="pve-map-boss-heading"><span class="pve-map-boss-logo ${isFinal?'zone-boss':'mini-boss'}" aria-hidden="true"><span class="pve-map-boss-logo-mark">${isFinal?'B':'M'}</span></span><span class="pve-map-boss-kind">${isFinal?'BOSS DE ZONE':'MINI-BOSS'}</span></div>`:''}<div class="pve-map-node-name">${escapeHtml(f.name)}</div><div class="pve-map-node-meta">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'')}</div><span class="pve-map-node-badge">${badge}</span></div>${isCurrent?pveTravelerMarkup(originalIndex+1):''}</div></div>`}).join('');
-  const mainMarkup=`<div class="pve-desktop-main">${pveAtlasMarkup(data)}<div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter ${zone.visual?.background?'has-zone-art':''}"${pveZoneArtStyle(zone)}>${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
+  const mainMarkup=`<div class="pve-desktop-main">${pveAtlasMarkup(data)}<div class="pve-zone-tabs">${zoneTabs}</div><section class="pve-adventure-map theme-${escapeHtml(zone.key||'forest')} pve-map-enter ${zone.visual?.background?'has-zone-art':''}"${pveZoneArtStyle(zone)}>${pveWorldSceneryMarkup(zone)}<div class="pve-map-zone-head"><div class="pve-map-zone-kicker">Zone ${zoneIndex+1} · ${escapeHtml(visual.danger)}</div><div class="pve-map-zone-name">${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</div><div class="pve-map-zone-lore">${!pveZoneAccessible(zone)?`🔒 Termine la zone précédente pour débloquer ${escapeHtml(zone.name)}.`:escapeHtml(visual.lore)}</div><div class="pve-map-zone-progress">${wonCount} / ${(zone.fights||[]).length} combats terminés</div></div><div class="pve-map-route">${pveRouteSvgMarkup(zone.key)}<span class="pve-map-goal">Sommet · Boss</span>${route}<span class="pve-map-start">Départ</span></div><div id="pveMapDetail">${pveFightDetailMarkup(selected)}</div><div id="pveZoneTransition" class="pve-zone-transition"></div></section></div>`;
   box.innerHTML=(isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches)?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if((isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches))$('pveMapDetail')?.classList.remove('detail-open');
 }
@@ -4257,18 +4282,10 @@ async function animatePveVictory(fightKey,result={}){
   }
 
   if(isFirstWin&&isZoneEnd){
-    document.querySelector('.pve-adventure-map')?.classList.add('traveler-moving');
-    await new Promise(r=>setTimeout(r,720));
-    const overlay=$('pveZoneTransition');
-    const next=(pveMapState.data?.zones||[])[info.zoneIndex+1];
-    if(overlay){
-      overlay.innerHTML=`<div class="pve-zone-transition-card"><div class="pve-zone-transition-icon">${next?(next.icon||'🗺️'):'🏆'}</div><div class="pve-zone-transition-title">${next?'Zone terminée !':'Aventure terminée !'}</div><div class="pve-zone-transition-sub">${next?`Direction : ${escapeHtml(next.name)}`:'Tous les combats actuels ont été terminés.'}</div></div>`;
-      overlay.classList.add('active');
-    }
-    await new Promise(r=>setTimeout(r,1000));
-    pveMapState.selectedZone=null;
+    // La célébration a déjà été affichée dans le résultat du combat.
+    const nextIndex=info.zoneIndex+1;
     pveMapState.selectedFight=null;
-    await refreshPveAfterVictory();
+    await refreshPveAfterVictory(pveMapState.data?.zones?.[nextIndex]?nextIndex:info.zoneIndex);
     return;
   }
 
@@ -4492,7 +4509,7 @@ function syncPveBattleLayout(){
   }
 }
 window.addEventListener('resize',syncPveBattleLayout);
-function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!isMobileGameUi())$('pveBattleContinue').textContent='Continuer';if(!isMobileGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:false,autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${fight?.boss?'Boss · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active');$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));}
+function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!isMobileGameUi())$('pveBattleContinue').textContent='Continuer';if(!isMobileGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:false,autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${fight?.boss?'Boss · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active','zone-complete');$('pveBattleResult').querySelector('.pve-zone-confetti')?.remove();$('pveBattleResult').querySelector('.pve-zone-complete-summary')?.remove();$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));}
 async function animatePveBattleEvents(events=[]){for(const event of events){$('pveBattleLog').textContent=event.message||'Combat…';const target=event.target==='player'?'player':event.target==='enemy'?'enemy':null;if(event.type==='damage'&&target){const el=target==='player'?$('pveBattlePlayer'):$('pveBattleEnemy');const attacker=event.source==='enemy'?$('pveBattleEnemy'):$('pveBattlePlayer');attacker?.classList.add('attacking');await pveWait(isMobileGameUi()?300:150);attacker?.classList.remove('attacking');el?.classList.add('hit');const key=target==='player'?'player':'enemy';pveBattleState.uiHp[key]=Math.max(0,pveBattleState.uiHp[key]-Number(event.amount||0));pveDamagePop(target==='player'?'pveBattlePlayerDamage':'pveBattleEnemyDamage',event.amount);const b=pveBattleState.battle;setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(isMobileGameUi()?470:300);el?.classList.remove('hit');}else if(event.type==='heal'&&target){const key=target;pveBattleState.uiHp[key]+=Number(event.amount||0);const b=pveBattleState.battle;pveBattleState.uiHp[key]=Math.min(target==='player'?b.player.maxHp:b.enemy.maxHp,pveBattleState.uiHp[key]);setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(260);}else{await pveWait(event.type==='boss'?500:300);}}}
 function updatePveAutoUi(){const btn=$('pveAutoBattle');if(!btn)return;btn.classList.toggle('active',Boolean(pveBattleState.auto));btn.setAttribute('aria-pressed',pveBattleState.auto?'true':'false');btn.innerHTML=isMobileGameUi()?(pveBattleState.auto?'⏸️ <strong>Pause auto</strong>':'▶️ <strong>Auto</strong>'):(pveBattleState.auto?'⏸️ <strong>Auto activé</strong>':'▶️ <strong>Combat auto</strong>');if(isMobileGameUi()){const hint=btn.parentElement?.querySelector('span');if(hint)hint.textContent=pveBattleState.auto?'Touche une attaque pour reprendre la main.':'Attaque normale toujours disponible.';}}
 function choosePveAutoAction(){const b=pveBattleState.battle;if(!b||b.status!=='active')return null;const skills=b.player?.skills||[],cd=b.player?.cooldowns||{};for(let i=skills.length-1;i>=0;i--){const sk=skills[i];if(sk&&Number(cd[sk.key]||0)<=1)return sk.key;}return 'basic';} // Le serveur diminue les recharges au début du tour.
@@ -4521,7 +4538,8 @@ async function submitPveBattleAction(action){
     syncPveBattleUi(d.battle);pveBattleState.lastResult=d;actionSucceeded=true;
     if(d.finished){
       pveBattleState.auto=false;pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();
-      const victory=Boolean(d.victory);$('pveBattleResultIcon').textContent=victory?'🏆':'💥';$('pveBattleResultTitle').textContent=victory?'Victoire !':'Défaite';$('pveBattleResultCopy').textContent=victory?`${d.battle.player.name} remporte le combat en ${Number(d.rounds||d.battle.round||1)} tour(s).`:(d.battle.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Renforce ton Lovy ou essaie une autre affinité.':`${d.battle.player.name} a été vaincu. Essaie un autre Lovys, améliore son rang ou fais-le progresser.`);const rw=d.reward||{};$('pveBattleResultReward').textContent=victory&&d.firstWin?`Première victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s) d’œuf`:victory?'Combat rejoué : aucune nouvelle récompense de première victoire.':'';configureMobilePveResult(d);$('pveBattleResult').classList.add('active');
+      const victory=Boolean(d.victory);$('pveBattleResultIcon').textContent=victory?'🏆':'💥';$('pveBattleResultTitle').textContent=victory?'Victoire !':'Défaite';$('pveBattleResultCopy').textContent=victory?`${d.battle.player.name} remporte le combat en ${Number(d.rounds||d.battle.round||1)} tour(s).`:(d.battle.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Renforce ton Lovy ou essaie une autre affinité.':`${d.battle.player.name} a été vaincu. Essaie un autre Lovys, améliore son rang ou fais-le progresser.`);const rw=d.reward||{};$('pveBattleResultReward').textContent=victory&&d.firstWin?`Première victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s) d’œuf`:victory?'Combat rejoué : aucune nouvelle récompense de première victoire.':'';configureMobilePveResult(d);configurePveZoneResult(d);$('pveBattleResult').classList.add('active');
+      (isMobileGameUi()?$('mobilePveResultPrimary'):$('pveBattleContinue'))?.focus({preventScroll:true});
     }else if(!(d.events||[]).length) $('pveBattleLog').textContent='Choisis ta prochaine action.';
   }catch(error){
     // Ne jamais laisser le combat verrouillé si une requête réseau reste suspendue.
@@ -4539,10 +4557,36 @@ async function submitPveBattleAction(action){
     }
   }
 }
-async function closePveBattleAnimation(){if(isMobileGameUi())return closeMobilePveBattle();stopPveAutoLoop();const result=pveBattleState.lastResult, fightKey=pveBattleState.fight?.key;const overlay=$('pveBattleOverlay');overlay?.classList.remove('active');if(!isMobileGameUi()){overlay?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}else setTimeout(()=>overlay?.classList.add('hidden'),180);pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};if(result?.victory&&fightKey)await animatePveVictory(fightKey,result);else{await loadGame();await loadLovysCollection();await loadPve();}}
+let pveDesktopClosing=false;
+async function closePveBattleAnimation(){
+  if(isMobileGameUi())return closeMobilePveBattle();
+  if(pveDesktopClosing)return;
+  pveDesktopClosing=true;
+  const button=$('pveBattleContinue'),label=button.textContent;
+  button.disabled=true;button.textContent='Chargement…';
+  stopPveAutoLoop();
+  const result=pveBattleState.lastResult,fightKey=pveBattleState.fight?.key;
+  try{
+    if(result?.victory&&fightKey)await animatePveVictory(fightKey,result);
+    else{await loadGame();await loadLovysCollection();await loadPve();}
+    $('pveBattleOverlay')?.classList.remove('active');
+    $('pveBattleOverlay')?.classList.add('hidden');
+    $('pveModal')?.classList.remove('desktop-battle-mode');
+    pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};
+    $('pveContent')?.querySelector('.pve-zone-tab.active')?.focus({preventScroll:true});
+  }catch(error){$('pveBattleResultCopy').textContent='Impossible d’actualiser la progression. Réessaie.';}
+  finally{button.disabled=false;button.textContent=label;pveDesktopClosing=false;}
+}
+
 $('pveAutoBattle')?.addEventListener('click',()=>{if(!pveBattleState.battle||pveBattleState.battle.status!=='active')return;pveBattleState.auto=!pveBattleState.auto;pveBattleState.autoToken++;updatePveAutoUi();if(pveBattleState.auto){$('pveBattleLog').textContent='Combat automatique activé.';schedulePveAuto();}else{stopPveAutoLoop();$('pveBattleLog').textContent='Combat automatique désactivé. Choisis une action.';}});
 $('pveBattleActions')?.addEventListener('click',e=>{const btn=e.target.closest('[data-battle-action]');if(!btn||btn.disabled)return;if(isMobileGameUi()&&pveBattleState.auto){pveBattleState.auto=false;pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();if(pveBattleState.running){pveBattleState.queuedAction=btn.dataset.battleAction;btn.classList.add('queued');$('pveBattleLog').textContent='Attaque choisie : elle part dès la fin du tour.';return;}}submitPveBattleAction(btn.dataset.battleAction);});
 $('pveBattleContinue')?.addEventListener('click',closePveBattleAnimation);
+document.addEventListener('keydown',event=>{
+  const result=$('pveBattleResult');
+  if(!result?.classList.contains('active')||!$('pveBattleOverlay')?.classList.contains('active'))return;
+  if(event.key==='Tab'){event.stopImmediatePropagation();trapDesktopAdminFocus(event,result);}
+  if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();void closePveBattleAnimation();}
+},true);
 $('pveBattleAbandon')?.addEventListener('click',async()=>{if(isMobileGameUi()){await abandonMobilePveBattle();return;}if(!pveBattleState.battle)return;stopPveAutoLoop();if(!confirm('Abandonner ce combat ? Aucune récompense ne sera donnée.'))return;await fetch('/api/pve/abandon',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const overlay=$('pveBattleOverlay');overlay?.classList.remove('active');if(!isMobileGameUi()){overlay?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}else setTimeout(()=>overlay?.classList.add('hidden'),180);pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};if(!isMobileGameUi())await loadPve();});
 $('openProgression')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='progression';document.body.dataset.desktopView='progression';setDesktopNavActive?.('progression');}$('progressionModal')?.classList.remove('hidden');loadProgression();syncMobileNavState?.();});$('progressionClose')?.addEventListener('click',()=>{$('progressionModal')?.classList.add('hidden');syncMobileNavState?.();});$('openPve')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='pve';document.body.dataset.desktopView='pve';setDesktopNavActive?.('pve');}$('pveModal')?.classList.remove('hidden');loadPve();syncMobileNavState?.();});$('pveClose')?.addEventListener('click',()=>{$('pveModal')?.classList.add('hidden');syncMobileNavState?.();});
 $('pveContent')?.addEventListener('click',async e=>{
