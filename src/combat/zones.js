@@ -589,7 +589,7 @@ const expansion = THEMES.map((zone,zi)=>{
     const rewardXp=Math.round(10+level*.72+(i%3));
     return {key,name:entry.name,level,type:entry.type,...stats,power:stats.attack,
       boss,miniBoss,finalBoss,zoneKey:zone.key,recommendedRank:zone.recommendedRank,...(mechanic?{mechanic}:{}),
-      visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:EXISTING_CREATURE_ART[key]||`/pve/${zone.key}/${i+1}.webp`},
+      visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:EXISTING_CREATURE_ART[key]||`/pve/${zone.key}/${i+1}.webp?v=490`},
       rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+level*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:finalBoss?6:miniBoss?3:zi>=4?2:1}};
   });
   return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank:zone.recommendedRank,minLevel:zone.minLevel,maxLevel:zone.maxLevel,visual,fights};
