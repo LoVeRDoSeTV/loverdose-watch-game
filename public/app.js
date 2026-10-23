@@ -4314,12 +4314,12 @@ const PVE_BESTIARY={
   ember_8:{zone:'ember',size:1.02,boss:false,glow:'#ff7440',image:'/pve/zone2/obsidrake.webp'},
   ember_9:{zone:'ember',size:1.10,boss:false,glow:'#ff6538',image:'/pve/zone2/titan-forge.webp'},
   ember_boss:{zone:'ember',size:1.26,boss:true,glow:'#ff5b32',image:'/pve/zone2/coeur-magma.webp'},
-  night_1:{zone:'night',size:.72,boss:false,glow:'#9b8fff',art:'moondrop'},
-  night_2:{zone:'night',size:.82,boss:false,glow:'#8ee1ff',art:'shardowl'},
-  night_3:{zone:'night',size:.93,boss:false,glow:'#c298ff',art:'mirrormoth'},
-  night_4:{zone:'night',size:1.05,boss:false,glow:'#998cff',art:'duskknight'},
-  night_mini:{zone:'night',size:1.16,boss:true,glow:'#caa8ff',art:'astralseer'},
-  night_boss:{zone:'night',size:1.32,boss:true,glow:'#9181ff',art:'eclipsebehemoth'}
+  night_1:{zone:'night',size:.72,boss:false,glow:'#9b8fff',image:'/pve/night/ombre-errante-v491.webp'},
+  night_2:{zone:'night',size:.82,boss:false,glow:'#8ee1ff',image:'/pve/night/veilleur-brise-v491.webp'},
+  night_3:{zone:'night',size:.93,boss:false,glow:'#c298ff',image:'/pve/night/spectre-miroir-v491.webp'},
+  night_4:{zone:'night',size:1.05,boss:false,glow:'#998cff',image:'/pve/night/chevalier-neant-v491.webp'},
+  night_mini:{zone:'night',size:1.16,boss:true,glow:'#caa8ff',image:'/pve/night/oracle-ruines-v491.webp'},
+  night_boss:{zone:'night',size:1.32,boss:true,glow:'#9181ff',image:'/pve/night/seigneur-eclipse-v491.webp'}
 };
 function pveEnemyVisual(fight){
   if(fight?.visual?.image)return {...fight.visual,boss:Boolean(fight.boss)};

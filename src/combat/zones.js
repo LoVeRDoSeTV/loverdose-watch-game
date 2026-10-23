@@ -54,10 +54,20 @@ function balancedStats(level, {position=0,boss=false,finalBoss=false,family='qua
   };
 }
 
+// Zone 3 illustrations are shared by the API and every responsive combat view.
+const NIGHT_CREATURE_ART = {
+  night_1:{zone:'night',size:.72,glow:'#9b8fff',image:'/pve/night/ombre-errante-v491.webp'},
+  night_2:{zone:'night',size:.82,glow:'#8ee1ff',image:'/pve/night/veilleur-brise-v491.webp'},
+  night_3:{zone:'night',size:.93,glow:'#c298ff',image:'/pve/night/spectre-miroir-v491.webp'},
+  night_4:{zone:'night',size:1.05,glow:'#998cff',image:'/pve/night/chevalier-neant-v491.webp'},
+  night_mini:{zone:'night',size:1.16,glow:'#caa8ff',image:'/pve/night/oracle-ruines-v491.webp'},
+  night_boss:{zone:'night',size:1.32,glow:'#9181ff',image:'/pve/night/seigneur-eclipse-v491.webp'}
+};
+
 const legacy = LEGACY_ZONES.map((zone,zi)=>({...zone,recommendedRank:1,fights:zone.fights.map((fight,fi)=>{
   const level=LEGACY_LEVELS[zi][fi];
   const stats=balancedStats(level,{position:fi,boss:fight.boss,finalBoss:fight.finalBoss,zoneIndex:zi});
-  return {...fight,...stats,power:stats.attack,level,zoneKey:zone.key};
+  return {...fight,...stats,power:stats.attack,level,zoneKey:zone.key,...(NIGHT_CREATURE_ART[fight.key]?{visual:NIGHT_CREATURE_ART[fight.key]}:{})};
 })}));
 
 const THEMES = [

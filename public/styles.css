@@ -4848,7 +4848,7 @@ body:has(#pveModal:not(.hidden)){
  .mobile-pve-opponent-heading{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:11px;color:#e1d3f7;text-shadow:0 2px 8px #030713}
  .mobile-pve-opponent-heading strong{color:#b5bfd7;font-size:12px}
  .mobile-pve-opponent-art{position:relative;z-index:1;display:grid;place-items:center;min-height:200px;height:clamp(200px,58vw,260px);margin:8px 0 16px;overflow:visible}
- .mobile-pve-opponent-art .pve-enemy-art{display:grid;place-items:center;width:min(100%,260px);height:100%;transform:none;filter:none}
+ .mobile-pve-opponent .mobile-pve-opponent-art .pve-enemy-art{display:grid;place-items:center;width:min(100%,260px);height:100%;transform:none;filter:none}
  .mobile-pve-opponent-art .pve-enemy-art::before{inset:10%;opacity:.14;filter:blur(14px)}
  .mobile-pve-opponent-art :is(img,svg){position:relative;z-index:1;width:auto!important;height:auto!important;max-height:clamp(190px,54vw,240px);max-width:90%;object-fit:contain;filter:drop-shadow(0 10px 10px rgba(0,0,0,.4)) drop-shadow(0 0 9px color-mix(in srgb,var(--mobile-enemy-glow) 35%,transparent))}
  .mobile-pve-opponent h3{margin:4px 0;font-size:22px;line-height:1.3}
