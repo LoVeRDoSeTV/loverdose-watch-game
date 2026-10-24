@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node server.js",
     "check:ovh": "node scripts/check-ovh.mjs",
-    "migrate:ovh": "node scripts/migrate-ovh.mjs"
+    "migrate:ovh": "node scripts/migrate-ovh.mjs",
+    "test": "node --test test/*.test.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -19,5 +20,8 @@
     "compression": "^1.7.4",
     "helmet": "^8.1.0",
     "express-rate-limit": "^7.5.0"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.11"
   }
 }

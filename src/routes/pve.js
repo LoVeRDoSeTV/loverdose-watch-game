@@ -1,8 +1,9 @@
 import express from 'express';
+import { creditLovysXp } from '../xp-economy.js';
 import { createBattleState, battlePublicState, resolveBattleAction } from '../combat/battle.js';
 import { isPveFightUnlocked } from '../combat/progression.js';
 
-export function createPveRouter({ pool, zones, previousFight, fightByKey, creatureBattleStats, typeMultiplier, globalThresholdForLevel }) {
+export function createPveRouter({ pool, zones, previousFight, fightByKey, creatureBattleStats, typeMultiplier }) {
   const router = express.Router();
 
   async function currentUser(twitchId, client=pool, lock=false){
@@ -25,7 +26,7 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         const ownWins=Number(progressMap.get(fight.key)?.wins || 0);
         return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:ownWins > 0, unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
       }) }));
-      const creature=user.creature_id ? creatureBattleStats({creature_id:user.creature_id,xp:Number((user.lovys_xp ?? user.xp) || 0),rank:Number(user.rank||1)}) : null;
+      const creature=user.creature_id ? creatureBattleStats({creature_id:user.creature_id,xp:Number(user.xp || 0),rank:Number(user.rank||1)}) : null;
       res.json({ ok:true, hasCreature:Boolean(user.creature_id), creature, eggFragments:Number(user.egg_fragments || 0), zones:publicZones });
     } catch (error) {
       console.error('Erreur chargement PvE :', error);
@@ -50,7 +51,7 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         const wins=new Map(pr.rows.map(row=>[row.fight_key,row.wins]));
         if(!isPveFightUnlocked(previous,wins.get(previous.key),wins.get(fight.key))){await client.query('ROLLBACK');return res.status(400).json({error:'Termine le combat précédent.'});}
       }
-      const stats=creatureBattleStats({creature_id:user.creature_id,xp:Number((user.lovys_xp ?? user.xp) || 0),rank:Number(user.rank||1)});
+      const stats=creatureBattleStats({creature_id:user.creature_id,xp:Number(user.xp || 0),rank:Number(user.rank||1)});
       const multiplier=typeMultiplier(stats.type,fight.type);
       const state=createBattleState({fight,player:{...stats,lovysId:Number(user.lovys_id),creatureId:user.creature_id},typeMultiplier:multiplier,bossMechanic:fight.mechanic||null});
       state.achievementDamageTaken=0;
@@ -94,10 +95,9 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         if(firstWin){
           const lovysId=Number(resolved.state.player.lovysId||0);
           if(lovysId){
-            const lr=await client.query(`UPDATE user_lovys SET xp=xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND user_id=$3 RETURNING xp,is_active`,[lovysId,reward.creatureXp,user.id]);
-            if(lr.rows[0]?.is_active) await client.query(`UPDATE users SET xp=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,Number(lr.rows[0].xp||0)]);
+            await creditLovysXp(client,user.id,lovysId,reward.creatureXp);
           }
-          await client.query(`UPDATE users SET global_xp=LEAST(global_xp+$2,$4),egg_fragments=egg_fragments+$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments,globalThresholdForLevel(56)]);
+          await client.query(`UPDATE users SET global_xp=global_xp+$2,egg_fragments=egg_fragments+$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments]);
         }
         // Report power columns are INTEGER; battle attacks may contain decimals.
         await client.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json)

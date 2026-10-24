@@ -1,3 +1,5 @@
+import { lovysThresholdForLevel } from '../xp-economy.js';
+
 // Stable fight keys preserve existing victories and first-win rewards.
 // Enemy levels describe the recommended Lovys level (campaign ends at 30), not a global level.
 const LEGACY_ZONES = [
@@ -613,7 +615,24 @@ const expansion = THEMES.map((zone,zi)=>{
   return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank:zone.recommendedRank,minLevel:zone.minLevel,maxLevel:zone.maxLevel,visual,fights};
 });
 
-export const PVE_ZONES=[...legacy,...expansion];
+// Each zone returns 40% of its recommended-level XP span. Guardians take
+// larger shares without letting the last zones fund the next zone outright.
+let cumulativeBudget=0,roundedBudget=0;
+export const PVE_ZONES=[...legacy,...expansion].map(zone=>{
+  cumulativeBudget+=(lovysThresholdForLevel(zone.fights.at(-1).level)-lovysThresholdForLevel(zone.fights[0].level))*.4;
+  const nextBudget=Math.round(cumulativeBudget),budget=nextBudget-roundedBudget;
+  roundedBudget=nextBudget;
+  const weights=zone.fights.map(f=>f.finalBoss?3:f.miniBoss?2:1);
+  const weightTotal=weights.reduce((sum,n)=>sum+n,0);
+  let assigned=0,cumulativeWeight=0;
+  const fights=zone.fights.map((fight,index)=>{
+    cumulativeWeight+=weights[index];
+    const cumulative=Math.round(budget*cumulativeWeight/weightTotal),creatureXp=cumulative-assigned;
+    assigned=cumulative;
+    return {...fight,rewards:{...fight.rewards,creatureXp}};
+  });
+  return {...zone,fights};
+});
 export const PVE_FIGHTS=PVE_ZONES.flatMap(zone=>zone.fights.map((fight,index)=>({...fight,zoneKey:zone.key,zoneName:zone.name,zoneIcon:zone.icon,index})));
 const byKey=new Map(PVE_FIGHTS.map(fight=>[fight.key,fight]));
 const previousByKey=new Map(PVE_FIGHTS.map((fight,index)=>[fight.key,PVE_FIGHTS[index-1]||null]));

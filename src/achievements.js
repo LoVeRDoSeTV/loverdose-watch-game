@@ -11,7 +11,18 @@ export const WATCH_STAGE_REWARDS=Object.freeze({
 
 // Une famille = un badge évolutif. Les gains sont incrémentaux, jamais horaires.
 const rewards = index => ({ lovysXp:[10,25,50,100][Math.min(index,3)], globalXp:[5,10,20,40][Math.min(index,3)], cash:[1,2,3,5][Math.min(index,3)] });
-const family=(id,category,icon,unit,metric,steps)=>({id,key:`achievement:${id}`,category,icon,unit,metric,steps:steps.map(([goal,name],index)=>({goal,name,rewards:rewards(index)}))});
+const BALANCED_LOVYS_REWARDS = Object.freeze({
+  eggs:[10,50,150,500],collection:[25,75,250],rare:[25],epic:[75],mimo:[250],
+  rank:[50,300],'rank-team':[750],level:[50,150,500],'level-team':[1000],
+  victories:[10,75,250],'close-win':[50],flawless:[50],variety:[150],
+  trades:[10,50],partners:[75],challenges:[10,150],'perfect-day':[25],
+  'daily-wheel':[10,100],'weekly-wheel':[25],style:[10],'full-style':[25],event:[25],marathon:[100]
+});
+const balancedRewards=(id,index)=>{
+  const lovysXp=BALANCED_LOVYS_REWARDS[id][index],old=rewards(index);
+  return {lovysXp,globalXp:Math.max(old.globalXp,Math.round(lovysXp*.4)),cash:Math.max(old.cash,Math.round(lovysXp*.1))};
+};
+const family=(id,category,icon,unit,metric,steps)=>({id,key:`achievement:${id}`,category,icon,unit,metric,steps:steps.map(([goal,name],index)=>({goal,name,rewards:balancedRewards(id,index)}))});
 export const ACHIEVEMENT_FAMILIES = [
   family('eggs','eggs','🥚','œufs éclos','eggs',[[1,'Première rencontre'],[10,'Petite nurserie'],[30,'Passionné d’éclosion'],[100,'Éleveur confirmé']]),
   family('collection','collection','🐉','Lovys différents','collection',[[3,'Les premiers amis'],[5,'Une belle famille'],[10,'Tous réunis']]),
@@ -187,6 +198,17 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
           await client.query('UPDATE user_badges SET badge_image=$3,badge_challenge=$4 WHERE user_id=$1 AND badge_key=$2',[userId,f.key,image,achievementDescription(f.id,current.goal)]);
         }
         for(const stage of earned){
+          if(!f.base){
+            // A new ledger version pays either the full new reward or only the
+            // difference from v1. New players never acquire a v1 payment key.
+            const version=`achievement-${stage.goal}-v2`;
+            if(!paid.has(`${f.key}:${version}`)){
+              const old=paid.has(`${f.key}:achievement-${stage.goal}-v1`)?rewards(f.steps.indexOf(stage)):{lovysXp:0,globalXp:0,cash:0};
+              const grant=Object.fromEntries(['lovysXp','globalXp','cash'].map(key=>[key,Math.max(0,stage.rewards[key]-old[key])]));
+              if(Object.values(grant).some(value=>value>0)) await awardRewards([userId],f.key,grant,version,`${f.key}:no-legacy`,client);
+            }
+            continue;
+          }
           if(f.base&&stage.goal===f.base){
             await awardRewards([userId],f.key,stage.rewards,'economy-v1',f.key,client);
             continue;

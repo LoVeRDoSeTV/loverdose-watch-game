@@ -4,6 +4,7 @@ import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } fr
 import { resetPlayerProgress } from './src/reset-player.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
+import { globalThresholdForLevel, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
 import session from 'express-session';
 import pg from 'pg';
 import connectPgSimple from 'connect-pg-simple';
@@ -51,16 +52,9 @@ const LOVERCASH_PER_MINUTE = 10 / 60;
 const GLOBAL_XP_PER_HOUR = 50;
 const GLOBAL_XP_SUB_PER_HOUR = 60;
 
-// Récompenses des badges de temps de visionnage.
-// L'XP Lovys de badge est stockée dans la réserve afin que le joueur
-// choisisse ensuite le Lovys qui la recevra.
-const BADGE_TIME_REWARDS = Object.freeze({
-  25: { lovysXp: 250, globalXp: 125, cash: 25 },
-  50: { lovysXp: 500, globalXp: 250, cash: 50 }
-});
-
 // Badges communautaires : récompenses simples mais utiles, obtenues une seule fois.
-const BADGE_SOCIAL_REWARD = Object.freeze({ lovysXp: 100, globalXp: 50, cash: 25 });
+const BADGE_SOCIAL_REWARD = Object.freeze({ lovysXp: 25, globalXp: 10, cash: 3 });
+const BADGE_DISCORD_REWARD = Object.freeze({ lovysXp: 75, globalXp: 30, cash: 10 });
 
 // Badge d'abonnement : récompense plus marquée pour remercier le soutien Twitch.
 const BADGE_SUB_REWARD = Object.freeze({ lovysXp: 500, globalXp: 250, cash: 100 });
@@ -191,8 +185,8 @@ async function syncRewardWheelState(client, userId) {
   const state = result.rows[0];
 
   const attendanceResult = await client.query(
-    `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1`,
-    [userId]
+    `SELECT COUNT(*)::int AS count FROM user_live_attendance WHERE user_id=$1 AND (badge_watch_seconds >= $2 OR wheel_legacy_credited)`,
+    [userId,LIVE_ATTENDANCE_SECONDS]
   );
   const totalLiveAttendance = Math.max(0, Number(attendanceResult.rows[0]?.count || 0));
   const checkpoint = Math.max(0, Number(state.weekly_live_checkpoint || 0));
@@ -226,8 +220,8 @@ async function applyWheelReward(client, userId, accountId, reward) {
     );
   } else if (reward.type === 'global_xp') {
     await client.query(
-      `UPDATE users SET global_xp=LEAST(global_xp+$2,$3), updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
-      [userId, reward.amount, globalThresholdForLevel(56)]
+      `UPDATE users SET global_xp=global_xp+$2, updated_at=CURRENT_TIMESTAMP WHERE id=$1`,
+      [userId, reward.amount]
     );
   } else if (reward.type === 'lovys_xp') {
     await client.query(
@@ -506,12 +500,6 @@ function progressionFromXp(xp) {
 }
 
 
-function globalThresholdForLevel(targetLevel) {
-  if (targetLevel <= 1) return 0;
-  const steps = targetLevel - 1;
-  return Math.round((steps * (500 + (steps - 1) * 50)) / 2);
-}
-
 function globalProgressionFromXp(xp) {
   const value = Math.max(0, Number(xp) || 0);
   const maxLevel = 55;
@@ -660,7 +648,24 @@ const creatures = [
 ];
 
 async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
+  if (clientOrPool !== pool) return grantGlobalLevelRewards(clientOrPool,userId,accountId,globalXp);
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result=await grantGlobalLevelRewards(client,userId,accountId,globalXp);
+    await client.query('COMMIT');
+    return result;
+  } catch(error) { await client.query('ROLLBACK'); throw error; }
+  finally { client.release(); }
+}
+
+async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp) {
   if (!userId || !accountId) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:Number(globalXp||0) };
+  const userStateResult = await clientOrPool.query(`SELECT creature_id,prestige,global_xp FROM users WHERE id=$1 FOR UPDATE`, [userId]);
+  const userState = userStateResult.rows[0];
+  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:Number(globalXp||0) };
+
+  globalXp=Number(userState.global_xp||0);
   let effectiveGlobalXp = Math.max(0, Number(globalXp) || 0);
   let progression = globalProgressionFromXp(effectiveGlobalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
@@ -668,10 +673,6 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
   for (const key of rewardKeys) {
     await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
   }
-
-  const userStateResult = await clientOrPool.query(`SELECT creature_id, prestige FROM users WHERE id=$1 LIMIT 1`, [userId]);
-  const userState = userStateResult.rows[0];
-  if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:effectiveGlobalXp };
 
   // Récompense chaque niveau atteint une seule fois. Si le bonus fait franchir
   // un nouveau niveau, ce nouveau palier est lui aussi traité dans la même synchro.
@@ -692,7 +693,7 @@ async function syncGlobalLevelRewards(clientOrPool, userId, accountId, globalXp)
       if (!inserted.rowCount) continue;
       const amount = Math.max(0, Number(inserted.rows[0]?.xp_amount || reward.xp || 0));
       if (!amount) continue;
-      effectiveGlobalXp = Math.min(globalThresholdForLevel(56), effectiveGlobalXp + amount);
+      effectiveGlobalXp += amount;
       globalXpGranted += amount;
       changed = true;
     }
@@ -1011,13 +1012,16 @@ async function initDatabase() {
   // Temps ajouté artificiellement au premier œuf : exclu du classement Visionnage.
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS incubator_accelerated_seconds BIGINT NOT NULL DEFAULT 0`);
 
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS global_xp_initialized BOOLEAN NOT NULL DEFAULT FALSE`);
   // Migration douce pour les joueurs déjà présents : le niveau global reprend
   // leur ancien temps de visionnage au taux de base de 50 XP globale / heure.
   await pool.query(`
     UPDATE users
     SET global_xp = (watch_seconds::double precision / 3600.0) * $1
-    WHERE global_xp = 0 AND watch_seconds > 0
+    WHERE global_xp_initialized=FALSE AND prestige=0 AND global_xp=0 AND watch_seconds>0
   `, [GLOBAL_XP_PER_HOUR]);
+  await pool.query(`UPDATE users SET global_xp_initialized=TRUE WHERE global_xp_initialized=FALSE`);
+  await pool.query(`ALTER TABLE users ALTER COLUMN global_xp_initialized SET DEFAULT TRUE`);
 
 
   // On initialise le total historique au minimum avec le solde actuel.
@@ -1034,7 +1038,8 @@ async function initDatabase() {
   // n'était pas encore éclos. Le tracker ne crédite pas d'XP de visionnage
   // avant l'éclosion, donc toute XP présente ici peut être déplacée sans
   // perdre la progression. Cette migration est idempotente : après passage,
-  // xp vaut 0 et ne sera pas déplacée une seconde fois.
+  // xp vaut 0 et ne sera pas déplacée une seconde fois. En v495, les nouveaux
+  // gains avant éclosion arrivent directement dans pending_xp.
   await pool.query(`
     UPDATE users
     SET pending_xp = pending_xp + xp,
@@ -1216,7 +1221,7 @@ async function initDatabase() {
     DELETE FROM user_lovys l USING ranked r WHERE l.id=r.id AND r.rn>1
   `);
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS user_lovys_unique_creature_idx ON user_lovys(user_id,creature_id)`);
-  await pool.query(`UPDATE users u SET creature_id=l.creature_id,xp=l.xp,updated_at=CURRENT_TIMESTAMP FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE AND (u.creature_id IS DISTINCT FROM l.creature_id OR u.xp IS DISTINCT FROM l.xp)`);
+
 
   // Migration douce : le Lovys actif historique rejoint la collection.
   await pool.query(`
@@ -1227,6 +1232,8 @@ async function initDatabase() {
       AND NOT EXISTS (SELECT 1 FROM user_lovys l WHERE l.user_id=u.id)
   `);
 
+  await reconcileLovysXp(pool);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_active_boosts (
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -1235,6 +1242,8 @@ async function initDatabase() {
       PRIMARY KEY (user_id, boost_key)
     )
   `);
+
+  await pool.query(`ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`);
 
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS accounts_discord_user_id_unique
@@ -1501,6 +1510,16 @@ async function initDatabase() {
       spun_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
     )
   `);
+  await pool.query(`CREATE TABLE IF NOT EXISTS economy_migrations(version TEXT PRIMARY KEY,applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+  await pool.query(`ALTER TABLE user_live_attendance ADD COLUMN IF NOT EXISTS wheel_legacy_credited BOOLEAN NOT NULL DEFAULT FALSE`);
+  const attendanceMigration=await pool.connect();
+  try {
+    await attendanceMigration.query('BEGIN');
+    const once=await attendanceMigration.query(`INSERT INTO economy_migrations(version) VALUES('v495-attendance') ON CONFLICT DO NOTHING RETURNING version`);
+    if(once.rowCount) await attendanceMigration.query(`UPDATE user_live_attendance SET wheel_legacy_credited=TRUE`);
+    await attendanceMigration.query('COMMIT');
+  } catch(error) {await attendanceMigration.query('ROLLBACK');throw error;} finally {attendanceMigration.release();}
+
   await pool.query(`CREATE INDEX IF NOT EXISTS user_reward_wheel_spins_user_idx ON user_reward_wheel_spins (user_id, spun_at DESC)`);
 
   await pool.query(`CREATE TABLE IF NOT EXISTS user_pve_progress (
@@ -2061,42 +2080,6 @@ async function syncSubscriberStatus(row) {
 
 let trackerTickRunning = false;
 
-async function awardBadgeXpOnce(userIds, badgeKey, xpAmount, rewardKey = badgeKey) {
-  const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
-    .map(Number)
-    .filter(Number.isInteger))];
-
-  if (!ids.length || !badgeKey || !(Number(xpAmount) > 0)) return 0;
-
-  const result = await pool.query(
-    `
-    WITH eligible AS (
-      SELECT DISTINCT ub.user_id
-      FROM user_badges ub
-      WHERE ub.user_id = ANY($1::int[])
-        AND ub.badge_key = $2
-    ),
-    rewarded AS (
-      INSERT INTO user_xp_rewards (user_id, reward_key, xp_amount)
-      SELECT user_id, $3, $4
-      FROM eligible
-      ON CONFLICT (user_id, reward_key) DO NOTHING
-      RETURNING user_id, xp_amount
-    )
-    UPDATE users u
-    SET xp = u.xp + CASE WHEN u.creature_id IS NOT NULL THEN rewarded.xp_amount ELSE 0 END,
-        pending_xp = u.pending_xp + CASE WHEN u.creature_id IS NULL THEN rewarded.xp_amount ELSE 0 END,
-        updated_at = CURRENT_TIMESTAMP
-    FROM rewarded
-    WHERE u.id = rewarded.user_id
-    RETURNING u.id
-    `,
-    [ids, badgeKey, String(rewardKey), Number(xpAmount)]
-  );
-
-  return result.rowCount || 0;
-}
-
 async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVersion = 'economy-v1', legacyRewardKey = badgeKey, queryClient = pool) {
   const ids = [...new Set((Array.isArray(userIds) ? userIds : [userIds])
     .map(Number)
@@ -2125,7 +2108,7 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
           SELECT ux.xp_amount
           FROM user_xp_rewards ux
           WHERE ux.user_id = e.user_id
-            AND ux.reward_key = $8
+            AND ux.reward_key = $7
           LIMIT 1
         ), 0) AS legacy_lovys_xp
       FROM eligible e
@@ -2146,7 +2129,7 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
     )
     UPDATE users u
     SET pending_xp = u.pending_xp + grants.lovys_xp,
-        global_xp = LEAST(u.global_xp + $5, $7),
+        global_xp = u.global_xp + $5,
         points = u.points + $6,
         lifetime_lovercash_earned = u.lifetime_lovercash_earned + $6,
         updated_at = CURRENT_TIMESTAMP
@@ -2161,38 +2144,11 @@ async function awardBadgeEconomyRewardsOnce(userIds, badgeKey, rewards, rewardVe
       lovysXp,
       globalXp,
       cash,
-      globalThresholdForLevel(56),
       String(legacyRewardKey || badgeKey)
     ]
   );
 
   return result.rowCount || 0;
-}
-
-async function awardXpOnce(userId, rewardKey, xpAmount) {
-  const id = Number(userId);
-  if (!Number.isInteger(id) || !rewardKey || !(Number(xpAmount) > 0)) return false;
-
-  const result = await pool.query(
-    `
-    WITH rewarded AS (
-      INSERT INTO user_xp_rewards (user_id, reward_key, xp_amount)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (user_id, reward_key) DO NOTHING
-      RETURNING user_id, xp_amount
-    )
-    UPDATE users u
-    SET xp = u.xp + CASE WHEN u.creature_id IS NOT NULL THEN rewarded.xp_amount ELSE 0 END,
-        pending_xp = u.pending_xp + CASE WHEN u.creature_id IS NULL THEN rewarded.xp_amount ELSE 0 END,
-        updated_at = CURRENT_TIMESTAMP
-    FROM rewarded
-    WHERE u.id = rewarded.user_id
-    RETURNING u.id
-    `,
-    [id, String(rewardKey), Number(xpAmount)]
-  );
-
-  return Boolean(result.rowCount);
 }
 
 async function runTrackerTick() {
@@ -2301,61 +2257,8 @@ async function runTrackerTick() {
         const normalGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_PER_HOUR * adminLiveBoosts.globalXp;
         const subGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_SUB_PER_HOUR * adminLiveBoosts.globalXp;
 
-        const result = await trackerClient.query(
-          `
-          UPDATE users
-          SET
-            xp = xp + (CASE
-              WHEN creature_id IS NULL THEN 0
-              WHEN is_sub THEN $2::double precision
-              ELSE $1::double precision
-            END) * (CASE WHEN EXISTS (
-              SELECT 1 FROM user_active_boosts b
-              WHERE b.user_id = users.id AND b.boost_key = 'boost_xp_x2' AND b.expires_at > CURRENT_TIMESTAMP
-            ) THEN 2 ELSE 1 END),
-            points = points + (CASE
-              WHEN is_sub THEN $4::double precision
-              ELSE $3::double precision
-            END) * (CASE WHEN EXISTS (
-              SELECT 1 FROM user_active_boosts b
-              WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
-            ) THEN 2 ELSE 1 END),
-            lifetime_lovercash_earned = lifetime_lovercash_earned + (CASE
-              WHEN is_sub THEN $4::double precision
-              ELSE $3::double precision
-            END) * (CASE WHEN EXISTS (
-              SELECT 1 FROM user_active_boosts b
-              WHERE b.user_id = users.id AND b.boost_key = 'boost_cash_x2' AND b.expires_at > CURRENT_TIMESTAMP
-            ) THEN 2 ELSE 1 END),
-            global_xp = LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END), $9::double precision),
-            watch_seconds = watch_seconds + $5::bigint,
-            away_lovys_xp = away_lovys_xp + CASE WHEN NOT EXISTS (
-              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
-                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
-            ) THEN (CASE WHEN creature_id IS NULL THEN 0 WHEN is_sub THEN $2::double precision ELSE $1::double precision END)
-              * (CASE WHEN EXISTS (SELECT 1 FROM user_active_boosts b WHERE b.user_id=users.id
-                AND b.boost_key='boost_xp_x2' AND b.expires_at>CURRENT_TIMESTAMP) THEN 2 ELSE 1 END) ELSE 0 END,
-            away_global_xp = away_global_xp + CASE WHEN NOT EXISTS (
-              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
-                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
-            ) THEN GREATEST(0,LEAST(global_xp + (CASE WHEN is_sub THEN $8::double precision ELSE $7::double precision END),$9::double precision)-global_xp) ELSE 0 END,
-            away_lovercash = away_lovercash + CASE WHEN NOT EXISTS (
-              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
-                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
-            ) THEN (CASE WHEN is_sub THEN $4::double precision ELSE $3::double precision END)
-              * (CASE WHEN EXISTS (SELECT 1 FROM user_active_boosts b WHERE b.user_id=users.id
-                AND b.boost_key='boost_cash_x2' AND b.expires_at>CURRENT_TIMESTAMP) THEN 2 ELSE 1 END) ELSE 0 END,
-            away_watch_seconds = away_watch_seconds + CASE WHEN NOT EXISTS (
-              SELECT 1 FROM user_game_tabs t WHERE t.user_id=users.id
-                AND t.last_seen_at > CURRENT_TIMESTAMP - INTERVAL '90 seconds'
-            ) THEN $5::bigint ELSE 0 END,
-            last_live_seen_at = CURRENT_TIMESTAMP,
-            updated_at = CURRENT_TIMESTAMP
-          WHERE twitch_id = ANY($6::text[])
-          RETURNING id
-          `,
-          [normalXp, subXp, normalLoverCash, subLoverCash, deltaSeconds, chatterIds, normalGlobalXp, subGlobalXp, globalThresholdForLevel(56)]
-        );
+        const result = await trackerClient.query(LIVE_TICK_SQL,
+          [normalXp,subXp,normalLoverCash,subLoverCash,deltaSeconds,chatterIds,normalGlobalXp,subGlobalXp,LOVYS_MAX_XP,new Date(now)]);
 
         matched = result.rowCount || 0;
 
@@ -2364,6 +2267,7 @@ async function runTrackerTick() {
           .filter(Number.isInteger);
 
         if (matchedUserIds.length > 0) {
+          await syncActiveLovysXp(trackerClient,matchedUserIds);
           await achievementService.trackEvents(trackerClient,matchedUserIds,deltaSeconds);
           const currentStreamId = String(stream?.id || '').trim();
           if (currentStreamId) {
@@ -2391,19 +2295,7 @@ async function runTrackerTick() {
             [matchedUserIds, deltaSeconds, EGG_HATCH_SECONDS]
           );
           const activityDate = dailyChallengeDateKey();
-          await trackerClient.query(
-            `
-            INSERT INTO user_daily_activity (user_id, activity_date, watch_seconds, global_xp_earned, lovercash_earned, updated_at)
-            SELECT u.id, $2::date, $3::bigint, CASE WHEN u.is_sub THEN $5::double precision ELSE $4::double precision END, CASE WHEN u.is_sub THEN $7::double precision ELSE $6::double precision END, CURRENT_TIMESTAMP
-            FROM users u WHERE u.id = ANY($1::int[])
-            ON CONFLICT (user_id, activity_date) DO UPDATE SET
-              watch_seconds = user_daily_activity.watch_seconds + EXCLUDED.watch_seconds,
-              global_xp_earned = user_daily_activity.global_xp_earned + EXCLUDED.global_xp_earned,
-              lovercash_earned = user_daily_activity.lovercash_earned + EXCLUDED.lovercash_earned,
-              updated_at = CURRENT_TIMESTAMP
-            `,
-            [matchedUserIds, activityDate, deltaSeconds, normalGlobalXp, subGlobalXp, normalLoverCash, subLoverCash]
-          );
+          await recordDailyLiveActivity(trackerClient,activityDate,deltaSeconds,result.rows);
 
           await trackerClient.query(
             `
@@ -2451,13 +2343,13 @@ async function runTrackerTick() {
                 game_name,
                 'Gardien de l’Émeraude',
                 '/badges/watch-dofus-1.webp',
-                'Regarder 50 h de lives dans la catégorie Dofus',
-                'special',
-                50
+                'Regarder 25 h de lives dans la catégorie Dofus',
+                'achievement-1',
+                25
               FROM user_game_watch
               WHERE user_id = ANY($1::int[])
                 AND LOWER(TRIM(game_name)) = 'dofus'
-                AND watch_seconds >= 180000
+                AND watch_seconds >= 90000
               ON CONFLICT (user_id, badge_key) DO NOTHING
               `,
               [matchedUserIds]
@@ -2485,13 +2377,13 @@ async function runTrackerTick() {
                 game_name,
                 'Maître des Sphères',
                 '/badges/watch-palworld-1.webp',
-                'Regarder 50 h de lives dans la catégorie Palworld',
-                'special',
-                50
+                'Regarder 25 h de lives dans la catégorie Palworld',
+                'achievement-1',
+                25
               FROM user_game_watch
               WHERE user_id = ANY($1::int[])
                 AND LOWER(TRIM(game_name)) = 'palworld'
-                AND watch_seconds >= 180000
+                AND watch_seconds >= 90000
               ON CONFLICT (user_id, badge_key) DO NOTHING
               `,
               [matchedUserIds]
@@ -2520,13 +2412,13 @@ async function runTrackerTick() {
                 game_name,
                 'Opérateur d’Élite',
                 '/badges/watch-mw4-1.webp',
-                'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
-                'special',
-                50
+                'Regarder 25 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
+                'achievement-1',
+                25
               FROM user_game_watch
               WHERE user_id = ANY($1::int[])
                 AND LOWER(TRIM(game_name)) LIKE '%modern warfare 4%'
-                AND watch_seconds >= 180000
+                AND watch_seconds >= 90000
               ON CONFLICT (user_id, badge_key) DO NOTHING
               `,
               [matchedUserIds]
@@ -4011,7 +3903,7 @@ app.get('/auth/discord/callback', async (req, res) => {
           `,
           [userId]
         );
-        await awardBadgeEconomyRewardsOnce([userId], 'mission:discord:membre-communaute', BADGE_SOCIAL_REWARD);
+        await awardBadgeEconomyRewardsOnce([userId], 'mission:discord:membre-communaute', BADGE_DISCORD_REWARD);
       }
     }
 
@@ -4825,13 +4717,13 @@ app.post('/api/daily-challenges/claim', async (req, res) => {
       UPDATE users
       SET points = points + $2,
           lifetime_lovercash_earned = lifetime_lovercash_earned + $2,
-          global_xp = LEAST(global_xp + $3, $4),
-          pending_xp = pending_xp + $5,
+          global_xp = global_xp + $3,
+          pending_xp = pending_xp + $4,
           updated_at = CURRENT_TIMESTAMP
       WHERE id = $1
       RETURNING points, global_xp, xp, pending_xp
       `,
-      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0), globalThresholdForLevel(56), rewardLovysXp]
+      [user.id, Number(challenge.rewardCash || 0), Number(challenge.rewardGlobalXp || 0), rewardLovysXp]
     );
     const updatedRewards = rewardUpdateResult.rows[0] || {};
 
@@ -4915,7 +4807,7 @@ app.post('/api/reward-wheels/spin', async (req, res) => {
     }
     if (wheelType === 'weekly' && !state.weekly_ready) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ error:'Assiste à 7 lives différents pour débloquer cette roue.' });
+      return res.status(409).json({ error:'Assiste à 7 lives différents pendant au moins une heure chacun pour débloquer cette roue.' });
     }
 
     const rewards = wheelType === 'daily' ? DAILY_WHEEL_REWARDS : WEEKLY_WHEEL_REWARDS;
@@ -4985,9 +4877,11 @@ app.post('/api/progression/transfer-lovys-xp', async (req,res)=>{
     if(user.creature_id) await client.query(`UPDATE user_lovys SET xp=$2,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
     const target=(await client.query(`SELECT id,creature_id,xp,is_active FROM user_lovys WHERE id=$1 AND user_id=$2 FOR UPDATE`,[lovysId,user.id])).rows[0];
     if(!target){await client.query('ROLLBACK');return res.status(404).json({error:'Lovys introuvable dans ta collection.'});}
-    const reserve=Math.max(0,Math.floor(Number(user.pending_xp||0)));
-    const requested=Math.floor(Number(req.body?.amount||reserve));
-    const amount=Math.max(0,Math.min(reserve,requested));
+    const reserve=Math.max(0,Number(user.pending_xp||0));
+    const requested=req.body?.amount===undefined?reserve:Number(req.body.amount);
+    const capacity=Math.max(0,LOVYS_MAX_XP-Number(target.xp||0));
+    if(capacity<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Ce Lovys est déjà niveau 50. Choisis un autre Lovys ; ton XP reste en réserve.'});}
+    const amount=Number.isFinite(requested)?Math.max(0,Math.min(reserve,requested,capacity)):0;
     if(amount<=0){await client.query('ROLLBACK');return res.status(400).json({error:'Aucune XP Lovys disponible à transférer.'});}
     await client.query(`UPDATE user_lovys SET xp=xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[target.id,amount]);
     if(target.is_active) await client.query(`UPDATE users SET xp=xp+$2,pending_xp=pending_xp-$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,amount]);
@@ -4999,7 +4893,7 @@ app.post('/api/progression/transfer-lovys-xp', async (req,res)=>{
 });
 
 app.post('/api/prestige', async (req,res)=>{
- const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); const up=await c.query(`UPDATE users SET global_xp=0,prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
+ const c=await pool.connect(); try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'}); await c.query('BEGIN'); const r=await c.query(`SELECT id,global_xp,prestige FROM users WHERE twitch_id=$1 FOR UPDATE`,[req.session.user.twitchId]); const u=r.rows[0]; if(!u){await c.query('ROLLBACK');return res.status(404).json({error:'Joueur introuvable.'});} if(!globalProgressionFromXp(u.global_xp).prestigeReady){await c.query('ROLLBACK');return res.status(400).json({error:'Remplis entièrement la barre du niveau 55 avant de passer Prestige.'});} await syncGlobalLevelRewards(c,u.id,req.session.account.id,u.global_xp); const up=await c.query(`UPDATE users SET global_xp=GREATEST(0,global_xp-$2),prestige=prestige+1,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING prestige`,[u.id,globalThresholdForLevel(56)]); await c.query('COMMIT'); pushLiveUpdate('game-update',{}); res.json({ok:true,message:`Prestige ${up.rows[0].prestige} atteint !`}); }catch(e){try{await c.query('ROLLBACK')}catch{};res.status(500).json({error:'Impossible de passer Prestige.'});}finally{c.release();}
 });
 
 
@@ -5033,8 +4927,7 @@ app.use('/api/pve', createPveRouter({
   previousFight: pvePreviousFight,
   fightByKey: pveFightByKey,
   creatureBattleStats,
-  typeMultiplier,
-  globalThresholdForLevel
+  typeMultiplier
 }));
 
 const achievementService=createAchievements({pool,creatures,zones:PVE_ZONES,progressionFromXp,awardRewards:awardBadgeEconomyRewardsOnce});
@@ -5175,7 +5068,7 @@ app.get('/api/badges', async (req, res) => {
         `,
         [user.id]
       );
-      await awardBadgeEconomyRewardsOnce([user.id], 'mission:discord:membre-communaute', BADGE_SOCIAL_REWARD);
+      await awardBadgeEconomyRewardsOnce([user.id], 'mission:discord:membre-communaute', BADGE_DISCORD_REWARD);
     }
 
     await achievementService.syncSubscriptionBadges(user.id);
@@ -5294,35 +5187,6 @@ app.get('/api/badges', async (req, res) => {
       )
     ]);
 
-    const dofusWatchSeconds = watchResult.rows
-      .filter(item => String(item.game_name || '').trim().toLowerCase() === 'dofus')
-      .reduce((total, item) => total + Number(item.watch_seconds || 0), 0);
-
-    const dofusBadgeKey = 'challenge:dofus:gardien-emeraude:50h';
-    const dofusUnlocked = badgeResult.rows.find(item => item.badge_key === dofusBadgeKey) || null;
-
-    const palworldWatchSeconds = watchResult.rows
-      .filter(item => String(item.game_name || '').trim().toLowerCase() === 'palworld')
-      .reduce((total, item) => total + Number(item.watch_seconds || 0), 0);
-
-    const palworldBadgeKey = 'challenge:palworld:maitre-des-spheres:50h';
-    const palworldUnlocked = badgeResult.rows.find(item => item.badge_key === palworldBadgeKey) || null;
-
-
-    const mw4WatchSeconds = watchResult.rows
-      .filter(item => String(item.game_name || '').trim().toLowerCase().includes('modern warfare 4'))
-      .reduce((total, item) => total + Number(item.watch_seconds || 0), 0);
-
-    const mw4BadgeKey = 'challenge:mw4:operateur-elite:50h';
-    const mw4Unlocked = badgeResult.rows.find(item => item.badge_key === mw4BadgeKey) || null;
-
-    const zombieWatchSeconds = watchResult.rows
-      .filter(item => String(item.game_id || '') === 'special:zombie')
-      .reduce((total, item) => total + Number(item.watch_seconds || 0), 0);
-
-    const zombieBadgeKey = 'mission:zombie:maitre-des-morts:25h';
-    const zombieUnlocked = badgeResult.rows.find(item => item.badge_key === zombieBadgeKey) || null;
-
     const subBadgeKey = 'mission:sub:soutien-absolu';
     const subUnlocked = badgeResult.rows.find(item => item.badge_key === subBadgeKey) || null;
 
@@ -5417,7 +5281,7 @@ app.get('/api/badges', async (req, res) => {
     badgeResult.rows=(await pool.query('SELECT * FROM user_badges WHERE user_id=$1 ORDER BY game_name,threshold_hours',[user.id])).rows;
 
     const badgeEconomyRewards = [
-      ['mission:discord:membre-communaute', BADGE_SOCIAL_REWARD],
+      ['mission:discord:membre-communaute', BADGE_DISCORD_REWARD],
       ['mission:instagram:communaute', BADGE_SOCIAL_REWARD],
       ['mission:tiktok:communaute', BADGE_SOCIAL_REWARD],
       // Le bonus abonné est géré par période active dans achievementService.
@@ -5460,95 +5324,6 @@ app.get('/api/badges', async (req, res) => {
       })),
       challenges: [
         {
-          badgeKey: dofusBadgeKey,
-          badgeName: 'Gardien de l’Émeraude',
-          badgeImage: '/badges/watch-dofus-1.webp',
-          badgeChallenge: 'Regarder 50 h de lives dans la catégorie Dofus',
-          gameName: 'Dofus',
-          badgeCategory: 'twitch',
-          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
-          rewardCash: BADGE_TIME_REWARDS[50].cash,
-          lovysXpToReserve: true,
-          targetHours: 50,
-          watchSeconds: dofusWatchSeconds,
-          unlocked: Boolean(dofusUnlocked),
-          equippedSlot: dofusUnlocked?.equipped_slot === null || dofusUnlocked?.equipped_slot === undefined
-            ? null
-            : Number(dofusUnlocked.equipped_slot),
-          leaderboardSlot: dofusUnlocked?.leaderboard_slot === null || dofusUnlocked?.leaderboard_slot === undefined
-            ? null
-            : Number(dofusUnlocked.leaderboard_slot)
-        },
-        {
-          badgeKey: palworldBadgeKey,
-          badgeName: 'Maître des Sphères',
-          badgeImage: '/badges/watch-palworld-1.webp',
-          badgeChallenge: 'Regarder 50 h de lives dans la catégorie Palworld',
-          gameName: 'Palworld',
-          badgeCategory: 'twitch',
-          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
-          rewardCash: BADGE_TIME_REWARDS[50].cash,
-          lovysXpToReserve: true,
-          targetHours: 50,
-          watchSeconds: palworldWatchSeconds,
-          unlocked: Boolean(palworldUnlocked),
-          equippedSlot: palworldUnlocked?.equipped_slot === null || palworldUnlocked?.equipped_slot === undefined
-            ? null
-            : Number(palworldUnlocked.equipped_slot),
-          leaderboardSlot: palworldUnlocked?.leaderboard_slot === null || palworldUnlocked?.leaderboard_slot === undefined
-            ? null
-            : Number(palworldUnlocked.leaderboard_slot)
-        },
-        {
-          badgeKey: mw4BadgeKey,
-          badgeName: 'Opérateur d’Élite',
-          badgeImage: '/badges/watch-mw4-1.webp',
-          badgeChallenge: 'Regarder 50 h de lives dans la catégorie Call of Duty: Modern Warfare 4',
-          gameName: 'Call of Duty: Modern Warfare 4',
-          badgeCategory: 'twitch',
-          rewardXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardLovysXp: BADGE_TIME_REWARDS[50].lovysXp,
-          rewardGlobalXp: BADGE_TIME_REWARDS[50].globalXp,
-          rewardCash: BADGE_TIME_REWARDS[50].cash,
-          lovysXpToReserve: true,
-          targetHours: 50,
-          watchSeconds: mw4WatchSeconds,
-          unlocked: Boolean(mw4Unlocked),
-          equippedSlot: mw4Unlocked?.equipped_slot === null || mw4Unlocked?.equipped_slot === undefined
-            ? null
-            : Number(mw4Unlocked.equipped_slot),
-          leaderboardSlot: mw4Unlocked?.leaderboard_slot === null || mw4Unlocked?.leaderboard_slot === undefined
-            ? null
-            : Number(mw4Unlocked.leaderboard_slot)
-        },
-        {
-          badgeKey: zombieBadgeKey,
-          badgeName: 'Maître des morts',
-          badgeImage: '/badges/watch-zombie-1.webp',
-          badgeChallenge: 'Regarder 25 h de lives en mode Zombie',
-          gameName: 'Zombie',
-          missionType: 'special-mode',
-          badgeCategory: 'twitch',
-          rewardXp: BADGE_TIME_REWARDS[25].lovysXp,
-          rewardLovysXp: BADGE_TIME_REWARDS[25].lovysXp,
-          rewardGlobalXp: BADGE_TIME_REWARDS[25].globalXp,
-          rewardCash: BADGE_TIME_REWARDS[25].cash,
-          lovysXpToReserve: true,
-          targetHours: 25,
-          watchSeconds: zombieWatchSeconds,
-          unlocked: Boolean(zombieUnlocked),
-          equippedSlot: zombieUnlocked?.equipped_slot === null || zombieUnlocked?.equipped_slot === undefined
-            ? null
-            : Number(zombieUnlocked.equipped_slot),
-          leaderboardSlot: zombieUnlocked?.leaderboard_slot === null || zombieUnlocked?.leaderboard_slot === undefined
-            ? null
-            : Number(zombieUnlocked.leaderboard_slot)
-        },
-        {
           badgeKey: discordBadgeKey,
           badgeName: 'Membre de la communauté',
           badgeImage: '/badges/discord-1.webp',
@@ -5556,10 +5331,10 @@ app.get('/api/badges', async (req, res) => {
           gameName: 'Discord',
           missionType: 'discord',
           badgeCategory: 'social',
-          rewardXp: BADGE_SOCIAL_REWARD.lovysXp,
-          rewardLovysXp: BADGE_SOCIAL_REWARD.lovysXp,
-          rewardGlobalXp: BADGE_SOCIAL_REWARD.globalXp,
-          rewardCash: BADGE_SOCIAL_REWARD.cash,
+          rewardXp: BADGE_DISCORD_REWARD.lovysXp,
+          rewardLovysXp: BADGE_DISCORD_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_DISCORD_REWARD.globalXp,
+          rewardCash: BADGE_DISCORD_REWARD.cash,
           lovysXpToReserve: true,
           socialNetwork: 'discord',
           socialActionUrl: '/auth/discord',
@@ -6604,9 +6379,6 @@ app.get('/api/lovys', async (req,res)=>{
     const ur=await pool.query(`SELECT id,creature_id,xp,pending_xp,universal_lovys_fragments,is_sub FROM users WHERE twitch_id=$1 LIMIT 1`,[req.session.user.twitchId]);
     const user=ur.rows[0];
     if(!user) return res.status(404).json({error:'Joueur introuvable.'});
-    if(user.creature_id){
-      await pool.query(`UPDATE user_lovys SET xp=$2, updated_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND is_active=TRUE`,[user.id,Number(user.xp||0)]);
-    }
     const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at,rank,fragments FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
     const [personalBoostResult, adminBoost] = await Promise.all([
       pool.query(`SELECT expires_at FROM user_active_boosts WHERE user_id=$1 AND boost_key='boost_xp_x2' AND expires_at > CURRENT_TIMESTAMP`, [user.id]),
@@ -6917,9 +6689,9 @@ app.post('/api/shop/use', async (req, res) => {
         return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
       }
       const boostResult = await client.query(
-        `INSERT INTO user_active_boosts (user_id, boost_key, expires_at)
-         VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '1 hour')
-         ON CONFLICT (user_id,boost_key) DO UPDATE SET expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour' RETURNING expires_at`,
+        `INSERT INTO user_active_boosts (user_id, boost_key, expires_at, starts_at)
+         VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '1 hour',CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id,boost_key) DO UPDATE SET starts_at=CASE WHEN user_active_boosts.expires_at>CURRENT_TIMESTAMP THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END, expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour' RETURNING expires_at`,
         [user.id, key]
       );
       boostExpiresAt = boostResult.rows[0]?.expires_at || null;
