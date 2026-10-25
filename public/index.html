@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=496">
+<link rel="stylesheet" href="/styles.css?v=497">
 <link rel="stylesheet" href="/pve-expansion.css?v=489">
 <link rel="stylesheet" href="/return-summary.css?v=487">
 <link rel="stylesheet" href="/live-xp-boost.css?v=476">
@@ -585,6 +585,7 @@
     <div class="daily-challenge-detail-progress"><span id="dailyChallengeDetailProgressBar" style="width:0%"></span></div>
     <div class="daily-challenge-detail-progress-text"><span id="dailyChallengeDetailProgressText">0 / 0</span><span id="dailyChallengeDetailState">En cours</span></div>
     <div id="dailyChallengeDetailActions" class="daily-challenge-detail-actions"></div>
+    <div id="dailyChallengeDetailMessage" class="daily-challenge-detail-message" role="status" aria-live="polite" hidden></div>
   </div>
 </div>
 <section class="desktop-lovys-hub" aria-label="Mes Lovys sur ordinateur"><div class="desktop-lovys-card lovys-overview-card"><div class="lovys-card-head"><div><div class="hub-title">🐉 Mes Lovys</div><div class="hub-sub">Retrouve ton compagnon actif, sa progression et ses informations clés, comme sur mobile mais optimisé pour le PC.</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button id="openLovysCollection" class="lovys-collection-open" type="button">🐉 Ma collection</button><button id="hubFragments" class="fragment-pill" data-open-fragment-shop type="button" title="Ouvrir la boutique de fragments"><span class="fragment-pill-value"><span class="fragment-inline-icon fragment-inline-icon-lg" aria-hidden="true"></span>0</span><span class="fragment-pill-label">Fragments d’œuf</span></button></div></div><div id="desktopLovysOverview" class="lovys-overview-main"></div></div><div class="desktop-lovys-card lovys-pve-card"><div class="lovys-card-head"><div><div class="hub-title">⚔️ Aventure PvE</div><div class="hub-sub">Prépare tes combats, consulte l’état actuel de ton Lovys et récupère tes récompenses de première victoire.</div></div></div><div id="desktopLovysPveState" class="lovys-pve-state"></div><div class="lovys-hub-actions"><button id="openProgression" class="hub-btn lovys-home-btn" type="button">📈 Voir ma progression</button><button id="openPve" class="hub-btn lovys-home-btn primary" type="button">⚔️ Combattre</button></div></div></section>
@@ -1336,7 +1337,7 @@
  </section>
 </div>
 <script src="/live-xp-boost.js?v=460"></script>
-<script src="/app.js?v=496"></script>
+<script src="/app.js?v=497"></script>
 <script src="/auth-fallback.js?v=111"></script></body></html>
 
 

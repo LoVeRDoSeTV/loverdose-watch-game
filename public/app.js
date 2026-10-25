@@ -625,6 +625,20 @@ function setupTopDashboardSync() {
   topDashboardResizeObserver.observe(leftStack);
 }
 
+const dailyChallengeClaims=new Set();
+const dailyChallengeFeedback=new Map();
+let dailyChallengeDetailKey=null;
+function dailyChallengeFeedbackKey(key,date=dailyChallengesData?.date){return `${date||''}:${key}`;}
+function setDailyChallengeFeedback(key,message='',type='',date=dailyChallengesData?.date){
+  dailyChallengeFeedback.set(dailyChallengeFeedbackKey(key,date),{message,type});
+  if(dailyChallengeDetailKey!==key||date!==dailyChallengesData?.date)return;
+  const el=$('dailyChallengeDetailMessage');
+  if(el){el.textContent=message;el.className=`daily-challenge-detail-message${type?` ${type}`:''}`;el.hidden=!message;}
+}
+function refreshOpenDailyChallengeDetail(){
+  if(dailyChallengeDetailKey&&!$('dailyChallengeDetailModal')?.classList.contains('hidden'))renderDailyChallengeDetail(dailyChallengeDetailKey);
+}
+
 function setDailyChallengeMessage(message = '', type = '') {
   const el = $('dailyChallengesMessage');
   if (!el) return;
@@ -689,7 +703,7 @@ function renderDailyChallenges() {
     if (challenge.claimed) {
       actions = `<span class="daily-challenge-status">✓ Récompense récupérée</span>`;
     } else if (challenge.completed) {
-      actions = `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}">🎁 Réclamer</button>`;
+      actions = `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>`;
     } else {
       actions = `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
     }
@@ -742,20 +756,24 @@ function setDailyChallengeDetailBackground(challengeKey) {
 function renderDailyChallengeDetail(challengeKey) {
   const challenge = getDailyChallengeByKey(challengeKey);
   if (!challenge) return;
+  dailyChallengeDetailKey=challenge.key;
   setDailyChallengeDetailBackground(challenge.key);
   const goal = Math.max(1, Number(challenge.goal || 1));
   const progress = Math.max(0, Math.min(goal, Number(challenge.progress || 0)));
   const pct = Math.max(0, Math.min(100, (progress / goal) * 100));
   const rewards = `${Number(challenge.rewardCash || 0) > 0 ? `<span class="daily-reward-pill cash">💰 +${Number(challenge.rewardCash)} LoVeR'Cash</span>` : ''}${Number(challenge.rewardGlobalXp || 0) > 0 ? `<span class="daily-reward-pill">⭐ +${Number(challenge.rewardGlobalXp)} XP globale</span>` : ''}${Number(challenge.rewardLovysXp || 0) > 0 ? `<span class="daily-reward-pill">🐉 +${Number(challenge.rewardLovysXp)} XP Lovys</span>` : ''}`;
-  let actions = challenge.claimed ? `<span class="daily-challenge-status">✓ Récompense récupérée</span>` : challenge.completed ? `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}">🎁 Réclamer</button>` : `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
+  let actions = challenge.claimed ? `<span class="daily-challenge-status">✓ Récompense récupérée</span>` : challenge.completed ? `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>` : `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
   $('dailyChallengeDetailIcon').textContent = challenge.icon || '🎯';
   $('dailyChallengeDetailTitle').textContent = challenge.title || 'Défi du jour';
   $('dailyChallengeDetailDesc').textContent = challenge.description || '';
   $('dailyChallengeDetailRewards').innerHTML = rewards;
   $('dailyChallengeDetailProgressBar').style.width = `${pct}%`;
   $('dailyChallengeDetailProgressText').textContent = formatDailyChallengeProgress(challenge);
-  $('dailyChallengeDetailState').textContent = challenge.completed ? 'Terminé' : 'En cours';
+  $('dailyChallengeDetailState').textContent = challenge.claimed ? 'Réclamé' : challenge.completed ? 'Terminé' : 'En cours';
   $('dailyChallengeDetailActions').innerHTML = actions;
+  $('dailyChallengeDetailActions').setAttribute('aria-busy',String(dailyChallengeClaims.has(challenge.key)));
+  const feedback=dailyChallengeFeedback.get(dailyChallengeFeedbackKey(challenge.key));
+  setDailyChallengeFeedback(challenge.key,feedback?.message||'',feedback?.type||'');
   $('dailyChallengeDetailModal')?.classList.remove('hidden');
 }
 
@@ -764,9 +782,15 @@ async function loadDailyChallenges() {
     const response = await fetch('/api/daily-challenges', { cache:'no-store' });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Impossible de charger les défis.');
+    if(data.date!==dailyChallengesData?.date)dailyChallengeFeedback.clear();
+    // Une réponse de liste ancienne ne réactive pas un défi déjà réclamé dans cette session.
+    for(const challenge of data.challenges||[]){
+      if(dailyChallengeFeedback.get(dailyChallengeFeedbackKey(challenge.key,data.date))?.type==='ok')challenge.claimed=true;
+    }
     dailyChallengesData = data;
     renderDailyChallenges();
     renderNextActions();
+    refreshOpenDailyChallengeDetail();
   } catch (error) {
     console.error('Erreur défis journaliers :', error);
     if ($('dailyChallengesSummary')) $('dailyChallengesSummary').textContent = 'Impossible de charger les défis du jour.';
@@ -774,7 +798,13 @@ async function loadDailyChallenges() {
 }
 
 async function claimDailyChallenge(challengeKey) {
+  if(!challengeKey||dailyChallengeClaims.has(challengeKey)||getDailyChallengeByKey(challengeKey)?.claimed)return;
+  const date=dailyChallengesData?.date;
+  dailyChallengeClaims.add(challengeKey);
   setDailyChallengeMessage();
+  setDailyChallengeFeedback(challengeKey,'Récupération de ta récompense…','',date);
+  renderDailyChallenges();refreshOpenDailyChallengeDetail();
+  let claimed=false;
   try {
     const response = await fetch('/api/daily-challenges/claim', {
       method:'POST',
@@ -791,11 +821,24 @@ async function claimDailyChallenge(challengeKey) {
       if (me?.user) me.user.points = Number(data.balance);
       syncLoverCashDisplays({ points:Number(data.balance) });
     }
-    setDailyChallengeMessage(`Récompense récupérée : ${parts.join(' · ')}`, 'ok');
-    await Promise.all([loadDailyChallenges(), loadGame(), loadLeaderboard()]);
+    claimed=true;
+    if(date===dailyChallengesData?.date){
+      const challenge=getDailyChallengeByKey(challengeKey);
+      if(challenge){challenge.claimed=true;challenge.completed=true;}
+    }
+    const message=parts.length?`Récompense récupérée : ${parts.join(' · ')}`:'Récompense récupérée !';
+    setDailyChallengeMessage(message,'ok');
+    setDailyChallengeFeedback(challengeKey,message,'ok',date);
   } catch (error) {
-    setDailyChallengeMessage(error.message || 'Récompense impossible à récupérer.', 'error');
+    const message=error.message || 'Récompense impossible à récupérer.';
+    setDailyChallengeMessage(message,'error');
+    setDailyChallengeFeedback(challengeKey,message,'error',date);
+  } finally {
+    dailyChallengeClaims.delete(challengeKey);
+    renderDailyChallenges();renderNextActions();refreshOpenDailyChallengeDetail();
   }
+  // Les gains sont déjà validés : une erreur d’actualisation ne doit pas annoncer un échec de réclamation.
+  if(claimed)await Promise.allSettled([loadDailyChallenges(),loadGame(),loadLeaderboard()]);
 }
 
 function syncLoverCashDisplays(user = me?.user) {
@@ -8991,7 +9034,7 @@ setInterval(() => {
 
 function handleDailyChallengeAction(event) {
   const claimButton = event.target.closest('[data-daily-claim]');
-  if (claimButton) { claimDailyChallenge(claimButton.dataset.dailyClaim); return true; }
+  if (claimButton) { if(!claimButton.disabled)void claimDailyChallenge(claimButton.dataset.dailyClaim); return true; }
   return false;
 }
 $('dailyChallengesGrid')?.addEventListener('click', event => {
