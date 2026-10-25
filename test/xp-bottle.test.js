@@ -23,8 +23,8 @@ test.after(async()=>{await db?.close()});
 test.beforeEach(async()=>{historyFails=false;notificationsFail=false;await db.exec(`DELETE FROM users;DELETE FROM shop_inventory;DELETE FROM history;INSERT INTO users VALUES(1,'player','plant',1000,0,7,500,20,1234,NULL);`)});
 
 test('bottle is a repeatable consumable with a server-controlled price and XP amount',async()=>{
- const item=vm.runInContext("shopItemByKey('xp_bottle_100')",context);assert.equal(item.category,'object');assert.equal(item.price,200);assert.equal(item.xpAmount,100);assert.equal(item.consumable,true);
- const bought=await call('/api/shop/buy',{itemKey:item.key,quantity:2,price:1,xpAmount:99999});assert.equal(bought.statusCode,200);assert.equal(bought.body.totalCost,400);assert.equal((await user()).points,600);assert.equal((await user()).pending_xp,7);assert.equal(await quantity(),2);
+ const item=vm.runInContext("shopItemByKey('xp_bottle_100')",context);assert.equal(item.category,'object');assert.equal(item.price,120);assert.equal(item.xpAmount,100);assert.equal(item.consumable,true);
+ const bought=await call('/api/shop/buy',{itemKey:item.key,quantity:2,price:1,xpAmount:99999});assert.equal(bought.statusCode,200);assert.equal(bought.body.totalCost,240);assert.equal((await user()).points,760);assert.equal((await user()).pending_xp,7);assert.equal(await quantity(),2);
  const used=await call('/api/shop/use',{itemKey:item.key,xpAmount:99999});assert.equal(used.statusCode,200);assert.equal(used.body.xpGranted,100);assert.equal(used.body.pendingXp,107);assert.equal(await quantity(),1);
  const u=await user();assert.equal(u.xp,500);assert.equal(u.global_xp,20);assert.equal(u.watch_seconds,1234);
  await call('/api/shop/use',{itemKey:item.key});assert.equal((await user()).pending_xp,207);assert.equal(await quantity(),0);assert.equal((await call('/api/shop/use',{itemKey:item.key})).statusCode,400);assert.equal((await user()).pending_xp,207);
@@ -36,7 +36,7 @@ test('unauthorized, invalid quantities, empty inventory and insufficient cash ne
  assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100'})).statusCode,400);
  for(const q of [0,-1,1.5,101,'2'])assert.equal((await call('/api/shop/buy',{itemKey:'xp_bottle_100',quantity:q})).statusCode,400);
  await call('/api/shop/buy',{itemKey:'xp_bottle_100'});assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100',quantity:2})).statusCode,400);assert.equal(await quantity(),1);assert.equal((await user()).pending_xp,7);
- await client.query('UPDATE users SET points=199 WHERE id=1');assert.equal((await call('/api/shop/buy',{itemKey:'xp_bottle_100'})).statusCode,400);assert.equal((await user()).points,199);assert.equal(await quantity(),1);
+ await client.query('UPDATE users SET points=119 WHERE id=1');assert.equal((await call('/api/shop/buy',{itemKey:'xp_bottle_100'})).statusCode,400);assert.equal((await user()).points,119);assert.equal(await quantity(),1);
 });
 
 test('bottle XP remains usable before hatching or with a max-level Lovys and bypasses no boosts',async()=>{
