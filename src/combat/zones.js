@@ -591,10 +591,10 @@ const MECHANICS = {
 
 // Illustrations détaillées déjà créées et retrouvées ; noms versionnés pour le cache immuable.
 const EXISTING_CREATURE_ART={
-  tide_1:'/pve/tide/perlune-v489.webp',
-  tide_3:'/pve/tide/raie-courants-v489.webp',
-  tide_4:'/pve/tide/hippocampe-ecume-v489.webp',
-  frost_2:'/pve/frost/renardeau-givre-v489.webp'
+  tide_1:'/pve/tide/perlune-v503.webp',
+  tide_3:'/pve/tide/raie-courants-v503.webp',
+  tide_4:'/pve/tide/hippocampe-ecume-v503.webp',
+  frost_2:'/pve/frost/renardeau-givre-v503.webp'
 };
 
 const expansion = THEMES.map((zone,zi)=>{
