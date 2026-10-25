@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
-import { globalThresholdForLevel,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
+import { globalThresholdForLevel,lovysProgressionFromXp,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
 import { ACHIEVEMENT_FAMILIES,WATCH_FAMILIES,WATCH_HOUR_STAGES,createAchievements } from '../src/achievements.js';
 import { PVE_ZONES,PVE_FIGHTS,pveFightByKey,pvePreviousFight } from '../src/combat/zones.js';
 import { createPveRouter } from '../src/routes/pve.js';
@@ -67,7 +67,7 @@ function extracted(start,end,extra={}){
 }
 function response(){return {statusCode:200,status(n){this.statusCode=n;return this;},json(body){this.body=body;return this;}};}
 
-test('global thresholds are five times shorter without changing Lovys goals',()=>{
+test('global thresholds keep their current curve',()=>{
  assert.equal(globalThresholdForLevel(10),810);assert.equal(globalThresholdForLevel(25),3960);assert.equal(globalThresholdForLevel(55),17010);assert.equal(globalThresholdForLevel(56),17600);
 });
 test('real SQL credits normal, subscriber and pre-hatch reserve without multiplying watch time',async()=>{
@@ -77,8 +77,8 @@ test('real SQL credits normal, subscriber and pre-hatch reserve without multiply
  const u=await balances(c);assert.equal(u.xp,0);assert.equal(u.pending_xp,100);
 });
 test('live gains stop exactly at level 50 and send overflow to reserve',async()=>{
- const id=await player(9950);await tick([id]);let u=await balances(id);assert.equal(u.xp,10000);assert.equal(u.pending_xp,50);
- await tick([id]);u=await balances(id);assert.equal(u.xp,10000);assert.equal(u.pending_xp,150);
+ const id=await player(LOVYS_MAX_XP-50);await tick([id]);let u=await balances(id);assert.equal(u.xp,LOVYS_MAX_XP);assert.equal(u.pending_xp,50);
+ await tick([id]);u=await balances(id);assert.equal(u.xp,LOVYS_MAX_XP);assert.equal(u.pending_xp,150);
 });
 test('potion expiry midway through a poll pays only its overlap and reports actual boosted cash',async()=>{
  const id=await player();
@@ -87,9 +87,9 @@ test('potion expiry midway through a poll pays only its overlap and reports actu
  assert.ok(Math.abs(u.xp-2.5)<1e-9);assert.ok(Math.abs(u.points-.25)<1e-9);assert.equal(r.rows[0].cash_gain,u.points);assert.equal(Number(u.watch_seconds),60);
 });
 test('restart reconciles stale active XP and recovers every overflow exactly once',async()=>{
- const id=await player(11200);await query('UPDATE user_lovys SET xp=10500 WHERE id=$1',[id]);
- await query('INSERT INTO user_lovys VALUES($1,$2,\'water\',10800,FALSE,1,0,NULL)',[id+10000,id]);
- await reconcileLovysXp(pool);let u=await balances(id);assert.equal(u.xp,10000);assert.equal(u.pending_xp,2000);
+ const id=await player(LOVYS_MAX_XP+1200);await query('UPDATE user_lovys SET xp=$2 WHERE id=$1',[id,LOVYS_MAX_XP+500]);
+ await query('INSERT INTO user_lovys VALUES($1,$2,\'water\',$3,FALSE,1,0,NULL)',[id+10000,id,LOVYS_MAX_XP+800]);
+ await reconcileLovysXp(pool);let u=await balances(id);assert.equal(u.xp,LOVYS_MAX_XP);assert.equal(u.pending_xp,2000);
  await reconcileLovysXp(pool);u=await balances(id);assert.equal(u.pending_xp,2000);
 });
 test('a first win preserves live XP despite an old collection snapshot',async()=>{
@@ -98,13 +98,13 @@ test('a first win preserves live XP despite an old collection snapshot',async()=
  assert.equal((await balances(id)).xp,620);assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[id])).rows[0].xp,620);
 });
 test('inactive fighter receives its reward without changing the newly active Lovys',async()=>{
- const id=await player(700),fighter=id+10000;await query('INSERT INTO user_lovys VALUES($1,$2,\'water\',9990,FALSE,1,0,NULL)',[fighter,id]);
+ const id=await player(700),fighter=id+10000;await query('INSERT INTO user_lovys VALUES($1,$2,\'water\',$3,FALSE,1,0,NULL)',[fighter,id,LOVYS_MAX_XP-10]);
  await query('BEGIN');await creditLovysXp(client,id,fighter,30);await query('COMMIT');
- const u=await balances(id);assert.equal(u.xp,700);assert.equal(u.pending_xp,20);assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[fighter])).rows[0].xp,10000);
+ const u=await balances(id);assert.equal(u.xp,700);assert.equal(u.pending_xp,20);assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[fighter])).rows[0].xp,LOVYS_MAX_XP);
 });
 test('actual donation route caps transfer, rejects max level and invalid amounts without spending twice',async()=>{
  let handler;extracted("app.post('/api/progression/transfer-lovys-xp'","app.post('/api/prestige'",{app:{post:(p,h)=>handler=h},LOVYS_MAX_XP,pushLiveUpdate(){}});
- const id=await player(9990);await query('UPDATE users SET pending_xp=100 WHERE id=$1',[id]);
+ const id=await player(LOVYS_MAX_XP-10);await query('UPDATE users SET pending_xp=100 WHERE id=$1',[id]);
  const call=async amount=>{const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}},body:{lovysId:id,amount}},res);return res;};
  const first=await call(100);assert.equal(first.body.transferredXp,10);assert.equal((await balances(id)).pending_xp,90);
  assert.equal((await call(100)).statusCode,400);assert.equal((await balances(id)).pending_xp,90);
@@ -146,7 +146,7 @@ test('actual PvE action route preserves live XP, pays the first victory once and
 
 test('badge rebalance tops up old tiers once and pays the same total to a new player',async()=>{
  const ctx=extracted('async function awardBadgeEconomyRewardsOnce','async function runTrackerTick');
- const service=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:xp=>({level:xp>=10000?50:xp>=3500?25:xp>=1000?10:1}),awardRewards:ctx.awardBadgeEconomyRewardsOnce});
+ const service=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:ctx.awardBadgeEconomyRewardsOnce});
  await service.init();
  const old=await player(0,{hatched:false}),fresh=await player(0,{hatched:false});
  await query('UPDATE users SET total_lovys_hatched=100 WHERE id=ANY($1::int[])',[[old,fresh]]);

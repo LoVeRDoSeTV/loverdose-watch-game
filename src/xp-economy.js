@@ -1,5 +1,6 @@
-// Shared economy rules. Live rates and Lovys evolution thresholds stay unchanged.
-export const LOVYS_MAX_XP = 10000;
+// Shared economy rules. Levels 1–25 and live rates stay unchanged.
+export const LOVYS_MAX_XP = 25000;
+const LEGACY_LOVYS_MAX_XP = 10000;
 export const LIVE_ATTENDANCE_SECONDS = 3600;
 
 export function globalThresholdForLevel(level) {
@@ -7,11 +8,40 @@ export function globalThresholdForLevel(level) {
   return Math.round(steps * (100 + (steps - 1) * 10) / 2);
 }
 
-export function lovysThresholdForLevel(level) {
+// Historical curve is retained only for migration and the fixed PvE reward budgets.
+export function legacyLovysThresholdForLevel(level) {
   if (level <= 1) return 0;
   if (level <= 10) return (level - 1) * 1000 / 9;
   if (level <= 25) return 1000 + (level - 10) * 2500 / 15;
-  return Math.min(LOVYS_MAX_XP, 3500 + (level - 25) * 260);
+  return Math.min(LEGACY_LOVYS_MAX_XP, 3500 + (level - 25) * 260);
+}
+
+export function lovysThresholdForLevel(level) {
+  if (level <= 25) return legacyLovysThresholdForLevel(level);
+  const steps=Math.min(25,level-25);
+  return 3500 + 260*steps + 25*steps*(steps-1);
+}
+
+export function lovysProgressionFromXp(xp) {
+  const value=Math.max(0,Number(xp)||0);
+  let low=1,high=50;
+  while(low<high){
+    const middle=Math.ceil((low+high)/2);
+    if(value>=lovysThresholdForLevel(middle))low=middle;else high=middle-1;
+  }
+  const level=low,evolution=level>=50?3:level>=25?2:level>=10?1:0;
+  return {level,evolution,evolutionName:['Forme de départ','Évolution 1','Évolution 2','Forme finale'][evolution],
+    currentThreshold:lovysThresholdForLevel(level),nextThreshold:lovysThresholdForLevel(Math.min(50,level+1)),maxLevel:level===50,maxXp:LOVYS_MAX_XP};
+}
+
+// Keep the exact level and fraction of the level earned under the old curve.
+export function migrateLegacyLovysXp(xp) {
+  const value=Math.max(0,Math.min(LEGACY_LOVYS_MAX_XP,Number(xp)||0));
+  if(value<=3500)return value;
+  if(value>=LEGACY_LOVYS_MAX_XP)return LOVYS_MAX_XP;
+  const steps=Math.floor((value-3500)/260),fraction=(value-(3500+steps*260))/260;
+  const current=lovysThresholdForLevel(25+steps),next=lovysThresholdForLevel(26+steps);
+  return current+fraction*(next-current);
 }
 
 export function splitLovysXp(currentXp, earnedXp) {
@@ -77,25 +107,50 @@ export async function creditLovysXp(client, userId, lovysId, earnedXp) {
   return result;
 }
 
-// Restart-safe reconciliation, including pre-v495 live XP that had not yet been
-// copied to the collection. Overflow is recovered once, never discarded.
+// Caller holds the migration transaction. Lock users first, as for all XP credits.
+async function reconcileLovysXpWithClient(client,maxXp) {
+  await client.query('SELECT id FROM users ORDER BY id FOR UPDATE');
+  await client.query(`UPDATE user_lovys l SET xp=GREATEST(l.xp,u.xp)
+    FROM users u WHERE l.user_id=u.id AND l.is_active=TRUE AND l.creature_id=u.creature_id`);
+  await client.query(`WITH excess AS (
+    SELECT id,user_id,xp-$1 AS overflow FROM user_lovys WHERE xp>$1 FOR UPDATE
+  ), capped AS (
+    UPDATE user_lovys l SET xp=$1 FROM excess e WHERE l.id=e.id RETURNING l.user_id,e.overflow
+  ), refunds AS (
+    SELECT user_id,SUM(overflow) AS amount FROM capped GROUP BY user_id
+  ) UPDATE users u SET pending_xp=u.pending_xp+r.amount FROM refunds r WHERE u.id=r.user_id`, [maxXp]);
+  await client.query(`UPDATE users u SET creature_id=l.creature_id,xp=l.xp
+    FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+}
+
+// Restart-safe reconciliation. Overflow is recovered once, never discarded.
 export async function reconcileLovysXp(pool) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query('SELECT id FROM users ORDER BY id FOR UPDATE');
-    await client.query(`UPDATE user_lovys l SET xp=GREATEST(l.xp,u.xp)
-      FROM users u WHERE l.user_id=u.id AND l.is_active=TRUE AND l.creature_id=u.creature_id`);
-    await client.query(`WITH excess AS (
-      SELECT id,user_id,xp-$1 AS overflow FROM user_lovys WHERE xp>$1 FOR UPDATE
-    ), capped AS (
-      UPDATE user_lovys l SET xp=$1 FROM excess e WHERE l.id=e.id RETURNING l.user_id,e.overflow
-    ), refunds AS (
-      SELECT user_id,SUM(overflow) AS amount FROM capped GROUP BY user_id
-    ) UPDATE users u SET pending_xp=u.pending_xp+r.amount FROM refunds r WHERE u.id=r.user_id`, [LOVYS_MAX_XP]);
-    await client.query(`UPDATE users u SET creature_id=l.creature_id,xp=l.xp
-      FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+    await reconcileLovysXpWithClient(client,LOVYS_MAX_XP);
     await client.query('COMMIT');
   } catch (error) { await client.query('ROLLBACK'); throw error; }
   finally { client.release(); }
+}
+
+export async function migrateLovysProgressionCurve(pool) {
+  const client=await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(`CREATE TABLE IF NOT EXISTS economy_migrations(version TEXT PRIMARY KEY,applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+    const marker=await client.query(`INSERT INTO economy_migrations(version) VALUES('v498-lovys-curve') ON CONFLICT DO NOTHING RETURNING version`);
+    if(!marker.rowCount){await client.query('COMMIT');return {applied:false,migrated:0};}
+    // Recover any historical overflow using the OLD cap before converting XP.
+    await reconcileLovysXpWithClient(client,LEGACY_LOVYS_MAX_XP);
+    const rows=(await client.query('SELECT id,xp FROM user_lovys WHERE xp>3500 ORDER BY id FOR UPDATE')).rows;
+    const converted=rows.map(row=>({id:Number(row.id),xp:migrateLegacyLovysXp(row.xp)}));
+    if(converted.length)await client.query(`UPDATE user_lovys l SET xp=m.xp,updated_at=CURRENT_TIMESTAMP
+      FROM jsonb_to_recordset($1::jsonb) AS m(id int,xp double precision) WHERE l.id=m.id`,[JSON.stringify(converted)]);
+    await client.query(`UPDATE users u SET xp=l.xp,updated_at=CURRENT_TIMESTAMP
+      FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+    await client.query('COMMIT');
+    return {applied:true,migrated:converted.length};
+  } catch(error){await client.query('ROLLBACK');throw error;}
+  finally{client.release();}
 }

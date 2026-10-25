@@ -1,4 +1,4 @@
-import { lovysThresholdForLevel } from '../xp-economy.js';
+import { legacyLovysThresholdForLevel as rewardBudgetThreshold } from '../xp-economy.js';
 
 // Stable fight keys preserve existing victories and first-win rewards.
 // Enemy levels describe the recommended Lovys level (campaign ends at 30), not a global level.
@@ -615,11 +615,11 @@ const expansion = THEMES.map((zone,zi)=>{
   return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank:zone.recommendedRank,minLevel:zone.minLevel,maxLevel:zone.maxLevel,visual,fights};
 });
 
-// Each zone returns 40% of its recommended-level XP span. Guardians take
+// Keep the existing 40% reward budget on the historical curve. Guardians take
 // larger shares without letting the last zones fund the next zone outright.
 let cumulativeBudget=0,roundedBudget=0;
 export const PVE_ZONES=[...legacy,...expansion].map(zone=>{
-  cumulativeBudget+=(lovysThresholdForLevel(zone.fights.at(-1).level)-lovysThresholdForLevel(zone.fights[0].level))*.4;
+  cumulativeBudget+=(rewardBudgetThreshold(zone.fights.at(-1).level)-rewardBudgetThreshold(zone.fights[0].level))*.4;
   const nextBudget=Math.round(cumulativeBudget),budget=nextBudget-roundedBudget;
   roundedBudget=nextBudget;
   const weights=zone.fights.map(f=>f.finalBoss?3:f.miniBoss?2:1);

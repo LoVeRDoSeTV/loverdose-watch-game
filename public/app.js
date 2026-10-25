@@ -3455,7 +3455,7 @@ let lovysXpTransferAmount=0;
 let lovysXpTransferTargetId=null;
 function updateLovysXpTransferCapacity(){
   const chosen=(lovysCollectionData?.lovys||[]).find(l=>Number(l.id)===Number($('lovysXpTransferTarget')?.value||lovysXpTransferTargetId));
-  const capacity=chosen&&!chosen.maxLevel?Math.max(0,10000-Number(chosen.xp||0)):0;
+  const capacity=chosen&&!chosen.maxLevel?Math.max(0,Number(lovysCollectionData?.maxXp||0)-Number(chosen.xp||0)):0;
   const maximum=Math.min(lovysXpTransferAmount,capacity);
   const input=$('lovysXpTransferValue');
   if(input){input.max=String(maximum);input.min='0';input.step='any';input.value=String(Math.min(maximum,Number(input.value)||maximum));}

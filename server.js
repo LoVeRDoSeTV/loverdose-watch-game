@@ -4,7 +4,7 @@ import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } fr
 import { resetPlayerProgress } from './src/reset-player.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
-import { globalThresholdForLevel, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
+import { globalThresholdForLevel, lovysProgressionFromXp, migrateLovysProgressionCurve, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
 import session from 'express-session';
 import pg from 'pg';
 import connectPgSimple from 'connect-pg-simple';
@@ -301,12 +301,6 @@ pool.on('error', error => {
    PROGRESSION
 ========================================= */
 
-const LEVEL_XP = [
-  0,
-  1000,
-  3500,
-  10000
-];
 
 
 function estimateLovysLiveSeconds(remainingXp, baseXpPerHour, boosts, now = Date.now()) {
@@ -326,178 +320,7 @@ function estimateLovysLiveSeconds(remainingXp, baseXpPerHour, boosts, now = Date
   return null;
 }
 
-function progressionFromXp(xp) {
-
-  const value =
-    Math.max(0, Number(xp) || 0);
-
-  let level = 1;
-
-
-  if (value >= LEVEL_XP[3]) {
-
-    level = 50;
-
-  }
-
-  else if (value >= LEVEL_XP[2]) {
-
-    level =
-      25 +
-      Math.min(
-        24,
-        Math.floor(
-          (value - LEVEL_XP[2]) /
-          (
-            (LEVEL_XP[3] - LEVEL_XP[2]) /
-            25
-          )
-        )
-      );
-
-  }
-
-  else if (value >= LEVEL_XP[1]) {
-
-    level =
-      10 +
-      Math.min(
-        14,
-        Math.floor(
-          (value - LEVEL_XP[1]) /
-          (
-            (LEVEL_XP[2] - LEVEL_XP[1]) /
-            15
-          )
-        )
-      );
-
-  }
-
-  else {
-
-    level =
-      1 +
-      Math.min(
-        8,
-        Math.floor(
-          value /
-          (LEVEL_XP[1] / 9)
-        )
-      );
-
-  }
-
-
-  let currentThreshold = 0;
-
-  let nextThreshold =
-    LEVEL_XP[1];
-
-
-  if (
-    level >= 10 &&
-    level < 25
-  ) {
-
-    currentThreshold =
-      LEVEL_XP[1] +
-      (level - 10) *
-      (
-        (LEVEL_XP[2] - LEVEL_XP[1]) /
-        15
-      );
-
-    nextThreshold =
-      currentThreshold +
-      (
-        (LEVEL_XP[2] - LEVEL_XP[1]) /
-        15
-      );
-
-  }
-
-  else if (
-    level >= 25 &&
-    level < 50
-  ) {
-
-    currentThreshold =
-      LEVEL_XP[2] +
-      (level - 25) *
-      (
-        (LEVEL_XP[3] - LEVEL_XP[2]) /
-        25
-      );
-
-    nextThreshold =
-      currentThreshold +
-      (
-        (LEVEL_XP[3] - LEVEL_XP[2]) /
-        25
-      );
-
-  }
-
-  else if (level < 10) {
-
-    currentThreshold =
-      (level - 1) *
-      (LEVEL_XP[1] / 9);
-
-    nextThreshold =
-      level *
-      (LEVEL_XP[1] / 9);
-
-  }
-
-  else {
-
-    currentThreshold =
-      LEVEL_XP[3];
-
-    nextThreshold =
-      LEVEL_XP[3];
-
-  }
-
-
-  const evolution =
-    level >= 50
-      ? 3
-      : level >= 25
-      ? 2
-      : level >= 10
-      ? 1
-      : 0;
-
-
-  const evolutionName = [
-    'Forme de départ',
-    'Évolution 1',
-    'Évolution 2',
-    'Forme finale'
-  ][evolution];
-
-
-  return {
-
-    level,
-
-    evolution,
-
-    evolutionName,
-
-    currentThreshold,
-
-    nextThreshold,
-
-    maxLevel:
-      level >= 50
-
-  };
-
-}
+function progressionFromXp(xp) { return lovysProgressionFromXp(xp); }
 
 
 function globalProgressionFromXp(xp) {
@@ -1232,6 +1055,7 @@ async function initDatabase() {
       AND NOT EXISTS (SELECT 1 FROM user_lovys l WHERE l.user_id=u.id)
   `);
 
+  await migrateLovysProgressionCurve(pool);
   await reconcileLovysXp(pool);
 
   await pool.query(`
@@ -6387,7 +6211,7 @@ app.get('/api/lovys', async (req,res)=>{
     const liveXpBoosts = [{multiplier:2,expiresAt:personalBoostResult.rows[0]?.expires_at}, {multiplier:adminBoost.xp,expiresAt:adminBoost.expiresAt}];
     const baseXpPerHour = user.is_sub ? 120 : 100;
     const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,liveSecondsToNextLevel:prog.maxLevel?null:estimateLovysLiveSeconds(Math.max(0,prog.nextThreshold-Number(row.xp||0)),baseXpPerHour,liveXpBoosts),progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
-    res.json({ok:true,lovys,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
+    res.json({ok:true,lovys,maxXp:LOVYS_MAX_XP,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
   }catch(error){console.error('Erreur collection Lovys :',error);res.status(500).json({error:'Impossible de charger tes Lovys.'});}
 });
 
