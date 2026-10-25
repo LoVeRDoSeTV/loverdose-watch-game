@@ -6511,11 +6511,44 @@ function confirmDesktopObjectUse(itemKey) {
     });
     document.body.appendChild(overlay);
     document.addEventListener('keydown', onKey, true);
-    overlay.querySelector('[data-egg-boost-slot]')?.focus();
+    overlay.querySelector('[data-object-use-no]')?.focus();
   });
 }
 
+let xpBottleUseBusy=false;
+function showXpBottleResult(data,error=false){
+  const previousFocus=document.activeElement;
+  const overlay=document.createElement('div');
+  overlay.className='desktop-egg-boost-overlay xp-bottle-result';
+  overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','xpBottleResultTitle');
+  const title=error?'Utilisation impossible':`+${Number(data.xpGranted||0)} XP en réserve !`;
+  overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="xpBottleResultTitle">${error?'':'🧪 '}${escapeHtml(title)}</h2><p>${escapeHtml(data.message||'Réessaie dans quelques instants.')}</p>${!error?`<p><strong>Réserve disponible : ${Number(data.pendingXp||0).toLocaleString('fr-FR')} XP</strong></p><p>Retrouve « Donner de l’XP » dans Mes Lovys pour choisir à qui la distribuer.</p>`:''}<div class="egg-boost-actions"><button class="shop-action" type="button">Compris</button></div></div>`;
+  const close=()=>{document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});};
+  const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
+  overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('button'))close();});
+  document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
+}
+async function useXpBottle(){
+  if(xpBottleUseBusy)return;
+  xpBottleUseBusy=true;
+  try{
+    if(!(await confirmDesktopObjectUse('xp_bottle_100')))return;
+    const response=await fetch('/api/shop/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemKey:'xp_bottle_100'})});
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.error||'Impossible d’utiliser cette bouteille.');
+    if(me?.user)me.user.pending_xp=Number(data.pendingXp||0);
+    if(lovysCollectionData)lovysCollectionData.pendingXp=Number(data.pendingXp||0);
+    const item=getShopItemByKey('xp_bottle_100');
+    if(item){item.quantity=Math.max(0,Number(item.quantity||0)-1);item.owned=item.quantity>0;}
+    showXpBottleResult(data);
+    // Les données d’inventaire et de réserve se mettent à jour sans retarder le résultat.
+    void Promise.allSettled([loadShop(),loadGame(),loadLovysCollection()]);
+  }catch(error){showXpBottleResult({message:error.message||'Impossible d’utiliser cette bouteille.'},true);}
+  finally{xpBottleUseBusy=false;}
+}
+
 async function shopAction(url, itemKey, preferredSlot = null) {
+  if(url==='/api/shop/use'&&itemKey==='xp_bottle_100')return useXpBottle();
   if (url === '/api/shop/equip' || url === '/api/shop/unequip') {
     equipCosmeticInstantly(url, itemKey);
     return;

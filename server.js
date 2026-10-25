@@ -731,6 +731,7 @@ const SHOP_ITEMS = [
   {"key":"title_ame_arcade","category":"title","subcategory":"blue","name":"Âme d’arcade","price":180,"color":"#92d8ed","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   {"key":"title_ami_sous_bois","category":"title","subcategory":"green","name":"Ami du sous-bois","price":180,"color":"#a4d5ae","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   {"key":"title_etincelle_nocturne","category":"title","subcategory":"violet","name":"Étincelle nocturne","price":200,"color":"#c1b7f2","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
+  { key:'xp_bottle_100', category:'object', name:'Bouteille d’XP · 100 XP', price:200, icon:'🧪', description:'Ajoute 100 XP Lovys à ta réserve. Utilise la bouteille dans ton inventaire, puis choisis le Lovys qui recevra cette XP.', consumable:true, xpAmount:100 },
   { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:0, icon:'💰', description:"Récompense de la roue bonus : double le LoVeR'Cash gagné pendant 1 heure de live.", consumable:true, rewardOnly:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:120, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
@@ -6485,7 +6486,7 @@ app.post('/api/shop/use', async (req, res) => {
     const key = String(req.body?.itemKey || '').trim();
     const item = shopItemByKey(key);
     if (key === 'mystery_egg') return res.status(400).json({ error:'Place cet œuf dans un emplacement libre de l’incubateur.' });
-    if (!item || !['boost_xp_x2','boost_cash_x2','incubator_skip_30'].includes(key) || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
+    if (!item || !['boost_xp_x2','boost_cash_x2','incubator_skip_30','xp_bottle_100'].includes(key) || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
 
     await client.query('BEGIN');
     const userResult = await client.query(`SELECT id, creature_id, watch_seconds FROM users WHERE twitch_id=$1 FOR UPDATE`, [req.session.user.twitchId]);
@@ -6507,7 +6508,13 @@ app.post('/api/shop/use', async (req, res) => {
     let message = '';
     let acceleration = null;
     let boostExpiresAt = null;
-    if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
+    let xpGranted=0,pendingXp=null;
+    if(key==='xp_bottle_100'){
+      xpGranted=item.xpAmount;
+      const result=await client.query('UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING pending_xp',[user.id,xpGranted]);
+      pendingXp=Number(result.rows[0].pending_xp);
+      message=`+${xpGranted} XP Lovys ajoutées à ta réserve. Choisis ensuite le Lovys qui les recevra.`;
+    } else if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
       if (key === 'boost_xp_x2' && !user.creature_id) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
@@ -6554,11 +6561,13 @@ app.post('/api/shop/use', async (req, res) => {
     }
 
     await client.query(`UPDATE shop_inventory SET quantity = quantity - $3 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key, requestedQuantity]);
-    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:key,itemName:item.name,quantity:requestedQuantity,details:{message,acceleration,boostExpiresAt}});
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:key,itemName:item.name,quantity:requestedQuantity,details:{message,acceleration,boostExpiresAt,xpGranted,pendingXp}});
     await client.query('COMMIT');
-    await wizebotAlerts.collect();
+    // Une notification échouée ne remet pas en cause l’objet déjà consommé.
+    await wizebotAlerts.collect().catch(error=>console.warn('Notification objet indisponible :',error.message));
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
-    res.json({ ok:true, message, acceleration, boostExpiresAt });
+    if(xpGranted)pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
+    res.json({ ok:true, message, acceleration, boostExpiresAt, xpGranted, pendingXp });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur utilisation objet :', error);
