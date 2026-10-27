@@ -8495,6 +8495,10 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #tradeComposer .trade-composer-footer{display:grid;grid-template-columns:1fr;gap:10px;margin-top:14px}
   #tradeComposer .trade-composer-footer .lobby-primary-btn{width:100%}
 }
+@media(max-width:900px){
+  #desktopAdminModal.desktop-admin-modal:not(.hidden){inset:0;width:100%;height:100dvh;max-width:none;margin:0;box-sizing:border-box;-webkit-overflow-scrolling:touch}
+  #desktopAdminModal>.desktop-admin-panel{box-sizing:border-box;width:100%;max-width:none;min-height:100%;padding-bottom:calc(30px + env(safe-area-inset-bottom))}
+}
 /* ===== /V250 ===== */
 /* Les éléments propres au mobile n'occupent jamais d'espace sur PC. */
 .mobile-more-page,.mobile-home-actions,.mobile-list-pagination,.mobile-page-back{display:none}
