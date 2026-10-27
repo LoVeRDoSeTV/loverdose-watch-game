@@ -20,6 +20,7 @@ import { createPveRouter } from './src/routes/pve.js';
 import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
+import { createGameBot, initGameBot } from './src/routes/game-bot.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -1380,6 +1381,7 @@ async function initDatabase() {
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC)`);
   await initWizebotAlerts(pool);
+  await initGameBot(pool);
   await initPlayerHistory(pool);
 
   // V107 — boosts live globaux pilotés depuis le panneau Événements.
@@ -2427,7 +2429,7 @@ async function logAdminAction(adminAccountId, targetAccountId, actionKey, summar
 
 app.post('/api/feedback', feedbackRateLimit);
 app.use('/api/feedback', express.json({ limit: '3mb' }));
-app.use(express.json({ limit: '100kb' }));
+app.use(express.json({ limit: '100kb',verify(req,res,raw){if(req.originalUrl?.startsWith('/api/game-bot/eventsub'))req.rawEventSubBody=Buffer.from(raw);} }));
 app.use(createOriginGuard({ baseUrl: BASE_URL }));
 
 
@@ -5768,6 +5770,8 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
 app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
 const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:EGG_HATCH_SECONDS});
 app.use('/api',wizebotAlerts.router);
+const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction});
+app.use('/api',gameBot.router);
 
 registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
 
@@ -7249,6 +7253,7 @@ async function start() {
 
     // Collecte silencieuse des fins de boosters, y compris sans navigateur ouvert.
     setInterval(() => { wizebotAlerts.collect(); }, 15000);
+    setInterval(() => { gameBot.tick(); }, 3000);
 
     app.listen(
       PORT,

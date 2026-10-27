@@ -76,7 +76,7 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
       EXTRACT(EPOCH FROM(b.expires_at-CURRENT_TIMESTAMP)) remaining
       FROM user_active_boosts b JOIN users u ON u.id=b.user_id
       WHERE b.boost_key IN ('boost_xp_x2','boost_cash_x2')
-        AND b.expires_at>= $1 AND b.expires_at BETWEEN CURRENT_TIMESTAMP-INTERVAL '2 minutes' AND CURRENT_TIMESTAMP+INTERVAL '5 minutes'`,[settings.enabled_at])).rows;
+        AND b.expires_at>= $1 AND b.expires_at BETWEEN CURRENT_TIMESTAMP-INTERVAL '2 minutes' AND CURRENT_TIMESTAMP+INTERVAL '5 minutes'`,[settings.enabled_at||new Date(0)])).rows;
     for(const boost of boosts) {
       const login=String(boost.login||'').toLowerCase();if(!/^[a-z0-9_]{1,25}$/.test(login))continue;
       const remaining=Number(boost.remaining),soon=remaining>0;
@@ -90,7 +90,7 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
     }
     const global=(await client.query(`SELECT * FROM admin_live_boosts WHERE id=1
       AND expires_at >= $1 AND expires_at BETWEEN CURRENT_TIMESTAMP-INTERVAL '2 minutes' AND CURRENT_TIMESTAMP+INTERVAL '5 minutes'
-      AND (xp_multiplier>1 OR cash_multiplier>1 OR global_xp_multiplier>1)`,[settings.enabled_at])).rows[0];
+      AND (xp_multiplier>1 OR cash_multiplier>1 OR global_xp_multiplier>1)`,[settings.enabled_at||new Date(0)])).rows[0];
     if(global) {
       const remaining=(new Date(global.expires_at)-Date.now())/1000,soon=remaining>0;
       const names=[];if(Number(global.xp_multiplier)>1)names.push(`XP Lovys ×${Number(global.xp_multiplier)}`);
@@ -107,14 +107,15 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
     try {
       // OFF : une seule lecture, aucun accès aux ressources des joueurs.
       const state=(await pool.query('SELECT enabled FROM wizebot_alert_settings WHERE id=1')).rows[0];
-      if(!state?.enabled)return;
+      const bot=(await pool.query('SELECT enabled FROM game_bot_auth WHERE id=1')).rows[0];
+      if(!state?.enabled&&!bot?.enabled)return;
       client=await pool.connect();await client.query('BEGIN');
       const locked=(await client.query('SELECT pg_try_advisory_xact_lock(351001) locked')).rows[0]?.locked;
       if(!locked){await client.query('ROLLBACK');return;}
       const settings=(await client.query('SELECT * FROM wizebot_alert_settings WHERE id=1 FOR SHARE')).rows[0];
       const live=(await client.query(`SELECT 1 FROM twitch_tracker_auth WHERE id=1 AND last_live=TRUE
         AND last_error IS NULL AND last_success_at>CURRENT_TIMESTAMP-INTERVAL '90 seconds'`)).rowCount;
-      if(settings?.enabled&&live)await collectWithClient(client,settings);
+      if((settings?.enabled||bot?.enabled)&&live)await collectWithClient(client,settings);
       await client.query('COMMIT');
     } catch(error) {
       if(client)try{await client.query('ROLLBACK');}catch{}
@@ -130,9 +131,10 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
   router.get('/admin/wizebot',async(req,res)=>{
     try {
       const settings=(await pool.query('SELECT * FROM wizebot_alert_settings WHERE id=1')).rows[0];
+      const bot=(await pool.query('SELECT enabled FROM game_bot_auth WHERE id=1')).rows[0];
       const recent=(await pool.query(`SELECT payload->>'message' message,created_at FROM wizebot_game_alerts
         WHERE payload IS NOT NULL AND generation=$1 ORDER BY id DESC LIMIT 5`,[settings.generation])).rows;
-      res.json({ok:true,enabled:settings.enabled,lastPollAt:settings.last_poll_at,
+      res.json({ok:true,enabled:settings.enabled,gameBotActive:Boolean(bot?.enabled),lastPollAt:settings.last_poll_at,
         script:wizebotRelayScript(baseUrl,settings.relay_token),recent,
         examples:['🥚 @joueur, ton œuf est prêt à éclore ! ✨ Vite, rejoins LoVeR Watch Game pour découvrir quel Lovys se cache à l’intérieur !',
           '⏳ @joueur, ton double XP se termine dans 5 min !','⌛ @joueur, ton double XP est terminé.']});
@@ -182,7 +184,8 @@ export function createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,b
       await pool.query('UPDATE wizebot_alert_settings SET last_poll_at=CURRENT_TIMESTAMP WHERE id=1');
       const live=(await pool.query(`SELECT 1 FROM twitch_tracker_auth WHERE id=1 AND last_live=TRUE
         AND last_error IS NULL AND last_success_at>CURRENT_TIMESTAMP-INTERVAL '90 seconds'`)).rowCount;
-      const automaticEnabled=Boolean(settings.enabled&&live);
+      const bot=(await pool.query('SELECT enabled FROM game_bot_auth WHERE id=1')).rows[0];
+      const automaticEnabled=Boolean(settings.enabled&&live&&!bot?.enabled);
       const after=Number(req.query.generation)===settings.generation&&/^\d{1,15}$/.test(String(req.query.after||''))?Number(req.query.after):0;
       const events=(await pool.query(`SELECT n.id,n.kind,n.payload FROM wizebot_game_alerts n
         WHERE n.generation=$1 AND n.id>$2 AND n.payload IS NOT NULL
