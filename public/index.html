@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=504">
+<link rel="stylesheet" href="/styles.css?v=505">
 <link rel="stylesheet" href="/pve-expansion.css?v=489">
 <link rel="stylesheet" href="/return-summary.css?v=487">
 <link rel="stylesheet" href="/live-xp-boost.css?v=476">
@@ -685,6 +685,7 @@
       <button id="nextActionsClose" class="next-actions-close" type="button" aria-label="Fermer">×</button>
     </div>
     <div id="nextActionsList" class="next-actions-list"></div>
+    <label class="motion-setting"><input id="gameReduceMotion" type="checkbox"> Réduire les animations des récompenses et de l’éclosion</label>
     <div class="next-actions-install">
       <div><strong>📱 Installer le jeu</strong><span id="pwaInstallStatus">Tu peux aussi ajouter LoVeR Watch Game à ton écran d’accueil.</span></div>
       <button id="pwaInstallButton" class="next-action-button secondary" type="button">Installer</button>
@@ -1085,7 +1086,7 @@
 
 <div id="pveBattleOverlay" class="pve-battle-overlay hidden" role="dialog" aria-modal="true" aria-label="Combat en cours">
   <div class="pve-battle-stage">
-    <div class="pve-battle-head"><div><div id="pveBattleTitle" class="pve-battle-title">⚔️ Combat tactique</div><div id="pveBattleRound" class="pve-battle-round">Tour 1</div></div><button id="pveBattleAbandon" class="pve-battle-skip" type="button">Abandonner</button></div>
+    <div class="pve-battle-head"><div><div id="pveBattleTitle" class="pve-battle-title">⚔️ Combat tactique</div><div id="pveBattleRound" class="pve-battle-round">Tour 1</div><div id="pveEnemyIntent" class="pve-enemy-intent" hidden></div></div><button id="pveBattleAbandon" class="pve-battle-skip" type="button">Abandonner</button></div>
     <div class="pve-battle-arena">
       <div id="pveBattlePlayer" class="pve-combatant player"><div id="pveBattlePlayerSprite" class="pve-combatant-sprite"></div><div class="pve-combatant-ui"><div class="pve-combatant-name"><strong id="pveBattlePlayerName">Lovys</strong><span id="pveBattlePlayerStats"></span></div><div class="pve-hp-track"><div id="pveBattlePlayerHp" class="pve-hp-bar"></div></div><div class="pve-hp-text"><span id="pveBattlePlayerHpText"></span><span>PV</span></div></div><div id="pveBattlePlayerDamage" class="pve-damage"></div></div>
       <div class="pve-battle-vs">VS</div>
@@ -1337,7 +1338,7 @@
  </section>
 </div>
 <script src="/live-xp-boost.js?v=460"></script>
-<script src="/app.js?v=502"></script>
+<script src="/app.js?v=505"></script>
 <script src="/auth-fallback.js?v=111"></script></body></html>
 
 

@@ -1654,6 +1654,9 @@ function buildNextActions() {
   const rankable=(lovysCollectionData?.lovys||[]).find(l=>l.canRankUp);
   if(rankable) actions.push({ id:'lovys-rank', lovysId:Number(rankable.id), icon:'⭐', title:`${rankable.name} peut monter de rang`, desc:`${Number(rankable.fragments||0)} fragments disponibles · prochain rang : ${Number(rankable.nextRankCost||0)}.`, button:'Améliorer', priority:true });
 
+  const pendingForLovys=Math.floor(Number(me.user.pending_xp||0));
+  if(me.user.creature_id && pendingForLovys>0 && !isMobileGameUi())actions.push({id:'lovys-xp',icon:'⚡',title:`${pendingForLovys.toLocaleString('fr-FR')} XP à distribuer`,desc:'Choisis le Lovys qui recevra cette XP.',button:'Distribuer',priority:true});
+
   const pve = firstPveAction();
   if (me.user.creature_id && pve) actions.push({ id:'pve', icon:pve.fight.boss ? '👑' : '⚔️', title:pve.fight.boss ? `Boss débloqué : ${pve.fight.name}` : `Combat débloqué : ${pve.fight.name}`, desc:`${pve.zone.name} · niveau conseillé ${pve.fight.level}.`, button:'Combattre' });
 
@@ -1664,6 +1667,7 @@ function buildNextActions() {
 
   const pendingXp = Math.max(0, Number(me.user.pending_xp || 0));
   if (!me.user.creature_id && pendingXp > 0) actions.push({ id:'incubator-view', icon:'⚡', title:`${pendingXp.toLocaleString('fr-FR')} XP en réserve`, desc:'Cette XP est conservée en réserve. Après l’éclosion, tu choisiras quand la donner à ton Lovys.', button:'Voir la réserve' });
+  if(me.user.creature_id && (lovysCollectionData?.lovys||[]).length<homeMonsters.length && Number(incubatorData?.availableEggs||0)===0 && !readySlot)actions.push({id:'collection-goal',icon:'🐉',title:`Collection : ${(lovysCollectionData?.lovys||[]).length}/${homeMonsters.length} Lovys`,desc:'Les œufs à faire éclore permettent de découvrir les espèces manquantes.',button:'Voir la collection'});
   return actions.slice(0, 6);
 }
 
@@ -1682,16 +1686,23 @@ function renderNextActions() {
     quick.textContent=action ? action.button : '';
     quick.onclick=()=>list?.querySelector('[data-next-action]')?.click();
   }
-  summary.textContent = isMobileGameUi() && actions.length ? actions[0].title : actions.length ? `${actions.length} action${actions.length > 1 ? 's' : ''} utile${actions.length > 1 ? 's' : ''} pour ton compte` : 'Tout est à jour pour le moment';
+  summary.textContent = actions.length ? `À faire : ${actions[0].title}${actions.length>1?` · puis ${actions[1].title}`:''}` : 'Tout est à jour pour le moment';
   if (!list) return;
   if (!actions.length) {
     list.innerHTML = `<div class="next-action-empty"><b>✓ Rien d’urgent</b>Continue à profiter du live et à faire progresser ton compte. Les prochaines actions apparaîtront ici automatiquement.</div>`;
     return;
   }
-  list.innerHTML = actions.map(action => `<article class="next-action-card${action.priority ? ' priority' : ''}"><div class="next-action-icon">${escapeHtml(action.icon)}</div><div class="next-action-copy"><div class="next-action-title">${escapeHtml(action.title)}</div><div class="next-action-desc">${escapeHtml(action.desc)}</div></div><button class="next-action-button" type="button" data-next-action="${escapeHtml(action.id)}"${action.key ? ` data-key="${escapeHtml(action.key)}"` : ''}${action.slot ? ` data-slot="${Number(action.slot)}"` : ''}>${escapeHtml(action.button)}</button></article>`).join('');
+  list.innerHTML = actions.map((action,index) => `<article class="next-action-card${action.priority ? ' priority' : ''}"><div class="next-action-icon">${escapeHtml(action.icon)}</div><div class="next-action-copy"><small class="next-action-step">${index===0?'MAINTENANT':`ENSUITE · ${index+1}`}</small><div class="next-action-title">${escapeHtml(action.title)}</div><div class="next-action-desc">${escapeHtml(action.desc)}</div></div><button class="next-action-button" type="button" data-next-action="${escapeHtml(action.id)}"${action.key ? ` data-key="${escapeHtml(action.key)}"` : ''}${action.slot ? ` data-slot="${Number(action.slot)}"` : ''}>${escapeHtml(action.button)}</button></article>`).join('');
 }
 
 function closeNextActions() { $('nextActionsModal')?.classList.add('hidden'); }
+const gameReduceMotionKey='loverwatch-reduce-motion';
+function gameReduceMotion(){return document.body.classList.contains('game-reduce-motion') || window.matchMedia('(prefers-reduced-motion:reduce)').matches;}
+try{document.body.classList.toggle('game-reduce-motion',localStorage.getItem(gameReduceMotionKey)==='1');}catch{}
+if($('gameReduceMotion')){
+  $('gameReduceMotion').checked=document.body.classList.contains('game-reduce-motion');
+  $('gameReduceMotion').addEventListener('change',event=>{document.body.classList.toggle('game-reduce-motion',event.target.checked);try{localStorage.setItem(gameReduceMotionKey,event.target.checked?'1':'0');}catch{}});
+}
 function openStarterEggDetails() {
   if (isMobileGameUi()) { toggleMobilePanel('creatures'); return; }
   const pick = $('pick');
@@ -1711,6 +1722,7 @@ function runNextAction(button) {
   if (action === 'place-egg') { closeNextActions(); openIncubatorAddModal(Number(button.dataset.slot)); return; }
   if (action === 'wheel-daily' || action === 'wheel-weekly') { rewardWheelType = action === 'wheel-weekly' ? 'weekly' : 'daily'; renderRewardWheel(); scrollToGameElement('#rewardWheelCard'); return; }
   if (action === 'lovys-rank') { closeNextActions(); openLovysCollection('fragments'); return; }
+  if (action === 'lovys-xp' || action === 'collection-goal') { closeNextActions(); openLovysCollection(); return; }
   if (action === 'pve') { closeNextActions(); $('pveModal')?.classList.remove('hidden'); loadPve(); syncMobileNavState?.(); return; }
   if (action === 'incubator-view') { closeNextActions(); if (isMobileGameUi()) openMobileEggDetails(); else scrollToGameElement('.incubator-topbar'); }
 }
@@ -3035,6 +3047,7 @@ function playHatchAnimation(creature, callback) {
   modal.className = 'hatch-cinematic active';
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+  if (gameReduceMotion()) { finishHatchAnimation(); return; }
 
   const extra = rarityKey === 'mythic' ? 650 : rarityKey === 'epic' ? 300 : 0;
 
@@ -3780,10 +3793,10 @@ function lovysMissingCards(owned){const ids=new Set(owned.map(l=>lovysCanonicalI
 function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>${isMobileGameUi()?'← Collection':'×'}</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>📈 Paliers</h4><div class="lovys-level-stages"><span>Éveil</span><span>Éclosion</span><span>Ascension</span><span>Apogée</span></div></div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function renderLovysCollection(data){
   renderLovysReserve(data);
-  const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/10 découverts`;renderLovysActiveHero(data);if(!grid)return;
+  const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/${homeMonsters.length} découverts`;renderLovysActiveHero(data);if(!grid)return;
   const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
   const summary=$('lovysCollectionModal')?.querySelector('.lovys-collection-summary>span');
-  if(summary)summary.textContent=isMobileGameUi()?'Choisis ton Lovy actif.':'Choisis ton équipe et prépare le prochain combat.';
+  if(summary)summary.textContent=lovys.length<homeMonsters.length?`${homeMonsters.length-lovys.length} espèce(s) à découvrir · fais éclore des œufs pour compléter ta collection.`:'Collection complète ! Choisis ton Lovys actif et améliore ses rangs.';
   const toolbar=isMobileGameUi()?'':`<div class="lovys-grid-toolbar"><div><strong>Collection</strong><span>Découvre de nouveaux Lovys dans l’incubateur.</span></div><button class="hub-btn" type="button" data-lovys-incubator>🥚 Aller à l’incubateur</button></div>`;
   grid.innerHTML=toolbar+owned+lovysMissingCards(lovys);renderLovysFragmentInventory(data);renderLovysCollectionTabs();
 }
@@ -4241,7 +4254,7 @@ function configurePveZoneResult(result){
   const completed=Boolean(result.victory&&result.firstWin&&info&&info.zone.fights.every(f=>f.key===info.fight.key||f.won));
   modal.classList.toggle('zone-complete',completed);
   modal.querySelector('.pve-zone-confetti')?.remove();
-  modal.querySelector('.pve-zone-complete-summary')?.remove();
+  modal.querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());
   if(!completed)return;
   const next=pveMapState.data.zones[info.zoneIndex+1];
   $('pveBattleResultIcon').textContent='🏆';
@@ -4251,10 +4264,12 @@ function configurePveZoneResult(result){
   summary.className='pve-zone-complete-summary';
   summary.textContent=next?`${next.icon||'🗺️'} Nouvelle zone débloquée : ${next.name}`:'Toutes les zones sont terminées. Tu as conquis toute l’aventure !';
   $('pveBattleResultCopy').after(summary);
-  const confetti=document.createElement('div');
-  confetti.className='pve-zone-confetti';confetti.setAttribute('aria-hidden','true');
-  confetti.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(i*37)%100}%;--drift:${(i%2?-1:1)*(20+(i*11)%80)}px;--delay:${((i%12)*.06).toFixed(2)}s;--turn:${180+(i*79)%540}deg;--color:${['#b78aff','#69ddff','#ffd76b','#ff8bc7','#8af0b4'][i%5]}"></i>`).join('');
-  modal.prepend(confetti);
+  if(!gameReduceMotion()){
+    const confetti=document.createElement('div');
+    confetti.className='pve-zone-confetti';confetti.setAttribute('aria-hidden','true');
+    confetti.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(i*37)%100}%;--drift:${(i%2?-1:1)*(20+(i*11)%80)}px;--delay:${((i%12)*.06).toFixed(2)}s;--turn:${180+(i*79)%540}deg;--color:${['#b78aff','#69ddff','#ffd76b','#ff8bc7','#8af0b4'][i%5]}"></i>`).join('');
+    modal.prepend(confetti);
+  }
   if(isMobileGameUi()){
     $('mobilePveResultPrimary').textContent=next?'Découvrir la zone suivante':'Voir ma progression';
     $('mobilePveResultPrimary').dataset.mobilePveResult=next?'next-zone':'zone';
@@ -4677,7 +4692,7 @@ function openMobilePveBattleHelp() {
   document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
 }
 $('pveBattleEffects')?.addEventListener('click',event=>{if(event.target.closest('.mobile-pve-info-button'))openMobilePveBattleHelp();});
-function syncPveBattleUi(battle){if(!battle)return;pveBattleState.battle=battle;setPveHp('pveBattlePlayer',battle.player.hp,battle.player.maxHp);setPveHp('pveBattleEnemy',battle.enemy.hp,battle.enemy.maxHp);pveBattleState.uiHp={player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)};if(battle.status==='active'&&battle.enemy?.intent)$('pveBattleLog').textContent=battle.enemy.intent;$('pveBattleRound').textContent=battle.status==='active'?`Tour ${Number(battle.round||1)}`:'Combat terminé';$('pveBattlePlayerStats').textContent=isMobileGameUi()?`Niv. ${battle.player.level||1}`:`Niv. ${battle.player.level||1} · Rang ${battle.player.rank||1} · ⚔️ ${battle.player.attack||0} · 🛡️ ${battle.player.defense||0} · ⚡ ${battle.player.speed||0}`;$('pveBattleEnemyStats').textContent=isMobileGameUi()?`Niv. ${battle.enemy.level||1}`:`Niv. ${battle.enemy.level||1} · ⚔️ ${battle.enemy.attack||0} · 🛡️ ${Math.round(Number(battle.enemy.defense||0))} · ⚡ ${Math.round(Number(battle.enemy.speed||0))}`;renderPveBattleActions();renderPveBattleEffects();}
+function syncPveBattleUi(battle){if(!battle)return;pveBattleState.battle=battle;setPveHp('pveBattlePlayer',battle.player.hp,battle.player.maxHp);setPveHp('pveBattleEnemy',battle.enemy.hp,battle.enemy.maxHp);pveBattleState.uiHp={player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)};if(battle.status==='active'&&battle.enemy?.intent)$('pveBattleLog').textContent=battle.enemy.intent;const intent=$('pveEnemyIntent');if(intent){intent.hidden=battle.status!=='active'||!battle.enemy?.intent;intent.textContent=battle.enemy?.intent||'';intent.classList.toggle('danger',/prochaine attaque|décharge|frappe chargée/i.test(battle.enemy?.intent||''));}$('pveBattleRound').textContent=battle.status==='active'?`Tour ${Number(battle.round||1)}`:'Combat terminé';$('pveBattlePlayerStats').textContent=isMobileGameUi()?`Niv. ${battle.player.level||1}`:`Niv. ${battle.player.level||1} · Rang ${battle.player.rank||1} · ⚔️ ${battle.player.attack||0} · 🛡️ ${battle.player.defense||0} · ⚡ ${battle.player.speed||0}`;$('pveBattleEnemyStats').textContent=isMobileGameUi()?`Niv. ${battle.enemy.level||1}`:`Niv. ${battle.enemy.level||1} · ⚔️ ${battle.enemy.attack||0} · 🛡️ ${Math.round(Number(battle.enemy.defense||0))} · ⚡ ${Math.round(Number(battle.enemy.speed||0))}`;renderPveBattleActions();renderPveBattleEffects();}
 function syncPveBattleLayout(){
   const overlay=$('pveBattleOverlay');
   const enemy=$('pveBattleEnemy');
@@ -4691,7 +4706,7 @@ function syncPveBattleLayout(){
   }
 }
 window.addEventListener('resize',syncPveBattleLayout);
-function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!isMobileGameUi())$('pveBattleContinue').textContent='Continuer';if(!isMobileGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:false,autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${pveFightRoleLabel(fight)?pveFightRoleLabel(fight)+' · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active','zone-complete');$('pveBattleResult').querySelector('.pve-zone-confetti')?.remove();$('pveBattleResult').querySelector('.pve-zone-complete-summary')?.remove();$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));}
+function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!isMobileGameUi())$('pveBattleContinue').textContent='Continuer';if(!isMobileGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:false,autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${pveFightRoleLabel(fight)?pveFightRoleLabel(fight)+' · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active','zone-complete');$('pveBattleResult').querySelector('.pve-zone-confetti')?.remove();$('pveBattleResult').querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));}
 async function animatePveBattleEvents(events=[]){for(const event of events){$('pveBattleLog').textContent=event.message||'Combat…';const target=event.target==='player'?'player':event.target==='enemy'?'enemy':null;if(event.type==='damage'&&target){const el=target==='player'?$('pveBattlePlayer'):$('pveBattleEnemy');const attacker=event.source==='enemy'?$('pveBattleEnemy'):$('pveBattlePlayer');attacker?.classList.add('attacking');await pveWait(isMobileGameUi()?300:150);attacker?.classList.remove('attacking');el?.classList.add('hit');const key=target==='player'?'player':'enemy';pveBattleState.uiHp[key]=Math.max(0,pveBattleState.uiHp[key]-Number(event.amount||0));pveDamagePop(target==='player'?'pveBattlePlayerDamage':'pveBattleEnemyDamage',event.amount);const b=pveBattleState.battle;setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(isMobileGameUi()?470:300);el?.classList.remove('hit');}else if(event.type==='heal'&&target){const key=target;pveBattleState.uiHp[key]+=Number(event.amount||0);const b=pveBattleState.battle;pveBattleState.uiHp[key]=Math.min(target==='player'?b.player.maxHp:b.enemy.maxHp,pveBattleState.uiHp[key]);setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(260);}else{await pveWait(event.type==='boss'?500:300);}}}
 function updatePveAutoUi(){const btn=$('pveAutoBattle');if(!btn)return;btn.classList.toggle('active',Boolean(pveBattleState.auto));btn.setAttribute('aria-pressed',pveBattleState.auto?'true':'false');btn.innerHTML=isMobileGameUi()?(pveBattleState.auto?'⏸️ <strong>Pause auto</strong>':'▶️ <strong>Auto</strong>'):(pveBattleState.auto?'⏸️ <strong>Auto activé</strong>':'▶️ <strong>Combat auto</strong>');if(isMobileGameUi()){const hint=btn.parentElement?.querySelector('span');if(hint)hint.textContent=pveBattleState.auto?'Touche une attaque pour reprendre la main.':'Attaque normale toujours disponible.';}}
 function choosePveAutoAction(){const b=pveBattleState.battle;if(!b||b.status!=='active')return null;const skills=b.player?.skills||[],cd=b.player?.cooldowns||{};for(let i=skills.length-1;i>=0;i--){const sk=skills[i];if(sk&&Number(cd[sk.key]||0)<=1)return sk.key;}return 'basic';} // Le serveur diminue les recharges au début du tour.
@@ -9734,8 +9749,8 @@ function renderMobileHomeActions(actions=[], prepared=false) {
   const list=$('mobileHomeActionsList');if(!list)return;
   const useful=prepared?actions:mobileHomeActionItems(actions);
   const all=$('mobileHomeAllActions');
-  if(all){all.hidden=useful.length<=2;all.textContent=`Tout voir (${useful.length}) ›`;}
-  list.innerHTML=useful.length ? useful.slice(0,2).map(action=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+  if(all){all.hidden=useful.length<=3;all.textContent=`Tout voir (${useful.length}) ›`;}
+  list.innerHTML=useful.length ? useful.slice(0,3).map((action,index)=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><small class="next-action-step">${index===0?'MAINTENANT':`ENSUITE · ${index+1}`}</small><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
 }
 async function runMobileHomeSpecialAction(button) {
   if(!isMobileGameUi())return false;
