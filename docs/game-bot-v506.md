@@ -6,7 +6,7 @@ Le bot utilise un compte Twitch distinct de la chaîne, un abonnement EventSub `
 
 1. Créer un compte Twitch dédié au jeu et le rendre modérateur du chat de la chaîne.
 2. Ajouter `https://loverwatchgame.fr/api/game-bot/callback` aux URL de redirection de l’application Twitch existante (même client ID que le jeu). Garder le secret de session et les identifiants Twitch existants sur le VPS.
-3. Déployer le code, ouvrir Administration → Tracker → « Bot Twitch du jeu » depuis le PC du diffuseur, puis cliquer « Connecter le compte bot ». Sur Twitch, sélectionner le nouveau compte bot et autoriser les permissions de chat demandées.
+3. Déployer le code, ouvrir Administration → Bot → « Bot Twitch du jeu » depuis le PC du diffuseur, puis cliquer « Connecter le compte bot ». Sur Twitch, sélectionner le nouveau compte bot et autoriser les permissions de chat demandées.
 4. Vérifier que l’abonnement au chat est configuré. Sinon cliquer « Relancer la connexion au chat » après avoir rendu le bot modérateur. Activer le bot, puis utiliser « Tester le chat » : le message doit apparaître dans Twitch.
 5. Pendant un live détecté par le tracker, « Déclencher un drop » choisit le lot et annonce l’ouverture dans le chat. Chaque compte lié à Twitch peut participer une seule fois avec `!catch`. Le bot ferme le tirage après 60 secondes, crédite les gagnants, puis les annonce dans le chat.
 

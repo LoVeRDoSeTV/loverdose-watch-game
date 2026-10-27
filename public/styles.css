@@ -5116,12 +5116,12 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
 
 /* Mobile : fenêtres secondaires et formulaires, au-dessus des pages. */
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
-  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay]){
+  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#adminBotModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay]){
     z-index:1000100;align-items:center;justify-content:center;
     padding:calc(16px + env(safe-area-inset-top)) 12px calc(var(--mobile-nav-height,55px) + 16px);
     overflow-y:auto;overscroll-behavior:contain;
   }
-  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay])>:first-child{
+  :is(#pwaHelpModal,#subBenefitsModal,#accountModal,#confirmAccountModal,#adminPlayersModal,#adminDashboardModal,#adminEconomyModal,#adminTrackerModal,#adminBotModal,#trackerDetectedModal,#adminHistoryModal,#eventsModal,#dailyChallengeDetailModal,#incubatorAddModal,#fragmentShopModal,#lovysXpTransferModal,#shopItemPreviewModal,#shopPurchaseConfirmModal,#shopPurchaseSuccessModal,#tradePublishConfirm,#lovysKitHelpModal,#prestigeInfoModal,[data-admin-confirm-overlay])>:first-child{
     width:min(560px,100%);min-width:0;max-height:calc(100dvh - var(--mobile-nav-height,55px) - env(safe-area-inset-top) - 32px);
     overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
     margin-top:0;padding:16px;border-radius:18px;
@@ -9173,3 +9173,6 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
 body.game-reduce-motion :is(.pve-zone-confetti,.badge-unlock-confetti,.hatch-particles){display:none!important}
 body.game-reduce-motion :is(.hatch-cinematic,.badge-unlock-celebration,.badge-unlock-celebration *, .pve-battle-result){animation:none!important;transition:none!important}
 @media(max-width:700px){#pveBattleOverlay .pve-enemy-intent:not([hidden]){max-width:100%;margin-top:3px;padding:3px 6px;font-size:10px;line-height:1.25}#pveBattleOverlay .pve-battle-head{min-height:74px}}
+
+/* Nouvelle rubrique Bot : onglets accessibles même sur les écrans PC étroits. */
+@media (min-width:901px){.desktop-admin-tabs{flex-wrap:wrap;justify-content:flex-start;gap:8px clamp(12px,1.3vw,24px)}}

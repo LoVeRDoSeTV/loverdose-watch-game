@@ -11,7 +11,7 @@ const desktopAdminLayoutOrigins = new Map();
 let desktopTrackerButtonMarkup = null;
 const DESKTOP_ADMIN_PAGES = {
   adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
-  adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal',
+  adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal', adminBotButton:'adminBotModal',
   trackerDetectedButton:'trackerDetectedModal', adminHistoryButton:'adminHistoryModal',
   eventsButton:'eventsModal'
 };
@@ -7029,7 +7029,7 @@ $('desktopAdminModal')?.addEventListener('click',event=>{if(!isDesktopGameUi() &
 document.addEventListener('keydown',event=>{
   if(isDesktopGameUi() || $('desktopAdminModal')?.classList.contains('hidden'))return;
   if(document.querySelector('[data-admin-confirm-overlay]'))return;
-  if(['adminPlayersModal','adminDashboardModal','adminEconomyModal','adminTrackerModal','trackerDetectedModal','adminHistoryModal','eventsModal'].some(id=>!$(id)?.classList.contains('hidden')))return;
+  if(['adminPlayersModal','adminDashboardModal','adminEconomyModal','adminTrackerModal','adminBotModal','trackerDetectedModal','adminHistoryModal','eventsModal'].some(id=>!$(id)?.classList.contains('hidden')))return;
   if(event.key==='Escape'){event.preventDefault();closeDesktopAdmin();}
   if(event.key==='Tab')trapDesktopAdminFocus(event,$('desktopAdminModal'));
 });
@@ -7681,7 +7681,7 @@ async function loadWizebotAlertsPanel(){
   }catch(error){panel.innerHTML=`<h3>🤖 Wizebot · Alertes du jeu</h3><p class="admin-player-meta">${escapeHtml(error.message)}</p>`;}
 }
 async function loadGameBotPanel(){
-  const host=$('adminTrackerContent');if(!host)return;
+  const host=$('adminBotContent');if(!host)return;
   let panel=$('adminGameBot');
   if(!panel){panel=document.createElement('section');panel.id='adminGameBot';panel.className='admin-dashboard-section wizebot-settings';host.appendChild(panel);}
   try{
@@ -7690,7 +7690,7 @@ async function loadGameBotPanel(){
     panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p class="admin-player-meta">Ce bot lit !catch en direct et annonce les drops du jeu. Wizebot garde les annonces normales de la chaîne.</p><p>${data.connected?`Compte connecté : <strong>${escapeHtml(data.login||'Bot')}</strong> · ${data.subscriptionId?'abonnement chat configuré':'abonnement chat à configurer'}`:'Aucun compte bot connecté.'}</p>${data.error?`<p role="alert">⚠️ ${escapeHtml(data.error)}</p>`:''}<p class="admin-player-meta">Crée un compte Twitch distinct pour le bot, ajoute l’URL de retour <code>${escapeHtml(location.origin+'/api/game-bot/callback')}</code> à l’application Twitch du jeu, puis rends ce compte modérateur de ta chaîne avant de le connecter.</p><a class="btn secondary" href="/api/game-bot/connect">Connecter le compte bot</a>${data.connected?` <button type="button" class="btn secondary" data-game-bot-subscribe>Relancer la connexion au chat</button> <button type="button" class="btn" data-game-bot-toggle data-enabled="${Boolean(data.enabled)}">${data.enabled?'Désactiver le bot':'Activer le bot'}</button> <button type="button" class="btn secondary" data-game-bot-test>Tester le chat</button>`:''}<div class="wizebot-drop"><h4>🎁 Drops !catch</h4><p>Au lancement d’un drop, le bot annonce une récompense. Les joueurs liés à Twitch ont 60 secondes pour taper !catch, puis il tire et annonce 1 à 3 gagnants. 50 % LoVeR’Cash, 25 % fragments d’œuf, 20 % bouteille de 100 XP et 5 % œuf mystère.</p><button type="button" class="btn" data-game-bot-drop>Déclencher un drop</button><p>${data.round?.status==='open'?'Drop en cours':data.round?.status==='pending'?'Drop en préparation':''}</p></div><p data-game-bot-status role="status" aria-live="polite"></p>`;
   }catch(error){panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p>${escapeHtml(error.message)}</p>`;}
 }
-$('adminTrackerContent')?.addEventListener('click',async event=>{
+$('adminBotContent')?.addEventListener('click',async event=>{
   const action=event.target.closest('[data-game-bot-subscribe],[data-game-bot-toggle],[data-game-bot-drop],[data-game-bot-test]');if(!action||action.disabled)return;
   action.disabled=true;const panel=$('adminGameBot'),status=panel?.querySelector('[data-game-bot-status]');
   try{
@@ -7732,7 +7732,7 @@ $('adminTrackerContent')?.addEventListener('click',async event=>{
 
 async function loadAdminTrackerPanel(){
   const box=$('adminTrackerContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}finally{await Promise.allSettled([loadWizebotAlertsPanel(),loadGameBotPanel()]);}
+  try{const d=await adminFetch('/api/tracker/status');if(!d.authorized){box.innerHTML='<div class="admin-players-empty">⚠️ Tracker non configuré.</div>';return;}const b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard(d.live?'🟢':'⚪','État',d.live?'LIVE':'HORS LIGNE')}${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('👥','Comptes dans le chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><div class="admin-health ${d.error?'bad':'good'}"><strong>${d.error?'⚠️ Erreur tracker':'✅ Tracker opérationnel'}</strong><span>${d.error?escapeHtml(d.error):`Dernier succès : ${d.lastSuccessAt?new Date(d.lastSuccessAt).toLocaleString('fr-FR'):'—'}`}</span></div></div><div class="admin-dashboard-section"><h3>Boosts de visionnage</h3><div class="admin-player-meta">XP Lovys ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}finally{await loadWizebotAlertsPanel();}
 }
 async function loadAdminHistory(){
   const box=$('adminHistoryContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
@@ -7790,8 +7790,9 @@ $('trackerDetectedClose')?.addEventListener('click',()=>$('trackerDetectedModal'
 $('trackerDetectedModal')?.addEventListener('click',e=>{if(e.target?.id==='trackerDetectedModal')$('trackerDetectedModal')?.classList.add('hidden');});
 
 $('adminTrackerButton')?.addEventListener('click',()=>{openAdminModal('adminTrackerModal',loadAdminTrackerPanel);if(isDesktopGameUi())loadTrackerStatus();});
+$('adminBotButton')?.addEventListener('click',()=>openAdminModal('adminBotModal',loadGameBotPanel));
 $('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
-[['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
+[['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminBotModal','adminBotClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
   $(closeId)?.addEventListener('click',()=>closeAdminModal(modalId));
   $(modalId)?.addEventListener('click',e=>{if(e.target.id===modalId)closeAdminModal(modalId);});
 });

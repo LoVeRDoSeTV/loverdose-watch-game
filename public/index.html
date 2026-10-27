@@ -32,7 +32,7 @@
 <link rel="manifest" href="/manifest.webmanifest?v=308">
 <link rel="icon" type="image/webp" href="/pwa-icon-192.webp">
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
-<link rel="stylesheet" href="/styles.css?v=505">
+<link rel="stylesheet" href="/styles.css?v=507">
 <link rel="stylesheet" href="/pve-expansion.css?v=489">
 <link rel="stylesheet" href="/return-summary.css?v=487">
 <link rel="stylesheet" href="/live-xp-boost.css?v=476">
@@ -832,6 +832,7 @@
         <button id="adminEconomyButton" class="btn secondary" type="button">💰 Économie</button>
         <button id="eventsButton" class="btn secondary" type="button">🗓 Événements</button>
         <button id="adminTrackerButton" class="btn secondary" type="button">📺 Twitch</button>
+        <button id="adminBotButton" class="btn secondary" type="button">🤖 Bot</button>
         <button id="adminHistoryButton" class="btn secondary" type="button">📜 Historique</button>
       </div>
     </div>
@@ -925,6 +926,13 @@
   </div>
 </div>
 
+
+<div id="adminBotModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminBotTitle">
+  <div class="admin-players-panel admin-overview-panel">
+    <div class="admin-players-head"><div><h2 id="adminBotTitle">🤖 Bot du jeu</h2><div class="muted admin-subtitle">Connexion Twitch, annonces et drops !catch.</div></div><button id="adminBotClose" class="account-close" type="button" aria-label="Fermer le bot">×</button></div>
+    <div id="adminBotContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  </div>
+</div>
 
 <!-- TRACKER - COMPTES DETECTES -->
 <div id="trackerDetectedModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="trackerDetectedTitle">
@@ -1338,7 +1346,7 @@
  </section>
 </div>
 <script src="/live-xp-boost.js?v=460"></script>
-<script src="/app.js?v=506"></script>
+<script src="/app.js?v=507"></script>
 <script src="/auth-fallback.js?v=111"></script></body></html>
 
 
