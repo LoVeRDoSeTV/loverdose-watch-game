@@ -9177,12 +9177,13 @@ body.game-reduce-motion :is(.hatch-cinematic,.badge-unlock-celebration,.badge-un
 /* Nouvelle rubrique Bot : onglets accessibles même sur les écrans PC étroits. */
 @media (min-width:901px){.desktop-admin-tabs{flex-wrap:wrap;justify-content:flex-start;gap:8px clamp(12px,1.3vw,24px)}}
 
-/* Administration : un fond uni évite de repeindre le SVG animé dans chaque panneau. */
-body:not(.auth-locked):has(#desktopAdminModal:not(.hidden)),
-body:not(.auth-locked)[data-desktop-view="admin"]{
-  --game-page-art:none!important;
-  background-color:#090b17!important;
-  background-image:none!important;
+/* Administration : décor partagé avec les autres pages, sans couches répétées. */
+/* Sur PC le décor n'est peint qu'une fois, derrière toute la page. */
+@media((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
+  body:not(.auth-locked)[data-desktop-view="admin"] :is(#desktopAdminModal>.desktop-admin-panel,#desktopAdminPageSlot .admin-players-panel,#desktopAdminPageSlot .events-panel){
+    background-image:none!important;
+    background-color:transparent!important;
+  }
 }
 body:has(#desktopAdminModal:not(.hidden)) :is(.desktop-admin-modal,.admin-players-modal,.events-modal),
 body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.events-modal){

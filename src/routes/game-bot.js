@@ -1,5 +1,10 @@
 import express from 'express';
 import crypto from 'node:crypto';
+import {validOAuthCallback} from '../middleware/security.js';
+
+export function isGameBotCallback(query,session){
+  return typeof query.state==='string'&&typeof session.gameBotOauthState==='string'&&session.gameBotOauthState.length>0&&query.state===session.gameBotOauthState;
+}
 
 const rewards=[
   {key:'cash',weight:50,label:"20 LoVeR’Cash",icon:'💰'},
@@ -41,7 +46,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   const channelId=String(process.env.TWITCH_BROADCASTER_ID||'');
   const clientId=String(process.env.TWITCH_CLIENT_ID||'');
   const clientSecret=String(process.env.TWITCH_CLIENT_SECRET||'');
-  const redirectUri=new URL('/api/game-bot/callback',baseUrl).href;
+  const redirectUri=new URL('/auth/twitch/callback',baseUrl).href;
   const webhookUrl=new URL('/api/game-bot/eventsub',baseUrl).href;
   let ticking=false;
   async function botRow(){return (await pool.query('SELECT * FROM game_bot_auth WHERE id=1')).rows[0];}
@@ -82,14 +87,14 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   }
   router.get('/game-bot/connect',async(req,res)=>{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).send('Accès réservé au diffuseur.');
-    const state=crypto.randomBytes(24).toString('hex');req.session.gameBotOauthState=state;req.session.gameBotOauthAt=Date.now();await saveSession(req);
+    const state=crypto.randomBytes(24).toString('hex');req.session.gameBotOauthState=state;req.session.gameBotOauthStateStartedAt=Date.now();await saveSession(req);
     res.redirect('https://id.twitch.tv/oauth2/authorize?'+new URLSearchParams({client_id:clientId,redirect_uri:redirectUri,response_type:'code',scope:'user:read:chat user:write:chat user:bot',force_verify:'true',state}));
   });
-  router.get('/game-bot/callback',async(req,res)=>{
+  async function handleCallback(req,res){
     try{
-      const admin=await getBroadcasterAccount(req),state=req.session.gameBotOauthState;
-      if(!admin||!state||state!==req.query.state||Date.now()-req.session.gameBotOauthAt>600000||!req.query.code)return res.status(400).send('Connexion bot invalide.');
-      delete req.session.gameBotOauthState;delete req.session.gameBotOauthAt;await saveSession(req);
+      const admin=await getBroadcasterAccount(req);
+      if(!admin||!validOAuthCallback(req.query,req.session,'gameBotOauthState'))return res.status(400).send('Connexion du bot expirée ou invalide. Relance-la depuis Administration → Bot.');
+      delete req.session.gameBotOauthState;delete req.session.gameBotOauthStateStartedAt;await saveSession(req);
       const response=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,code:String(req.query.code),grant_type:'authorization_code',redirect_uri:redirectUri})});
       if(!response.ok)throw new Error('Autorisation Twitch refusée.');
       const tokens=await response.json();
@@ -103,7 +108,8 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
       try{await subscribe();}catch(error){await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[error.message]);}
       res.redirect('/?gameBot=connected');
     }catch(error){res.status(500).send(`Connexion du bot impossible : ${error.message}`);}
-  });
+  }
+  router.get('/game-bot/callback',handleCallback);
   router.post('/game-bot/eventsub',async(req,res)=>{
     try{
       const row=await botRow(),raw=req.rawEventSubBody;
@@ -197,5 +203,5 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     await logAdminAction(admin.id,null,'game_bot_drop',`Drop ${reward.label} préparé`,{roundId:round.id},pool);
     tick();res.json({ok:true,message:`Drop ${reward.label} préparé. Le bot va l’annoncer dans le chat.`});
   }catch(error){res.status(error.code==='23505'?409:500).json({error:error.code==='23505'?'Un drop est déjà en cours.':'Impossible de préparer le drop.'});}});
-  return {router,tick,send,subscribe};
+  return {router,tick,send,subscribe,handleCallback};
 }

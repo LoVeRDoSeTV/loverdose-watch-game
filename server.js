@@ -20,7 +20,7 @@ import { createPveRouter } from './src/routes/pve.js';
 import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
-import { createGameBot, initGameBot } from './src/routes/game-bot.js';
+import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -3801,6 +3801,10 @@ app.get(
   async (req, res) => {
 
     try {
+      // Le compte du bot utilise la même URL de retour enregistrée chez Twitch.
+      if (isGameBotCallback(req.query, req.session)) {
+        return gameBot.handleCallback(req, res);
+      }
 
       if (!req.session.account) {
         return res.redirect('/');

@@ -32,3 +32,16 @@ test('seul le webhook signé échappe au contrôle Origin',async()=>{
   passed=false;guard(request('/api/admin/game-bot/drop'),response,()=>{passed=true});
   assert.equal(passed,false);assert.equal(status,403);
 });
+
+test('le retour OAuth partagé reconnaît uniquement l’état du bot',async()=>{
+  const {isGameBotCallback}=await import('../src/routes/game-bot.js');
+  const {validOAuthCallback}=await import('../src/middleware/security.js');
+  const session={gameBotOauthState:'bot-private-state',gameBotOauthStateStartedAt:1000,oauthState:'player-state',oauthStateStartedAt:1000};
+  assert.equal(isGameBotCallback({state:'bot-private-state'},session),true);
+  assert.equal(isGameBotCallback({state:'player-state'},session),false);
+  assert.equal(isGameBotCallback({state:['bot-private-state']},session),false);
+  assert.equal(isGameBotCallback({state:''},{}),false);
+  assert.equal(validOAuthCallback({code:'bot-code',state:'bot-private-state'},session,'gameBotOauthState',2000),true);
+  assert.equal(validOAuthCallback({code:'bot-code',state:'bot-private-state'},session,'gameBotOauthState',601001),false);
+  assert.equal(validOAuthCallback({code:'player-code',state:'player-state'},session,'oauthState',2000),true);
+});
