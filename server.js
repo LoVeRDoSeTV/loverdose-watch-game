@@ -1431,6 +1431,10 @@ async function initDatabase() {
     position INTEGER NOT NULL DEFAULT 1 CHECK (position BETWEEN 1 AND 3)
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS trade_offer_options_offer_idx ON trade_offer_options(offer_id, position)`);
+  await pool.query(`ALTER TABLE trade_offers DROP CONSTRAINT IF EXISTS trade_offers_offer_type_check,
+    ADD CONSTRAINT trade_offers_offer_type_check CHECK (offer_type IN ('fragment','egg','xp_bottle'))`);
+  await pool.query(`ALTER TABLE trade_offer_options DROP CONSTRAINT IF EXISTS trade_offer_options_receive_type_check,
+    ADD CONSTRAINT trade_offer_options_receive_type_check CHECK (receive_type IN ('fragment','egg','xp_bottle'))`);
   // Échanges ciblés : tous les éléments des deux lots sont transférés ensemble.
   await pool.query(`CREATE TABLE IF NOT EXISTS player_trade_offers (
     id BIGSERIAL PRIMARY KEY,
@@ -6504,21 +6508,21 @@ app.post('/api/shop/use', async (req, res) => {
     if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
 
     const requestedQuantity = req.body?.quantity === undefined ? 1 : req.body.quantity;
-    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > (key === 'incubator_skip_30' ? 12 : 1) ||
-        (key !== 'incubator_skip_30' && requestedQuantity !== 1)) {
+    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > (key === 'incubator_skip_30' ? 12 : key === 'xp_bottle_100' ? 100 : 1) ||
+        (!['incubator_skip_30','xp_bottle_100'].includes(key) && requestedQuantity !== 1)) {
       await client.query('ROLLBACK');
-      return res.status(400).json({error:'Quantité invalide (12 accélérateurs maximum, soit 6 heures).'});
+      return res.status(400).json({error:'Quantité invalide (100 fioles ou 12 accélérateurs maximum).'});
     }
     if (Number(inv.rows[0].quantity) < requestedQuantity) {
       await client.query('ROLLBACK');
-      return res.status(400).json({error:'Tu ne possèdes pas assez d’accélérateurs.'});
+      return res.status(400).json({error:'Tu ne possèdes pas assez d’objets disponibles.'});
     }
     let message = '';
     let acceleration = null;
     let boostExpiresAt = null;
     let xpGranted=0,pendingXp=null;
     if(key==='xp_bottle_100'){
-      xpGranted=item.xpAmount;
+      xpGranted=item.xpAmount*requestedQuantity;
       const result=await client.query('UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING pending_xp',[user.id,xpGranted]);
       pendingXp=Number(result.rows[0].pending_xp);
       message=`+${xpGranted} XP Lovys ajoutées à ta réserve. Choisis ensuite le Lovys qui les recevra.`;
@@ -6603,9 +6607,10 @@ function tradeCreatureImage(creatureId){
 
 function normalizeTradeAsset(raw = {}) {
   const type = String(raw.type || '').trim().toLowerCase();
-  const quantity = Math.max(0, Math.min(TRADE_MAX_QUANTITY, Number.parseInt(raw.quantity, 10) || 0));
-  if (!['fragment', 'egg'].includes(type) || quantity < 1) return null;
-  if (type === 'egg') return { type:'egg', creatureId:null, quantity };
+  const quantity = raw.quantity;
+  if(!Number.isSafeInteger(quantity)||quantity<1||quantity>TRADE_MAX_QUANTITY)return null;
+  if (!['fragment', 'egg', 'xp_bottle'].includes(type) || quantity < 1) return null;
+  if (type === 'egg' || type === 'xp_bottle') return { type, creatureId:null, quantity };
   const creatureId = String(raw.creatureId || '').trim();
   if (!creatures.some(creature => creature.id === creatureId)) return null;
   return { type:'fragment', creatureId, quantity };
@@ -6627,10 +6632,11 @@ async function tradeContext(client, req) {
 }
 
 async function tradeAssetBalance(client, ctx, asset, lock=false) {
-  if (asset.type === 'egg') {
+  if (asset.type === 'egg' || asset.type === 'xp_bottle') {
+    const itemKey=asset.type==='egg'?'mystery_egg':'xp_bottle_100';
     const result = await client.query(
-      `SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'${lock?' FOR UPDATE':''}`,
-      [ctx.accountId]
+      `SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2${lock?' FOR UPDATE':''}`,
+      [ctx.accountId,itemKey]
     );
     return Number(result.rows[0]?.quantity || 0);
   }
@@ -6644,19 +6650,20 @@ async function tradeAssetBalance(client, ctx, asset, lock=false) {
 async function changeTradeAsset(client, ctx, asset, delta) {
   const amount = Math.abs(Number(delta || 0));
   if (!amount) return;
-  if (asset.type === 'egg') {
+  if (asset.type === 'egg' || asset.type === 'xp_bottle') {
+    const itemKey=asset.type==='egg'?'mystery_egg':'xp_bottle_100';
     if (delta < 0) {
       const result = await client.query(
         `UPDATE shop_inventory SET quantity=quantity-$2
-         WHERE account_id=$1 AND item_key='mystery_egg' AND quantity >= $2 RETURNING quantity`,
-        [ctx.accountId, amount]
+         WHERE account_id=$1 AND item_key=$3 AND quantity >= $2 RETURNING quantity`,
+        [ctx.accountId, amount,itemKey]
       );
-      if (!result.rowCount) throw new Error("Tu ne possèdes pas assez d'œufs disponibles.");
+      if (!result.rowCount) throw new Error("Tu ne possèdes pas assez d’objets disponibles.");
     } else {
       await client.query(
-        `INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'mystery_egg',$2)
+        `INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$3,$2)
          ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+EXCLUDED.quantity,purchased_at=CURRENT_TIMESTAMP`,
-        [ctx.accountId, amount]
+        [ctx.accountId, amount,itemKey]
       );
     }
     return;
@@ -6695,7 +6702,7 @@ async function restoreExpiredTrades(client=pool) {
 
 function tradeAssetJson(type, creatureId, quantity) {
   const creature=creatures.find(c=>c.id===creatureId);
-  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?`/${creature.name}.webp`:null};
+  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='xp_bottle'?'Fiole de 100 XP':type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='xp_bottle'?'🧪':type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?`/${creature.name}.webp`:null};
 }
 
 function normalizePlayerTradeBundle(raw) {
@@ -6750,13 +6757,14 @@ app.get('/api/lobby/players/:userId', async (req,res)=>{
     if(!Number.isSafeInteger(userId)||userId<1)return res.status(400).json({error:'Joueur invalide.'});
     const player=await playerTradeUser(pool,userId);
     if(!player)return res.status(404).json({error:'Joueur introuvable.'});
-    const [owned,eggs,incubating]=await Promise.all([
+    const [owned,eggs,incubating,bottles]=await Promise.all([
       pool.query(`SELECT creature_id,fragments,rank,xp FROM user_lovys WHERE user_id=$1 ORDER BY creature_id`,[userId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'`,[player.accountId]),
-      pool.query(`SELECT COUNT(*)::int count FROM user_incubator_eggs WHERE user_id=$1`,[userId])
+      pool.query(`SELECT COUNT(*)::int count FROM user_incubator_eggs WHERE user_id=$1`,[userId]),
+      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_bottle_100'`,[player.accountId])
     ]);
     res.json({ok:true,selfUserId:ctx.userId,player:{userId:player.userId,username:player.username,level:player.level,profileImageUrl:player.profileImageUrl},
-      eggs:Number(eggs.rows[0]?.quantity||0),incubatingEggs:Number(incubating.rows[0]?.count||0)+(player.hasStarterEgg?1:0),totalLovys:creatures.length,
+      xpBottles:Number(bottles.rows[0]?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),incubatingEggs:Number(incubating.rows[0]?.count||0)+(player.hasStarterEgg?1:0),totalLovys:creatures.length,
       lovys:owned.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),image:tradeCreatureImage(row.creature_id),
         fragments:Number(row.fragments||0),rank:Number(row.rank||1),level:progressionFromXp(Number(row.xp||0)).level,
         rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null}))});
@@ -6800,7 +6808,7 @@ app.post('/api/player-trades',tradeWriteRateLimit,async(req,res)=>{
       (SELECT COUNT(*) FROM player_trade_offers WHERE creator_user_id=$1 AND status='open'))::int count`,[ctx.userId]);
     if(Number(active.rows[0]?.count||0)>=TRADE_MAX_ACTIVE)throw new Error(`Tu peux avoir au maximum ${TRADE_MAX_ACTIVE} offres actives, publiques ou ciblées.`);
     for(const asset of requested) {
-      if(await tradeAssetBalance(client,target,asset,true)<asset.quantity)throw new Error(`${target.username} ne possède plus assez de ${asset.type==='egg'?'œufs':`fragments ${tradeCreatureName(asset.creatureId)}`}.`);
+      if(await tradeAssetBalance(client,target,asset,true)<asset.quantity)throw new Error(`${target.username} ne possède plus assez de ${asset.type==='xp_bottle'?'fioles d’XP':asset.type==='egg'?'œufs':`fragments ${tradeCreatureName(asset.creatureId)}`}.`);
       if(asset.type==='fragment'&&await tradeAssetBalance(client,creator,asset,true)===null)throw new Error(`Tu dois posséder ${tradeCreatureName(asset.creatureId)} pour recevoir ses fragments.`);
     }
     for(const asset of offered) {
@@ -6879,11 +6887,12 @@ app.get('/api/trades/inventory',async(req,res)=>{
   try{
     if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
     const ctx=await tradeContext(pool,req);if(!ctx)return res.status(404).json({error:'Profil introuvable.'});
-    const [lovys,eggs]=await Promise.all([
+    const [lovys,eggs,bottles]=await Promise.all([
       pool.query(`SELECT creature_id,fragments,rank FROM user_lovys WHERE user_id=$1 ORDER BY creature_id`,[ctx.userId]),
-      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'`,[ctx.accountId])
+      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'`,[ctx.accountId]),
+      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_bottle_100'`,[ctx.accountId])
     ]);
-    res.json({ok:true,eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:tradeCreatureImage(row.creature_id)})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:tradeCreatureImage(c.id)}))});
+    res.json({ok:true,xpBottles:Number(bottles.rows[0]?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:tradeCreatureImage(row.creature_id)})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:tradeCreatureImage(c.id)}))});
   }catch(error){console.error('Erreur inventaire échanges :',error);res.status(500).json({error:"Impossible de charger l'inventaire d'échange."});}
 });
 
@@ -6972,7 +6981,7 @@ app.get('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(p
 app.post('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const id=String(req.body?.creatureId||'');if(!creatures.some(c=>c.id===id))return res.status(400).json({error:'Lovys invalide.'});if(req.body?.wanted)await pool.query(`INSERT INTO trade_wishes(user_id,creature_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[ctx.userId,id]);else await pool.query(`DELETE FROM trade_wishes WHERE user_id=$1 AND creature_id=$2`,[ctx.userId,id]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de modifier le souhait.'});}});
 
 
-app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
+app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
 app.get('/api/trades/notifications',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT id,message,event_type,created_at,read_at FROM trade_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[ctx.userId]);res.json({ok:true,unread:q.rows.filter(x=>!x.read_at).length,items:q.rows});}catch(e){res.status(500).json({error:'Notifications indisponibles.'});}});
 app.post('/api/trades/notifications/read',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});await pool.query(`UPDATE trade_notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND read_at IS NULL`,[ctx.userId]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de marquer les notifications.'});}});
 

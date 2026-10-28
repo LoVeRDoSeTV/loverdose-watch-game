@@ -48,3 +48,13 @@ test('credit and consumption roll back together, and a failed post-commit notifi
  await call('/api/shop/buy',{itemKey:'xp_bottle_100'});historyFails=true;assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100'})).statusCode,500);assert.equal(await quantity(),1);assert.equal((await user()).pending_xp,7);
  historyFails=false;notificationsFail=true;assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100'})).statusCode,200);assert.equal(await quantity(),0);assert.equal((await user()).pending_xp,107);
 });
+
+test('multiple bottles credit the bank once and log the exact quantity',async()=>{
+ await call('/api/shop/buy',{itemKey:'xp_bottle_100',quantity:5});
+ const result=await call('/api/shop/use',{itemKey:'xp_bottle_100',quantity:3,xpAmount:99999});
+ assert.equal(result.statusCode,200);assert.equal(result.body.xpGranted,300);assert.equal(result.body.pendingXp,307);assert.equal(await quantity(),2);
+ const entry=(await client.query("SELECT entry FROM history WHERE entry->>'kind'='use'")).rows[0].entry;
+ assert.equal(entry.quantity,3);assert.equal(entry.details.xpGranted,300);
+ for(const invalid of [0,-1,1.5,'2',101])assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100',quantity:invalid})).statusCode,400);
+ assert.equal(await quantity(),2);assert.equal((await user()).pending_xp,307);
+});
