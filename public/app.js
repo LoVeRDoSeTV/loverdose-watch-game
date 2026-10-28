@@ -968,6 +968,9 @@ async function spinRewardWheel() {
 // Chaque onglet a son propre identifiant, y compris quand il est dupliqué.
 const returnSummaryTabId=crypto.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let returnSummaryBusy=false;
+// Welcome once per loaded page. Visibility changes and presence heartbeats remain silent.
+let returnSummaryFirstVisit=true;
+let returnSummaryPending=null;
 function showReturnSummary(summary){
   if(document.getElementById('returnSummaryOverlay'))return;
   const amount=value=>Number(value||0).toLocaleString('fr-FR',{maximumFractionDigits:2});
@@ -997,15 +1000,18 @@ function showReturnSummary(summary){
 }
 async function refreshReturnSummary(){
   if(returnSummaryBusy||document.hidden||!me?.user)return;
+  if(returnSummaryPending){showReturnSummary(returnSummaryPending);returnSummaryPending=null;}
   returnSummaryBusy=true;
   try{
     const response=await fetch('/api/game/return-summary',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tabId:returnSummaryTabId}),cache:'no-store'});
     if(!response.ok)return;
     const {summary}=await response.json();
-    if(Number(summary?.watchSeconds||0)>0){
-      if(document.hidden)leaveGameTab();
-      else showReturnSummary(summary);
+    if(returnSummaryFirstVisit){
+      returnSummaryFirstVisit=false;
+      if(Number(summary?.watchSeconds||0)>0)returnSummaryPending=summary;
     }
+    // A first response received in the background is displayed on the next visible visit.
+    if(!document.hidden&&returnSummaryPending){showReturnSummary(returnSummaryPending);returnSummaryPending=null;}
   }catch(error){console.warn('Récapitulatif du live indisponible :',error);}
   finally{if(document.hidden)leaveGameTab();returnSummaryBusy=false;}
 }
