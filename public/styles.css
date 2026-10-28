@@ -9231,3 +9231,13 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-schedule-toggle input{width:20px;height:20px;accent-color:#af7eff}
 #adminGameBot .bot-schedule-next{padding:14px;background:#af7eff16;border:1px solid #af7eff33;border-radius:12px;color:#e7d9ff;font-weight:650}
 @media(max-width:650px){#adminGameBot .bot-schedule-inputs{grid-template-columns:minmax(0,1fr)}}
+
+#adminGameBot .btn.bot-power-switch{display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:9px 16px;min-height:44px;background:#242638;border:1px solid #797d9d66;color:#e6e6f1;vertical-align:middle;box-shadow:none}
+#adminGameBot .bot-power-track{display:block;position:relative;flex:0 0 46px;width:46px;height:26px;border-radius:20px;background:#585c74}
+#adminGameBot .bot-power-thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;background:#fff;border-radius:50%;box-shadow:0 1px 4px #0004}
+#adminGameBot .bot-power-label{font-weight:750;min-width:58px;text-align:left}
+#adminGameBot .bot-power-switch[aria-checked="true"]{background:#16382e;border-color:#5bd6a166;color:#bcf8da}
+#adminGameBot .bot-power-switch[aria-checked="true"] .bot-power-track{background:#36b97e}
+#adminGameBot .bot-power-switch[aria-checked="true"] .bot-power-thumb{left:23px}
+#adminGameBot .bot-power-switch:focus-visible{outline:3px solid #d2b6ff;outline-offset:3px}
+#adminGameBot .bot-power-switch:disabled{cursor:wait;opacity:.6}
