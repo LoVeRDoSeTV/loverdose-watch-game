@@ -71,3 +71,34 @@ test('un échec du journal ne transforme pas un message envoyé en erreur à ré
   const bot=createGameBot({pool,baseUrl:'https://example.com',decrypt:x=>x});
   try{globalThis.fetch=async()=>{sends++;return {ok:true,json:async()=>({data:[{is_sent:true}]})};};await bot.send('Message');assert.equal(sends,1);}finally{globalThis.fetch=originalFetch;}
 });
+
+test('le test de chat peut envoyer un seul message en OFF sans activer le bot ni les drops',async()=>{
+  const {createGameBot}=await import('../src/routes/game-bot.js');
+  const originalFetch=globalThis.fetch,queries=[];let sends=0;
+  const pool={async query(sql,args){queries.push({sql,args});return {rows:sql.startsWith('SELECT * FROM game_bot_auth')?[{enabled:false,expires_at:new Date(Date.now()+3600000),access_token_enc:'token',twitch_user_id:'bot'}]:[]};}};
+  const bot=createGameBot({pool,baseUrl:'https://example.com',getBroadcasterAccount:async req=>req.allowed,decrypt:x=>x});
+  const handler=bot.router.stack.find(layer=>layer.route?.path==='/admin/game-bot/test').route.stack[0].handle;
+  let status=200,result;const res={status(n){status=n;return this;},sendStatus(n){status=n;},json(value){result=value;}};
+  try{
+    globalThis.fetch=async()=>{sends++;return {ok:true,json:async()=>({data:[{is_sent:true}]})};};
+    await handler({allowed:false},res);assert.equal(status,403);assert.equal(sends,0);
+    status=200;await handler({allowed:true},res);assert.equal(status,200);assert.equal(result.ok,true);assert.equal(sends,1);
+    assert.equal(queries.some(q=>q.sql.includes('SET enabled=')||q.sql.includes('INSERT INTO game_bot_drops')),false);
+    await assert.rejects(bot.send('Annonce automatique'),/Bot désactivé/);assert.equal(sends,1);
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+test('le bot signale les refus Twitch, les autorisations invalides et les réponses sans confirmation',async()=>{
+  const {createGameBot}=await import('../src/routes/game-bot.js');
+  const originalFetch=globalThis.fetch;
+  const pool={async query(sql){return {rows:sql.startsWith('SELECT * FROM game_bot_auth')?[{enabled:true,expires_at:new Date(Date.now()+3600000),access_token_enc:'private-token',twitch_user_id:'bot'}]:[]};}};
+  const bot=createGameBot({pool,baseUrl:'https://example.com',decrypt:x=>x});
+  try{
+    globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({data:[{is_sent:false,drop_reason:{code:'msg_duplicate',message:'Duplicate message'}}]})});
+    await assert.rejects(bot.send('Message'),/msg_duplicate.*Duplicate message/);
+    globalThis.fetch=async()=>({ok:false,status:401,json:async()=>({message:'Missing user:write:chat scope'})});
+    await assert.rejects(bot.send('Message'),/Missing user:write:chat scope.*Reconnecte/);
+    globalThis.fetch=async()=>({ok:true,status:200,json:async()=>({})});
+    await assert.rejects(bot.send('Message'),/pas confirmé/);
+  }finally{globalThis.fetch=originalFetch;}
+});

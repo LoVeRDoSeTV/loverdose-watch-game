@@ -9247,3 +9247,7 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-connection-actions>.btn:hover:not(:disabled){background:#323650;border-color:#b58bff55}
 #adminGameBot .bot-connection-actions>.bot-power-switch{gap:12px}
 @media(max-width:650px){#adminGameBot .bot-connection-actions{display:grid;grid-template-columns:minmax(0,1fr)}#adminGameBot .bot-connection-actions>.btn{width:100%}}
+
+#adminGameBot .bot-chat-test-help{display:block;margin-top:12px;color:#bdb4d2;line-height:1.5}
+#adminGameBot [data-game-bot-status]:not(:empty){margin:12px 0 0;padding:12px 14px;border:1px solid #9b80db55;border-radius:12px;background:#9474df12;color:#e0d2ff;overflow-wrap:anywhere}
+#adminGameBot [data-game-bot-status][data-error="true"]{border-color:#ff8b9a66;background:#ff8b9a12;color:#ffc1cb}

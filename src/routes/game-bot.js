@@ -58,7 +58,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   async function accessToken(){
     const row=await botRow();if(!row)throw new Error('Connecte le compte du bot Twitch.');
     if(new Date(row.expires_at||0).getTime()>Date.now()+120000)return decrypt(row.access_token_enc);
-    const response=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:'refresh_token',refresh_token:decrypt(row.refresh_token_enc)})});
+    const response=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',signal:AbortSignal.timeout(15000),body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:'refresh_token',refresh_token:decrypt(row.refresh_token_enc)})});
     if(!response.ok)throw new Error(`Renouvellement Twitch refusé (${response.status}).`);
     const tokens=await response.json();
     await pool.query(`UPDATE game_bot_auth SET access_token_enc=$1,refresh_token_enc=$2,expires_at=$3,updated_at=CURRENT_TIMESTAMP WHERE id=1`,
@@ -69,13 +69,19 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const saved=(await pool.query('SELECT text FROM game_bot_message_templates WHERE key=$1',[key])).rows[0];
     return renderBotMessage(saved?.text||botMessageTemplates[key].text,values);
   }
-  async function send(message,kind='announcement'){
+  async function send(message,kind='announcement',{allowDisabled=false}={}){
     try {
-      const bot=await botRow();if(!bot?.enabled)throw new Error('Bot désactivé.');
+      const bot=await botRow();if(!bot)throw new Error('Connecte le compte du bot Twitch.');
+      if(!bot.enabled&&!allowDisabled)throw new Error('Bot désactivé.');
       const token=await accessToken();
-      const response=await fetch('https://api.twitch.tv/helix/chat/messages',{method:'POST',headers:{Authorization:`Bearer ${token}`,'Client-Id':clientId,'Content-Type':'application/json'},body:JSON.stringify({broadcaster_id:channelId,sender_id:bot.twitch_user_id,message})});
+      const response=await fetch('https://api.twitch.tv/helix/chat/messages',{method:'POST',signal:AbortSignal.timeout(15000),headers:{Authorization:`Bearer ${token}`,'Client-Id':clientId,'Content-Type':'application/json'},body:JSON.stringify({broadcaster_id:channelId,sender_id:bot.twitch_user_id,message})});
       const result=await response.json().catch(()=>({}));
-      if(!response.ok||result.data?.[0]?.is_sent===false)throw new Error(`Message Twitch refusé (${response.status}) : ${result.data?.[0]?.drop_reason?.message||'vérifie les permissions du bot.'}`);
+      if(!response.ok||result.data?.[0]?.is_sent!==true){
+        const reason=result.data?.[0]?.drop_reason;
+        const detail=reason?.message||result.message||'Twitch n’a pas confirmé l’envoi du message.';
+        const hint=response.status===401?' Reconnecte le compte bot pour renouveler ses autorisations.':response.status===403?' Vérifie que le compte bot peut écrire dans le chat de la chaîne.':'';
+        throw new Error(`Message Twitch refusé (${response.status}${reason?.code?' · '+reason.code:''}) : ${detail}${hint}`);
+      }
       await recordMessage(kind,message,'sent');
       if(bot.last_error)await pool.query('UPDATE game_bot_auth SET last_error=NULL WHERE id=1').catch(()=>{});
     } catch(error) {
@@ -261,7 +267,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     }catch(error){res.status(400).json({error:error.message});}
   });
   router.post('/admin/game-bot/subscribe',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await subscribe();res.json({ok:true});}catch(error){res.status(400).json({error:error.message});}});
-  router.post('/admin/game-bot/test',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await send(await messageText('test'),'test');res.json({ok:true,message:'Message de test envoyé dans le chat Twitch.'});}catch(error){res.status(400).json({error:error.message});}});
+  router.post('/admin/game-bot/test',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await send(await messageText('test'),'test',{allowDisabled:true});res.json({ok:true,message:'Message de test envoyé dans le chat Twitch.'});}catch(error){res.status(400).json({error:error.message});}});
   router.post('/admin/game-bot/enabled',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);const enabled=req.body?.enabled===true;const bot=await botRow();if(!bot?.subscription_id)return res.status(400).json({error:'Connecte le bot et abonne-le au chat avant de l’activer.'});await pool.query(`UPDATE game_bot_auth SET enabled=$1,alert_cursor=CASE WHEN $1 AND NOT enabled THEN COALESCE((SELECT MAX(id) FROM wizebot_game_alerts),0) ELSE alert_cursor END WHERE id=1`,[enabled]);if(enabled!==bot.enabled)await pool.query('UPDATE wizebot_alert_settings SET generation=generation+1,updated_at=CURRENT_TIMESTAMP WHERE id=1');if(!enabled){await pool.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE status IN ('pending','open')");await pool.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');}res.json({ok:true,enabled});}catch{res.status(500).json({error:'Bot indisponible.'});}});
   router.post('/admin/game-bot/drop',async(req,res)=>{try{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.sendStatus(403);
