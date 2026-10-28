@@ -9241,3 +9241,9 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-power-switch[aria-checked="true"] .bot-power-thumb{left:23px}
 #adminGameBot .bot-power-switch:focus-visible{outline:3px solid #d2b6ff;outline-offset:3px}
 #adminGameBot .bot-power-switch:disabled{cursor:wait;opacity:.6}
+
+#adminGameBot .bot-connection-actions{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin-top:18px}
+#adminGameBot .bot-connection-actions>.btn,#adminGameBot .bot-connection-actions>.bot-power-switch[aria-checked="true"]{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:46px;margin:0;padding:10px 16px;border:1px solid transparent;border-radius:14px;background:#252840;color:#fff;box-shadow:none;line-height:1.25;font-size:.875rem;font-weight:750;vertical-align:initial;text-decoration:none}
+#adminGameBot .bot-connection-actions>.btn:hover:not(:disabled){background:#323650;border-color:#b58bff55}
+#adminGameBot .bot-connection-actions>.bot-power-switch{gap:12px}
+@media(max-width:650px){#adminGameBot .bot-connection-actions{display:grid;grid-template-columns:minmax(0,1fr)}#adminGameBot .bot-connection-actions>.btn{width:100%}}

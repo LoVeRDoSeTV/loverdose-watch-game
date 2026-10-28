@@ -7729,7 +7729,12 @@ async function loadGameBotPanel(){
 
     const cards=[...panel.querySelectorAll(':scope > .wizebot-drop')];
     const grid=document.createElement('div');grid.className='bot-panel-grid';
-    const connection=panel.querySelector('.bot-connection-card');if(connection)grid.appendChild(connection);
+    const connection=panel.querySelector('.bot-connection-card');
+    if(connection){
+      const toolbar=document.createElement('div');toolbar.className='bot-connection-actions';
+      connection.querySelectorAll(':scope > .btn').forEach(button=>toolbar.appendChild(button));
+      connection.appendChild(toolbar);grid.appendChild(connection);
+    }
     for(const card of cards){
       const title=card.querySelector('h4')?.textContent||'';
       if(title.includes('Éditeur'))card.classList.add('bot-editor-card','bot-card-wide');
