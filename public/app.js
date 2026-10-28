@@ -6351,8 +6351,9 @@ function showDesktopBoostAccepted(itemKey, data) {
     : itemKey === 'boost_cash_x2' ? 'Tu gagnes deux fois plus de LoVeR’Cash pendant tes heures de présence en live.'
     : data.message || 'Le temps d’incubation a été réduit.';
   const until = Date.parse(data.boostExpiresAt);
+  const hours = Number(data.quantity || 1);
   const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
-    : Number.isFinite(until) ? `1 heure ajoutée · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : 'Durée ajoutée : 1 heure';
+    : Number.isFinite(until) ? `${hours} heure${hours>1?'s':''} ajoutée${hours>1?'s':''} · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : `Durée ajoutée : ${hours} heure${hours>1?'s':''}`;
   const previousFocus = document.activeElement;
   const overlay = document.createElement('div');
   overlay.className = 'desktop-boost-accepted-overlay';
@@ -6493,10 +6494,13 @@ async function chooseEggForAcceleration(preferredSlot = null) {
 
 function confirmDesktopObjectUse(itemKey) {
   const item = getShopItemByKey(itemKey);
+  const stock = Math.max(0,Number(item?.quantity || 0));
+  const max = Math.min(100,stock);
   const name = item?.name || 'cet objet';
   const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 1 heure.'
     : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
     : item?.description || '';
+  if (!max) return Promise.resolve(0);
   return new Promise(resolve => {
     const previousFocus = document.activeElement;
     const overlay = document.createElement('div');
@@ -6504,29 +6508,31 @@ function confirmDesktopObjectUse(itemKey) {
     overlay.setAttribute('role','dialog');
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-labelledby','objectUseConfirmTitle');
-    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>Souhaites-tu vraiment utiliser <strong>${escapeHtml(name)}</strong> ?</p><p>${escapeHtml(effect)}</p><p>Un objet sera consommé uniquement si tu confirmes et que l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Non, annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Oui, utiliser</button></div></div>`;
+    overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>${escapeHtml(name)} · ${stock} disponible${stock>1?'s':''}.</p><p>${escapeHtml(effect)}</p><label for="objectUseQuantity">Nombre de boosts à activer</label><div class="egg-boost-quantity"><div><button type="button" data-use-minus aria-label="Diminuer">−</button><input id="objectUseQuantity" type="number" min="1" max="${max}" step="1" value="1" inputmode="numeric"><button type="button" data-use-plus aria-label="Augmenter">＋</button></div></div><button class="shop-action secondary" type="button" data-use-max>Tout utiliser${stock>100?' (100 maximum)':''}</button><p data-use-duration aria-live="polite"></p><p>Les objets sont consommés uniquement si l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Activer</button></div></div>`;
+    const input=overlay.querySelector('#objectUseQuantity'),confirm=overlay.querySelector('[data-object-use-yes]');
+    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n} heure${n>1?'s':''} ajoutée${n>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
     let finished = false;
     const finish = value => {
       if (finished) return;
       finished = true;
       document.removeEventListener('keydown', onKey, true);
-      window.removeEventListener('resize', onResize);
       overlay.remove();
       if (previousFocus?.isConnected) previousFocus.focus();
       resolve(value);
     };
     const onKey = event => {
-      if (event.key === 'Escape') {event.preventDefault();event.stopImmediatePropagation();finish(false);}
+      if (event.key === 'Escape') {event.preventDefault();event.stopImmediatePropagation();finish(0);}
       else if (event.key === 'Tab') trapDesktopAdminFocus(event,overlay);
     };
-    const onResize = () => {if (!isDesktopGameUi()) finish(false);};
     overlay.addEventListener('click', event => {
-      if (event.target === overlay || event.target.closest('[data-object-use-no]')) finish(false);
-      else if (event.target.closest('[data-object-use-yes]')) finish(true);
+      if (event.target === overlay || event.target.closest('[data-object-use-no]')) finish(0);
+      else if(event.target.closest('[data-use-minus],[data-use-plus],[data-use-max]')){input.value=String(event.target.closest('[data-use-max]')?max:Math.min(max,Math.max(1,Number(input.value||1)+(event.target.closest('[data-use-plus]')?1:-1))));update();}
+      else if (event.target.closest('[data-object-use-yes]')) {update();if(!confirm.disabled)finish(Number(input.value));}
     });
+    overlay.addEventListener('input',update);
     document.body.appendChild(overlay);
     document.addEventListener('keydown', onKey, true);
-    overlay.querySelector('[data-object-use-no]')?.focus();
+    update();input.focus();
   });
 }
 
@@ -6602,7 +6608,12 @@ async function shopAction(url, itemKey, preferredSlot = null) {
       openIncubatorAddModal(free.slot);return;
     }
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration(preferredSlot);if(!target)return;}
-    else if(desktopUse && !(await confirmDesktopObjectUse(itemKey))) return;
+    else if(url === '/api/shop/use' && ['boost_xp_x2','boost_cash_x2'].includes(itemKey)) {
+      await loadShop();
+      const quantity=await confirmDesktopObjectUse(itemKey);
+      if(!quantity)return;
+      target.quantity=quantity;
+    }
     const response = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ itemKey, ...target }) });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Action impossible.');

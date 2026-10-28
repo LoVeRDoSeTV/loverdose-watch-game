@@ -6508,8 +6508,7 @@ app.post('/api/shop/use', async (req, res) => {
     if (!inv.rowCount || Number(inv.rows[0].quantity || 0) <= 0) { await client.query('ROLLBACK'); return res.status(400).json({ error:'Tu ne possèdes pas cet objet.' }); }
 
     const requestedQuantity = req.body?.quantity === undefined ? 1 : req.body.quantity;
-    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > (key === 'incubator_skip_30' ? 12 : key === 'xp_bottle_100' ? 100 : 1) ||
-        (!['incubator_skip_30','xp_bottle_100'].includes(key) && requestedQuantity !== 1)) {
+    if (!Number.isSafeInteger(requestedQuantity) || requestedQuantity < 1 || requestedQuantity > (key === 'incubator_skip_30' ? 12 : 100)) {
       await client.query('ROLLBACK');
       return res.status(400).json({error:'Quantité invalide (100 fioles ou 12 accélérateurs maximum).'});
     }
@@ -6533,12 +6532,12 @@ app.post('/api/shop/use', async (req, res) => {
       }
       const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id, boost_key, expires_at, starts_at)
-         VALUES ($1,$2,CURRENT_TIMESTAMP + INTERVAL '1 hour',CURRENT_TIMESTAMP)
-         ON CONFLICT (user_id,boost_key) DO UPDATE SET starts_at=CASE WHEN user_active_boosts.expires_at>CURRENT_TIMESTAMP THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END, expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + INTERVAL '1 hour' RETURNING expires_at`,
-        [user.id, key]
+         VALUES ($1,$2,CURRENT_TIMESTAMP + $3 * INTERVAL '1 hour',CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id,boost_key) DO UPDATE SET starts_at=CASE WHEN user_active_boosts.expires_at>CURRENT_TIMESTAMP THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END, expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + $3 * INTERVAL '1 hour' RETURNING expires_at`,
+        [user.id, key, requestedQuantity]
       );
       boostExpiresAt = boostResult.rows[0]?.expires_at || null;
-      message = key === 'boost_xp_x2' ? 'Booster XP x2 activé pendant 1 heure.' : "Booster LoVeR'Cash x2 activé pendant 1 heure.";
+      message = `${key === 'boost_xp_x2' ? 'Booster XP x2' : "Booster LoVeR'Cash x2"} : ${requestedQuantity} heure${requestedQuantity>1?'s':''} ajoutée${requestedQuantity>1?'s':''}.`;
     } else if (key === 'incubator_skip_30') {
       const requestedSlot = req.body?.slot;
       const slot = requestedSlot == null && !user.creature_id ? 1 : Number(requestedSlot);
@@ -6579,7 +6578,7 @@ app.post('/api/shop/use', async (req, res) => {
     await wizebotAlerts.collect().catch(error=>console.warn('Notification objet indisponible :',error.message));
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
     if(xpGranted)pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
-    res.json({ ok:true, message, acceleration, boostExpiresAt, xpGranted, pendingXp });
+    res.json({ ok:true, message, acceleration, boostExpiresAt, xpGranted, pendingXp, quantity:requestedQuantity });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur utilisation objet :', error);
