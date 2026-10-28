@@ -45,3 +45,29 @@ test('le retour OAuth partagé reconnaît uniquement l’état du bot',async()=>
   assert.equal(validOAuthCallback({code:'bot-code',state:'bot-private-state'},session,'gameBotOauthState',601001),false);
   assert.equal(validOAuthCallback({code:'player-code',state:'player-state'},session,'oauthState',2000),true);
 });
+
+test('le journal du bot distingue envoi accepté et refus Twitch sans exposer de jeton',async()=>{
+  const {createGameBot}=await import('../src/routes/game-bot.js');
+  const originalFetch=globalThis.fetch,calls=[];
+  const pool={async query(sql,args){calls.push({sql,args});return {rows:sql.startsWith('SELECT * FROM game_bot_auth')?[{enabled:true,expires_at:new Date(Date.now()+3600000),access_token_enc:'private-token',twitch_user_id:'bot'}]:[],rowCount:1};}};
+  const bot=createGameBot({pool,baseUrl:'https://example.com',getBroadcasterAccount:async()=>true,decrypt:x=>x});
+  try{
+    globalThis.fetch=async()=>({ok:true,json:async()=>({data:[{is_sent:true}]})});
+    await bot.send('Annonce du drop','drop');
+    let entries=calls.filter(c=>c.sql.startsWith('INSERT INTO game_bot_messages'));
+    assert.deepEqual(entries[0].args,['drop','Annonce du drop','sent',null]);
+    globalThis.fetch=async()=>({ok:false,status:403,json:async()=>({})});
+    await assert.rejects(bot.send('Autre annonce','test'),/refusé/);
+    entries=calls.filter(c=>c.sql.startsWith('INSERT INTO game_bot_messages'));
+    assert.equal(entries[1].args[2],'failed');
+    assert.equal(JSON.stringify(entries).includes('private-token'),false);
+  }finally{globalThis.fetch=originalFetch;}
+});
+
+test('un échec du journal ne transforme pas un message envoyé en erreur à réessayer',async()=>{
+  const {createGameBot}=await import('../src/routes/game-bot.js');
+  const originalFetch=globalThis.fetch;let sends=0;
+  const pool={async query(sql){if(sql.startsWith('INSERT INTO game_bot_messages'))throw Error('DB unavailable');return {rows:[{enabled:true,expires_at:new Date(Date.now()+3600000),access_token_enc:'token',twitch_user_id:'bot'}]};}};
+  const bot=createGameBot({pool,baseUrl:'https://example.com',decrypt:x=>x});
+  try{globalThis.fetch=async()=>{sends++;return {ok:true,json:async()=>({data:[{is_sent:true}]})};};await bot.send('Message');assert.equal(sends,1);}finally{globalThis.fetch=originalFetch;}
+});

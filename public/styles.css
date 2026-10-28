@@ -9190,3 +9190,6 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   backdrop-filter:none!important;
   -webkit-backdrop-filter:none!important;
 }
+
+/* Bot administration: messages readable on desktop, tablet and mobile. */
+.game-bot-messages{display:grid;gap:12px;margin-top:16px}.game-bot-message{padding:12px;border:1px solid #ffffff20;border-radius:12px;min-width:0}.game-bot-message p{margin:4px 0;overflow-wrap:anywhere}.game-bot-message-text{white-space:pre-wrap}.game-bot-message time{color:var(--muted,#aab0c8)}
