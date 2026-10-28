@@ -1,4 +1,5 @@
 import express from 'express';
+import {botMessageTemplates,validateBotMessage,renderBotMessage} from '../game-bot-messages.js';
 import crypto from 'node:crypto';
 import {validOAuthCallback} from '../middleware/security.js';
 
@@ -28,6 +29,7 @@ export async function initGameBot(pool){
     access_token_enc TEXT NOT NULL,refresh_token_enc TEXT NOT NULL,expires_at TIMESTAMPTZ,
     webhook_secret TEXT NOT NULL,subscription_id TEXT,enabled BOOLEAN NOT NULL DEFAULT FALSE,
     last_error TEXT,alert_cursor BIGINT NOT NULL DEFAULT 0,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_message_templates (key TEXT PRIMARY KEY,label TEXT NOT NULL,text TEXT NOT NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_messages (id BIGSERIAL PRIMARY KEY,kind TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL,error TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query('ALTER TABLE game_bot_auth ADD COLUMN IF NOT EXISTS alert_cursor BIGINT NOT NULL DEFAULT 0');
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_drops (
@@ -60,6 +62,10 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     await pool.query(`UPDATE game_bot_auth SET access_token_enc=$1,refresh_token_enc=$2,expires_at=$3,updated_at=CURRENT_TIMESTAMP WHERE id=1`,
       [encrypt(tokens.access_token),encrypt(tokens.refresh_token||decrypt(row.refresh_token_enc)),new Date(Date.now()+tokens.expires_in*1000)]);
     return tokens.access_token;
+  }
+  async function messageText(key,values={}){
+    const saved=(await pool.query('SELECT text FROM game_bot_message_templates WHERE key=$1',[key])).rows[0];
+    return renderBotMessage(saved?.text||botMessageTemplates[key].text,values);
   }
   async function send(message,kind='announcement'){
     try {
@@ -167,7 +173,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const byId=new Map(names.map(row=>[row.twitch_id,row.login]));
     const mentions=winners.map(w=>`@${String(byId.get(w.twitch_id)||'joueur').replace(/[^a-zA-Z0-9_]/g,'')}`).join(', ');
     await client.query("UPDATE game_bot_drops SET status='settled',settled_at=CURRENT_TIMESTAMP WHERE id=$1",[round.id]);
-    return winners.length?`🎉 Drop terminé ! ${mentions} ${winners.length>1?'remportent':'remporte'} ${rewards.find(r=>r.key===round.reward_key).label} ! Récompense ajoutée au jeu.`:'⌛ Drop terminé : aucun participant éligible cette fois.';
+    return messageText(winners.length?'winners':'empty',{gagnants:mentions,recompense:rewards.find(r=>r.key===round.reward_key).label});
   }
   async function tick(){if(ticking)return;ticking=true;let client;try{
     const bot=await botRow();if(!bot?.enabled)return;
@@ -178,7 +184,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     if(!live){await client.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE id=$1",[round.id]);await client.query('COMMIT');return;}
     if(round.status==='pending'){
       const reward=rewards.find(r=>r.key===round.reward_key);
-      await send(`${reward.icon} Un drop apparaît : ${reward.label} ! Tape !catch dans les 60 secondes. 1 à 3 gagnants seront tirés au sort !`,'drop');
+      await send(await messageText('drop',{recompense:reward.label}),'drop');
       await client.query("UPDATE game_bot_drops SET status='open',started_at=CURRENT_TIMESTAMP,ends_at=CURRENT_TIMESTAMP+INTERVAL '60 seconds' WHERE id=$1",[round.id]);
     }else if(new Date(round.ends_at)<=new Date()){
       const message=await settle(client,round);await send(message,'winners');
@@ -188,7 +194,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   }catch(error){if(client)try{await client.query('ROLLBACK');}catch{};await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[String(error.message||error).slice(0,240)]).catch(()=>{});console.error('Bot du jeu :',error.message);}finally{client?.release();ticking=false;}}
   async function deliverGameAlerts(){
     const bot=await botRow();if(!bot?.enabled)return;
-    const rows=(await pool.query(`SELECT id,kind,payload->>'message' message FROM wizebot_game_alerts n
+    const rows=(await pool.query(`SELECT id,kind,payload,payload->>'message' message,(SELECT login FROM users WHERE id=n.user_id) login FROM wizebot_game_alerts n
       WHERE id>$1 AND kind<>'test' AND payload IS NOT NULL AND valid_until>CURRENT_TIMESTAMP
         AND (n.kind<>'egg' OR (n.payload->>'eggId' IS NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=n.user_id AND u.creature_id IS NULL))
           OR EXISTS(SELECT 1 FROM user_incubator_eggs e WHERE e.id::text=n.payload->>'eggId' AND e.status='ready'))
@@ -197,7 +203,11 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
         AND (n.kind<>'live-boost' OR EXISTS(SELECT 1 FROM admin_live_boosts b WHERE b.id=1 AND b.expires_at=(n.payload->>'expiresAt')::timestamptz))
       ORDER BY id LIMIT 3`,[bot.alert_cursor])).rows;
     for(const row of rows){
-      await send(row.message,row.kind);
+      let text=row.message;
+      const payload=row.payload||{},minutes=Math.max(1,Math.ceil((Date.parse(payload.expiresAt)-Date.now())/60000));
+      if(['egg','boost-soon','boost-end'].includes(row.kind))text=await messageText(row.kind,{joueur:'@'+String(row.login||'joueur').replace(/[^a-zA-Z0-9_]/g,''),boost:payload.boostKey==='boost_xp_x2'?'double XP':'boost LoVeR’Cash ×2',minutes});
+      else if(row.kind==='live-boost')text=await messageText(payload.soon?'live-soon':'live-end',{boost:payload.boostLabel||row.message.match(/\((.*?)\)/)?.[1]||'bonus du live',minutes});
+      await send(text,row.kind);
       await pool.query('UPDATE game_bot_auth SET alert_cursor=GREATEST(alert_cursor,$1) WHERE id=1',[row.id]);
     }
     // Les anciens messages expirés ne doivent pas bloquer le curseur.
@@ -208,11 +218,36 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     if(!await getBroadcasterAccount(req))return res.sendStatus(403);
     const bot=await botRow();
     const round=(await pool.query(`SELECT d.id,d.reward_key,d.status,d.started_at,d.ends_at,(SELECT COUNT(*)::int FROM game_bot_entries e WHERE e.drop_id=d.id) participants FROM game_bot_drops d ORDER BY d.id DESC LIMIT 1`)).rows[0];
+    const saved=(await pool.query('SELECT key,label,text FROM game_bot_message_templates ORDER BY key')).rows;
+    const templates=Object.entries(botMessageTemplates).map(([key,value])=>({key,...value,text:saved.find(row=>row.key===key)?.text||value.text,custom:false})).concat(saved.filter(row=>!Object.hasOwn(botMessageTemplates,row.key)).map(row=>({...row,variables:[],custom:true})));
     const messages=(await pool.query('SELECT id,kind,message,status,error,created_at FROM game_bot_messages ORDER BY id DESC LIMIT 50')).rows;
-    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,serverTime:new Date().toISOString()});
+    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,templates,serverTime:new Date().toISOString()});
   }catch{res.status(500).json({error:'Bot indisponible.'});}});
+  router.post('/admin/game-bot/messages',async(req,res)=>{
+    try{
+      if(!await getBroadcasterAccount(req))return res.sendStatus(403);
+      const key=String(req.body?.key||''),custom=!Object.hasOwn(botMessageTemplates,key);
+      if(custom&&key&&!/^custom-[a-f0-9-]{36}$/.test(key))throw Error('Message introuvable.');
+      const label=custom?String(req.body?.label||'').trim():botMessageTemplates[key].label;
+      if(!label||label.length>80)throw Error('Choisis un titre de 1 à 80 caractères.');
+      const text=validateBotMessage(key,req.body?.text);
+      await pool.query('INSERT INTO game_bot_message_templates(key,label,text) VALUES($1,$2,$3) ON CONFLICT(key) DO UPDATE SET label=$2,text=$3,updated_at=CURRENT_TIMESTAMP',[key||'custom-'+crypto.randomUUID(),label,text]);
+      res.json({ok:true,message:'Message enregistré.'});
+    }catch(error){res.status(400).json({error:error.message});}
+  });
+  router.post('/admin/game-bot/messages/reset',async(req,res)=>{
+    try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await pool.query('DELETE FROM game_bot_message_templates WHERE key=$1',[String(req.body?.key||'')]);res.json({ok:true});}catch{res.status(500).json({error:'Modification impossible.'});}
+  });
+  router.post('/admin/game-bot/messages/send',async(req,res)=>{
+    try{
+      if(!await getBroadcasterAccount(req))return res.sendStatus(403);
+      const key=String(req.body?.key||'');if(!key.startsWith('custom-'))throw Error('Seuls les messages personnalisés peuvent être envoyés manuellement.');
+      const row=(await pool.query('SELECT text FROM game_bot_message_templates WHERE key=$1',[key])).rows[0];if(!row)throw Error('Message introuvable.');
+      await send(row.text,'custom');res.json({ok:true,message:'Message envoyé dans le chat.'});
+    }catch(error){res.status(400).json({error:error.message});}
+  });
   router.post('/admin/game-bot/subscribe',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await subscribe();res.json({ok:true});}catch(error){res.status(400).json({error:error.message});}});
-  router.post('/admin/game-bot/test',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await send('🧪 Test du bot LoVeR Watch Game : les annonces du jeu sont prêtes !','test');res.json({ok:true,message:'Message de test envoyé dans le chat Twitch.'});}catch(error){res.status(400).json({error:error.message});}});
+  router.post('/admin/game-bot/test',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await send(await messageText('test'),'test');res.json({ok:true,message:'Message de test envoyé dans le chat Twitch.'});}catch(error){res.status(400).json({error:error.message});}});
   router.post('/admin/game-bot/enabled',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);const enabled=req.body?.enabled===true;const bot=await botRow();if(!bot?.subscription_id)return res.status(400).json({error:'Connecte le bot et abonne-le au chat avant de l’activer.'});await pool.query(`UPDATE game_bot_auth SET enabled=$1,alert_cursor=CASE WHEN $1 AND NOT enabled THEN COALESCE((SELECT MAX(id) FROM wizebot_game_alerts),0) ELSE alert_cursor END WHERE id=1`,[enabled]);if(enabled!==bot.enabled)await pool.query('UPDATE wizebot_alert_settings SET generation=generation+1,updated_at=CURRENT_TIMESTAMP WHERE id=1');if(!enabled)await pool.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE status IN ('pending','open')");res.json({ok:true,enabled});}catch{res.status(500).json({error:'Bot indisponible.'});}});
   router.post('/admin/game-bot/drop',async(req,res)=>{try{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.sendStatus(403);
