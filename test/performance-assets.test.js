@@ -63,3 +63,8 @@ test('home live status uses one mode-aware periodic timer', () => {
   assert.match(app, /if\(isDesktopGameUi\(\)\)void refreshDesktopHomeLiveStatus\(\);/);
   assert.match(app, /else if\(isMobileGameUi\(\)\)void refreshMobileHomeLiveStatus\(\);/);
 });
+
+test('boost chips are not re-rendered when their content is unchanged', () => {
+  const app = read('app.js');
+  assert.match(app, /if\(box\.innerHTML !== nextHtml\)box\.innerHTML = nextHtml;/);
+});
