@@ -7280,7 +7280,7 @@ async function openEventsModal() {
   modal.classList.remove('hidden');
   await Promise.all([refreshEventsState(),refreshBadgeEvents()]);
   stopEventsRefresh();
-  eventsRefreshTimer = setInterval(()=>{if(!document.hidden)void refreshEventsState();}, 1500);
+  eventsRefreshTimer = setInterval(()=>{if(!document.hidden && !$('eventsModal')?.classList.contains('hidden'))void refreshEventsState();}, 5000);
 }
 
 function closeEventsModal() {
