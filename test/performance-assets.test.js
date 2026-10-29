@@ -25,4 +25,5 @@ test('hidden tabs do not run the periodic event or bot visual updates', () => {
   assert.match(app, /if\(!document\.hidden && !\$\('eventsModal'\)\?\.classList\.contains\('hidden'\)\)void refreshEventsState\(\)/);
   assert.match(app, /if\(document\.hidden\)return;const timer=document\.querySelector\('\[data-bot-countdown\]'\)/);
   assert.match(app, /if\(!document\.hidden && isDesktopGameUi\(\)\)syncDesktopBoostData\(\)/);
+  assert.match(app, /desktopView !== 'home' \|\| document\.body\.classList\.contains\('auth-locked'\)/);
 });
