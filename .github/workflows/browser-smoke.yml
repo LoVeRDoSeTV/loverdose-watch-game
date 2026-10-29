@@ -20,9 +20,13 @@ jobs:
         run: python3 -m http.server 8765 --directory public > /tmp/lover-smoke.log 2>&1 &
       - name: Vérifier PC, mobile et tablette
         run: node scripts/browser-smoke.mjs
+      - name: Vérifier les réglages Bot sur mobile et PC (données simulées)
+        run: node scripts/browser-bot-mobile.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: browser-smoke-screenshots
-          path: browser-smoke-*.png
+          path: |
+            browser-smoke-*.png
+            browser-bot-*.png
           if-no-files-found: ignore

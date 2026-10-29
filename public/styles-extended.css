@@ -4658,7 +4658,6 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-history-card .game-bot-message{background:#0c102180;border-color:#ffffff16;padding:16px}
 #adminGameBot [data-game-bot-status]:empty{display:none}
 @media(max-width:1200px){#adminGameBot .bot-editor-card>.game-bot-messages{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:650px){#adminGameBot .bot-panel-grid{grid-template-columns:minmax(0,1fr);gap:14px}#adminGameBot .bot-panel-grid>.bot-connection-card,#adminGameBot .bot-panel-grid>.wizebot-drop{padding:18px;border-radius:16px}#adminGameBot .bot-editor-card>.game-bot-messages,#adminGameBot .bot-timing-card ul{grid-template-columns:minmax(0,1fr)}#adminGameBot .bot-template-card{padding:16px}#adminGameBot .bot-connection-card>.btn{display:flex;width:100%;justify-content:center;box-sizing:border-box}}
 
 #adminGameBot .bot-schedule-card{grid-column:1/-1;border-color:#b58bff80;background:linear-gradient(135deg,#2d2144,#101524)}
 #adminGameBot .bot-schedule-inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0}
@@ -4667,7 +4666,6 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-schedule-toggle{display:flex;align-items:center;gap:10px;font-weight:700}
 #adminGameBot .bot-schedule-toggle input{width:20px;height:20px;accent-color:#af7eff}
 #adminGameBot .bot-schedule-next{padding:14px;background:#af7eff16;border:1px solid #af7eff33;border-radius:12px;color:#e7d9ff;font-weight:650}
-@media(max-width:650px){#adminGameBot .bot-schedule-inputs{grid-template-columns:minmax(0,1fr)}}
 
 #adminGameBot .btn.bot-power-switch{display:inline-flex;align-items:center;justify-content:center;gap:12px;padding:9px 16px;min-height:44px;background:#242638;border:1px solid #797d9d66;color:#e6e6f1;vertical-align:middle;box-shadow:none}
 #adminGameBot .bot-power-track{display:block;position:relative;flex:0 0 46px;width:46px;height:26px;border-radius:20px;background:#585c74}
@@ -4683,8 +4681,39 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 #adminGameBot .bot-connection-actions>.btn,#adminGameBot .bot-connection-actions>.bot-power-switch[aria-checked="true"]{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:46px;margin:0;padding:10px 16px;border:1px solid transparent;border-radius:14px;background:#252840;color:#fff;box-shadow:none;line-height:1.25;font-size:.875rem;font-weight:750;vertical-align:initial;text-decoration:none}
 #adminGameBot .bot-connection-actions>.btn:hover:not(:disabled){background:#323650;border-color:#b58bff55}
 #adminGameBot .bot-connection-actions>.bot-power-switch{gap:12px}
-@media(max-width:650px){#adminGameBot .bot-connection-actions{display:grid;grid-template-columns:minmax(0,1fr)}#adminGameBot .bot-connection-actions>.btn{width:100%}}
 
 #adminGameBot .bot-chat-test-help{display:block;margin-top:12px;color:#bdb4d2;line-height:1.5}
 #adminGameBot [data-game-bot-status]:not(:empty){margin:12px 0 0;padding:12px 14px;border:1px solid #9b80db55;border-radius:12px;background:#9474df12;color:#e0d2ff;overflow-wrap:anywhere}
 #adminGameBot [data-game-bot-status][data-error="true"]{border-color:#ff8b9a66;background:#ff8b9a12;color:#ffc1cb}
+
+/* Mobile bot settings use a full page above the administration home. */
+@media(max-width:900px){
+  #adminBotModal:not(.hidden){display:block;inset:0;z-index:1000070;width:100%;height:100dvh;box-sizing:border-box;padding:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--bg,#0b0d18)}
+  #adminBotModal>.admin-players-panel{box-sizing:border-box;width:100%;max-width:none;min-height:100%;max-height:none;overflow:visible;margin:0;padding:calc(18px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom));border:0;border-radius:0;box-shadow:none}
+  #adminBotModal .admin-players-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  #adminBotModal .admin-players-head>div{min-width:0}
+  #adminBotModal .admin-players-head h2{font-size:24px;line-height:1.3}
+  #adminBotClose{flex:0 0 44px;min-width:44px;min-height:44px}
+  #adminBotContent,#adminGameBot{min-width:0;max-width:100%;overflow-wrap:anywhere}
+  #adminGameBot{padding:0;border:0;background:none;box-shadow:none;margin-top:18px}
+  #adminGameBot .admin-player-meta{font-size:14px}
+  #adminGameBot .bot-panel-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  #adminGameBot .bot-editor-card>.game-bot-messages,#adminGameBot .bot-timing-card ul,#adminGameBot .bot-schedule-inputs{grid-template-columns:minmax(0,1fr)}
+  #adminGameBot .bot-schedule-inputs input{min-height:48px;font-size:16px}
+  #adminGameBot .bot-schedule-toggle{align-items:flex-start;line-height:1.5}
+  #adminGameBot .bot-schedule-toggle input{flex:0 0 22px;margin:2px 0 0}
+  #adminGameBot .bot-panel-grid>.bot-connection-card,#adminGameBot .bot-panel-grid>.wizebot-drop{padding:18px;border-radius:16px}
+  #adminGameBot .bot-template-card{padding:16px}
+  #adminGameBot .bot-connection-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+  #adminGameBot .bot-connection-actions>.btn{width:100%}
+  #adminGameBot .bot-card-actions{display:grid;grid-template-columns:minmax(0,1fr)}
+  #adminGameBot .bot-card-actions .btn,#adminGameBot [data-bot-schedule-form]>.btn,#adminGameBot [data-bot-message-new]{width:100%;min-height:48px;font-size:15px}
+  #adminGameBot .bot-history-card .game-bot-messages{max-height:none;overflow:visible;padding:0}
+  .game-bot-editor{box-sizing:border-box;height:100dvh;padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));align-items:start;overflow:auto;overscroll-behavior:contain}
+  .game-bot-editor .desktop-egg-boost-panel{box-sizing:border-box;width:100%;max-width:580px;max-height:100%;min-width:0;overflow:auto;overscroll-behavior:contain;scroll-padding-bottom:86px}
+  .game-bot-editor :is(input,textarea){width:100%;min-width:0;box-sizing:border-box;font-size:16px;line-height:1.5}
+  .game-bot-editor input{min-height:48px}
+  .game-bot-editor textarea{min-height:160px}
+  .game-bot-editor .egg-boost-actions{position:sticky;bottom:-20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px 0;background:#111528}
+  .game-bot-editor .egg-boost-actions .shop-action{min-height:48px;font-size:16px}
+}
