@@ -4,6 +4,7 @@ on:
     branches: [performance-safe-modules-20261029]
     paths:
       - 'scripts/optimize-pve-webp.py'
+      - '.github/workflows/optimize-pve-webp.yml'
 permissions:
   contents: write
 jobs:
