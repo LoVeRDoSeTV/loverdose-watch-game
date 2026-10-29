@@ -1,6 +1,8 @@
 name: Analyse des images WebP
 
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       quality:
@@ -23,7 +25,7 @@ jobs:
       - name: Installer Pillow
         run: python -m pip install Pillow==11.3.0
       - name: Créer le rapport et les candidats sans toucher aux images existantes
-        run: python scripts/review-webp.py --quality "${{ inputs.quality }}"
+        run: python scripts/review-webp.py --quality "${{ inputs.quality || '84' }}"
       - name: Publier le rapport et les WebP candidats
         uses: actions/upload-artifact@v4
         with:
