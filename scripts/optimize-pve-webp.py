@@ -20,11 +20,12 @@ for path in files:
         dimensions=before.size
         alpha=before.getchannel('A') if mode=='RGBA' else None
         data=io.BytesIO()
-        before.save(data,'WEBP',quality=88,method=6)
+        before.save(data,'WEBP',quality=88,method=3)
         proposed=data.getvalue()
     if len(proposed) >= len(source_bytes)*0.80:
         total_after+=len(source_bytes)
         continue
+    print('candidate',path.relative_to(ROOT),len(source_bytes),'->',len(proposed),flush=True)
     with Image.open(io.BytesIO(proposed)) as verify:
         after=verify.convert(mode)
         assert after.size==dimensions,(path,'dimensions')
