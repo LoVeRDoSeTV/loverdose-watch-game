@@ -15,6 +15,9 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
       windowWidth:window.innerWidth,
       cssCount:[...document.styleSheets].length,
       loginVisible:!!document.querySelector('#authOverlay'),
+      transferBytes:performance.getEntriesByType('resource').reduce((n,e)=>n+(e.transferSize||0),0),
+      resources:performance.getEntriesByType('resource').length,
+      domContentLoadedMs:Math.round(performance.getEntriesByType('navigation')[0]?.domContentLoadedEventEnd||0),
     }));
     console.log(label,JSON.stringify(result));
     if(missing.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
