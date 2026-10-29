@@ -47,3 +47,11 @@ test('optimized badges use fresh cache key', () => {
   const app = read('app.js');
   assert.match(app, /function badgeAssetUrl\(value\).*\+'\?v=531'/);
 });
+
+test('decorative landing images do not compete with game artwork on initial load', () => {
+  const html = read('index.html');
+  for (const name of ['egg-one', 'egg-two', 'egg-three']) {
+    assert.match(html, new RegExp('class="public-floating-egg ' + name + '"[^>]*loading="lazy"'));
+  }
+  assert.match(html, /class="carousel-monster"[^>]*src="\/Flamby.webp"/);
+});
