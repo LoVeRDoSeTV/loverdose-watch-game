@@ -1,0 +1,33 @@
+name: Analyse des images WebP
+
+on:
+  workflow_dispatch:
+    inputs:
+      quality:
+        description: Qualité WebP de la proposition (original conservé)
+        required: true
+        default: '84'
+
+permissions:
+  contents: read
+
+jobs:
+  webp-candidates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Installer Pillow
+        run: python -m pip install Pillow==11.3.0
+      - name: Créer le rapport et les candidats sans toucher aux images existantes
+        run: python scripts/review-webp.py --quality "${{ inputs.quality }}"
+      - name: Publier le rapport et les WebP candidats
+        uses: actions/upload-artifact@v4
+        with:
+          name: webp-optimization-review
+          path: image-optimization-review/
+          if-no-files-found: error
+          retention-days: 14
