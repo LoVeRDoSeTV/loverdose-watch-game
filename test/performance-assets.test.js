@@ -55,3 +55,11 @@ test('decorative landing images do not compete with game artwork on initial load
   }
   assert.match(html, /class="carousel-monster"[^>]*src="\/Flamby.webp"/);
 });
+
+test('home live status uses one mode-aware periodic timer', () => {
+  const app = read('app.js');
+  assert.doesNotMatch(app, /setInterval\(refreshDesktopHomeLiveStatus, 30000\)/);
+  assert.doesNotMatch(app, /setInterval\(refreshMobileHomeLiveStatus, 30000\)/);
+  assert.match(app, /if\(isDesktopGameUi\(\)\)void refreshDesktopHomeLiveStatus\(\);/);
+  assert.match(app, /else if\(isMobileGameUi\(\)\)void refreshMobileHomeLiveStatus\(\);/);
+});
