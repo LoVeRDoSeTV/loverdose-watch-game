@@ -23,6 +23,11 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Vérifier la syntaxe JavaScript côté client
         run: node --check public/app.js
+      - name: Vérifier que le JS allégé correspond au source
+        run: |
+          npx --yes terser@5.44.1 public/app.js --format comments=false --output /tmp/app-generated.min.js
+          cmp public/app.min.js /tmp/app-generated.min.js
+          node --check public/app.min.js
       - name: Vérifier la syntaxe des serveurs
         run: |
           node --check server.js
