@@ -6369,7 +6369,7 @@ function showDesktopBoostNotice(message, error = false) {
   desktopBoostNoticeTimer = setTimeout(() => {desktopBoostNotice=null;renderDesktopBoostStatus();},12000);
 }
 async function refreshDesktopBoostStatus() {
-  if (document.hidden || !isDesktopGameUi() || document.body.classList.contains('auth-locked')) return;
+  if (document.hidden || !isDesktopGameUi() || desktopView !== 'home' || document.body.classList.contains('auth-locked')) return;
   try {
     const response = await fetch('/api/shop',{cache:'no-store'});
     if (!response.ok) return;
