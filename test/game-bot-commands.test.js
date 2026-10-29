@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
+import {playerCommands,playerGlobalLevel} from '../src/game-bot-player-commands.js';
+import {globalThresholdForLevel} from '../src/xp-economy.js';
 import {chatCommandName,validateChatCommand,deliverChatCommands} from '../src/game-bot-commands.js';
 import {createGameBot,initGameBot} from '../src/routes/game-bot.js';
 import {createWizebotAlerts,initWizebotAlerts} from '../src/routes/wizebot.js';
@@ -16,14 +18,14 @@ test('les commandes valident nom, réponse et délai, et réservent !catch',()=>
 
 async function setup(){
   const db=new PGlite();
-  await db.exec(`CREATE TABLE accounts(id INTEGER PRIMARY KEY,twitch_id TEXT);
-    CREATE TABLE users(id INTEGER PRIMARY KEY,twitch_id TEXT,login TEXT,creature_id TEXT,watch_seconds INTEGER DEFAULT 0,created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
+  await db.exec(`CREATE TABLE accounts(id INTEGER PRIMARY KEY,twitch_id TEXT,username TEXT);
+    CREATE TABLE users(id INTEGER PRIMARY KEY,twitch_id TEXT,login TEXT,display_name TEXT,global_xp DOUBLE PRECISION DEFAULT 0,prestige INTEGER DEFAULT 0,points DOUBLE PRECISION DEFAULT 0,creature_id TEXT,watch_seconds INTEGER DEFAULT 0,created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP);
     CREATE TABLE twitch_tracker_auth(id INTEGER PRIMARY KEY,last_live BOOLEAN,last_error TEXT,last_success_at TIMESTAMPTZ);
-    CREATE TABLE user_incubator_eggs(id INTEGER PRIMARY KEY,user_id INTEGER,slot INTEGER,status TEXT);
+    CREATE TABLE user_incubator_eggs(id INTEGER PRIMARY KEY,user_id INTEGER,slot INTEGER,status TEXT,watched_seconds INTEGER DEFAULT 0);
     CREATE TABLE user_active_boosts(user_id INTEGER,boost_key TEXT,expires_at TIMESTAMPTZ);
     CREATE TABLE admin_live_boosts(id INTEGER PRIMARY KEY,expires_at TIMESTAMPTZ,xp_multiplier INTEGER,cash_multiplier INTEGER,global_xp_multiplier INTEGER);
     INSERT INTO twitch_tracker_auth VALUES(1,FALSE,NULL,CURRENT_TIMESTAMP);
-    INSERT INTO accounts VALUES(1,'alice-id');
+    INSERT INTO accounts(id,twitch_id) VALUES(1,'alice-id');
     INSERT INTO users(id,twitch_id,login) VALUES(1,'alice-id','alice');`);
   const pool={async query(sql,args){const r=await db.query(sql,args);return {...r,rowCount:r.rows.length||r.affectedRows||0};},async connect(){return {...this,release(){}};}};
   await initGameBot(pool);await initWizebotAlerts(pool);
@@ -52,8 +54,8 @@ test('commandes persistantes : édition admin, webhook signé, mention, anti-spa
     assert.equal((await s.invoke(path,{body:{...settings,name:'!catch'}})).status,400);
     assert.equal((await s.invoke(path,{body:settings})).status,200);
     assert.equal((await s.invoke(path,{body:settings})).status,409);
-    const command=(await s.pool.query('SELECT * FROM game_bot_commands')).rows[0];
-    const listed=await s.invoke('/admin/game-bot');assert.equal(listed.data.commands[0].name,'!jeu');
+    const command=(await s.pool.query("SELECT * FROM game_bot_commands WHERE name='!jeu'")).rows[0];
+    const listed=await s.invoke('/admin/game-bot');assert.equal(listed.data.commands.find(c=>c.kind==='custom').name,'!jeu');
     assert.equal((await s.webhook('!jeu',{},'bad',true)).status,403);
     await s.webhook('!jeu',{broadcaster_user_id:'other'});await s.webhook('!jeu',{chatter_user_id:'bot-id'});await s.webhook('!inconnue');assert.equal(await s.count('game_bot_command_queue'),0);
     assert.equal((await s.webhook('!JeU un argument',{},'retry-id')).status,204);
@@ -86,11 +88,11 @@ test('un œuf prêt est annoncé avec @pseudo par le bot même avec Wizebot OFF,
   globalThis.fetch=async(url,options)=>{sent.push(JSON.parse(options.body).message);return {ok:true,json:async()=>({data:[{is_sent:true}]})};};
   try{
     await s.pool.query("UPDATE twitch_tracker_auth SET last_live=TRUE");
-    await s.db.exec("UPDATE users SET creature_id='lovys';INSERT INTO user_incubator_eggs VALUES(1,1,2,'ready')");
+    await s.db.exec("UPDATE users SET creature_id='lovys';INSERT INTO user_incubator_eggs(id,user_id,slot,status) VALUES(1,1,2,'ready')");
     const alerts=createWizebotAlerts({pool:s.pool,baseUrl:'https://example.com',eggHatchSeconds:21600});
     await alerts.collect();await alerts.collect();assert.equal(await s.count('wizebot_game_alerts'),1);
     await s.bot.tick();await s.bot.tick();assert.equal(sent.length,1);assert.match(sent[0],/@alice, ton œuf est prêt à éclore/);
-    await s.pool.query("INSERT INTO user_incubator_eggs VALUES(2,1,3,'ready')");await alerts.collect();
+    await s.pool.query("INSERT INTO user_incubator_eggs(id,user_id,slot,status) VALUES(2,1,3,'ready')");await alerts.collect();
     await s.pool.query("UPDATE user_incubator_eggs SET status='hatched' WHERE id=2");await s.bot.tick();assert.equal(sent.length,1);
     await s.pool.query("UPDATE wizebot_alert_settings SET enabled=TRUE");
     const handler=alerts.router.stack.find(l=>l.route?.path==='/wizebot/alerts').route.stack.at(-1).handle;
@@ -110,4 +112,48 @@ test('une réponse refusée ne bloque pas les annonces d’œufs et n’est pas 
     await deliverChatCommands(s.pool,send);await deliverChatCommands(s.pool,send);
     assert.equal(attempts,1);assert.equal(await s.count('game_bot_command_queue'),0);
   }finally{await s.db.close();}
+});
+
+
+test('les trois commandes du jeu lisent le joueur Twitch, ses œufs et son classement sans modifier sa progression',async()=>{
+  const s=await setup(),originalFetch=globalThis.fetch,sent=[];
+  globalThis.fetch=async(url,options)=>{sent.push(JSON.parse(options.body).message);return {ok:true,json:async()=>({data:[{is_sent:true}]})};};
+  try{
+    for(const [kind,definition] of Object.entries(playerCommands))assert.doesNotThrow(()=>validateChatCommand({...settings,name:definition.name,text:definition.text},kind));
+    for(let level=1;level<=55;level++){assert.equal(playerGlobalLevel(globalThresholdForLevel(level)),level);if(level>1)assert.equal(playerGlobalLevel(globalThresholdForLevel(level)-1),level-1);}
+    const listed=(await s.invoke('/admin/game-bot')).data.commands;
+    assert.deepEqual(listed.map(c=>c.name).sort(),['!classement','!oeufs','!profil']);
+    const profile=listed.find(c=>c.kind==='profil');assert.deepEqual(profile.variables,['joueur','niveau','prestige','cash','lien']);
+    const save=patch=>s.invoke('/admin/game-bot/commands',{body:{id:profile.id,name:profile.name,text:profile.text,enabled:true,cooldownSeconds:10,...patch}});
+    assert.equal((await save({name:'!autrenom'})).status,400);
+    assert.equal((await save({text:'Niveau {inconnu}'})).status,400);
+    assert.equal((await s.invoke('/admin/game-bot/commands/delete',{body:{id:profile.id}})).status,400);
+    const text='Salut {joueur} ! Niveau {niveau}, prestige {prestige}, solde {cash}. {lien}';
+    assert.equal((await save({text,enabled:false,cooldownSeconds:45})).status,200);
+    await initGameBot(s.pool);
+    const preserved=(await s.pool.query("SELECT * FROM game_bot_commands WHERE kind='profil'")).rows[0];
+    assert.equal(preserved.enabled,false);assert.equal(preserved.text,text);assert.equal(preserved.cooldown_seconds,45);assert.equal(await s.count('game_bot_commands'),3);
+    await s.webhook('!profil',{chatter_user_id:'alice-id',chatter_user_login:'alice'});await s.bot.tick();assert.equal(sent.length,0);
+    await save({text});
+    await s.pool.query('UPDATE users SET global_xp=$1,points=1234.9,prestige=2,watch_seconds=18000 WHERE id=1',[globalThresholdForLevel(25)]);
+    const request=async(text,identity={chatter_user_id:'alice-id',chatter_user_login:'alice'})=>{
+      await s.pool.query('UPDATE game_bot_auth SET command_last_used_at=NULL');await s.pool.query('UPDATE game_bot_commands SET last_used_at=NULL');
+      const before=sent.length;assert.equal((await s.webhook(text,identity)).status,204);await s.bot.tick();assert.equal(sent.length,before+1);return sent.at(-1);
+    };
+    assert.match(await request('!profil @quelquun'),/Salut @alice ! Niveau 25, prestige 2, solde 1[\s\u00a0\u202f]234/);
+    assert.match(await request('!profil',{chatter_user_id:'unknown',chatter_user_login:'inconnu'}),/@inconnu, crée ton compte et lie ton compte Twitch/);
+    await s.db.exec("INSERT INTO user_incubator_eggs(id,user_id,slot,status,watched_seconds) VALUES(1,1,1,'ready',21600),(2,1,2,'ready',21600),(3,1,3,'incubating',0)");
+    const eggs=await request('!oeufs');assert.match(eggs,/emplacement 1 : 1 h 00 min de live/);assert.match(eggs,/emplacement 2 : prêt à éclore/);assert.match(eggs,/emplacement 3 : 6 h 00 min de live/);assert.match(eggs,/1 œuf\(s\) prêt/);
+    await s.db.exec("UPDATE users SET creature_id='lovys';DELETE FROM user_incubator_eggs");
+    assert.match(await request('!oeufs'),/aucun œuf en incubation/);
+    await s.db.exec("INSERT INTO user_incubator_eggs(id,user_id,slot,status,watched_seconds) VALUES(4,1,2,'incubating',21599)");
+    assert.match(await request('!oeufs'),/1 min de live/);
+    await s.db.exec("UPDATE user_incubator_eggs SET watched_seconds=21600");assert.match(await request('!oeufs'),/prêt à éclore/);
+    await s.db.exec("INSERT INTO accounts(id,twitch_id,username) VALUES(2,'bob-id','Bob'),(3,'charlie-id','Charlie'),(4,'channel-id','Diffuseur');INSERT INTO users(id,twitch_id,login,global_xp) VALUES(2,'bob-id','bob',10000),(3,'charlie-id','charlie',10000),(4,'channel-id','loverdosetv',999999)");
+    const ranking=await request('!classement');assert.match(ranking,/XP globale : 3/);assert.match(ranking,/1\. Bob \/ 2\. Charlie \/ 3\. alice/);assert.doesNotMatch(ranking,/Diffuseur/);
+    assert.match(await request('!classement',{chatter_user_id:'channel-id',chatter_user_login:'loverdosetv'}),/hors classement \(diffuseur\)/);
+    const after=(await s.pool.query('SELECT global_xp,points,prestige FROM users WHERE id=1')).rows[0];
+    assert.deepEqual(after,{global_xp:globalThresholdForLevel(25),points:1234.9,prestige:2});
+    assert.equal(await s.count('game_bot_drops'),0);assert.equal(await s.count('game_bot_entries'),0);
+  }finally{globalThis.fetch=originalFetch;await s.db.close();}
 });

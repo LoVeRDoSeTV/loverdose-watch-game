@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { chromium } from 'playwright';
+import {playerCommands} from '../src/game-bot-player-commands.js';
+const builtinFixtures=Object.entries(playerCommands).map(([kind,c],i)=>({...c,kind,id:100+i,enabled:true,cooldown_seconds:10}));
 
 // Exercise the real bot markup and event handlers against local mock data only.
 // No Twitch requests or production administration mutations are made.
@@ -23,12 +25,12 @@ try {
       const trapDesktopAdminFocus=()=>{};
       const showAdminActionConfirmation=async()=>true;
       window.botWrites=[];
-      const data={connected:true,login:'LoVeRWatchBot',enabled:true,live:false,recent:[],commands:[],templates:[{key:'egg',label:'Œuf prêt',text:'Bonjour {joueur}, ton œuf est prêt !',variables:['joueur']},{key:'custom-demo',custom:true,label:'Annonce',text:'Retrouve le jeu sur le site.',variables:[]}],schedule:{enabled:true,min_minutes:20,max_minutes:40}};
+      const data={connected:true,login:'LoVeRWatchBot',enabled:true,live:false,recent:[],commands:${JSON.stringify(builtinFixtures)},templates:[{key:'egg',label:'Œuf prêt',text:'Bonjour {joueur}, ton œuf est prêt !',variables:['joueur']},{key:'custom-demo',custom:true,label:'Annonce',text:'Retrouve le jeu sur le site.',variables:[]}],schedule:{enabled:true,min_minutes:20,max_minutes:40}};
       async function adminFetch(url,options){
         if(options?.method==='POST'){
           window.botWrites.push({url,body:JSON.parse(options.body)});
           if(url.endsWith('/schedule')){const b=JSON.parse(options.body);data.schedule={enabled:b.enabled,min_minutes:b.minMinutes,max_minutes:b.maxMinutes};}
-          if(url.endsWith('/commands')){const b=JSON.parse(options.body),c={id:b.id||1,name:b.name,text:b.text,enabled:b.enabled,cooldown_seconds:b.cooldownSeconds};data.commands=data.commands.filter(item=>Number(item.id)!==Number(c.id));data.commands.push(c);}
+          if(url.endsWith('/commands')){const b=JSON.parse(options.body),c={...data.commands.find(item=>Number(item.id)===Number(b.id)),id:b.id||1,name:b.name,text:b.text,enabled:b.enabled,cooldown_seconds:b.cooldownSeconds};data.commands=data.commands.filter(item=>Number(item.id)!==Number(c.id));data.commands.push(c);}
           if(url.endsWith('/commands/delete'))data.commands=data.commands.filter(c=>Number(c.id)!==Number(JSON.parse(options.body).id));
           return {message:'Enregistré'};
         }
@@ -86,7 +88,25 @@ try {
     assert.deepEqual(commandWrites.map(w=>w.url),['/api/admin/game-bot/commands','/api/admin/game-bot/commands','/api/admin/game-bot/commands','/api/admin/game-bot/commands/delete']);
     assert.equal(commandWrites[0].body.name,'!discord');assert.equal(commandWrites[0].body.cooldownSeconds,45);
     assert.equal(commandWrites[1].body.id,1);assert.equal(commandWrites[2].body.enabled,false);assert.equal(commandWrites[3].body.id,1);
-    console.log('Bot layout, eggs and command editing passed:',width);
+    for(const id of [100,101,102]){
+      assert.equal(await page.locator('[data-bot-command-toggle="'+id+'"]').getAttribute('aria-checked'),'true');
+      assert.equal(await page.locator('[data-bot-command-delete="'+id+'"]').count(),0);
+    }
+    await page.locator('[data-bot-command-edit="100"]').click();
+    assert.equal(await page.locator('#botCommandName').isEditable(),false);
+    assert.ok((await page.locator('.game-bot-editor').textContent()).includes('{niveau}'));
+    await page.locator('#botCommandText').fill('Salut {joueur}, niveau {niveau} et {cash} LoVeR’Cash !');
+    if(width===390)await page.screenshot({path:'browser-bot-profil-editor-390.png'});
+    await page.getByRole('button',{name:'Enregistrer la commande',exact:true}).click();
+    await page.locator('[data-bot-command-toggle="100"]').click();
+    await page.waitForFunction(()=>document.querySelector('[data-bot-command-toggle="100"]').getAttribute('aria-checked')==='false');
+    await page.locator('[data-bot-command-toggle="100"]').click();
+    await page.waitForFunction(()=>document.querySelector('[data-bot-command-toggle="100"]').getAttribute('aria-checked')==='true');
+    const builtinWrites=await page.evaluate(()=>window.botWrites.filter(w=>w.body.id===100));
+    assert.equal(builtinWrites.length,3);assert.equal(builtinWrites[0].body.name,'!profil');
+    assert.equal(builtinWrites[1].body.enabled,false);assert.equal(builtinWrites[2].body.enabled,true);
+    assert.ok(builtinWrites.every(w=>w.body.text==='Salut {joueur}, niveau {niveau} et {cash} LoVeR’Cash !'));
+    console.log('Bot layout, eggs, custom and player command editing passed:',width);
     await page.setViewportSize({width,height:844});
     await page.locator('#adminBotModal').evaluate(el=>{el.scrollTop=0;});
     await page.screenshot({path:`browser-bot-${width}.png`});

@@ -2,6 +2,7 @@ import express from 'express';
 import {initDropSchedule,advanceDropSchedule,validateDropSchedule} from '../game-bot-schedule.js';
 import {botMessageTemplates,validateBotMessage,renderBotMessage} from '../game-bot-messages.js';
 import crypto from 'node:crypto';
+import {playerCommands} from '../game-bot-player-commands.js';
 import {chatCommandName,validateChatCommand,initChatCommands,enqueueChatCommand,deliverChatCommands} from '../game-bot-commands.js';
 import {validOAuthCallback} from '../middleware/security.js';
 
@@ -208,7 +209,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   }catch(error){if(client)try{await client.query('ROLLBACK');}catch{};await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[String(error.message||error).slice(0,240)]).catch(()=>{});console.error('Bot du jeu :',error.message);}finally{client?.release();ticking=false;}}
   async function deliverGameAlerts(){
     const bot=await botRow();if(!bot?.enabled)return;
-    await deliverChatCommands(pool,send);
+    await deliverChatCommands(pool,send,{baseUrl,channelId,channelLogin:process.env.TWITCH_CHANNEL||'loverdosetv'});
     const rows=(await pool.query(`SELECT id,kind,payload,payload->>'message' message,(SELECT login FROM users WHERE id=n.user_id) login FROM wizebot_game_alerts n
       WHERE id>$1 AND kind<>'test' AND payload IS NOT NULL AND valid_until>CURRENT_TIMESTAMP
         AND (n.kind<>'egg' OR (n.payload->>'eggId' IS NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=n.user_id AND u.creature_id IS NULL))
@@ -237,14 +238,15 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const round=(await pool.query(`SELECT d.id,d.reward_key,d.status,d.started_at,d.ends_at,(SELECT COUNT(*)::int FROM game_bot_entries e WHERE e.drop_id=d.id) participants FROM game_bot_drops d ORDER BY d.id DESC LIMIT 1`)).rows[0];
     const saved=(await pool.query('SELECT key,label,text FROM game_bot_message_templates ORDER BY key')).rows;
     const templates=Object.entries(botMessageTemplates).map(([key,value])=>({key,...value,text:saved.find(row=>row.key===key)?.text||value.text,custom:false})).concat(saved.filter(row=>!Object.hasOwn(botMessageTemplates,row.key)).map(row=>({...row,variables:[],custom:true})));
-    const commands=(await pool.query('SELECT id,name,text,enabled,cooldown_seconds FROM game_bot_commands ORDER BY name')).rows;
+    const commands=(await pool.query("SELECT id,name,text,enabled,cooldown_seconds,kind FROM game_bot_commands ORDER BY kind='custom',name")).rows.map(c=>({...c,label:playerCommands[c.kind]?.label,variables:playerCommands[c.kind]?.variables||['joueur']}));
     const messages=(await pool.query('SELECT id,kind,message,status,error,created_at FROM game_bot_messages ORDER BY id DESC LIMIT 50')).rows;
     res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,templates,commands,schedule,live,serverTime:new Date().toISOString()});
   }catch{res.status(500).json({error:'Bot indisponible.'});}});
   router.post('/admin/game-bot/commands',async(req,res)=>{
     try{
       if(!await getBroadcasterAccount(req))return res.sendStatus(403);
-      const c=validateChatCommand(req.body);
+      const existing=req.body?.id?(await pool.query('SELECT kind FROM game_bot_commands WHERE id=$1',[req.body.id])).rows[0]:null;
+      const c=validateChatCommand(req.body,existing?.kind||'custom');
       if(c.id){
         const updated=await pool.query('UPDATE game_bot_commands SET name=$2,text=$3,enabled=$4,cooldown_seconds=$5,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING id',[c.id,c.name,c.text,c.enabled,c.cooldownSeconds]);
         if(!updated.rows.length)return res.status(404).json({error:'Commande introuvable.'});
@@ -258,7 +260,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     try{
       if(!await getBroadcasterAccount(req))return res.sendStatus(403);
       const id=Number(req.body?.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Commande introuvable.'});
-      await pool.query('DELETE FROM game_bot_commands WHERE id=$1',[id]);res.json({ok:true,message:'Commande supprimée.'});
+      const deleted=await pool.query("DELETE FROM game_bot_commands WHERE id=$1 AND kind='custom' RETURNING id",[id]);if(!deleted.rows.length)return res.status(400).json({error:'Utilise le bouton OFF pour désactiver une commande du jeu.'});res.json({ok:true,message:'Commande supprimée.'});
     }catch{res.status(500).json({error:'Suppression impossible.'});}
   });
   router.post('/admin/game-bot/schedule',async(req,res)=>{
