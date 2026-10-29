@@ -8369,6 +8369,17 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #playerProfileModal .player-profile-close,
   #progressionModal .game-close{display:none!important}
 
+  /* Profil mobile : le défilement reste vertical, sans glissement latéral. */
+  #playerProfileModal{overflow-x:hidden!important;max-width:100vw;box-sizing:border-box}
+  #playerProfileModal>.player-profile-panel{min-width:0;box-sizing:border-box;max-width:100%!important}
+  #playerProfileModal #playerProfileContent,
+  #playerProfileModal .player-profile-hero,
+  #playerProfileModal .player-profile-sections,
+  #playerProfileModal .player-profile-section,
+  #playerProfileModal .player-profile-stats,
+  #playerProfileModal .player-profile-stat{min-width:0;max-width:100%;box-sizing:border-box}
+  #playerProfileModal :is(.player-profile-name,.player-profile-title,.player-profile-stat-value,.player-profile-line strong){overflow-wrap:anywhere}
+
   #pick.egg-details-open{
     inset:0 0 var(--mobile-page-bottom) 0;
     padding:calc(18px + env(safe-area-inset-top)) 14px 30px;
