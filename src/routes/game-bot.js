@@ -2,6 +2,7 @@ import express from 'express';
 import {initDropSchedule,advanceDropSchedule,validateDropSchedule} from '../game-bot-schedule.js';
 import {botMessageTemplates,validateBotMessage,renderBotMessage} from '../game-bot-messages.js';
 import crypto from 'node:crypto';
+import {chatCommandName,validateChatCommand,initChatCommands,enqueueChatCommand,deliverChatCommands} from '../game-bot-commands.js';
 import {validOAuthCallback} from '../middleware/security.js';
 
 export function isGameBotCallback(query,session){
@@ -34,6 +35,7 @@ export async function initGameBot(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_message_templates (key TEXT PRIMARY KEY,label TEXT NOT NULL,text TEXT NOT NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_messages (id BIGSERIAL PRIMARY KEY,kind TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL,error TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query('ALTER TABLE game_bot_auth ADD COLUMN IF NOT EXISTS alert_cursor BIGINT NOT NULL DEFAULT 0');
+  await initChatCommands(pool);
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_drops (
     id BIGSERIAL PRIMARY KEY,reward_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,started_at TIMESTAMPTZ,
@@ -150,12 +152,14 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
         return res.sendStatus(204);
       }
       if(type!=='notification'||event.subscription?.type!=='channel.chat.message')return res.sendStatus(204);
-      if(event.event?.broadcaster_user_id!==channelId||event.event?.message?.text?.trim().toLowerCase()!=='!catch')return res.sendStatus(204);
+      const chat=event.event,name=chatCommandName(chat?.message?.text);
+      if(chat?.broadcaster_user_id!==channelId||!name||chat.chatter_user_id===row.twitch_user_id||!row.enabled)return res.sendStatus(204);
       const id=String(req.headers['twitch-eventsub-message-id']);
       const client=await pool.connect();try{
         await client.query('BEGIN');
         const seen=await client.query('INSERT INTO game_bot_event_ids(id) VALUES($1) ON CONFLICT DO NOTHING RETURNING id',[id]);
-        if(seen.rowCount&&row.enabled){
+        if(seen.rowCount&&name!=='!catch')await enqueueChatCommand(client,name,chat,id);
+        if(seen.rowCount&&name==='!catch'&&chat.message.text.trim().toLowerCase()==='!catch'){
           const round=(await client.query("SELECT * FROM game_bot_drops WHERE status='open' FOR UPDATE")).rows[0];
           if(round&&new Date(round.ends_at)>new Date()){
             const player=(await client.query('SELECT a.id account_id,u.id user_id FROM accounts a JOIN users u ON u.twitch_id=a.twitch_id WHERE a.twitch_id=$1 LIMIT 1',[event.event.chatter_user_id])).rows[0];
@@ -204,6 +208,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   }catch(error){if(client)try{await client.query('ROLLBACK');}catch{};await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[String(error.message||error).slice(0,240)]).catch(()=>{});console.error('Bot du jeu :',error.message);}finally{client?.release();ticking=false;}}
   async function deliverGameAlerts(){
     const bot=await botRow();if(!bot?.enabled)return;
+    await deliverChatCommands(pool,send);
     const rows=(await pool.query(`SELECT id,kind,payload,payload->>'message' message,(SELECT login FROM users WHERE id=n.user_id) login FROM wizebot_game_alerts n
       WHERE id>$1 AND kind<>'test' AND payload IS NOT NULL AND valid_until>CURRENT_TIMESTAMP
         AND (n.kind<>'egg' OR (n.payload->>'eggId' IS NULL AND EXISTS(SELECT 1 FROM users u WHERE u.id=n.user_id AND u.creature_id IS NULL))
@@ -232,9 +237,30 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const round=(await pool.query(`SELECT d.id,d.reward_key,d.status,d.started_at,d.ends_at,(SELECT COUNT(*)::int FROM game_bot_entries e WHERE e.drop_id=d.id) participants FROM game_bot_drops d ORDER BY d.id DESC LIMIT 1`)).rows[0];
     const saved=(await pool.query('SELECT key,label,text FROM game_bot_message_templates ORDER BY key')).rows;
     const templates=Object.entries(botMessageTemplates).map(([key,value])=>({key,...value,text:saved.find(row=>row.key===key)?.text||value.text,custom:false})).concat(saved.filter(row=>!Object.hasOwn(botMessageTemplates,row.key)).map(row=>({...row,variables:[],custom:true})));
+    const commands=(await pool.query('SELECT id,name,text,enabled,cooldown_seconds FROM game_bot_commands ORDER BY name')).rows;
     const messages=(await pool.query('SELECT id,kind,message,status,error,created_at FROM game_bot_messages ORDER BY id DESC LIMIT 50')).rows;
-    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,templates,schedule,live,serverTime:new Date().toISOString()});
+    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,templates,commands,schedule,live,serverTime:new Date().toISOString()});
   }catch{res.status(500).json({error:'Bot indisponible.'});}});
+  router.post('/admin/game-bot/commands',async(req,res)=>{
+    try{
+      if(!await getBroadcasterAccount(req))return res.sendStatus(403);
+      const c=validateChatCommand(req.body);
+      if(c.id){
+        const updated=await pool.query('UPDATE game_bot_commands SET name=$2,text=$3,enabled=$4,cooldown_seconds=$5,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING id',[c.id,c.name,c.text,c.enabled,c.cooldownSeconds]);
+        if(!updated.rows.length)return res.status(404).json({error:'Commande introuvable.'});
+        // Replies waiting for an older version must not be sent after editing or disabling.
+        await pool.query('DELETE FROM game_bot_command_queue WHERE command_id=$1',[c.id]);
+      }else await pool.query('INSERT INTO game_bot_commands(name,text,enabled,cooldown_seconds) VALUES($1,$2,$3,$4)',[c.name,c.text,c.enabled,c.cooldownSeconds]);
+      res.json({ok:true,message:'Commande enregistrée.'});
+    }catch(error){res.status(error.code==='23505'?409:400).json({error:error.code==='23505'?'Cette commande existe déjà.':error.message});}
+  });
+  router.post('/admin/game-bot/commands/delete',async(req,res)=>{
+    try{
+      if(!await getBroadcasterAccount(req))return res.sendStatus(403);
+      const id=Number(req.body?.id);if(!Number.isSafeInteger(id)||id<1)return res.status(400).json({error:'Commande introuvable.'});
+      await pool.query('DELETE FROM game_bot_commands WHERE id=$1',[id]);res.json({ok:true,message:'Commande supprimée.'});
+    }catch{res.status(500).json({error:'Suppression impossible.'});}
+  });
   router.post('/admin/game-bot/schedule',async(req,res)=>{
     try{
       if(!await getBroadcasterAccount(req))return res.sendStatus(403);
@@ -268,7 +294,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   });
   router.post('/admin/game-bot/subscribe',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await subscribe();res.json({ok:true});}catch(error){res.status(400).json({error:error.message});}});
   router.post('/admin/game-bot/test',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);await send(await messageText('test'),'test',{allowDisabled:true});res.json({ok:true,message:'Message de test envoyé dans le chat Twitch.'});}catch(error){res.status(400).json({error:error.message});}});
-  router.post('/admin/game-bot/enabled',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);const enabled=req.body?.enabled===true;const bot=await botRow();if(!bot?.subscription_id)return res.status(400).json({error:'Connecte le bot et abonne-le au chat avant de l’activer.'});await pool.query(`UPDATE game_bot_auth SET enabled=$1,alert_cursor=CASE WHEN $1 AND NOT enabled THEN COALESCE((SELECT MAX(id) FROM wizebot_game_alerts),0) ELSE alert_cursor END WHERE id=1`,[enabled]);if(enabled!==bot.enabled)await pool.query('UPDATE wizebot_alert_settings SET generation=generation+1,updated_at=CURRENT_TIMESTAMP WHERE id=1');if(!enabled){await pool.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE status IN ('pending','open')");await pool.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');}res.json({ok:true,enabled});}catch{res.status(500).json({error:'Bot indisponible.'});}});
+  router.post('/admin/game-bot/enabled',async(req,res)=>{try{if(!await getBroadcasterAccount(req))return res.sendStatus(403);const enabled=req.body?.enabled===true;const bot=await botRow();if(!bot?.subscription_id)return res.status(400).json({error:'Connecte le bot et abonne-le au chat avant de l’activer.'});await pool.query(`UPDATE game_bot_auth SET enabled=$1,alert_cursor=CASE WHEN $1 AND NOT enabled THEN COALESCE((SELECT MAX(id) FROM wizebot_game_alerts),0) ELSE alert_cursor END WHERE id=1`,[enabled]);if(enabled!==bot.enabled)await pool.query('UPDATE wizebot_alert_settings SET generation=generation+1,updated_at=CURRENT_TIMESTAMP WHERE id=1');if(!enabled){await pool.query('DELETE FROM game_bot_command_queue');await pool.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE status IN ('pending','open')");await pool.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');}res.json({ok:true,enabled});}catch{res.status(500).json({error:'Bot indisponible.'});}});
   router.post('/admin/game-bot/drop',async(req,res)=>{try{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.sendStatus(403);
     const bot=await botRow();if(!bot?.enabled)return res.status(400).json({error:'Active le bot d’abord.'});

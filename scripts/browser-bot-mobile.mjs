@@ -21,13 +21,15 @@ try {
       const $=id=>document.getElementById(id);
       const escapeHtml=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
       const trapDesktopAdminFocus=()=>{};
-      const showAdminActionConfirmation=async()=>false;
+      const showAdminActionConfirmation=async()=>true;
       window.botWrites=[];
-      const data={connected:true,login:'LoVeRWatchBot',enabled:true,live:false,recent:[],templates:[{key:'egg',label:'Œuf prêt',text:'Bonjour {joueur}, ton œuf est prêt !',variables:['joueur']},{key:'custom-demo',custom:true,label:'Annonce',text:'Retrouve le jeu sur le site.',variables:[]}],schedule:{enabled:true,min_minutes:20,max_minutes:40}};
+      const data={connected:true,login:'LoVeRWatchBot',enabled:true,live:false,recent:[],commands:[],templates:[{key:'egg',label:'Œuf prêt',text:'Bonjour {joueur}, ton œuf est prêt !',variables:['joueur']},{key:'custom-demo',custom:true,label:'Annonce',text:'Retrouve le jeu sur le site.',variables:[]}],schedule:{enabled:true,min_minutes:20,max_minutes:40}};
       async function adminFetch(url,options){
         if(options?.method==='POST'){
           window.botWrites.push({url,body:JSON.parse(options.body)});
           if(url.endsWith('/schedule')){const b=JSON.parse(options.body);data.schedule={enabled:b.enabled,min_minutes:b.minMinutes,max_minutes:b.maxMinutes};}
+          if(url.endsWith('/commands')){const b=JSON.parse(options.body),c={id:b.id||1,name:b.name,text:b.text,enabled:b.enabled,cooldown_seconds:b.cooldownSeconds};data.commands=data.commands.filter(item=>Number(item.id)!==Number(c.id));data.commands.push(c);}
+          if(url.endsWith('/commands/delete'))data.commands=data.commands.filter(c=>Number(c.id)!==Number(JSON.parse(options.body).id));
           return {message:'Enregistré'};
         }
         return structuredClone(data);
@@ -63,7 +65,28 @@ try {
     assert.deepEqual(writes.map(w=>w.url),['/api/admin/game-bot/schedule','/api/admin/game-bot/messages']);
     assert.equal(writes[0].body.minMinutes,25);assert.equal(writes[0].body.maxMinutes,50);
     assert.match(writes[1].body.text,/depuis le mobile/);
-    console.log('Bot layout and editing passed:',width);
+    await page.setViewportSize({width,height:844});
+    await page.getByRole('button',{name:'Ajouter une commande',exact:true}).click();
+    await page.locator('#botCommandName').fill('!discord');
+    await page.locator('#botCommandText').fill('{joueur}, rejoins notre communauté !');
+    await page.locator('#botCommandCooldown').fill('45');
+    if(width<=900){await page.setViewportSize({width,height:450});assert.ok(await page.locator('#botCommandText').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=16));}
+    if(width===390)await page.screenshot({path:'browser-bot-command-editor-390.png'});
+    await page.getByRole('button',{name:'Enregistrer la commande',exact:true}).click();
+    await page.locator('[data-bot-command-edit="1"]').waitFor();
+    await page.locator('[data-bot-command-edit="1"]').click();
+    await page.locator('#botCommandText').fill('Un nouveau lien pour {joueur}');
+    await page.getByRole('button',{name:'Enregistrer la commande',exact:true}).click();
+    await page.locator('[data-bot-command-toggle="1"]').click();
+    await page.waitForFunction(()=>window.botWrites.filter(w=>w.url.endsWith('/commands')).length===3);
+    await page.locator('[data-bot-command-delete="1"]').click();
+    await page.waitForFunction(()=>window.botWrites.some(w=>w.url.endsWith('/commands/delete')));
+    assert.equal(await page.locator('[data-bot-command-edit="1"]').count(),0);
+    const commandWrites=await page.evaluate(()=>window.botWrites.slice(2));
+    assert.deepEqual(commandWrites.map(w=>w.url),['/api/admin/game-bot/commands','/api/admin/game-bot/commands','/api/admin/game-bot/commands','/api/admin/game-bot/commands/delete']);
+    assert.equal(commandWrites[0].body.name,'!discord');assert.equal(commandWrites[0].body.cooldownSeconds,45);
+    assert.equal(commandWrites[1].body.id,1);assert.equal(commandWrites[2].body.enabled,false);assert.equal(commandWrites[3].body.id,1);
+    console.log('Bot layout, eggs and command editing passed:',width);
     await page.setViewportSize({width,height:844});
     await page.locator('#adminBotModal').evaluate(el=>{el.scrollTop=0;});
     await page.screenshot({path:`browser-bot-${width}.png`});

@@ -4631,9 +4631,10 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 /* Bot administration: messages readable on desktop, tablet and mobile. */
 .game-bot-messages{display:grid;gap:12px;margin-top:16px}.game-bot-message{padding:12px;border:1px solid #ffffff20;border-radius:12px;min-width:0}.game-bot-message p{margin:4px 0;overflow-wrap:anywhere}.game-bot-message-text{white-space:pre-wrap}.game-bot-message time{color:var(--muted,#aab0c8)}
 
-.game-bot-editor textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;min-height:120px;background:#101326;color:#fff;border:1px solid #706096;border-radius:10px;padding:12px}.game-bot-editor .desktop-egg-boost-panel{max-height:90dvh;overflow:auto}.game-bot-editor label{display:block;margin-top:12px}.game-bot-editor [data-message-error]{color:#ffb3bd}.game-bot-editor .game-bot-message-text{overflow-wrap:anywhere;white-space:pre-wrap}
+.game-bot-editor textarea{display:block;width:100%;box-sizing:border-box;resize:vertical;min-height:120px;background:#101326;color:#fff;border:1px solid #706096;border-radius:10px;padding:12px}.game-bot-editor .desktop-egg-boost-panel{max-height:90dvh;overflow:auto}.game-bot-editor label{display:block;margin-top:12px}.game-bot-editor :is([data-message-error],[data-command-error]){color:#ffb3bd}.game-bot-editor .game-bot-message-text{overflow-wrap:anywhere;white-space:pre-wrap}
 
 /* Bot panel cards: static surfaces keep administration smooth. */
+.game-bot-editor .bot-command-enabled{display:flex;align-items:center;gap:10px}.game-bot-editor #botCommandEnabled{width:22px;min-height:22px;height:22px;flex:0 0 22px;accent-color:#af7eff}
 #adminGameBot .bot-panel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
 #adminGameBot .bot-panel-grid>.bot-connection-card,#adminGameBot .bot-panel-grid>.wizebot-drop{min-width:0;margin:0;padding:24px;border:1px solid #9871ed45;border-radius:20px;background:linear-gradient(135deg,#211832,#111323 80%);box-shadow:0 8px 24px #0002}
 #adminGameBot .bot-connection-card{grid-column:1/-1}
@@ -4707,7 +4708,7 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   #adminGameBot .bot-connection-actions{display:grid;grid-template-columns:minmax(0,1fr)}
   #adminGameBot .bot-connection-actions>.btn{width:100%}
   #adminGameBot .bot-card-actions{display:grid;grid-template-columns:minmax(0,1fr)}
-  #adminGameBot .bot-card-actions .btn,#adminGameBot [data-bot-schedule-form]>.btn,#adminGameBot [data-bot-message-new]{width:100%;min-height:48px;font-size:15px}
+  #adminGameBot .bot-card-actions .btn,#adminGameBot [data-bot-schedule-form]>.btn,#adminGameBot [data-bot-message-new],#adminGameBot [data-bot-command-new]{width:100%;min-height:48px;font-size:15px}
   #adminGameBot .bot-history-card .game-bot-messages{max-height:none;overflow:visible;padding:0}
   .game-bot-editor{box-sizing:border-box;height:100dvh;padding:calc(10px + env(safe-area-inset-top)) 10px calc(10px + env(safe-area-inset-bottom));align-items:start;overflow:auto;overscroll-behavior:contain}
   .game-bot-editor .desktop-egg-boost-panel{box-sizing:border-box;width:100%;max-width:580px;max-height:100%;min-width:0;overflow:auto;overscroll-behavior:contain;scroll-padding-bottom:86px}
