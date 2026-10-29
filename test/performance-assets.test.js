@@ -27,3 +27,11 @@ test('hidden tabs do not run the periodic event or bot visual updates', () => {
   assert.match(app, /if\(!document\.hidden && isDesktopGameUi\(\)\)syncDesktopBoostData\(\)/);
   assert.match(app, /desktopView !== 'home' \|\| document\.body\.classList\.contains\('auth-locked'\)/);
 });
+
+test('dashboard boost status polling never overlaps and stays on home', () => {
+  const app = read('app.js');
+  assert.match(app, /let desktopBoostRefreshPending = false;/);
+  assert.match(app, /if \(desktopBoostRefreshPending \|\| document\.hidden/);
+  assert.match(app, /finally \{\s*desktopBoostRefreshPending = false;/);
+  assert.match(app, /if\(document\.hidden \|\| !isDesktopGameUi\(\) \|\| desktopView !== 'home'\)return;/);
+});
