@@ -489,13 +489,34 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   const userState = userStateResult.rows[0];
   if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:Number(globalXp||0) };
 
+  // The player lock above serializes reward grants. Read existing markers once
+  // instead of issuing one conflicting INSERT per previously earned level.
+  const prestige = Number(userState.prestige || 0);
+  const earned = await clientOrPool.query(`
+    SELECT 'global' AS family, level FROM user_global_xp_level_rewards WHERE user_id=$1 AND prestige=$2
+    UNION ALL
+    SELECT 'cash' AS family, level FROM user_global_cash_level_rewards WHERE user_id=$1 AND prestige=$2
+    UNION ALL
+    SELECT 'lovys' AS family, level FROM user_global_lovys_xp_rewards WHERE user_id=$1 AND prestige=$2
+  `, [userId, prestige]);
+  const earnedLevels = { global:new Set(), cash:new Set(), lovys:new Set() };
+  for (const row of earned.rows) earnedLevels[row.family].add(Number(row.level));
+  const cosmeticKeys = [...GLOBAL_LEVEL_GRADES.map(g => g.rewardKey), 'reward_bg_level55'];
+  const owned = await clientOrPool.query(
+    'SELECT item_key FROM shop_inventory WHERE account_id=$1 AND item_key=ANY($2::text[])',
+    [accountId, cosmeticKeys]
+  );
+  const ownedKeys = new Set(owned.rows.map(row => row.item_key));
+
   globalXp=Number(userState.global_xp||0);
   let effectiveGlobalXp = Math.max(0, Number(globalXp) || 0);
   let progression = globalProgressionFromXp(effectiveGlobalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) rewardKeys.push('reward_bg_level55');
   for (const key of rewardKeys) {
+    if (ownedKeys.has(key)) continue;
     await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
+    ownedKeys.add(key);
   }
 
   // Récompense chaque niveau atteint une seule fois. Si le bonus fait franchir
@@ -506,7 +527,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
     changed = false;
     progression = globalProgressionFromXp(effectiveGlobalXp);
     for (const reward of GLOBAL_LEVEL_XP_REWARDS) {
-      if (reward.level > progression.level) continue;
+      if (reward.level > progression.level || earnedLevels.global.has(reward.level)) continue;
       const inserted = await clientOrPool.query(
         `INSERT INTO user_global_xp_level_rewards (user_id,prestige,level,xp_amount)
          VALUES ($1,$2,$3,$4)
@@ -514,6 +535,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
          RETURNING xp_amount`,
         [userId, Number(userState.prestige || 0), reward.level, reward.xp]
       );
+      earnedLevels.global.add(reward.level);
       if (!inserted.rowCount) continue;
       const amount = Math.max(0, Number(inserted.rows[0]?.xp_amount || reward.xp || 0));
       if (!amount) continue;
@@ -533,7 +555,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   // Tous les 5 niveaux, le bonus d'XP globale est remplacé par du LoVeR'Cash.
   let cashGranted = 0;
   for (const reward of GLOBAL_LEVEL_CASH_REWARDS) {
-    if (progression.level < reward.level) continue;
+    if (progression.level < reward.level || earnedLevels.cash.has(reward.level)) continue;
     const inserted = await clientOrPool.query(
       `INSERT INTO user_global_cash_level_rewards (user_id,prestige,level,cash_amount)
        VALUES ($1,$2,$3,$4)
@@ -541,6 +563,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
        RETURNING cash_amount`,
       [userId, Number(userState.prestige || 0), reward.level, reward.cash]
     );
+    earnedLevels.cash.add(reward.level);
     if (!inserted.rowCount) continue;
     cashGranted += Math.max(0, Number(inserted.rows[0]?.cash_amount || reward.cash || 0));
   }
@@ -554,16 +577,18 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   const finalRewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) finalRewardKeys.push('reward_bg_level55');
   for (const key of finalRewardKeys) {
+    if (ownedKeys.has(key)) continue;
     await clientOrPool.query(
       `INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`,
       [accountId,key]
     );
+    ownedKeys.add(key);
   }
 
   let lovysXpGranted = 0;
   let pendingXpGranted = 0;
   for (const reward of GLOBAL_LOVYS_XP_REWARDS) {
-    if (progression.level < reward.level) continue;
+    if (progression.level < reward.level || earnedLevels.lovys.has(reward.level)) continue;
     const inserted = await clientOrPool.query(
       `INSERT INTO user_global_lovys_xp_rewards (user_id,prestige,level,xp_amount)
        VALUES ($1,$2,$3,$4)
@@ -571,6 +596,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
        RETURNING xp_amount`,
       [userId, Number(userState.prestige || 0), reward.level, reward.xp]
     );
+    earnedLevels.lovys.add(reward.level);
     if (!inserted.rowCount) continue;
     const amount = Number(inserted.rows[0]?.xp_amount || reward.xp || 0);
     // Les bonus d'XP Lovys des niveaux globaux sont placés dans une réserve.
