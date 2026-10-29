@@ -6359,7 +6359,8 @@ function renderDesktopBoostStatus() {
     return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${formatBoostRemainingTime(Date.parse(until)-Date.now())}</span>`;
   });
   if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
-  box.innerHTML = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
+  const nextHtml = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
+  if(box.innerHTML !== nextHtml)box.innerHTML = nextHtml;
 }
 function showDesktopBoostNotice(message, error = false) {
   if (!isDesktopGameUi()) return;
