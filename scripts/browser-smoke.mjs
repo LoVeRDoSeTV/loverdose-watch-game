@@ -7,6 +7,10 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
   const missing = [];
   const pageErrors = [];
   page.on('pageerror', error => pageErrors.push(error.message));
+  const failedRequests = [];
+  page.on('requestfailed', request => {
+    if (/\.(?:js|css|webp)(?:\?|$)/i.test(request.url())) failedRequests.push({url:request.url(),error:request.failure()?.errorText});
+  });
   page.on('response',res => {if(res.status() >= 400 && /\.(?:css|js)(?:\?|$)/.test(res.url()))missing.push(res.url());});
   try {
     await page.goto('http://127.0.0.1:8765/', {waitUntil:'domcontentloaded',timeout:30000});
@@ -35,8 +39,8 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
     });
     console.log(label,JSON.stringify(result));
     console.log('resource-breakdown',label,JSON.stringify(network));
-    if(missing.length || pageErrors.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
-      console.error('Browser smoke failure:',label,{missing,pageErrors,result});
+    if(missing.length || failedRequests.length || pageErrors.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
+      console.error('Browser smoke failure:',label,{missing,failedRequests,pageErrors,result});
       failed = true;
     }
     await page.screenshot({path:'browser-smoke-'+label+'.png',fullPage:false});
