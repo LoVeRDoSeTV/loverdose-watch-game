@@ -4718,3 +4718,9 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   .game-bot-editor .egg-boost-actions{position:sticky;bottom:-20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px 0;background:#111528}
   .game-bot-editor .egg-boost-actions .shop-action{min-height:48px;font-size:16px}
 }
+
+/* Live progression status on the home page. */
+.live-gains{width:100%;order:2;box-sizing:border-box;display:flex;align-items:flex-start;gap:15px;margin:22px 0;padding:22px;border:1px solid #9671cf55;border-radius:18px;background:#17152c;color:#eee7ff;min-width:0}
+.live-gains[hidden]{display:none}.live-gains-light{width:12px;height:12px;flex:0 0 12px;border-radius:50%;background:#9c93ad;margin-top:7px}.live-gains[data-state="receiving"]{border-color:#72ce9b66}.live-gains[data-state="receiving"] .live-gains-light{background:#80dfac;box-shadow:0 0 0 5px #80dfac12}.live-gains[data-state="waiting"] .live-gains-light{background:#e1bb75}.live-gains-copy{min-width:0}.live-gains h2{font-size:20px;line-height:1.4;margin:0 0 5px}.live-gains p{line-height:1.5;margin:0;color:#d0c5e6;font-size:14px}.live-gains .live-gains-help{font-size:12px;color:#aaa1bd;margin-top:9px}.live-gains .live-gains-last{font-size:12px;color:#aaa1bd;margin-top:7px}.live-gains-last:empty{display:none}
+body[data-desktop-view]:not([data-desktop-view="home"]) .live-gains,body.auth-locked .live-gains{display:none}
+@media(max-width:650px){.live-gains{padding:16px;margin:16px 0;gap:12px}.live-gains h2{font-size:18px}.live-gains-light{margin-top:6px}}

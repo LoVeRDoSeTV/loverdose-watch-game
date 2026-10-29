@@ -517,6 +517,7 @@ function showSuccess(title, message, buttonText, callback) {
 });
   
 function showAuthHome() {
+  window.refreshLiveGains?.(null);
   setDesktopAdminAccess(false);
   desktopActiveBoosts={};desktopBoostNotice=null;renderDesktopBoostStatus();
   authOverlay.classList.remove('hidden');
@@ -1049,6 +1050,7 @@ async function loadGameOnce() {
 
     if (!response.ok || !data.authenticated) {
       $('app').classList.add('hidden');
+      window.refreshLiveGains?.(null);
       return;
     }
 
@@ -1058,6 +1060,7 @@ async function loadGameOnce() {
       }
     }
     me = data;
+    void window.refreshLiveGains?.(me.user);
     lastGameRefreshAt=Date.now();
     void refreshReturnSummary();
     reapplyPendingCosmetics();
@@ -1085,6 +1088,7 @@ async function loadGameOnce() {
     setupTopDashboardSync();
     scheduleTopDashboardSync();
   } catch (error) {
+    window.liveGainsUnavailable?.();
     console.error('Erreur chargement jeu :', error);
   }
 }
