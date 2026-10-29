@@ -1965,7 +1965,7 @@ async function syncBadgeUnlockCelebrations(challenges = []) {
   }
 }
 
-function badgeAssetUrl(value){return typeof value==='string'&&value.startsWith('/badges/')?value.split('?')[0]+'?v=520':value;}
+function badgeAssetUrl(value){return typeof value==='string'&&value.startsWith('/badges/')?value.split('?')[0]+'?v=531':value;}
 function badgeVisual(badge, className = 'badge-art') {
   if (badge?.badgeImage) {
     return `<img loading="lazy" decoding="async" class="${className}" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
