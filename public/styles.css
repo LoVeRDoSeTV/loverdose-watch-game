@@ -5179,6 +5179,43 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   .confirm-actions{flex-wrap:wrap}
   .confirm-actions .btn{min-height:44px;flex:1 1 140px}
   #lovysXpTransferModal :is(input,select){font-size:16px;min-height:44px;min-width:0}
+  /* Banque d'XP : pleine page sur mobile, sans fenêtre flottante. */
+  #lovysXpTransferModal{
+    position:fixed!important;
+    inset:0 0 var(--mobile-page-bottom, 0px) 0!important;
+    width:100%!important;
+    height:auto!important;
+    padding:0!important;
+    margin:0!important;
+    display:block;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    box-sizing:border-box;
+    background:linear-gradient(180deg,#12172c 0%,#090d1b 100%)!important;
+    backdrop-filter:none!important;
+    -webkit-overflow-scrolling:touch;
+  }
+  #lovysXpTransferModal.hidden{display:none!important}
+  #lovysXpTransferModal>.lovys-xp-transfer-panel{
+    width:100%!important;
+    min-width:0;
+    max-width:100%!important;
+    min-height:100%;
+    max-height:none!important;
+    box-sizing:border-box;
+    margin:0!important;
+    padding:calc(24px + env(safe-area-inset-top)) 16px 32px!important;
+    overflow:visible!important;
+    border:0!important;
+    border-radius:0!important;
+    background:transparent!important;
+    box-shadow:none!important;
+  }
+  #lovysXpTransferModal .lovys-xp-transfer-field{min-width:0;max-width:100%}
+  #lovysXpTransferModal :is(input,select){box-sizing:border-box;max-width:100%;width:100%}
+  #lovysXpTransferModal .lovys-xp-transfer-actions{flex-wrap:wrap}
+  #lovysXpTransferModal .lovys-xp-transfer-actions .hub-btn{min-width:min(100%,145px);min-height:46px}
+
   #shopItemPreviewModal .shop-preview-body{grid-template-columns:minmax(0,1fr)}
   #incubatorAddModal .incubator-add-summary{min-width:0}
   [data-admin-confirm-overlay] .admin-confirm-summary>div{flex-wrap:wrap;gap:6px 12px}
