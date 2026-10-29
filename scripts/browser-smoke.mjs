@@ -24,6 +24,7 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
       transferBytes:performance.getEntriesByType('resource').reduce((n,e)=>n+(e.transferSize||0),0),
       resources:performance.getEntriesByType('resource').length,
       domContentLoadedMs:Math.round(performance.getEntriesByType('navigation')[0]?.domContentLoadedEventEnd||0),
+      appScripts:[...document.querySelectorAll('script[src]')].map(el=>new URL(el.src).pathname).filter(path=>path.includes('/app.')),
     }));
     const network = await page.evaluate(() => {
       const entries=performance.getEntriesByType('resource');
@@ -39,7 +40,7 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
     });
     console.log(label,JSON.stringify(result));
     console.log('resource-breakdown',label,JSON.stringify(network));
-    if(missing.length || failedRequests.length || pageErrors.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
+    if(missing.length || failedRequests.length || pageErrors.length || JSON.stringify(result.appScripts)!=='["/app.min.js"]' || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
       console.error('Browser smoke failure:',label,{missing,failedRequests,pageErrors,result});
       failed = true;
     }
