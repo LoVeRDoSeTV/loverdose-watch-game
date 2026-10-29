@@ -1,0 +1,28 @@
+name: Contrôle visuel navigateur
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save --no-audit --no-fund playwright@1.58.2
+      - run: npx playwright install --with-deps chromium
+      - name: Démarrer le serveur statique de contrôle
+        run: python3 -m http.server 8765 --directory public > /tmp/lover-smoke.log 2>&1 &
+      - name: Vérifier PC, mobile et tablette
+        run: node scripts/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-smoke-screenshots
+          path: browser-smoke-*.png
+          if-no-files-found: ignore
