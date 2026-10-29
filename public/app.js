@@ -9260,8 +9260,11 @@ document.addEventListener('visibilitychange', () => {
 startLiveUpdates();
 
 refreshDesktopHomeLiveStatus();
-setInterval(refreshDesktopHomeLiveStatus, 30000);
-setInterval(refreshMobileHomeLiveStatus, 30000);
+setInterval(()=>{
+  if(document.hidden || !me?.user)return;
+  if(isDesktopGameUi())void refreshDesktopHomeLiveStatus();
+  else if(isMobileGameUi())void refreshMobileHomeLiveStatus();
+},30000);
 
 // Filet de sécurité si une connexion SSE est interrompue par le navigateur/proxy.
 setInterval(() => {
