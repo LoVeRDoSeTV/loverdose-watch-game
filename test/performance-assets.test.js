@@ -39,6 +39,6 @@ test('dashboard boost status polling never overlaps and stays on home', () => {
 test('community notification refresh requests do not overlap in hidden tabs', () => {
   const app = read('app.js');
   assert.match(app, /let lobbyNotificationsPending=false;/);
-  assert.match(app, /async function refreshLobbyNotifications\(\)\{if\(lobbyNotificationsPending\|\|document\.hidden\)return;/);
+  assert.match(app, /async function refreshLobbyNotifications\(\)\{if\(lobbyNotificationsPending\|\|document\.hidden\|\|!me\?\.user\)return;/);
   assert.match(app, /finally\{lobbyNotificationsPending=false;\}\}/);
 });
