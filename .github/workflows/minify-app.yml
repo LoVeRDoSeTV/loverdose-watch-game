@@ -18,7 +18,7 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - name: Minify whitespace safely without changing identifiers or logic
-        run: npx --yes terser@5.44.1 public/app.js --compress false --mangle false --format comments=false --output public/app.min.js
+        run: npx --yes terser@5.44.1 public/app.js --format comments=false --output public/app.min.js
       - name: Check bundle and application tests
         run: |
           node --check public/app.js
