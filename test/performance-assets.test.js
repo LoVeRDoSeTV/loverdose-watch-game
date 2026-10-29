@@ -42,3 +42,8 @@ test('community notification refresh requests do not overlap in hidden tabs', ()
   assert.match(app, /async function refreshLobbyNotifications\(\)\{if\(lobbyNotificationsPending\|\|document\.hidden\|\|!me\?\.user\)return;/);
   assert.match(app, /finally\{lobbyNotificationsPending=false;\}\}/);
 });
+
+test('optimized badges use fresh cache key', () => {
+  const app = read('app.js');
+  assert.match(app, /function badgeAssetUrl\(value\).*\+'\?v=531'/);
+});
