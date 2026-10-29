@@ -1,0 +1,35 @@
+name: Préparer JavaScript allégé
+on:
+  push:
+    branches: [performance-safe-modules-20261029]
+    paths:
+      - '.github/workflows/minify-app.yml'
+permissions:
+  contents: write
+jobs:
+  minify:
+    if: github.repository == 'LoVeRDoSeTV/loverdose-watch-game'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Minify whitespace safely without changing identifiers or logic
+        run: npx --yes terser@5.44.1 public/app.js --compress false --mangle false --format comments=false --output public/app.min.js
+      - name: Check bundle and application tests
+        run: |
+          node --check public/app.js
+          node --check public/app.min.js
+          npm test
+          node -e "const fs=require('fs');const a=fs.statSync('public/app.js').size,b=fs.statSync('public/app.min.js').size;console.log({source:a,minified:b,saved:a-b});if(b>=a)process.exit(1)"
+      - name: Commit only minified output to performance branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/app.min.js
+          git diff --cached --quiet && exit 0
+          git commit -m "Add syntax-checked minified app bundle for browser comparison"
+          git push origin HEAD:performance-safe-modules-20261029
