@@ -24,7 +24,7 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
       const byType={};
       for(const e of entries){
         const name=e.name.split('?')[0];
-        const ext=name.match(/\\.(js|css|webp|png|svg|woff2?)$/i)?.[1]?.toLowerCase()||'other';
+        const ext=name.match(/\.(js|css|webp|png|svg|woff2?)$/i)?.[1]?.toLowerCase()||'other';
         const row=byType[ext] ||= {count:0,transferBytes:0};
         row.count++;
         row.transferBytes+=e.transferSize||0;
