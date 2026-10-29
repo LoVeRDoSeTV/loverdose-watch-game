@@ -4,6 +4,7 @@ const MOBILE_GAME_MEDIA = `(max-width:900px), ${TABLET_GAME_MEDIA}`;
 const DESKTOP_GAME_MEDIA = `(min-width:901px) and (not (${TABLET_GAME_MEDIA}))`;
 
 let me = null;
+let lastGameRefreshAt=0;
 let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
@@ -608,8 +609,10 @@ function syncTopDashboardHeights() {
   }
 }
 
+let topDashboardSyncFrame=null;
 function scheduleTopDashboardSync() {
-  window.requestAnimationFrame(syncTopDashboardHeights);
+  if(topDashboardSyncFrame!==null)return;
+  topDashboardSyncFrame=window.requestAnimationFrame(()=>{topDashboardSyncFrame=null;syncTopDashboardHeights();});
 }
 
 let topDashboardResizeObserver = null;
@@ -1024,7 +1027,21 @@ window.addEventListener('pageshow',()=>{if(me?.user)void refreshReturnSummary();
 window.addEventListener('pagehide',leaveGameTab);
 setInterval(()=>{if(!document.hidden&&me?.user)void refreshReturnSummary();},30000);
 
-async function loadGame() {
+// Serialize overlapping refreshes and run one trailing refresh for newer mutations.
+function createTrailingRefresh(task){
+  let running=null,requested=false;
+  return function(){
+    requested=true;
+    if(!running)running=Promise.resolve().then(async()=>{
+      try{do{requested=false;await task();}while(requested);}
+      finally{running=null;}
+    });
+    return running;
+  };
+}
+const queuedGameRefresh=createTrailingRefresh(loadGameOnce);
+async function loadGame(){return queuedGameRefresh();}
+async function loadGameOnce() {
   const cosmeticLoadRevision = cosmeticRevision;
   try {
     const response = await fetch('/api/me', { cache: 'no-store' });
@@ -1041,6 +1058,7 @@ async function loadGame() {
       }
     }
     me = data;
+    lastGameRefreshAt=Date.now();
     void refreshReturnSummary();
     reapplyPendingCosmetics();
     startLiveUpdates();
@@ -1061,10 +1079,7 @@ async function loadGame() {
       }
     }
     await loadIncubatorSlots();
-    await syncDesktopLovysHub();
-    await loadBadges();
-    await loadDailyChallenges();
-    await loadRewardWheels();
+    await Promise.allSettled([syncDesktopLovysHub(),loadBadges(),loadDailyChallenges(),loadRewardWheels()]);
     renderNextActions();
     updatePwaInstallUi();
     setupTopDashboardSync();
@@ -1229,17 +1244,23 @@ $('onlinePlayersList')?.addEventListener('click',async event=>{
   }
 });
 
-async function refreshDesktopHomeLiveStatus() {
-  if (!isDesktopGameUi() || !me?.user) return;
-  try {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-    let response;
-    try { response = await fetch('/api/game/live-status', { cache:'no-store', signal:controller.signal }); }
-    finally { clearTimeout(timeout); }
-    if (!response.ok) throw new Error('Statut indisponible');
-    renderDesktopHomeLiveStatus(await response.json());
-  } catch { renderDesktopHomeLiveStatus(null); }
+let homeLiveStatusRequest=null,homeLiveStatusCached=null,homeLiveStatusCachedAt=0;
+async function readHomeLiveStatus(){
+  if(homeLiveStatusCached&&Date.now()-homeLiveStatusCachedAt<1000)return homeLiveStatusCached;
+  if(homeLiveStatusRequest)return homeLiveStatusRequest;
+  homeLiveStatusRequest=(async()=>{
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),8000);
+    try{
+      const response=await fetch('/api/game/live-status',{cache:'no-store',signal:controller.signal});
+      if(!response.ok)throw new Error('Statut indisponible');
+      const data=await response.json();homeLiveStatusCached=data;homeLiveStatusCachedAt=Date.now();return data;
+    }finally{clearTimeout(timeout);homeLiveStatusRequest=null;}
+  })();
+  return homeLiveStatusRequest;
+}
+async function refreshDesktopHomeLiveStatus(){
+  if(document.hidden||!isDesktopGameUi()||!me?.user)return;
+  try{renderDesktopHomeLiveStatus(await readHomeLiveStatus());}catch{renderDesktopHomeLiveStatus(null);}
 }
 
 function renderMobileHomeLiveStatus(data){
@@ -1259,19 +1280,15 @@ function renderMobileHomeLiveStatus(data){
 }
 
 async function refreshMobileHomeLiveStatus(){
-  if(!isMobileGameUi() || !me?.user)return;
-  try{
-    const response=await fetch('/api/game/live-status',{cache:'no-store'});
-    if(!response.ok)throw new Error('Statut indisponible');
-    renderMobileHomeLiveStatus(await response.json());
-  }catch{renderMobileHomeLiveStatus(null);}
+  if(document.hidden||!isMobileGameUi()||!me?.user)return;
+  try{renderMobileHomeLiveStatus(await readHomeLiveStatus());}catch{renderMobileHomeLiveStatus(null);}
 }
 
 async function refreshIncubatorLiveState() {
+  if(document.hidden||!me?.user)return;
   try {
-    const response = await fetch('/api/lobby', { cache:'no-store' });
-    const data = await response.json();
-    if (!response.ok) return;
+    const data=await readHomeLiveStatus();
+    if(typeof data.live!=='boolean')return;
     const live = Boolean(data.live);
     refreshMobileHomeLiveStatus();
     document.querySelectorAll('[data-incubator-live]').forEach(el => {
@@ -3323,7 +3340,10 @@ function applyLeaderboardCanonicalLayout(isSearch = false) {
   }
 }
 
+let leaderboardRequestId=0;
+function leaderboardIsVisible(){return !document.hidden&&Boolean($('leaderboard')?.getClientRects().length);}
 async function loadLeaderboard(searchTerm = null, metric = null) {
+  const requestId=++leaderboardRequestId;
   const container = $('leaderboard');
   const searchInput = $('leaderboardSearch');
   if (metric && LEADERBOARD_METRICS[metric]) leaderboardMetric = metric;
@@ -3335,6 +3355,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     if (query) params.set('search', query);
     const response = await fetch(`/api/leaderboard?${params.toString()}`, { cache: 'no-store' });
     const data = await response.json();
+    if(requestId!==leaderboardRequestId)return;
     if (!data.leaderboard || data.leaderboard.length === 0) {
       container.innerHTML = query ? '<div class="leaderboard-empty-search">Aucun joueur trouvé.</div>' : '<p class="muted">Aucun joueur pour le moment.</p>';
       return;
@@ -3374,7 +3395,19 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = (isMobileGameUi() ? [1,2,3] : [2,1,3]).map(rank=>top3.find(p=>Number(p.rank)===rank)).filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
     container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
     applyLeaderboardCanonicalLayout(false);
-  } catch (error) { console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
+  } catch (error) { if(requestId!==leaderboardRequestId)return;console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
+}
+let progressionDragCleanup=null;
+function bindProgressionDrag(roadEl){
+  progressionDragCleanup?.();
+  let dragging=false,startX=0,startScroll=0;
+  const stop=()=>{dragging=false;roadEl.classList.remove('dragging');};
+  const down=event=>{if(event.button!==0)return;dragging=true;startX=event.clientX;startScroll=roadEl.scrollLeft;roadEl.classList.add('dragging');event.preventDefault();};
+  const move=event=>{if(!dragging)return;if(!(event.buttons&1)){stop();return;}roadEl.scrollLeft=startScroll-(event.clientX-startX);event.preventDefault();};
+  const leave=event=>{if(!(event.buttons&1))stop();};
+  roadEl.addEventListener('mousedown',down);roadEl.addEventListener('mouseleave',leave);
+  window.addEventListener('mousemove',move);window.addEventListener('mouseup',stop);window.addEventListener('blur',stop);
+  progressionDragCleanup=()=>{stop();roadEl.removeEventListener('mousedown',down);roadEl.removeEventListener('mouseleave',leave);window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',stop);window.removeEventListener('blur',stop);};
 }
 function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(current/total)*100:0));}
 async function loadProgression(){
@@ -3451,7 +3484,7 @@ async function loadProgression(){
       ? `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">🐉 Progression du Lovys</div><span class="lovys-progress-level">Niv. ${lovysLevel}</span></div><div class="lovys-progress-meta"><span>${lovysInto.toLocaleString('fr-FR')} XP</span><span>${cp.maxLevel?'Niveau max':lovysNeed.toLocaleString('fr-FR')+' XP'}</span></div><div class="lovys-xp-bar"><span style="width:${lovysPercent}%"></span></div><div class="lovys-progress-note">XP totale du Lovys : ${lovysTotalXp.toLocaleString('fr-FR')} XP${cp.maxLevel?' · Les prochains gains vont en réserve.':''}</div>${transferHtml}</div>`
       : `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">${eggIconMarkup('egg-inline-icon title-inline-icon')}XP du futur Lovys</div><span class="lovys-progress-level">Réserve</span></div><div class="lovys-progress-meta"><span>XP en attente</span><span>${pendingLovysXp.toLocaleString('fr-FR')} XP</span></div><div class="lovys-progress-note">Cette XP reste en réserve. Après l’éclosion, tu pourras choisir de la transférer à ton Lovys avec confirmation.</div></div>`;
     box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Rapport de progression</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.icon||'◆')}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Les bonus d’XP Lovys des niveaux globaux vont en réserve. Tu choisis ensuite le Lovys qui les reçoit.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>`;
-    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){let dragging=false,startX=0,startScroll=0;const stopDrag=()=>{if(!dragging)return;dragging=false;roadEl.classList.remove('dragging');};roadEl.addEventListener('mousedown',e=>{if(e.button!==0)return;dragging=true;startX=e.clientX;startScroll=roadEl.scrollLeft;roadEl.classList.add('dragging');e.preventDefault();});window.addEventListener('mousemove',e=>{if(!dragging)return;if(!(e.buttons&1)){stopDrag();return;}roadEl.scrollLeft=startScroll-(e.clientX-startX);e.preventDefault();});window.addEventListener('mouseup',stopDrag);window.addEventListener('blur',stopDrag);roadEl.addEventListener('mouseleave',e=>{if(!(e.buttons&1))stopDrag();});}}});
+    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){bindProgressionDrag(roadEl);}}});
     $('prestigeInfoBtn')?.addEventListener('click',()=>{
       let modal=$('prestigeInfoModal');
       if(!modal){
@@ -6336,7 +6369,7 @@ function showDesktopBoostNotice(message, error = false) {
   desktopBoostNoticeTimer = setTimeout(() => {desktopBoostNotice=null;renderDesktopBoostStatus();},12000);
 }
 async function refreshDesktopBoostStatus() {
-  if (!isDesktopGameUi() || document.body.classList.contains('auth-locked')) return;
+  if (document.hidden || !isDesktopGameUi() || document.body.classList.contains('auth-locked')) return;
   try {
     const response = await fetch('/api/shop',{cache:'no-store'});
     if (!response.ok) return;
@@ -6345,7 +6378,7 @@ async function refreshDesktopBoostStatus() {
     renderDesktopBoostStatus();
   } catch {}
 }
-setInterval(() => {renderDesktopBoostStatus();refreshDesktopBoostStatus();},60000);
+setInterval(() => {if(!document.hidden){renderDesktopBoostStatus();refreshDesktopBoostStatus();}},60000);
 
 let desktopBoostAcceptedClose = null;
 function showDesktopBoostAccepted(itemKey, data) {
@@ -7247,7 +7280,7 @@ async function openEventsModal() {
   modal.classList.remove('hidden');
   await Promise.all([refreshEventsState(),refreshBadgeEvents()]);
   stopEventsRefresh();
-  eventsRefreshTimer = setInterval(refreshEventsState, 1500);
+  eventsRefreshTimer = setInterval(()=>{if(!document.hidden)void refreshEventsState();}, 1500);
 }
 
 function closeEventsModal() {
@@ -7765,7 +7798,7 @@ async function loadGameBotPanel(){
 
   }catch(error){panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p>${escapeHtml(error.message)}</p>`;}
 }
-setInterval(()=>{const panel=$('adminGameBot');if(panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]'))void loadGameBotPanel();},15000);
+setInterval(()=>{const panel=$('adminGameBot');if(!document.hidden&&panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]'))void loadGameBotPanel();},15000);
 setInterval(()=>{const timer=document.querySelector('[data-bot-countdown]');if(!timer)return;const seconds=Math.max(0,Number(timer.dataset.botCountdown)-Math.floor((Date.now()-Number(timer.dataset.botCountdownAt))/1000));timer.textContent=seconds?`${seconds} s restantes`:'Inscriptions closes · tirage en cours…';},1000);
 function openBotMessageEditor(template=null){
   if(document.querySelector('.game-bot-editor'))return;
@@ -8782,7 +8815,7 @@ $('desktopLobbyPage')?.addEventListener('click',e=>{if(e.target.closest('[data-e
 $('lobbyWishesGrid')?.addEventListener('click',async e=>{const wish=e.target.closest('[data-wish-toggle]');if(wish){const wanted=wish.getAttribute('aria-pressed')!=='true';await fetch('/api/trades/wishes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatureId:wish.dataset.wishToggle,wanted})});loadTradeWishes();return;}const trade=e.target.closest('[data-wish-trade-creature]');if(trade){await openTradeComposer(trade.dataset.wishTradeCreature||'');}});
 let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;void refreshAcceptedTradeNotices();if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
 async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
-function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{refreshLobbyNotifications();void refreshLobbySilently();},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
+function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{if(!document.hidden){refreshLobbyNotifications();void refreshLobbySilently();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
 function tradeCreatureImageUrl(l){
   if(!l)return '';
@@ -9140,7 +9173,6 @@ $('gameInviteFriend')?.addEventListener('click',inviteFriendToWatchGame);
 window.addEventListener('resize',()=>{if(!isDesktopGameUi()){document.body.dataset.desktopView='';document.body.classList.remove('desktop-leaderboard-open');if(!document.body.classList.contains('mobile-community-open'))$('desktopLobbyPage')?.classList.add('hidden');}else if(!document.body.dataset.desktopView){openDesktopView('home');}});
 if(isDesktopGameUi())syncDesktopViewFromUrl();
 
-loadLeaderboard();
 refreshAccountState();
 
 // Mise à jour temps réel : le serveur pousse un événement dès que le tracker
@@ -9150,6 +9182,7 @@ let liveRefreshRunning = false;
 let liveRefreshQueued = false;
 
 async function refreshLiveGameState() {
+  if(document.hidden||!me?.user)return;
   if (liveRefreshRunning) {
     liveRefreshQueued = true;
     return;
@@ -9158,7 +9191,7 @@ async function refreshLiveGameState() {
   liveRefreshRunning = true;
   try {
     if (me?.user) await loadGame();
-    await loadLeaderboard();
+    if(leaderboardIsVisible())await loadLeaderboard();
   } finally {
     liveRefreshRunning = false;
     if (liveRefreshQueued) {
@@ -9212,7 +9245,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && me?.user) { void loadBadges(); showNextBadgeCelebration(); }
+  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration(); }
 });
 
 startLiveUpdates();
@@ -9223,8 +9256,9 @@ setInterval(refreshMobileHomeLiveStatus, 30000);
 
 // Filet de sécurité si une connexion SSE est interrompue par le navigateur/proxy.
 setInterval(() => {
-  loadLeaderboard();
-  if (me?.user) loadGame();
+  if(document.hidden||!me?.user)return;
+  if(leaderboardIsVisible())void loadLeaderboard();
+  if(Date.now()-lastGameRefreshAt>=25000)void loadGame();
 }, 30000);
 
 

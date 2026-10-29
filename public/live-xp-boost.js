@@ -42,6 +42,7 @@
     return (h ? String(h).padStart(2,'0') + ':' : '') + String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
   };
   function render() {
+    if(!isOverlay&&document.hidden)return;
     const now = Date.now() + clockOffset;
     const active = boosts.map(item => ({ ...item, remaining:Math.max(0,Math.ceil((item.end-now)/1000)) })).filter(item=>item.remaining>0);
     setVisibility(active.length > 0);
@@ -68,6 +69,7 @@
     render();
   }
   async function refresh() {
+    if(!isOverlay&&document.hidden)return;
     if (pending) { queued = true; return; }
     pending = true;
     const started = Date.now(), revision=signalRevision;
