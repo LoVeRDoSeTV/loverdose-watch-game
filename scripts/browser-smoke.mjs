@@ -5,6 +5,8 @@ let failed = false;
 for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['tablet',820,1180]]) {
   const page = await browser.newPage({viewport:{width,height},deviceScaleFactor:1});
   const missing = [];
+  const pageErrors = [];
+  page.on('pageerror', error => pageErrors.push(error.message));
   page.on('response',res => {if(res.status() >= 400 && /\.(?:css|js)(?:\?|$)/.test(res.url()))missing.push(res.url());});
   try {
     await page.goto('http://127.0.0.1:8765/', {waitUntil:'domcontentloaded',timeout:30000});
@@ -33,8 +35,8 @@ for (const [label,width,height] of [['desktop',1440,900],['mobile',390,844],['ta
     });
     console.log(label,JSON.stringify(result));
     console.log('resource-breakdown',label,JSON.stringify(network));
-    if(missing.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
-      console.error('Browser smoke failure:',label,{missing,result});
+    if(missing.length || pageErrors.length || result.cssCount < 6 || !result.loginVisible || result.scrollWidth > result.windowWidth+3) {
+      console.error('Browser smoke failure:',label,{missing,pageErrors,result});
       failed = true;
     }
     await page.screenshot({path:'browser-smoke-'+label+'.png',fullPage:false});
