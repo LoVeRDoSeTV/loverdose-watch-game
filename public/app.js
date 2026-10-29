@@ -1891,7 +1891,7 @@ function showNextBadgeCelebration() {
   if (stage) stage.textContent = item.stageName ? `Nouvelle évolution · ${item.stageName}` : 'Un nouveau badge rejoint ta collection';
   if (name) name.textContent = item.badgeName;
   if (logo) logo.innerHTML = item.badgeImage
-    ? `<img loading="lazy" decoding="async" class="badge-unlock-logo" src="${escapeHtml(item.badgeImage)}" alt="${escapeHtml(item.badgeName)}">`
+    ? `<img loading="lazy" decoding="async" class="badge-unlock-logo" src="${escapeHtml(badgeAssetUrl(item.badgeImage))}" alt="${escapeHtml(item.badgeName)}">`
     : '<div class="badge-unlock-logo-fallback">🏆</div>';
   const rewardParts = [];
   if (item.lovysXp > 0) rewardParts.push(`<div class="badge-unlock-reward"><b>🐉 +${item.lovysXp}</b><span>XP Lovys</span></div>`);
@@ -1948,9 +1948,10 @@ async function syncBadgeUnlockCelebrations(challenges = []) {
   }
 }
 
+function badgeAssetUrl(value){return typeof value==='string'&&value.startsWith('/badges/')?value.split('?')[0]+'?v=520':value;}
 function badgeVisual(badge, className = 'badge-art') {
   if (badge?.badgeImage) {
-    return `<img loading="lazy" decoding="async" class="${className}" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
+    return `<img loading="lazy" decoding="async" class="${className}" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
   }
 
   const placeholderClass = className === 'leaderboard-badge-img'
@@ -2179,7 +2180,7 @@ function renderPlayerVisitCard() {
     el.className = 'player-card-rankbadge';
     el.title = badge.badgeName || 'Badge';
     el.innerHTML = badge.badgeImage
-      ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`
+      ? `<img loading="lazy" decoding="async" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`
       : '🏅';
   });
   renderAccountBadgeShowcase();
@@ -3357,7 +3358,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
     const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};${frame.corner ? `--profile-frame-corner:url("${frame.corner}");` : ''}` : ''}`; };
     const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}`;
-    const leaderboardBadgesHtml = (player, compact=false) => { const badges = Array.isArray(player.leaderboard_badges) ? player.leaderboard_badges.slice(0, 2) : []; if (!badges.length) return ''; return `<div class="leaderboard-v154-badges${compact ? ' compact' : ''}" aria-label="Badges affichés">${badges.map(badge => { const label = badge.badgeName || 'Badge'; const tooltip = `${label}${badge.badgeChallenge ? ` — ${badge.badgeChallenge}` : ''}`; return `<span class="leaderboard-v154-badge" title="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(label)}">` : '🏅'}</span>`; }).join('')}</div>`; };
+    const leaderboardBadgesHtml = (player, compact=false) => { const badges = Array.isArray(player.leaderboard_badges) ? player.leaderboard_badges.slice(0, 2) : []; if (!badges.length) return ''; return `<div class="leaderboard-v154-badges${compact ? ' compact' : ''}" aria-label="Badges affichés">${badges.map(badge => { const label = badge.badgeName || 'Badge'; const tooltip = `${label}${badge.badgeChallenge ? ` — ${badge.badgeChallenge}` : ''}`; return `<span class="leaderboard-v154-badge" title="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(label)}">` : '🏅'}</span>`; }).join('')}</div>`; };
     const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card leaderboard-v154-profile-card rank-${rank}${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${players.indexOf(player)}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-card-content"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${leaderboardBadgesHtml(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></div></button>`; };
     const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row leaderboard-v154-profile-card${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${idx}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-row-content"><div class="leaderboard-v150-row-rank">${player.excluded_from_ranking ? '—' : rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${player.excluded_from_ranking ? '<div class="leaderboard-v150-title muted">Hors classement</div>' : ''}${playerTitle(player)}${leaderboardBadgesHtml(player, true)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></div></button>`; };
     const tabs = `<div class="leaderboard-v151-tabs">${Object.entries(LEADERBOARD_METRICS).map(([key,item])=>`<button type="button" class="${key===activeMetric?'active':''}" data-leaderboard-metric="${key}">${item.icon} ${escapeHtml(item.label)}</button>`).join('')}</div>`;
@@ -5267,7 +5268,7 @@ function openPlayerProfile(playerData) {
   const badgeHtml = unlockedBadges.length
     ? unlockedBadges.map(badge => {
         const tooltip = `${badge.badgeName || 'Badge'}\nDébloqué le ${formatProfileDateTime(badge.unlockedAt)}`;
-        return `<span class="player-profile-badge" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badge.badgeImage)}" alt="${escapeHtml(badge.badgeName || 'Badge')}">` : '🏅'}</span>`;
+        return `<span class="player-profile-badge" data-tooltip="${escapeHtml(tooltip)}" aria-label="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">` : '🏅'}</span>`;
       }).join('')
     : '<span class="muted" style="font-size:12px">Aucun badge débloqué pour le moment.</span>';
 
