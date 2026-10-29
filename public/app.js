@@ -6737,7 +6737,7 @@ $('inventoryCurrentEquipment')?.addEventListener('click', event => {
   if (remove && !commerceBusy) shopAction('/api/shop/unequip', remove.dataset.commerceRemove);
   else if (slot) {inventoryCategory = slot.dataset.commerceSlot;inventoryTitleFilter = 'all';setCommerceTab('inventory');}
 });
-setInterval(syncDesktopBoostData, 30000);
+setInterval(()=>{if(!document.hidden && isDesktopGameUi())syncDesktopBoostData();}, 30000);
 window.addEventListener('resize', syncInventoryPagePlacement);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {
@@ -7799,7 +7799,7 @@ async function loadGameBotPanel(){
   }catch(error){panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p>${escapeHtml(error.message)}</p>`;}
 }
 setInterval(()=>{const panel=$('adminGameBot');if(!document.hidden&&panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]'))void loadGameBotPanel();},15000);
-setInterval(()=>{const timer=document.querySelector('[data-bot-countdown]');if(!timer)return;const seconds=Math.max(0,Number(timer.dataset.botCountdown)-Math.floor((Date.now()-Number(timer.dataset.botCountdownAt))/1000));timer.textContent=seconds?`${seconds} s restantes`:'Inscriptions closes · tirage en cours…';},1000);
+setInterval(()=>{if(document.hidden)return;const timer=document.querySelector('[data-bot-countdown]');if(!timer || !timer.getClientRects().length)return;const seconds=Math.max(0,Number(timer.dataset.botCountdown)-Math.floor((Date.now()-Number(timer.dataset.botCountdownAt))/1000));timer.textContent=seconds?`${seconds} s restantes`:'Inscriptions closes · tirage en cours…';},1000);
 function openBotMessageEditor(template=null){
   if(document.querySelector('.game-bot-editor'))return;
   const previousFocus=document.activeElement,overlay=document.createElement('div'),custom=!template||template.custom;
