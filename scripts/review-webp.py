@@ -31,7 +31,7 @@ def collect(quality: int, output: Path) -> tuple[int, int]:
                     # Keep pixel dimensions and the alpha channel unchanged.
                     im = img.convert("RGBA" if "A" in img.getbands() or "transparency" in img.info else "RGB")
                     buf = io.BytesIO()
-                    im.save(buf, format="WEBP", quality=quality, method=6)
+                    im.save(buf, format="WEBP", quality=quality, method=4)
                     proposed = buf.getvalue()
                     row["proposed_bytes"] = len(proposed)
                     row["saving_percent"] = round(100 * (1 - len(proposed) / original_size), 1)
