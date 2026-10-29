@@ -6368,17 +6368,25 @@ function showDesktopBoostNotice(message, error = false) {
   renderDesktopBoostStatus();
   desktopBoostNoticeTimer = setTimeout(() => {desktopBoostNotice=null;renderDesktopBoostStatus();},12000);
 }
+let desktopBoostRefreshPending = false;
 async function refreshDesktopBoostStatus() {
-  if (document.hidden || !isDesktopGameUi() || desktopView !== 'home' || document.body.classList.contains('auth-locked')) return;
+  if (desktopBoostRefreshPending || document.hidden || !isDesktopGameUi() || desktopView !== 'home' || document.body.classList.contains('auth-locked')) return;
+  desktopBoostRefreshPending = true;
   try {
     const response = await fetch('/api/shop',{cache:'no-store'});
     if (!response.ok) return;
     const data = await response.json();
     desktopActiveBoosts = data.activeBoosts || {};
     renderDesktopBoostStatus();
-  } catch {}
+  } catch {} finally {
+    desktopBoostRefreshPending = false;
+  }
 }
-setInterval(() => {if(!document.hidden){renderDesktopBoostStatus();refreshDesktopBoostStatus();}},60000);
+setInterval(() => {
+  if(document.hidden || !isDesktopGameUi() || desktopView !== 'home')return;
+  renderDesktopBoostStatus();
+  void refreshDesktopBoostStatus();
+},60000);
 
 let desktopBoostAcceptedClose = null;
 function showDesktopBoostAccepted(itemKey, data) {
