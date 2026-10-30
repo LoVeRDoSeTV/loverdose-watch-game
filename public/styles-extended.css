@@ -4542,14 +4542,14 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 body:not(.auth-locked){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
 body:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
 /* Les destinations qui défilent dans leur propre panneau gardent le même décor. */
-body:not(.auth-locked) :is(#shopModal,#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal>.badge-collection-panel,.admin-players-modal>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#desktopLobbyPage,.global-leaderboard,#mobileMorePage){
+body:not(.auth-locked) :is(#shopModal,#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal,.admin-players-modal>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#desktopLobbyPage,.global-leaderboard,#mobileMorePage){
   background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important;
 }
 /* Supprime l’enveloppe sombre de la collection, sans toucher aux cartes des Lovys. */
 body:not(.auth-locked) #lovysCollectionModal>.lovys-collection-panel{background:transparent!important;box-shadow:none!important;border-color:transparent!important}
 body:not(.auth-locked) #shopModal>.shop-panel{background:transparent!important;box-shadow:none!important}
 body:not(.auth-locked) #badgeCollectionModal{background-color:#090b17}
-body:not(.auth-locked) #badgeCollectionModal>.badge-collection-panel{background-color:transparent!important;box-shadow:none!important}
+body:not(.auth-locked) #badgeCollectionModal>.badge-collection-panel{background:transparent!important;box-shadow:none!important}
 @media((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){body:not(.auth-locked) #badgeCollectionModal .badge-collection-head{background:transparent!important;box-shadow:none!important}}
 body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-challenge-card,.badge-mobile-next-card){background:rgba(15,19,37,.34)!important}
 @media((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
