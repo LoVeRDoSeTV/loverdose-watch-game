@@ -4586,7 +4586,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 body:not(.auth-locked){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:scroll!important}
 body:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
 /* Les destinations qui défilent dans leur propre panneau gardent le même décor. */
-body:not(.auth-locked) :is(#shopModal,#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal,.admin-players-modal:not(#adminBotModal)>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#desktopLobbyPage,.global-leaderboard,#mobileMorePage){
+body:not(.auth-locked) :is(#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal,.admin-players-modal:not(#adminBotModal)>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#desktopLobbyPage,.global-leaderboard,#mobileMorePage){
   background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important;
 }
 /* Supprime l’enveloppe sombre de la collection, sans toucher aux cartes des Lovys. */
@@ -4604,7 +4604,7 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
 }
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
   body:not(.auth-locked) :is(#lovysCollectionModal,#progressionModal,#pveModal){background:#090b17!important;backdrop-filter:none!important}
-  body:not(.auth-locked) :is(#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
+  body:not(.auth-locked) :is(#shopModal,#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
 }
 .admin-reset-label{display:block;margin:18px 0 8px;color:#e9defa}
 .admin-reset-input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #69518c;border-radius:10px;background:#111528;color:#fff;font:inherit}
