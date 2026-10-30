@@ -8,7 +8,7 @@
 .pve-adventure-map.has-zone-art .pve-zone-world{opacity:.18}
 .pve-battle-stage.has-zone-art{background:linear-gradient(#0a102033,#0a102077),var(--pve-theme-background) center 42%/cover!important}
  #pveBattleOverlay .pve-battle-stage.has-zone-art{background:none!important}
- #pveBattleOverlay .pve-battle-stage.has-zone-art::before{background-image:var(--mobile-pve-background)!important}
+ #pveBattleOverlay .pve-battle-stage.has-zone-art::before{background-image:var(--desktop-pve-background,var(--mobile-pve-background))!important}
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
  .pve-world-atlas{margin:16px 0;padding:13px}.pve-world-atlas-grid{grid-template-columns:1fr}
 }
