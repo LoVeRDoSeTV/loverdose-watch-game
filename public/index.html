@@ -34,16 +34,18 @@
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
 <link rel="preload" as="image" href="/assets/logo-watch-384.webp" imagesrcset="/assets/logo-watch-384.webp 384w, /assets/logo-watch-768.webp 768w" imagesizes="(max-width:900px) 130px, 180px">
 <link rel="stylesheet" href="/styles.css?v=524">
-<link rel="stylesheet" href="/styles-extended.min.css?v=547">
+<link rel="stylesheet" href="/styles-extended.min.css?v=548">
 <link rel="stylesheet" href="/pve-expansion.min.css?v=535">
 <link rel="stylesheet" href="/return-summary.min.css?v=535">
 <link rel="stylesheet" href="/live-xp-boost.min.css?v=535">
 <link rel="stylesheet" href="/tablet.min.css?v=535">
 
 
+<link rel="stylesheet" href="/bot-dashboard.css?v=548">
+
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
 <script defer src="/live-xp-boost.js?v=521"></script>
-<script defer src="/app.min.js?v=547"></script>
+<script defer src="/app.min.js?v=548"></script>
 <script defer src="/auth-fallback.js?v=111"></script>
 </head>
 <body class="auth-locked">
@@ -934,9 +936,29 @@
 
 
 <div id="adminBotModal" class="admin-players-modal hidden" role="dialog" aria-modal="true" aria-labelledby="adminBotTitle">
-  <div class="admin-players-panel admin-overview-panel">
-    <div class="admin-players-head"><div><h2 id="adminBotTitle">🤖 Bot du jeu</h2><div class="muted admin-subtitle">Connexion Twitch, annonces et drops !catch.</div></div><button id="adminBotClose" class="account-close" type="button" aria-label="Fermer le bot">×</button></div>
-    <div id="adminBotContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement…</div></div>
+  <div class="admin-players-panel bot-studio-panel">
+    <header class="bot-studio-header">
+      <div class="bot-studio-brand"><span class="bot-studio-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 5v4M14 5h4"/><rect x="5" y="9" width="22" height="18" rx="6"/><path d="M2 16v5M30 16v5M12 22h8"/><circle cx="11" cy="16" r="1.3" fill="currentColor"/><circle cx="21" cy="16" r="1.3" fill="currentColor"/></svg></span><div><h2 id="adminBotTitle">LoVeRWatchBot</h2><span>LE STUDIO DE TON CHAT TWITCH</span></div></div>
+      <div class="bot-studio-header-actions"><span id="botStudioLive" class="bot-status-chip">Chargement…</span><button id="adminBotClose" class="bot-back-button" type="button">← Administration</button></div>
+    </header>
+    <div class="bot-studio-shell">
+      <aside class="bot-studio-sidebar">
+        <span class="bot-sidebar-label">ESPACE STREAMER</span>
+        <nav class="bot-studio-nav" aria-label="Rubriques du bot">
+          <button type="button" data-bot-view="overview" class="active" aria-current="page"><span aria-hidden="true">◈</span> Vue d’ensemble</button>
+          <button type="button" data-bot-view="commands"><span aria-hidden="true">⌨</span> Commandes <small id="botCommandNavCount">0</small></button>
+          <button type="button" data-bot-view="announcements"><span aria-hidden="true">☷</span> Annonces</button>
+          <button type="button" data-bot-view="drops"><span aria-hidden="true">◇</span> Drops !catch</button>
+          <button type="button" data-bot-view="history"><span aria-hidden="true">◷</span> Historique</button>
+          <button type="button" data-bot-view="settings"><span aria-hidden="true">⚙</span> Fonctionnement</button>
+        </nav>
+        <div class="bot-sidebar-footer"><span class="bot-sidebar-dot" aria-hidden="true"></span><div><strong id="botStudioAccount">LoVeRWatchBot</strong><small>Connecté à LoVeR Watch Game</small></div></div>
+      </aside>
+      <main class="bot-studio-main">
+        <div class="bot-page-heading"><div><span class="bot-page-kicker">TON BOT, TON CHAT, TES RÈGLES</span><h3 id="botStudioPageTitle" tabindex="-1">Vue d’ensemble</h3><p id="botStudioPageDescription">Tout ce qu’il faut pour animer ta communauté.</p></div><span id="botStudioPower" class="bot-status-chip">Chargement…</span></div>
+        <div id="adminBotContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement du tableau de bord…</div></div>
+      </main>
+    </div>
   </div>
 </div>
 

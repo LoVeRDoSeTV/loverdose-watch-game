@@ -7805,7 +7805,7 @@ async function loadAdminEconomy(){
 async function loadWizebotAlertsPanel(){
   const host=$('adminTrackerContent');if(!host)return;
   let panel=$('adminWizebotAlerts');
-  if(!panel){panel=document.createElement('section');panel.id='adminWizebotAlerts';panel.className='admin-dashboard-section wizebot-settings';host.appendChild(panel);}
+  if(!panel){panel=document.createElement('section');panel.id='adminWizebotAlerts';panel.className='bot-studio-content';host.appendChild(panel);}
   try{
     const data=await adminFetch('/api/admin/wizebot');
     if(!panel.isConnected)return;
@@ -7823,17 +7823,83 @@ function setBotActionNotice(message,error=false){
   const status=$('adminGameBot')?.querySelector('[data-game-bot-status]');
   if(status){status.textContent=message;status.dataset.error=String(error);}
 }
+const adminBotDashboard={view:'overview',search:'',filter:'all'};
+const botDashboardViews={
+  overview:['Vue d’ensemble','Tout ce qu’il faut pour animer ta communauté.'],
+  commands:['Commandes du chat','Les bonnes réponses, au bon moment. Personnalise les commandes de ton bot.'],
+  announcements:['Annonces et messages','Donne ta voix aux alertes du jeu et prépare tes messages personnalisés.'],
+  drops:['Drops !catch','Récompense ta communauté et règle le rythme des drops pendant tes lives.'],
+  history:['Historique du bot','Retrouve les derniers messages et vérifie leur envoi dans le chat.'],
+  settings:['Fonctionnement','Les règles, les délais et les conditions des automatisations.']
+};
+function setBotDashboardView(view){
+  if(!Object.hasOwn(botDashboardViews,view))view='overview';
+  const changed=adminBotDashboard.view!==view;
+  adminBotDashboard.view=view;
+  document.querySelectorAll('#adminBotModal .bot-studio-nav [data-bot-view]').forEach(button=>{
+    const active=button.dataset.botView===view;
+    button.classList.toggle('active',active);
+    if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+  });
+  document.querySelectorAll('#adminGameBot [data-bot-section]').forEach(section=>{
+    section.classList.toggle('hidden',section.dataset.botSection!==view);
+  });
+  const [title,description]=botDashboardViews[view];
+  if($('botStudioPageTitle'))$('botStudioPageTitle').textContent=title;
+  if($('botStudioPageDescription'))$('botStudioPageDescription').textContent=description;
+  if(changed)document.querySelector('#adminBotModal .bot-studio-main')?.scrollTo({top:0});
+}
+function filterBotDashboardCommands(){
+  const panel=$('adminGameBot');if(!panel)return;
+  const search=adminBotDashboard.search.trim().toLocaleLowerCase('fr-FR');
+  let count=0;
+  panel.querySelectorAll('.bot-commands-card .bot-template-card').forEach(card=>{
+    const enabled=card.querySelector('[data-bot-command-toggle]')?.getAttribute('aria-checked')==='true';
+    const visible=card.textContent.toLocaleLowerCase('fr-FR').includes(search)&&(adminBotDashboard.filter==='all'||enabled===(adminBotDashboard.filter==='enabled'));
+    card.classList.toggle('hidden',!visible);if(visible)count++;
+  });
+  const result=panel.querySelector('[data-bot-command-results]');if(result)result.textContent=count+' commande'+(count>1?'s':'')+' affichée'+(count>1?'s':'');
+  panel.querySelector('[data-bot-command-empty]')?.classList.toggle('hidden',count>0);
+}
+function buildBotDashboard(data,panel){
+  const grid=panel.querySelector('.bot-panel-grid');if(!grid)return;
+  const sections=[['.bot-connection-card','overview'],['.bot-commands-card','commands'],['.bot-egg-card','announcements'],['.bot-editor-card','announcements'],['.bot-drop-card','drops'],['.bot-current-drop-card','drops'],['.bot-schedule-card','drops'],['.bot-history-card','history'],['.bot-timing-card','settings']];
+  for(const [selector,view] of sections){const card=grid.querySelector(selector);if(card)card.dataset.botSection=view;}
+  const active=adminBotCommands.filter(command=>command.enabled).length;
+  const messages=data.messages||[];
+  const schedule=data.schedule||{enabled:true,min_minutes:20,max_minutes:40};
+  const stats=document.createElement('section');stats.className='bot-studio-stats';stats.dataset.botSection='overview';stats.dataset.connected=String(Boolean(data.connected));stats.setAttribute('aria-label','État du bot');
+  stats.innerHTML=[['Connexion Twitch',data.connected?'Connecté':'À connecter',data.connected?'@'+(data.login||'LoVeRWatchBot'):'Connecte ton compte bot','connection'],['Commandes activées',String(active),adminBotCommands.length+' commandes au total','commands'],['Drops automatiques',!schedule.enabled?'Désactivés':!data.connected?'À connecter':!data.enabled?'Suspendus':data.live?'Activés':'En attente',schedule.enabled?Number(schedule.min_minutes||20)+' à '+Number(schedule.max_minutes||40)+' min · '+(!data.enabled?'Bot en pause':data.live?'En live':'Au prochain live'):'Tu choisis le rythme','drops'],['Journal récent',String(messages.length),'Envois ou tentatives conservés dans cette vue','history']].map(([label,value,description,kind])=>`<article class="bot-stat" data-stat="${kind}"><span>${escapeHtml(label)}</span><strong>${escapeHtml(value)}</strong><small>${escapeHtml(description)}</small></article>`).join('');
+  panel.prepend(stats);
+  const status=panel.querySelector('[data-game-bot-status]');if(status)panel.prepend(status);
+  const commands=grid.querySelector('.bot-commands-card');
+  if(commands){
+    const toolbar=document.createElement('div');toolbar.className='bot-command-toolbar';
+    toolbar.innerHTML=`<label><span>Rechercher une commande</span><input type="search" data-bot-command-search placeholder="!profil, !discord…" value="${escapeHtml(adminBotDashboard.search)}"></label><label><span>État</span><select data-bot-command-filter><option value="all">Toutes les commandes</option><option value="enabled">Activées</option><option value="disabled">Désactivées</option></select></label><span data-bot-command-results role="status"></span>`;
+    commands.querySelector('.game-bot-messages')?.before(toolbar);
+    toolbar.querySelector('select').value=adminBotDashboard.filter;
+    commands.insertAdjacentHTML('beforeend','<div class="bot-search-empty hidden" data-bot-command-empty>Aucune commande ne correspond à ta recherche.</div>');
+  }
+  const overview=document.createElement('section');overview.className='bot-overview-activity bot-card-wide';overview.dataset.botSection='overview';
+  overview.innerHTML=`<div class="bot-section-heading"><div><span class="bot-card-eyebrow">À PORTÉE DE MAIN</span><h4>Fais vivre ton chat</h4></div></div><div class="bot-quick-links"><button type="button" data-bot-view="commands"><span>⌨</span><strong>Personnaliser les commandes</strong><small>Réponses du jeu et commandes sur mesure</small><b aria-hidden="true">↗</b></button><button type="button" data-bot-view="announcements"><span>☷</span><strong>Préparer les annonces</strong><small>Œufs prêts, boosts et messages du jeu</small><b aria-hidden="true">↗</b></button><button type="button" data-bot-view="drops"><span>◇</span><strong>Régler les drops</strong><small>Récompenses, lancement et fréquence</small><b aria-hidden="true">↗</b></button></div><div class="bot-section-heading bot-recent-heading"><h4>Dernière activité</h4><button type="button" data-bot-view="history" class="bot-text-link">Voir le journal →</button></div><div class="bot-recent-list">${messages.slice(0,3).map(message=>`<article><span class="bot-status-dot ${message.status==='sent'?'success':'error'}" aria-hidden="true"></span><div><strong>${message.status==='sent'?'Message envoyé':'Envoi en échec'}</strong><p>${escapeHtml(message.message)}</p></div><time>${escapeHtml(new Date(message.created_at).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}))}</time></article>`).join('')||'<div class="bot-studio-empty"><strong>Le journal attend ses premiers messages.</strong><p>Connecte le bot et utilise « Tester le chat » pour vérifier sa connexion.</p></div>'}</div>`;
+  grid.appendChild(overview);
+  if($('botStudioLive')){$('botStudioLive').textContent=data.live?'● Live en cours':'○ Hors live';$('botStudioLive').classList.toggle('live',Boolean(data.live));}
+  if($('botStudioPower')){$('botStudioPower').textContent=data.connected?(data.enabled?'● Bot activé':'○ Bot en pause'):'○ Bot non connecté';$('botStudioPower').classList.toggle('live',Boolean(data.connected&&data.enabled));}
+  if($('botStudioAccount'))$('botStudioAccount').textContent=data.connected?'@'+(data.login||'LoVeRWatchBot'):'Compte non connecté';
+  if($('botCommandNavCount'))$('botCommandNavCount').textContent=String(adminBotCommands.length);
+  setBotDashboardView(adminBotDashboard.view);filterBotDashboardCommands();
+}
 async function loadGameBotPanel(){
   const host=$('adminBotContent');if(!host)return;
   let panel=$('adminGameBot');
-  if(!panel){panel=document.createElement('section');panel.id='adminGameBot';panel.className='admin-dashboard-section wizebot-settings';host.appendChild(panel);}
+  if(!panel){panel=document.createElement('section');panel.id='adminGameBot';panel.className='bot-studio-content';host.appendChild(panel);}
   try{
     const data=await adminFetch('/api/admin/game-bot');
     adminBotMessageTemplates=data.templates||[];
     adminBotCommands=data.commands||[];
     if(!panel.isConnected)return;
     host.querySelector(':scope > .admin-players-empty')?.remove();
-    panel.innerHTML=`<div class="bot-connection-card"><div class="bot-card-eyebrow">🤖 LoVeRWatchBot</div><h3>Le bot de ton jeu</h3><p class="admin-player-meta">Ce bot répond aux commandes du chat, annonce les drops et prévient les joueurs quand leurs œufs sont prêts. Wizebot garde les annonces normales de la chaîne.</p><p>${data.connected?`Compte connecté : <strong>${escapeHtml(data.login||'Bot')}</strong> · ${data.subscriptionId?'abonnement chat configuré':'abonnement chat à configurer'}`:'Aucun compte bot connecté.'}</p>${data.error?`<p role="alert">⚠️ ${escapeHtml(data.error)}</p>`:''}<p class="admin-player-meta">Crée un compte Twitch distinct pour le bot, rends ce compte modérateur de ta chaîne, puis connecte-le ici. La connexion utilise la même URL de retour Twitch que le jeu.</p><a class="btn secondary" href="/api/game-bot/connect">Connecter le compte bot</a>${data.connected?` <button type="button" class="btn secondary" data-game-bot-subscribe>Relancer la connexion au chat</button> <button type="button" class="btn bot-power-switch" role="switch" aria-label="Bot du jeu" aria-checked="${Boolean(data.enabled)}" data-game-bot-toggle data-enabled="${Boolean(data.enabled)}"><span class="bot-power-track" aria-hidden="true"><span class="bot-power-thumb"></span></span><span class="bot-power-label">Bot ${data.enabled?'ON':'OFF'}</span></button> <button type="button" class="btn secondary" data-game-bot-test>Tester le chat</button><small class="bot-chat-test-help">Le test envoie un seul message, même si le bot est OFF ou si le live est arrêté.</small>`:''}</div><div class="wizebot-drop bot-drop-card"><span class="bot-card-eyebrow">Déclenchement automatique · Live requis</span><h4>🎁 Drops !catch</h4><p>Au lancement d’un drop, le bot annonce une récompense. Les joueurs liés à Twitch ont 60 secondes pour taper !catch, puis il tire et annonce 1 à 3 gagnants. 50 % LoVeR’Cash, 25 % fragments d’œuf, 20 % bouteille de 100 XP et 5 % œuf mystère.</p><button type="button" class="btn" data-game-bot-drop>Lancer un drop supplémentaire</button><p>${data.round?.status==='open'?'Drop en cours':data.round?.status==='pending'?'Drop en préparation':''}</p></div><p data-game-bot-status role="status" aria-live="polite"></p>`;
+    panel.innerHTML=`<div class="bot-connection-card"><div class="bot-card-eyebrow">🤖 LoVeRWatchBot</div><h3>Le bot de ton jeu</h3><p class="admin-player-meta">Les commandes, les drops et les alertes d’œufs de ta communauté, réunis au même endroit.</p><p>${data.connected?`Compte connecté : <strong>${escapeHtml(data.login||'Bot')}</strong> · ${data.subscriptionId?'Chat Twitch relié':'Connexion au chat à finaliser'}`:'Aucun compte bot connecté.'}</p>${data.error?`<p role="alert">⚠️ ${escapeHtml(data.error)}</p>`:''}<p class="admin-player-meta">${data.connected?'Utilise le test du chat pour vérifier la connexion, ou mets le bot en pause à tout moment.':'Connecte le compte Twitch du bot et ajoute-le aux modérateurs de ta chaîne pour activer ses fonctionnalités.'}</p><a class="btn secondary" href="/api/game-bot/connect">${data.connected?'Reconnecter le compte bot':'Connecter le compte bot'}</a>${data.connected?` <button type="button" class="btn secondary" data-game-bot-subscribe>Relancer la connexion au chat</button> <button type="button" class="btn bot-power-switch" role="switch" aria-label="Bot du jeu" aria-checked="${Boolean(data.enabled)}" data-game-bot-toggle data-enabled="${Boolean(data.enabled)}"><span class="bot-power-track" aria-hidden="true"><span class="bot-power-thumb"></span></span><span class="bot-power-label">Bot ${data.enabled?'ON':'OFF'}</span></button> <button type="button" class="btn secondary" data-game-bot-test>Tester le chat</button><small class="bot-chat-test-help">Le test envoie un seul message, même si le bot est OFF ou si le live est arrêté.</small>`:''}</div><div class="wizebot-drop bot-drop-card"><span class="bot-card-eyebrow">Déclenchement automatique · Live requis</span><h4>🎁 Drops !catch</h4><p>Au lancement d’un drop, le bot annonce une récompense. Les joueurs liés à Twitch ont 60 secondes pour taper !catch, puis il tire et annonce 1 à 3 gagnants. 50 % LoVeR’Cash, 25 % fragments d’œuf, 20 % bouteille de 100 XP et 5 % œuf mystère.</p><button type="button" class="btn" data-game-bot-drop>Lancer un drop supplémentaire</button><p>${data.round?.status==='open'?'Drop en cours':data.round?.status==='pending'?'Drop en préparation':''}</p></div><p data-game-bot-status role="status" aria-live="polite"></p>`;
     const schedule=data.schedule||{enabled:true,min_minutes:20,max_minutes:40};
     panel.insertAdjacentHTML('beforeend',`<div class="wizebot-drop bot-schedule-card"><span class="bot-card-eyebrow">🎲 Le bot s’en charge</span><h4>Drops automatiques aléatoires</h4><p>Le bot attend un délai choisi au hasard, annonce le drop puis tire les gagnants. Après la fin du drop, il choisit un nouveau délai. Aucun lancement hors live.</p><form data-bot-schedule-form><label class="bot-schedule-toggle"><input type="checkbox" name="enabled" ${schedule.enabled?'checked':''}> Activer les drops automatiques</label><div class="bot-schedule-inputs"><label>Délai minimum (minutes)<input name="minMinutes" type="number" min="5" max="180" step="1" required value="${Number(schedule.min_minutes)}"></label><label>Délai maximum (minutes)<input name="maxMinutes" type="number" min="5" max="180" step="1" required value="${Number(schedule.max_minutes)}"></label></div><button class="btn" type="submit">Enregistrer les délais</button><p role="status" data-bot-schedule-status></p></form><p class="bot-schedule-next">${!data.enabled?'Bot désactivé : active-le pour lancer les drops.':!schedule.enabled?'Drops automatiques désactivés.':!data.live?'En attente du live et du tracker. Le délai sera tiré à leur démarrage.':data.round&&['pending','open'].includes(data.round.status)?'Drop en cours : un nouveau délai sera tiré à sa fin.':schedule.next_at?'Prochain drop prévu à '+escapeHtml(new Date(schedule.next_at).toLocaleString('fr-FR')):'Préparation du prochain délai aléatoire…'}</p><p class="admin-player-meta">Réglage possible de 5 à 180 minutes. Enregistrer relance le délai. Un arrêt du live remet l’attente à zéro ; le prochain live repart avec un nouveau tirage.</p></div>`);
     const labels={command:'Réponse à une commande',custom:'Message personnalisé',test:'Test',drop:'Lancement du drop',winners:'Résultat du drop',egg:'Œuf prêt','boost-soon':'Boost bientôt terminé','boost-end':'Boost terminé','live-boost':'Boost du live',announcement:'Annonce du jeu'};
@@ -7866,11 +7932,12 @@ async function loadGameBotPanel(){
     }
     const current=grid.querySelector('.bot-current-drop-card'),drop=grid.querySelector('.bot-drop-card');if(current&&drop)drop.after(current);
     panel.prepend(grid);
+    buildBotDashboard(data,panel);
     if(adminBotActionNotice)setBotActionNotice(adminBotActionNotice.message,adminBotActionNotice.error);
 
-  }catch(error){panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p>${escapeHtml(error.message)}</p>`;}
+  }catch(error){panel.innerHTML=`<div role="alert"><h3>Le tableau de bord est indisponible</h3><p>${escapeHtml(error.message)}</p></div><button type="button" class="btn secondary" data-game-bot-refresh>Réessayer</button>`;}
 }
-setInterval(()=>{const panel=$('adminGameBot');if(!document.hidden&&panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]'))void loadGameBotPanel();},15000);
+setInterval(()=>{const panel=$('adminGameBot');if(!document.hidden&&panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]')&&!panel.querySelector('input:focus,select:focus,textarea:focus'))void loadGameBotPanel();},15000);
 setInterval(()=>{if(document.hidden)return;const timer=document.querySelector('[data-bot-countdown]');if(!timer || !timer.getClientRects().length)return;const seconds=Math.max(0,Number(timer.dataset.botCountdown)-Math.floor((Date.now()-Number(timer.dataset.botCountdownAt))/1000));timer.textContent=seconds?`${seconds} s restantes`:'Inscriptions closes · tirage en cours…';},1000);
 function openBotMessageEditor(template=null){
   if(document.querySelector('.game-bot-editor'))return;
@@ -7919,6 +7986,16 @@ $('adminBotContent')?.addEventListener('submit',async event=>{
     const result=await adminFetch('/api/admin/game-bot/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:form.elements.enabled.checked,minMinutes:Number(form.elements.minMinutes.value),maxMinutes:Number(form.elements.maxMinutes.value)})});
     await loadGameBotPanel();const updated=$('adminGameBot')?.querySelector('[data-bot-schedule-status]');if(updated)updated.textContent=result.message;
   }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
+});
+$('adminBotModal')?.addEventListener('click',event=>{
+  const target=event.target.closest('[data-bot-view]');
+  if(target){setBotDashboardView(target.dataset.botView);$('botStudioPageTitle')?.focus({preventScroll:true});}
+});
+$('adminBotContent')?.addEventListener('input',event=>{
+  if(event.target.matches('[data-bot-command-search]')){adminBotDashboard.search=event.target.value;filterBotDashboardCommands();}
+});
+$('adminBotContent')?.addEventListener('change',event=>{
+  if(event.target.matches('[data-bot-command-filter]')){adminBotDashboard.filter=event.target.value;filterBotDashboardCommands();}
 });
 $('adminBotContent')?.addEventListener('click',async event=>{
   const commandEdit=event.target.closest('[data-bot-command-new],[data-bot-command-edit]');

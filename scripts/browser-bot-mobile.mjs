@@ -40,7 +40,9 @@ try {
       ${editorCode}
       void loadGameBotPanel();
     `});
-    await page.locator('[data-bot-message-edit="egg"]').waitFor();
+    await page.locator('[data-bot-message-edit="egg"]').waitFor({state:'attached'});
+    assert.equal(await page.locator('.bot-studio-stats').isVisible(),true);
+    assert.equal(await page.locator('.bot-commands-card').isVisible(),false);
     assert.equal(await page.locator('#adminBotContent > .admin-players-empty').count(),0);
     const layout = await page.evaluate(() => {
       const modal=document.getElementById('adminBotModal'),panel=modal.querySelector('.admin-players-panel');
@@ -49,10 +51,12 @@ try {
     assert.ok(layout.scroll<=width+1,JSON.stringify(layout));
     if(width<=900){assert.ok(layout.panelWidth>=width-1);assert.ok(layout.z>layout.parentZ);assert.equal(layout.columns.split(' ').length,1);}
     else assert.equal(layout.columns.split(' ').length,2);
+    await page.locator('.bot-studio-nav [data-bot-view="drops"]').click();
     await page.locator('[name=minMinutes]').fill('25');
     await page.locator('[name=maxMinutes]').fill('50');
     await page.getByRole('button',{name:'Enregistrer les délais'}).click();
     await page.waitForFunction(()=>window.botWrites.some(w=>w.url.endsWith('/schedule')));
+    await page.locator('.bot-studio-nav [data-bot-view="announcements"]').click();
     await page.locator('[data-bot-message-edit="egg"]').click();
     await page.locator('#botMessageText').fill('Bonjour {joueur}, un nouveau message depuis le mobile !');
     if(width<=900)assert.ok(await page.locator('#botMessageText').evaluate(el=>parseFloat(getComputedStyle(el).fontSize)>=16));
@@ -68,6 +72,10 @@ try {
     assert.equal(writes[0].body.minMinutes,25);assert.equal(writes[0].body.maxMinutes,50);
     assert.match(writes[1].body.text,/depuis le mobile/);
     await page.setViewportSize({width,height:844});
+    await page.locator('.bot-studio-nav [data-bot-view="commands"]').click();
+    await page.locator('[data-bot-command-search]').fill('introuvable');
+    assert.equal(await page.locator('[data-bot-command-empty]').isVisible(),true);
+    await page.locator('[data-bot-command-search]').fill('');
     await page.getByRole('button',{name:'Ajouter une commande',exact:true}).click();
     await page.locator('#botCommandName').fill('!discord');
     await page.locator('#botCommandText').fill('{joueur}, rejoins notre communauté !');
@@ -108,7 +116,7 @@ try {
     assert.ok(builtinWrites.every(w=>w.body.text==='Salut {joueur}, niveau {niveau} et {cash} LoVeR’Cash !'));
     console.log('Bot layout, eggs, custom and player command editing passed:',width);
     await page.setViewportSize({width,height:844});
-    await page.locator('#adminBotModal').evaluate(el=>{el.scrollTop=0;});
+    await page.locator('.bot-studio-nav [data-bot-view="overview"]').click();
     await page.screenshot({path:`browser-bot-${width}.png`});
     await page.close();
   }
