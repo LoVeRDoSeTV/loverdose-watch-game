@@ -5027,6 +5027,8 @@ function restoreMobilePageScroll(id){
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
   mobileNavigationRevision++;
+  closeMobileBadgeDetail();
+  $('badgeCollectionModal')?.classList.add('hidden');
   if(except!=='more')$('mobileMorePage')?.classList.add('hidden');
   mobilePageIds.forEach(id=>{const el=$(id);if(el && !el.classList.contains('hidden')) mobilePageScroll.set(id,el.scrollTop);});
   const board=document.querySelector('.global-leaderboard');

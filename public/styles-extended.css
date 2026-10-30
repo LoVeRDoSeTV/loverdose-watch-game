@@ -450,7 +450,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   .badge-mobile-social-button{width:100%;min-height:46px;border:1px solid #9562e6;border-radius:12px;background:#713cca;color:#fff;font-weight:900}
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
   body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
-  #badgeCollectionModal{inset:0;width:100%;height:100dvh;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020;backdrop-filter:none;z-index:1000100}
+  #badgeCollectionModal{inset:0 0 var(--mobile-page-bottom);width:100%;height:calc(100dvh - var(--mobile-page-bottom));align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1020;backdrop-filter:none;z-index:1000100}
   #badgeCollectionModal>.badge-collection-panel{box-sizing:border-box;width:100%;max-width:none;height:100%;max-height:none;margin:0;padding:0 16px calc(24px + env(safe-area-inset-bottom));border:0;border-radius:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;background:linear-gradient(180deg,#15132b,#0d1020 420px);box-shadow:none;scroll-padding-top:90px}
   #badgeCollectionModal .badge-collection-head{position:sticky;top:0;z-index:5;min-height:calc(72px + env(safe-area-inset-top));margin:0 -16px 0;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#121226;border-bottom:1px solid #35304f}
   #badgeCollectionModal .badge-collection-head h2{min-width:0;font-size:clamp(16px,4.6vw,20px);line-height:1.3}
