@@ -21,6 +21,7 @@ import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
+import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -2546,6 +2547,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(createBotStudioRouter({getBroadcasterAccount}));
+
 app.use(
   express.static('public', {
     etag: true,
@@ -3237,6 +3240,7 @@ app.get('/auth/twitch/tracker', async (req, res) => {
     const state = crypto.randomBytes(24).toString('hex');
     req.session.trackerOauthState = state;
     req.session.trackerOauthStateStartedAt = Date.now();
+    req.session.trackerStudioReturn = req.query.studio === '1';
     await saveSession(req);
 
     res.redirect(trackerAuthUrl(state));
@@ -3257,6 +3261,8 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
       return res.status(400).send('OAuth tracker invalide.');
     }
 
+    const studioReturn = req.session.trackerStudioReturn === true;
+    delete req.session.trackerStudioReturn;
     delete req.session.trackerOauthState;
     delete req.session.trackerOauthStateStartedAt;
     await saveSession(req);
@@ -3299,7 +3305,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
     await saveSession(req);
     await runTrackerTick();
 
-    res.redirect('/?tracker=connected');
+    res.redirect(studioReturn ? '/bot?tracker=connected' : '/?tracker=connected');
   } catch (error) {
     console.error('Erreur callback tracker Twitch :', error);
     res.status(500).send('Impossible de configurer le tracker Twitch.');
@@ -3543,11 +3549,13 @@ app.get('/api/tracker/status', async (req, res) => {
     }
 
     let viewerCount = 0;
+    let gameName = null;
     if (row.last_live) {
       try {
         const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
         const streamData = await trackerTwitchFetch(`/streams?user_id=${encodeURIComponent(broadcasterId)}`);
         viewerCount = Number(streamData.data?.[0]?.viewer_count || 0);
+        gameName = streamData.data?.[0]?.game_name || null;
       } catch {}
     }
 
@@ -3556,6 +3564,7 @@ app.get('/api/tracker/status', async (req, res) => {
       authorized: true,
       live: Boolean(row.last_live),
       viewerCount,
+      gameName,
       lastPollAt: row.last_poll_at,
       lastSuccessAt: row.last_success_at,
       lastSubSyncAt: row.last_sub_sync_at,

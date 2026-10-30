@@ -7,11 +7,11 @@ const builtinFixtures=Object.entries(playerCommands).map(([kind,c],i)=>({...c,ki
 // Exercise the real bot markup and event handlers against local mock data only.
 // No Twitch requests or production administration mutations are made.
 const read = file => fs.readFileSync(new URL('../public/' + file, import.meta.url), 'utf8');
-const html = read('index.html'), app = read('app.js');
+const html = read('index.html'), app = read('bot-studio.js');
 const css = [...html.matchAll(/<link rel="stylesheet" href="\/([^"?]+)/g)].map(m => read(m[1])).join('\n');
 const modal = html.slice(html.indexOf('<div id="adminBotModal"'), html.indexOf('<!-- TRACKER - COMPTES DETECTES -->')).replace('admin-players-modal hidden', 'admin-players-modal');
 const panelCode = app.slice(app.indexOf('let adminBotMessageTemplates=[];'), app.indexOf('setInterval(()=>{const panel=$(\'adminGameBot\')'));
-const editorCode = app.slice(app.indexOf('function openBotMessageEditor('), app.indexOf("$('adminTrackerContent')?.addEventListener('click'"));
+const editorCode = app.slice(app.indexOf('function openBotMessageEditor('), app.length);
 const browser = await chromium.launch({headless:true, ...(process.env.CHROMIUM_EXECUTABLE_PATH ? {executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu']} : {})});
 try {
   for (const width of [360,390,820,1440]) {

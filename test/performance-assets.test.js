@@ -23,7 +23,7 @@ test('split CSS preserves the original rule boundary and core mobile profile pro
 test('hidden tabs do not run the periodic event or bot visual updates', () => {
   const app = read('app.js');
   assert.match(app, /if\(!document\.hidden && !\$\('eventsModal'\)\?\.classList\.contains\('hidden'\)\)void refreshEventsState\(\)/);
-  assert.match(app, /if\(document\.hidden\)return;const timer=document\.querySelector\('\[data-bot-countdown\]'\)/);
+  assert.match(fs.readFileSync(new URL('../public/bot-studio.js', import.meta.url), 'utf8'), /if\(document\.hidden\)return;const timer=document\.querySelector\('\[data-bot-countdown\]'\)/);
   assert.match(app, /if\(!document\.hidden && isDesktopGameUi\(\)\)syncDesktopBoostData\(\)/);
   assert.match(app, /desktopView !== 'home' \|\| document\.body\.classList\.contains\('auth-locked'\)/);
 });

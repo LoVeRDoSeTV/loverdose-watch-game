@@ -30,6 +30,10 @@ jobs:
           npx --yes terser@5.44.1 public/app.js --format comments=false --output /tmp/app-generated.min.js
           cmp public/app.min.js /tmp/app-generated.min.js
           node --check public/app.min.js
+          npx --yes terser@5.44.1 public/bot-studio.js --format comments=false --output /tmp/bot-generated.min.js
+          cmp public/bot-studio.min.js /tmp/bot-generated.min.js
+          node --check public/bot-studio.min.js
+          node --check public/bot-page.js
       - name: Vérifier la syntaxe des serveurs
         run: |
           node --check server.js

@@ -118,14 +118,14 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
   }
   router.get('/game-bot/connect',async(req,res)=>{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).send('Accès réservé au diffuseur.');
-    const state=crypto.randomBytes(24).toString('hex');req.session.gameBotOauthState=state;req.session.gameBotOauthStateStartedAt=Date.now();await saveSession(req);
+    const state=crypto.randomBytes(24).toString('hex');req.session.gameBotOauthState=state;req.session.gameBotOauthStateStartedAt=Date.now();req.session.gameBotStudioReturn=req.query.studio==='1';await saveSession(req);
     res.redirect('https://id.twitch.tv/oauth2/authorize?'+new URLSearchParams({client_id:clientId,redirect_uri:redirectUri,response_type:'code',scope:'user:read:chat user:write:chat user:bot',force_verify:'true',state}));
   });
   async function handleCallback(req,res){
     try{
       const admin=await getBroadcasterAccount(req);
       if(!admin||!validOAuthCallback(req.query,req.session,'gameBotOauthState'))return res.status(400).send('Connexion du bot expirée ou invalide. Relance-la depuis Administration → Bot.');
-      delete req.session.gameBotOauthState;delete req.session.gameBotOauthStateStartedAt;await saveSession(req);
+      const studioReturn=req.session.gameBotStudioReturn===true;delete req.session.gameBotStudioReturn;delete req.session.gameBotOauthState;delete req.session.gameBotOauthStateStartedAt;await saveSession(req);
       const response=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,code:String(req.query.code),grant_type:'authorization_code',redirect_uri:redirectUri})});
       if(!response.ok)throw new Error('Autorisation Twitch refusée.');
       const tokens=await response.json();
@@ -138,7 +138,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
         [bot.id,bot.login,encrypt(tokens.access_token),encrypt(tokens.refresh_token),new Date(Date.now()+tokens.expires_in*1000),previous?.twitch_user_id===bot.id?previous.webhook_secret:crypto.randomBytes(32).toString('hex')]);
       await pool.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');
       try{await subscribe();}catch(error){await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[error.message]);}
-      res.redirect('/?gameBot=connected');
+      res.redirect(studioReturn?'/bot?gameBot=connected':'/?gameBot=connected');
     }catch(error){res.status(500).send(`Connexion du bot impossible : ${error.message}`);}
   }
   router.get('/game-bot/callback',handleCallback);

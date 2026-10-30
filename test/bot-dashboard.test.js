@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const source=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+const source=fs.readFileSync(new URL('../public/bot-studio.js',import.meta.url),'utf8');
 function setup(){
  const classes=()=>({hidden:false,toggle(name,hide){this[name]=hide;}});
  const cards=[{textContent:'!profil Profil du joueur',enabled:true,classList:classes()},{textContent:'!discord Communauté',enabled:false,classList:classes()}];
@@ -11,7 +11,7 @@ function setup(){
  const nav=sections.map(s=>({dataset:{botView:s.dataset.botSection},classList:classes(),setAttribute(k,v){this[k]=v;},removeAttribute(k){delete this[k];}}));
  const heading={},description={};let scrolls=0;
  const panel={querySelectorAll:()=>cards,querySelector:selector=>selector.includes('results')?results:empty};
- const c=vm.createContext({$:id=>({adminGameBot:panel,botStudioPageTitle:heading,botStudioPageDescription:description}[id]),document:{querySelectorAll:selector=>selector.includes('bot-studio-nav')?nav:sections,querySelector:()=>({scrollTo(){scrolls++;}})}});
+ const c=vm.createContext({$:id=>({adminGameBot:panel,botStudioPageTitle:heading,botStudioPageDescription:description}[id]),document:{body:{classList:{contains:()=>false}},querySelectorAll:selector=>selector.includes('bot-studio-nav')?nav:sections,querySelector:()=>({scrollTo(){scrolls++;}})}});
  vm.runInContext(source.slice(source.indexOf('const adminBotDashboard='),source.indexOf('async function loadGameBotPanel(){')),c);
  return {c,cards,results,empty,sections,nav,heading,get scrolls(){return scrolls;}};
 }
