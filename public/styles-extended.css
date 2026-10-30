@@ -3498,10 +3498,11 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
  body[data-desktop-view="lovys"] .lovys-collection-head,
  body[data-desktop-view="lobby"] .desktop-page-head,
  body[data-desktop-view="progression"] #progressionModal .game-head,
+ body[data-desktop-view="pve"] #pveModal>.game-panel>.game-head,
  body[data-desktop-view="incubator"] .incubator-topbar-head,
  body.desktop-leaderboard-open .global-leaderboard>h2{display:none!important}
 
- /* PvE n'est pas ciblé. */
+ /* Toutes les destinations ci-dessus utilisent le même en-tête. */
 }
 /* ===== /V229 ===== */
 

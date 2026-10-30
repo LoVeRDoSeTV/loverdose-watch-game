@@ -8452,6 +8452,7 @@ $('subBenefitsModal')?.addEventListener('mouseup', event => {
 
 /* V240 — restauration du contrôleur d'en-tête partagé V229 */
 const STANDARD_PAGE_HEADER_DATA={
+ pve:['⚔️ Aventure PvE','Les récompenses importantes sont données à la première victoire.'],
  lovys:['🐉 Mes Lovys','Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.'],
  incubator:['🥚 Incubateur',"Tes emplacements d’incubation."],
  lobby:['🤝 Communauté',"La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
@@ -8462,7 +8463,7 @@ const STANDARD_PAGE_HEADER_DATA={
 function updateStandardPageHeader(view){
  const el=document.getElementById('standardPageHeader'),t=document.getElementById('standardPageHeaderTitle'),s=document.getElementById('standardPageHeaderSubtitle');
  if(!el||!t||!s)return;
- const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d&&view!=='pve';
+ const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d;
  el.classList.toggle('is-visible',show);el.setAttribute('aria-hidden',show?'false':'true');
  if(show){t.textContent=d[0];s.textContent=d[1]||'';s.hidden=!d[1];}
 }
