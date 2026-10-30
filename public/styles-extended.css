@@ -464,7 +464,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #badgeCollectionModal .badge-mobile-summary-percent{font-size:20px;font-weight:800;color:#dbbdff}
   #badgeCollectionModal .badge-mobile-summary>.badge-mobile-progress{flex-basis:100%}
   #badgeCollectionModal .badge-mobile-summary p{width:100%;margin:0;font-size:12px;line-height:1.5;color:#c5bed8}
-  #badgeCollectionModal .badge-filter-tabs{position:sticky;top:calc(72px + env(safe-area-inset-top));z-index:4;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 -16px 14px;padding:8px 16px;background:#121226;border-bottom:1px solid #35304f}
+  #badgeCollectionModal .badge-filter-tabs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:0 0 14px;padding:8px 0;background:none;border:0}
   #badgeCollectionModal .badge-filter-tab{min-width:0;min-height:46px;padding:10px 6px;font-size:12px;white-space:normal}
   #badgeCollectionModal .badge-filter-count{margin-left:4px}
   #badgeCollectionModal .badge-status-section{margin:14px 0 24px}
