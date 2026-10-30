@@ -660,6 +660,13 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
 .admin-stat-value{margin-top:3px;font-size:20px;font-weight:950;color:#fff}
 .admin-stat-sub{margin-top:3px;color:var(--muted);font-size:10px}
 .admin-dashboard-section{margin-top:14px;padding:14px;border:1px solid rgba(255,255,255,.08);background:rgba(7,10,22,.48)}
+.admin-dashboard-actions{display:flex;flex-wrap:wrap;gap:10px;margin:18px 0}
+.admin-dashboard-group{margin-top:20px;padding:18px;border:1px solid rgba(171,121,238,.22);border-radius:12px;background:rgba(18,12,35,.55)}
+.admin-dashboard-group>summary{cursor:pointer;font-size:16px;font-weight:750;color:#e7d8ff;line-height:1.5}
+.admin-dashboard-group>summary span{display:block;margin:5px 0 0 22px;font-size:12px;font-weight:400;color:#aeb7d1}
+.admin-dashboard-group[open]>summary{margin-bottom:18px}
+.admin-dashboard-group>summary:focus-visible{outline:2px solid #b487f5;outline-offset:5px;border-radius:4px}
+.admin-players-back{margin-bottom:16px}
 .admin-dashboard-section h3{margin:0 0 10px;font-size:14px}
 .admin-health{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.03);font-size:12px}
 .wizebot-settings{padding-top:20px;border-top:1px solid rgba(145,71,255,.25)}
@@ -2368,7 +2375,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
   .leaderboard-v150-lovys{display:flex;align-items:center;gap:9px;min-width:165px}.leaderboard-v150-lovys img{width:42px;height:42px;object-fit:contain;filter:drop-shadow(0 5px 8px rgba(0,0,0,.35))}.leaderboard-v150-lovys span{display:flex;flex-direction:column;text-align:left}.leaderboard-v150-lovys strong{font-size:15px;color:#f4f0ff}.leaderboard-v150-lovys small{font-size:13px;color:#aeb7d1;font-weight:800}.leaderboard-v150-lovys.empty{font-size:14px;color:#929ab2;font-weight:800}
   .leaderboard-v150-lovys.large{justify-content:center;margin:12px auto 5px;min-width:0}.leaderboard-v150-lovys.large img{width:62px;height:62px}.leaderboard-v150-lovys.large strong{font-size:16px}.leaderboard-v150-global{font-size:14px;color:#bac2da;font-weight:800;margin-top:6px}.leaderboard-v150-score{display:inline-flex;margin-top:12px;padding:8px 12px;border-radius:10px;background:rgba(145,71,255,.13);border:1px solid rgba(145,71,255,.22);font-size:17px;font-weight:950;color:#fff}
   .leaderboard-v150-list-title{font-size:18px;font-weight:950;color:#fff;margin:10px 0 10px}.leaderboard-v150-list{display:flex;flex-direction:column;gap:8px}
-  .leaderboard-v150-row{appearance:none;width:100%;display:grid;grid-template-columns:56px 52px minmax(180px,1.3fr) 130px minmax(180px,1fr) 150px;align-items:center;gap:13px;text-align:left;color:inherit;cursor:pointer;padding:13px 16px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:rgba(16,20,39,.96);transition:.16s ease}
+  .leaderboard-v150-row{appearance:none;width:100%;display:block;text-align:left;color:inherit;cursor:pointer;padding:13px 16px;border:1px solid rgba(255,255,255,.075);border-radius:15px;background:rgba(16,20,39,.96);transition:.16s ease}
   .leaderboard-v150-row:hover{transform:translateY(-1px);border-color:rgba(145,71,255,.46);background:rgba(20,23,45,.98)}
   .leaderboard-v150-row-rank{font-size:18px;font-weight:950;color:#d8ddec;text-align:center}.leaderboard-v150-row-main>strong{font-size:16px;color:#fff}.leaderboard-v150-row-level{font-size:14px;color:#aeb7d1;font-weight:800}.leaderboard-v150-row-level strong{color:#fff;font-size:16px}.leaderboard-v150-row-score{text-align:right}.leaderboard-v150-row-score small{display:block;font-size:12px;color:#9fa8c3;font-weight:800}.leaderboard-v150-row-score strong{display:block;font-size:17px;color:#fff;margin-top:2px}
   body.desktop-leaderboard-open .global-leaderboard{overflow:auto!important}
@@ -2387,7 +2394,7 @@ body[data-desktop-view="lovys"] .lovys-moment-tip>button:hover{transform:transla
 
 /* ===== V154 — Classement synchronisé avec les cosmétiques du profil ===== */
 @media ((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
-  .leaderboard-v154-profile-card{overflow:hidden;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
+  .leaderboard-v154-profile-card{position:relative;isolation:isolate;overflow:hidden;background-size:cover!important;background-position:center!important;background-repeat:no-repeat!important}
   .leaderboard-v154-profile-card>.leaderboard-v154-card-shade{position:absolute;inset:0;z-index:0;pointer-events:none;background:linear-gradient(180deg,rgba(8,10,24,.18),rgba(8,10,24,.52));border-radius:inherit}
   .leaderboard-v154-card-content{position:relative;z-index:1}
   /* Fixed semantic rows keep ranks aligned with zero, one or two equipped badges. */

@@ -11,8 +11,7 @@ let desktopAdminPreviousOverflow = '';
 const desktopAdminLayoutOrigins = new Map();
 const DESKTOP_ADMIN_PAGES = {
   adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
-  adminEconomyButton:'adminEconomyModal', adminBotButton:'adminBotModal',
-  trackerDetectedButton:'trackerDetectedModal', adminHistoryButton:'adminHistoryModal',
+  adminBotButton:'adminBotModal',
   eventsButton:'eventsModal'
 };
 let desktopAdminConfirmationCancel = null;
@@ -7794,7 +7793,8 @@ async function runDesktopAdminPlayerAction(button){
 
 async function loadAdminDashboard(){
   const box=$('adminDashboardContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/admin/dashboard');const s=d.stats||{},t=d.tracker||{},b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👥','Joueurs inscrits',s.players,`${s.activeToday} actif(s) aujourd’hui`)}${adminStatCard('🟣','Twitch liés',s.twitchLinked)}${adminStatCard('🥚','Incubations',s.incubating,`${s.readyEggs} prêt(s)`)}${adminStatCard('🐉','Lovys possédés',s.lovys)}${adminStatCard('⚔️','Combats aujourd’hui',s.fightsToday,`${s.victoriesToday} victoire(s)`)}${adminStatCard('👑','Boss vaincus',s.bossWinsToday)}${adminStatCard('💰','Cash en circulation',formatAdminNumber(s.cashBalance))}${adminStatCard('🎡','Roues aujourd’hui',s.wheelSpinsToday)}</div><div class="admin-dashboard-section"><h3>📺 Tracker</h3><div class="admin-health ${t.error?'bad':t.live?'good':''}"><strong>${t.error?'⚠️ À vérifier':t.live?'🟢 Live détecté':'⚪ Chaîne hors ligne'}</strong><span>${t.chatters||0} dans le chat · ${t.matched||0} joueur(s) reconnu(s)</span></div></div><div class="admin-dashboard-section"><h3>🔥 Boost live</h3><div class="admin-player-meta">XP ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}${b.expiresAt?` · jusqu’à ${new Date(b.expiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</div></div><div class="admin-dashboard-section"><h3>📜 Activité admin récente</h3>${(d.recent||[]).length?(d.recent||[]).map(x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.summary)}</strong><div class="admin-player-meta">${new Date(x.created_at).toLocaleString('fr-FR')}</div></div></div>`).join(''):'<div class="admin-player-meta">Aucune action enregistrée.</div>'}</div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  try{const d=await adminFetch('/api/admin/dashboard');const s=d.stats||{},t=d.tracker||{},b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👥','Joueurs inscrits',s.players,`${s.activeToday} actif(s) aujourd’hui`)}${adminStatCard('🟣','Twitch liés',s.twitchLinked)}${adminStatCard('🥚','Incubations',s.incubating,`${s.readyEggs} prêt(s)`)}${adminStatCard('🐉','Lovys possédés',s.lovys)}${adminStatCard('⚔️','Combats aujourd’hui',s.fightsToday,`${s.victoriesToday} victoire(s)`)}${adminStatCard('👑','Boss vaincus',s.bossWinsToday)}${adminStatCard('💰','Cash en circulation',formatAdminNumber(s.cashBalance))}${adminStatCard('🎡','Roues aujourd’hui',s.wheelSpinsToday)}</div><div class="admin-dashboard-section"><h3>📺 Tracker</h3><div class="admin-health ${t.error?'bad':t.live?'good':''}"><strong>${t.error?'⚠️ À vérifier':t.live?'🟢 Live détecté':'⚪ Chaîne hors ligne'}</strong><span>${t.chatters||0} dans le chat · ${t.matched||0} joueur(s) reconnu(s)</span></div></div><div class="admin-dashboard-section"><h3>🔥 Boost live</h3><div class="admin-player-meta">XP ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}${b.expiresAt?` · jusqu’à ${new Date(b.expiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  await Promise.allSettled([loadAdminEconomy(),...($('adminDashboardHistory')?.open?[loadAdminHistory()]:[])]);
 }
 async function loadAdminEconomy(){
   const box=$('adminEconomyContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
@@ -7870,6 +7870,7 @@ async function loadAdminPlayers() {
 }
 
 function openAdminPlayersModal() {
+  if(isDesktopGameUi())$('adminDashboardModal')?.classList.add('hidden');
   $('adminPlayersModal')?.classList.remove('hidden');
   if ($('adminPlayersSearch')) $('adminPlayersSearch').value = '';
   loadAdminPlayers();
@@ -7883,29 +7884,12 @@ function closeAdminPlayersModal() {
 $('adminPlayersButton')?.addEventListener('click', openAdminPlayersModal);
 $('adminPlayersClose')?.addEventListener('click', closeAdminPlayersModal);
 $('adminDashboardButton')?.addEventListener('click',()=>openAdminModal('adminDashboardModal',loadAdminDashboard));
-$('adminEconomyButton')?.addEventListener('click',()=>openAdminModal('adminEconomyModal',loadAdminEconomy));
-async function loadTrackerDetectedAccounts(){
-  const box=$('trackerDetectedContent'); if(!box)return;
-  box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{
-    const r=await fetch('/api/tracker/detected-accounts',{cache:'no-store'}); const d=await r.json();
-    if(!r.ok)throw new Error(d.error||'Chargement impossible.');
-    if(!d.live){box.innerHTML='<div class="admin-players-empty">⚪ La chaîne est hors ligne.</div>';return;}
-    const matched=Array.isArray(d.matched)?d.matched:[];
-    const others=(Array.isArray(d.chatters)?d.chatters:[]).filter(x=>!x.linked);
-    const row=x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.twitchName||x.twitchLogin||'Compte Twitch')}</strong><div class="admin-player-meta">@${escapeHtml(x.twitchLogin||'—')}${x.watchGameName?` · LoVeR Watch Game : ${escapeHtml(x.watchGameName)}`:''}</div></div><div>${x.linked?'✅ Reconnu':'⚪ Non lié'}</div></div>`;
-    box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('💬','Comptes chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><h3>✅ Comptes LoVeR Watch Game détectés</h3>${matched.length?matched.map(row).join(''):'<div class="admin-players-empty">Aucun compte LoVeR Watch Game reconnu pour le moment.</div>'}</div><div class="admin-dashboard-section"><h3>Autres comptes présents dans le chat</h3><div class="admin-player-meta" style="margin-bottom:10px">Les bots connus et le compte diffuseur sont exclus des récompenses.</div>${others.length?others.map(row).join(''):'<div class="admin-players-empty">Aucun autre compte.</div>'}</div>`;
-  }catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message||'Chargement impossible.')}</div>`;}
-}
-
-$('trackerDetectedButton')?.addEventListener('click',()=>openAdminModal('trackerDetectedModal',loadTrackerDetectedAccounts));
-$('trackerDetectedClose')?.addEventListener('click',()=>$('trackerDetectedModal')?.classList.add('hidden'));
-$('trackerDetectedModal')?.addEventListener('click',e=>{if(e.target?.id==='trackerDetectedModal')$('trackerDetectedModal')?.classList.add('hidden');});
-
+$('adminDashboardRefresh')?.addEventListener('click',async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;try{await loadAdminDashboard();}finally{button.disabled=false;}});
+$('adminDashboardHistory')?.addEventListener('toggle',event=>{if(event.currentTarget.open)void loadAdminHistory();});
+$('adminPlayersBack')?.addEventListener('click',()=>{closeAdminPlayersModal();openAdminModal('adminDashboardModal');});
 $('adminTrackerButton')?.addEventListener('click',()=>{openAdminModal('adminTrackerModal',loadAdminTrackerPanel);if(isDesktopGameUi())loadTrackerStatus();});
 $('adminBotButton')?.addEventListener('click',()=>{window.location.assign('/bot');});
-$('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
-[['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminBotModal','adminBotClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
+[['adminDashboardModal','adminDashboardClose'],['adminTrackerModal','adminTrackerClose'],['adminBotModal','adminBotClose']].forEach(([modalId,closeId])=>{
   $(closeId)?.addEventListener('click',()=>closeAdminModal(modalId));
   $(modalId)?.addEventListener('click',e=>{if(e.target.id===modalId)closeAdminModal(modalId);});
 });
@@ -9487,7 +9471,7 @@ function syncDesktopAdminPageLayout() {
   const tabs=$('desktopAdminTabs'), slot=$('desktopAdminPageSlot');
   if(!tabs || !slot)return;
   for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES)]) {
-    const node=$(id); if(!node)continue;
+    const node=$(id); if(!node||id==='adminPlayersButton')continue;
     if(!desktopAdminLayoutOrigins.has(id)) {
       const origin=document.createComment(id+'-mobile-origin');
       node.parentNode.insertBefore(origin,node);desktopAdminLayoutOrigins.set(id,origin);
