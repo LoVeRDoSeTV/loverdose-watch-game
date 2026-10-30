@@ -5284,7 +5284,6 @@ function openPlayerProfile(playerData) {
   if (!content) return;
   const isOwnMobileProfile=isMobileGameUi() && Boolean(me?.user?.twitch_id) && String(playerData.twitch_id||'')===String(me.user.twitch_id);
   $('mobileSelfProfileActions')?.classList.toggle('hidden',!isOwnMobileProfile);
-  $('mobileProfileAdmin')?.classList.toggle('hidden',!isOwnMobileProfile || !desktopAdminAuthorized);
   if(isOwnMobileProfile)refreshDesktopAdminAccess();
 
   const creature = playerData.creature_id ? creatureById(playerData.creature_id) : null;
@@ -5362,7 +5361,6 @@ $('leaderboard')?.addEventListener('keydown', event => {
 
 $('playerProfileClose')?.addEventListener('click', closePlayerProfile);
 $('mobileProfileAccount')?.addEventListener('click',()=>{if(isMobileGameUi())openAccountModal();});
-$('mobileProfileAdmin')?.addEventListener('click',()=>{if(isMobileGameUi())openDesktopAdmin();});
 $('playerProfileContent')?.addEventListener('click', event => {
   if (!isMobileGameUi()) return;
   const badge = event.target.closest('.player-profile-badge');
@@ -7053,7 +7051,7 @@ function syncDesktopAdminPlacement(){
 function setDesktopAdminAccess(allowed){
   desktopAdminAuthorized=Boolean(allowed);
   $('desktopAdminButton')?.classList.toggle('hidden',!desktopAdminAuthorized);
-  $('mobileProfileAdmin')?.classList.toggle('hidden',!desktopAdminAuthorized || !isMobileGameUi() || $('mobileSelfProfileActions')?.classList.contains('hidden'));
+  $('mobileMoreAdmin')?.classList.toggle('hidden',!desktopAdminAuthorized || !isMobileGameUi());
   if(!desktopAdminAuthorized){closeDesktopAdmin();if(isDesktopGameUi())desktopAdminConfirmationCancel?.();}
   syncDesktopAdminPlacement();
 }
@@ -7099,7 +7097,7 @@ function closeDesktopAdmin(){
     delete modal.dataset.scrollLocked;
   }
   if(isDesktopGameUi()) return;
-  else if(isMobileGameUi())$('mobileProfileAdmin')?.focus();
+  else if(isMobileGameUi())$('mobileMoreAdmin')?.focus();
 }
 $('desktopAdminButton')?.addEventListener('click',openDesktopAdmin);
 $('desktopAdminClose')?.addEventListener('click',()=>{if(isDesktopGameUi())location.hash='#accueil';else closeDesktopAdmin();});
@@ -10029,6 +10027,7 @@ async function mobileBack(kind) {
   await toggleMobilePanel('more');
 }
 $('mobileNavMore')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('more');});
+$('mobileMoreAdmin')?.addEventListener('click',()=>{if(isMobileGameUi())openDesktopAdmin();});
 $('mobileMoreShop')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('shop');});
 $('mobileHomeActionsList')?.addEventListener('click',async event=>{
   if(!isMobileGameUi())return;
