@@ -9,10 +9,9 @@ let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
 const desktopAdminLayoutOrigins = new Map();
-let desktopTrackerButtonMarkup = null;
 const DESKTOP_ADMIN_PAGES = {
   adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
-  adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal', adminBotButton:'adminBotModal',
+  adminEconomyButton:'adminEconomyModal', adminBotButton:'adminBotModal',
   trackerDetectedButton:'trackerDetectedModal', adminHistoryButton:'adminHistoryModal',
   eventsButton:'eventsModal'
 };
@@ -7143,7 +7142,7 @@ async function openDesktopAdmin(){
     modal.dataset.scrollLocked='true';
   }
   modal.classList.remove('hidden');
-  if (isDesktopGameUi()) $('adminTrackerButton')?.click();
+  if (isDesktopGameUi()) $('adminDashboardButton')?.click();
   if (!isDesktopGameUi()) $('desktopAdminClose')?.focus();
   await loadTrackerStatus();
 }
@@ -9401,7 +9400,7 @@ async function openAdminFeedbackDetail(id){
   }catch(error){if(generation===adminFeedbackGeneration)detail.innerHTML=`<button class="btn secondary" data-feedback-return type="button">← Liste des retours</button><p>${escapeHtml(error.message)}</p>`;}
 }
 $('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminContent').classList.add('hidden');if(!isDesktopGameUi())$('adminFeedbackOpen').classList.add('hidden');$('adminFeedbackSection').classList.remove('hidden');$('adminFeedbackNotice').textContent='';adminFeedbackArchive=false;adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
-$('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');});
+$('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');if(isDesktopGameUi())$('adminDashboardButton')?.click();});
 for(const [id,archive] of [['adminFeedbackActive',false],['adminFeedbackArchive',true]])$(id)?.addEventListener('click',()=>{adminFeedbackArchive=archive;adminFeedbackPage=1;$('adminFeedbackNotice').textContent='';loadAdminFeedback();});
 $('adminFeedbackPurge')?.addEventListener('click',async()=>{
   if(!adminFeedbackArchive||!adminFeedbackSelectedIds.size)return;
@@ -9487,35 +9486,28 @@ document.querySelector('.desktop-game-footer-terms')?.addEventListener('toggle',
 function syncDesktopAdminPageLayout() {
   const tabs=$('desktopAdminTabs'), slot=$('desktopAdminPageSlot');
   if(!tabs || !slot)return;
-  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES), 'desktopAdminContent']) {
+  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES)]) {
     const node=$(id); if(!node)continue;
     if(!desktopAdminLayoutOrigins.has(id)) {
       const origin=document.createComment(id+'-mobile-origin');
       node.parentNode.insertBefore(origin,node);desktopAdminLayoutOrigins.set(id,origin);
     }
     if(isDesktopGameUi()) {
-      if(id==='desktopAdminContent') $('adminTrackerContent')?.before(node);
-      else (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
-      if(id==='adminTrackerButton') {
-        if(desktopTrackerButtonMarkup===null)desktopTrackerButtonMarkup=node.innerHTML;
-        const logo=document.querySelector('.home-twitch-logo')?.cloneNode(true);
-        if(logo){logo.setAttribute('class','admin-twitch-logo');node.replaceChildren(logo,document.createTextNode(' Twitch'));}
-      }
+      (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','region');node.removeAttribute('aria-modal');}
     } else {
       const origin=desktopAdminLayoutOrigins.get(id);origin.parentNode.insertBefore(node,origin.nextSibling);
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','dialog');node.setAttribute('aria-modal','true');}
-      if(id==='adminTrackerButton' && desktopTrackerButtonMarkup!==null)node.innerHTML=desktopTrackerButtonMarkup;
-      if(id==='desktopAdminContent')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
       if(id==='adminFeedbackOpen')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
     }
   }
+  $('desktopAdminContent')?.classList.toggle('hidden',isDesktopGameUi()||!$('adminFeedbackSection').classList.contains('hidden'));
 }
 $('desktopAdminTabs')?.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button || !isDesktopGameUi())return;
   for(const id of Object.values(DESKTOP_ADMIN_PAGES))$(id)?.classList.add('hidden');
   $('adminFeedbackSection')?.classList.add('hidden');
-  $('desktopAdminContent')?.classList.toggle('hidden',button.id!=='adminTrackerButton');
+  $('desktopAdminContent')?.classList.add('hidden');
   $('adminFeedbackOpen')?.classList.remove('hidden');
   $('desktopAdminTabs').querySelectorAll('button').forEach(node=>node.toggleAttribute('aria-current',node===button));
 },true);
