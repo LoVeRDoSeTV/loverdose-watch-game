@@ -816,11 +816,13 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #pveModal .pve-monster-popup-close{display:none!important}#pveModal .pve-monster-popup-visual{min-height:235px}#pveModal .pve-monster-popup-visual .pve-enemy-art.real-art{width:215px;height:215px}#pveModal .pve-monster-popup-visual .pve-enemy-art.real-art.boss{width:230px;height:230px}
   #pveModal .pve-monster-popup-info{padding:8px 2px}#pveModal .pve-monster-popup .pve-map-detail-title{font-size:22px!important}
 
-  /* Combat PC : arène intégrée dans l'écran PvE, aucun fond de popup. */
+  /* Le combat occupe toute la fenêtre ; quitter le combat restaure la page PvE. */
+  body[data-desktop-view="pve"] #pveModal.game-modal.desktop-battle-mode{position:fixed!important;inset:0!important;z-index:1000160!important;width:100%!important;height:100dvh!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#080b17!important;backdrop-filter:none!important}
+  body[data-desktop-view="pve"] #pveModal.game-modal.desktop-battle-mode>.game-panel{width:100%!important;max-width:none!important;height:100dvh!important;min-height:0!important;max-height:none!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;overflow:hidden!important;transform:none!important;box-shadow:none!important}
   #pveModal.desktop-battle-mode #pveContent{display:none!important}
   #pveModal.desktop-battle-mode>.game-panel>.game-head{display:none!important}
-  #pveModal.desktop-battle-mode .pve-battle-overlay{position:relative!important;inset:auto!important;z-index:1!important;display:block!important;width:100%!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;opacity:1!important}
-  #pveModal.desktop-battle-mode .pve-battle-stage{width:min(980px,100%)!important;max-width:980px!important;height:calc(100dvh - 190px);min-height:580px;max-height:960px;margin:0 auto;border-radius:22px!important;box-shadow:none!important}
+  #pveModal.desktop-battle-mode .pve-battle-overlay{position:absolute!important;inset:0!important;z-index:1!important;display:block!important;width:100%!important;height:100%!important;padding:0!important;background:#080b17!important;backdrop-filter:none!important;opacity:1!important}
+  #pveModal.desktop-battle-mode .pve-battle-stage{width:100%!important;max-width:none!important;height:100dvh;min-height:0;max-height:none;margin:0;border:0!important;border-radius:0!important;box-shadow:none!important}
   #pveModal.desktop-battle-mode .pve-battle-arena{min-height:0}
 
   /* Lobby */
