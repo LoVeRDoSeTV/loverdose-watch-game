@@ -1,5 +1,4 @@
 import 'dotenv/config';
-import {createLiveGainsHandler} from './src/live-gains.js';
 import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveBoostStatus } from './src/live-boost-timeline.js';
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
@@ -3444,8 +3443,6 @@ app.get('/api/game/live-xp-boost', async (req,res)=>{
     res.json(publicLiveBoostStatus(boosts));
   }catch(error){res.status(503).json({error:'Boosts temporairement indisponibles.'});}
 });
-
-app.get('/api/game/live-gains',createLiveGainsHandler(pool));
 
 app.get('/api/game/live-status', async (req, res) => {
   if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });

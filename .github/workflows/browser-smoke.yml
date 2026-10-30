@@ -22,8 +22,6 @@ jobs:
         run: node scripts/browser-smoke.mjs
       - name: Vérifier les réglages Bot sur mobile et PC (données simulées)
         run: node scripts/browser-bot-mobile.mjs
-      - name: Vérifier les gains du live confirmés (données simulées)
-        run: node scripts/browser-live-gains.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -31,5 +29,4 @@ jobs:
           path: |
             browser-smoke-*.png
             browser-bot-*.png
-            browser-live-gains-*.png
           if-no-files-found: ignore

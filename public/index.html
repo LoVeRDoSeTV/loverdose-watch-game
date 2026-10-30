@@ -34,7 +34,7 @@
 <link rel="apple-touch-icon" href="/pwa-icon-192.webp">
 <link rel="preload" as="image" href="/assets/logo-watch-384.webp" imagesrcset="/assets/logo-watch-384.webp 384w, /assets/logo-watch-768.webp 768w" imagesizes="(max-width:900px) 130px, 180px">
 <link rel="stylesheet" href="/styles.css?v=524">
-<link rel="stylesheet" href="/styles-extended.min.css?v=540">
+<link rel="stylesheet" href="/styles-extended.min.css?v=538">
 <link rel="stylesheet" href="/pve-expansion.min.css?v=535">
 <link rel="stylesheet" href="/return-summary.min.css?v=535">
 <link rel="stylesheet" href="/live-xp-boost.min.css?v=535">
@@ -43,8 +43,7 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
 <script defer src="/live-xp-boost.js?v=521"></script>
-<script defer src="/live-gains.js?v=540"></script>
-<script defer src="/app.min.js?v=540"></script>
+<script defer src="/app.min.js?v=539"></script>
 <script defer src="/auth-fallback.js?v=111"></script>
 </head>
 <body class="auth-locked">
@@ -404,10 +403,6 @@
     <div class="trade-expiry-actions"><button id="tradeExpiryDismiss" class="lobby-secondary-btn" type="button">J’ai compris</button><button id="tradeExpiryCreate" class="lobby-primary-btn" type="button">Créer une nouvelle offre</button></div>
   </div>
 </div>
-<section id="liveGains" class="live-gains" aria-labelledby="liveGainsTitle" hidden>
-  <span class="live-gains-light" aria-hidden="true"></span>
-  <div class="live-gains-copy"><div role="status"><h2 id="liveGainsTitle" data-gains-status>Vérification de ta progression…</h2><p data-gains-description>On attend la confirmation du tracker Twitch.</p></div><p class="live-gains-last" data-gains-last></p><p class="live-gains-help">Confirmation au rythme du tracker, environ toutes les 15 s. Ouvrir le site seul ne déclenche pas de gains.</p></div>
-</section>
 <section id="nextActionsBar" class="next-actions-bar" aria-label="Que faire maintenant ?">
   <div class="next-actions-bar-copy">
     <span class="next-actions-bar-icon" aria-hidden="true">🎯</span>

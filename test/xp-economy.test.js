@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
-import {createLiveGainsHandler} from '../src/live-gains.js';
 import { globalThresholdForLevel,lovysProgressionFromXp,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
 import { ACHIEVEMENT_FAMILIES,WATCH_FAMILIES,WATCH_HOUR_STAGES,createAchievements } from '../src/achievements.js';
 import { PVE_ZONES,PVE_FIGHTS,pveFightByKey,pvePreviousFight } from '../src/combat/zones.js';
@@ -249,18 +248,4 @@ test('attendance migration preserves old wheel credits without granting unearned
  assert.equal((await wheel.syncRewardWheelState(client,id)).total_live_attendance,1);
  await query('UPDATE user_live_attendance SET badge_watch_seconds=3600 WHERE user_id=$1 AND stream_id=\'legacy-short\'',[id]);
  assert.equal((await wheel.syncRewardWheelState(client,id)).total_live_attendance,1);
-});
-
-
-test('le suivi privé utilise le compte connecté et distingue pause, attente, crédit et tracker indisponible',async()=>{
- await db.exec('CREATE TABLE twitch_tracker_auth(id INT PRIMARY KEY,last_live BOOLEAN,last_error TEXT,last_success_at TIMESTAMPTZ);INSERT INTO twitch_tracker_auth VALUES(1,TRUE,NULL,CURRENT_TIMESTAMP)');
- const id=await player(),handler=createLiveGainsHandler(pool);
- const call=async(session)=>{const res={...response(),set(){return this;}};await handler({session,query:{twitchId:'other'}},res);return res;};
- assert.equal((await call({})).statusCode,401);
- const session={account:{id},user:{twitchId:String(id)}};
- let res=await call(session);assert.equal(res.body.state,'waiting');assert.equal(res.body.playerId,String(id));assert.equal(res.body.lastCreditAt,null);
- await tick([id],15);assert.equal((await call(session)).body.state,'receiving');
- await query('UPDATE twitch_tracker_auth SET last_live=FALSE');assert.equal((await call(session)).body.state,'offline');
- await query("UPDATE twitch_tracker_auth SET last_live=TRUE,last_success_at=CURRENT_TIMESTAMP-INTERVAL '2 minutes'");assert.equal((await call(session)).body.state,'unavailable');
- await query("UPDATE twitch_tracker_auth SET last_success_at=CURRENT_TIMESTAMP,last_error='Twitch unavailable'");assert.equal((await call(session)).body.state,'unavailable');
 });
