@@ -7,12 +7,12 @@ const slice=(a,b)=>source.slice(source.indexOf(a),source.indexOf(b,source.indexO
 function setup(storage=new Map(),mobile=false){
   const elements=new Map();
   const element=id=>{
-    if(!elements.has(id))elements.set(id,{classList:{add(){},remove(){},toggle(){}},querySelector:()=>null,querySelectorAll:()=>[],setAttribute(){},focus(){},style:{},innerHTML:'',textContent:''});
+    if(!elements.has(id))elements.set(id,{classList:{add(){},remove(){},toggle(){}},querySelector:()=>null,querySelectorAll:()=>[],setAttribute(){},removeAttribute(){},focus(){},style:{},innerHTML:'',textContent:''});
     return elements.get(id);
   };
   let loops=0;
   const c=vm.createContext({me:{user:{id:1}},localStorage:{getItem:k=>storage.get(k)??null,setItem:(k,v)=>storage.set(k,v)},
-    $:element,isMobileGameUi:()=>mobile,document:{body:{appendChild(){}}},requestAnimationFrame:fn=>fn(),
+    $:element,isMobileGameUi:()=>mobile,isDesktopGameUi:()=>!mobile,PVE_SIMPLE_UI:true,document:{body:{appendChild(){}}},requestAnimationFrame:fn=>fn(),
     pveFightRoleLabel:()=>'',pveEnemyVisual:()=>({zone:1}),pveEnemySpriteMarkup:()=>'',syncPveBattleLayout(){},syncPveBattleUi(b){c.pveBattleState.battle=b;},updatePveAutoUi(){},
     stopPveAutoLoop(){loops=0;},schedulePveAuto(){loops++;},
     pveBattleSetDisabled(){},AbortController,setTimeout:()=>1,clearTimeout(){},animatePveBattleEvents:async()=>{},configureMobilePveResult(){},configurePveZoneResult(){},renderPveBattleActions(){},ensurePveAutoLoop(){loops++;}});

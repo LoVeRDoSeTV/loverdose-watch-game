@@ -267,6 +267,8 @@
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
  .pve-map-detail-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
  .lovys-combat-stats{grid-template-columns:repeat(2,1fr)}
+}
+/* Shared PvE experience: same encounter cards, actions and results on every device. */
  .mobile-pve-adventure{display:grid;gap:12px;min-width:0}
  .mobile-pve-adventure button,.mobile-pve-adventure summary{min-height:44px;touch-action:manipulation}
  .mobile-pve-active{display:grid;grid-template-columns:66px minmax(0,1fr);align-items:center;gap:12px;padding:12px;border:1px solid #45325e;border-radius:15px;background:#171429}
@@ -327,7 +329,7 @@
  .mobile-pve-adventure :is(button,summary,select):focus-visible{outline:2px solid #c99aff;outline-offset:3px}
  #pveBattleOverlay{padding:0;align-items:stretch;background:#080b17;overflow:hidden}
  #pveBattleOverlay .pve-battle-stage{display:grid;grid-template-columns:minmax(0,1fr) auto 44px;grid-template-rows:auto minmax(0,1fr) auto auto;width:100%;height:100dvh;max-height:100dvh;overflow:hidden;overscroll-behavior:none;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);border:0;border-radius:0;box-shadow:none}
- /* Décors réservés au combat mobile ; les thèmes PC restent indépendants. */
+ /* Shared battle scenery across devices. */
  #pveBattleOverlay .pve-battle-stage.zone-forest{--mobile-pve-background:url('/assets/pve-battle-forest-mobile.webp')}
  #pveBattleOverlay .pve-battle-stage.zone-ember{--mobile-pve-background:url('/assets/pve-battle-ember-mobile.webp')}
  #pveBattleOverlay .pve-battle-stage.zone-night{--mobile-pve-background:url('/assets/pve-battle-night-mobile.webp')}
@@ -390,6 +392,23 @@
  #pveBattleOverlay .mobile-pve-result-actions{display:grid;gap:8px;margin-top:16px}
  #pveBattleOverlay .mobile-pve-result-actions button,#pveBattleOverlay .pve-battle-continue{width:100%;min-height:44px;font-size:14px}
  #pveBattleOverlay .mobile-pve-result-actions button[hidden]{display:none}
+@media((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
+ .mobile-pve-adventure{width:100%;max-width:980px;margin:0 auto;grid-template-columns:minmax(240px,.8fr) minmax(0,1.3fr);column-gap:24px;align-items:start}
+ .mobile-pve-adventure>.mobile-pve-active,.mobile-pve-adventure>.mobile-pve-lovy-picker,.mobile-pve-adventure>.mobile-pve-zone-picker,.mobile-pve-adventure>.mobile-pve-progress{grid-column:1}
+ .mobile-pve-adventure>.mobile-pve-opponent{grid-column:2;grid-row:1/9}
+ .mobile-pve-adventure>.pve-world-atlas,.mobile-pve-adventure>.mobile-pve-history,.mobile-pve-adventure>.mobile-pve-fragment-shop{grid-column:1}
+ #pveBattleOverlay{align-items:center;padding:24px;background:rgba(5,5,17,.9);backdrop-filter:blur(8px)}
+ #pveBattleOverlay .pve-battle-stage{width:min(820px,100%);height:calc(100dvh - 48px);max-height:960px;min-height:0;border:1px solid #70509a;border-radius:22px;box-shadow:0 24px 90px #0008}
+ #pveBattleOverlay .pve-battle-stage::before{background-position:center 42%}
+ #pveBattleOverlay .pve-battle-head{padding:12px 20px}
+ #pveBattleOverlay .pve-combatant-name{font-size:17px}
+ #pveBattleOverlay .pve-combatant-name>span,#pveBattleOverlay .pve-hp-text{font-size:13px}
+ #pveBattleOverlay .pve-action-btn{min-height:84px}
+ #pveBattleOverlay .pve-action-btn strong{font-size:14px}
+ #pveBattleOverlay .pve-action-btn small{font-size:12px}
+ #pveBattleOverlay .pve-battle-log,#pveBattleOverlay .pve-auto-btn{font-size:13px}
+ .mobile-pve-opponent h3{font-size:26px}
+ #pveModal #pveContent{min-height:0}
 }
 
 
@@ -786,7 +805,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   .lovys-fragments-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 
   /* PvE : carte large + fiche latérale intégrée. */
-  #pveModal .game-panel{max-width:1480px!important}#pveModal #pveContent{min-height:700px}
+  #pveModal .game-panel{max-width:1480px!important}#pveModal #pveContent{min-height:0}
   #pveModal .pve-desktop-layout{grid-template-columns:235px minmax(0,1fr)!important;gap:16px!important}
   #pveModal .pve-adventure-map{padding-right:330px!important;min-height:760px!important}
   #pveModal .pve-desktop-main #pveMapDetail{position:absolute!important;top:0!important;right:0!important;bottom:0!important;left:auto!important;width:315px!important;inset:auto 0 0 auto!important;margin:0!important;pointer-events:auto!important;z-index:30!important;border-left:1px solid rgba(145,71,255,.16);background:linear-gradient(180deg,rgba(11,15,30,.96),rgba(8,12,24,.98))}
@@ -799,8 +818,8 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   #pveModal.desktop-battle-mode #pveContent{display:none!important}
   #pveModal.desktop-battle-mode>.game-panel>.game-head{display:none!important}
   #pveModal.desktop-battle-mode .pve-battle-overlay{position:relative!important;inset:auto!important;z-index:1!important;display:block!important;width:100%!important;padding:0!important;background:transparent!important;backdrop-filter:none!important;opacity:1!important}
-  #pveModal.desktop-battle-mode .pve-battle-stage{width:100%!important;max-width:none!important;min-height:calc(100vh - 190px);border-radius:24px!important;box-shadow:none!important}
-  #pveModal.desktop-battle-mode .pve-battle-arena{min-height:520px}
+  #pveModal.desktop-battle-mode .pve-battle-stage{width:min(980px,100%)!important;max-width:980px!important;height:calc(100dvh - 190px);min-height:580px;max-height:960px;margin:0 auto;border-radius:22px!important;box-shadow:none!important}
+  #pveModal.desktop-battle-mode .pve-battle-arena{min-height:0}
 
   /* Lobby */
   .desktop-lobby-page{position:fixed;z-index:1000020;top:126px;left:0;right:0;bottom:0;padding:20px 30px 44px;overflow:auto;background:transparent}.desktop-lobby-page.hidden{display:none}
