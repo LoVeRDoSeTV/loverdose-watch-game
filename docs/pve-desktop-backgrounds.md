@@ -19,4 +19,4 @@ Edit the existing zone image into a high resolution 16:9 desktop landscape scene
 - `public/assets/pve-battle-automata-desktop.webp`: Overgrown brass factory, gears, pipes and cyan crystals.
 - `public/assets/pve-battle-origin-desktop.webp`: Violet-gold celestial sanctuary, floating temples and a golden halo.
 
-The desktop CSS selects these assets by zone. The scene and enemy ground placement use the combat panel height, with the enemy grounded near 61% of the panel.
+The desktop CSS selects these assets by zone. The scene and enemy ground placement use the combat panel height, with both fighters grounded near 61% of the panel. On PC, the player occupies the left half and the enemy the right half, using the same responsive sprite size.
