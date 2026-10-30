@@ -2287,14 +2287,46 @@ function badgeCategoryOf(challenge) {
   return 'watch';
 }
 
+// Presentation families preserve each original badge key and its independent rewards.
+function badgeCollectionFamilies(challenges) {
+  const discoveryKeys = ['achievement:rare', 'achievement:epic', 'achievement:mimo'];
+  const members = discoveryKeys.map(key => challenges.find(item => item.badgeKey === key)).filter(Boolean);
+  if (members.length < 2) return challenges;
+  const earned = members.filter(item => item.unlocked);
+  const current = earned.at(-1) || members[0];
+  const next = members.find(item => !item.unlocked) || current;
+  const family = {
+    ...current, badgeName: 'Découverte de Lovys', badgeChallenge: next.badgeChallenge,
+    familyMemberKeys: members.map(item => item.badgeKey),
+    unlocked: earned.length > 0, maxed: earned.length === members.length,
+    evolutionLevel: earned.length, maxEvolutionLevel: members.length,
+    progressValue: earned.length, progressTarget: members.length, progressUnit: 'découvertes',
+    rewardLovysXp: next.rewardLovysXp, rewardGlobalXp: next.rewardGlobalXp, rewardCash: next.rewardCash,
+    stages: members.map((item, index) => ({
+      goal: index + 1, name: item.badgeName, image: item.badgeImage,
+      badgeChallenge: item.badgeChallenge, condition: item.badgeChallenge,
+      unlocked: Boolean(item.unlocked), sourceBadgeKey: item.badgeKey,
+      progressValue: item.progressValue, progressTarget: item.progressTarget, progressUnit: item.progressUnit,
+      rewards: { lovysXp: item.rewardLovysXp || item.rewardXp || 0, globalXp: item.rewardGlobalXp || 0, cash: item.rewardCash || 0 }
+    }))
+  };
+  let inserted = false;
+  return challenges.flatMap(item => {
+    if (!discoveryKeys.includes(item.badgeKey)) return [item];
+    if (inserted) return [];
+    inserted = true;
+    return [family];
+  });
+}
+
 function badgeStagesMarkup(challenge,expanded=false,selectedGoal=null){
-  if(!challenge?.stages?.length)return '';
+  if(!challenge?.stages?.length || (challenge.stages.length === 1 && !expanded))return '';
   const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h');
   const nextIndex=challenge.stages.findIndex(stage=>!stage.unlocked);
   return '<details class="badge-stage-list"'+(expanded?' open':'')+'><summary>Les '+challenge.stages.length+' paliers du badge</summary><ol>'+
     challenge.stages.map((stage,index)=>'<li class="'+(stage.unlocked?'obtained':index===nextIndex?'next-stage':'locked-stage')+'">'+
       '<button type="button" class="badge-stage-button" data-badge-stage="'+Number(stage.goal)+'" data-badge-stage-key="'+escapeHtml(challenge.badgeKey)+'" aria-pressed="'+(Number(selectedGoal)===Number(stage.goal))+'">'+badgeVisual({badgeImage:stage.image,badgeName:stage.name,badgeIcon:challenge.badgeIcon})+
-      '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong><small>'+
+      '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+escapeHtml(stage.condition || Number(stage.goal)+' '+unit)+'</strong><small>'+
       (stage.unlocked?'✓ Obtenu':index===nextIndex?'Prochain badge':'À débloquer')+'</small></span></button></li>').join('')+
     '</ol></details>';
 }
@@ -2433,14 +2465,16 @@ function closeMobileBadgeDetail() {
 }
 
 function openMobileBadgeDetail(key,stageGoal=null) {
-  let challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
+  let challenge = badgeCollectionFamilies(badgeData.challenges || []).find(item => item.badgeKey === key || item.familyMemberKeys?.includes(key));
   const selectedStage=stageGoal===null?null:challenge?.stages?.find(stage=>Number(stage.goal)===Number(stageGoal));
   if(selectedStage){
     const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h de visionnage');
     const rewards=selectedStage.rewards||{};
     challenge={...challenge,badgeName:selectedStage.name,badgeImage:selectedStage.image,
       badgeChallenge:selectedStage.badgeChallenge||selectedStage.goal+' '+unit,unlocked:Boolean(selectedStage.unlocked),maxed:false,
-      progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
+      progressValue:selectedStage.sourceBadgeKey?selectedStage.progressValue:challenge.progressValue,
+      progressUnit:selectedStage.sourceBadgeKey?selectedStage.progressUnit:challenge.progressUnit,
+      progressTarget:selectedStage.sourceBadgeKey?selectedStage.progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
       rewardLovysXp:rewards.lovysXp||0,rewardXp:rewards.lovysXp||0,
       rewardGlobalXp:rewards.globalXp||0,rewardCash:rewards.cash||0,rewardTitle:selectedStage.rewardTitle||null};
   }
@@ -2482,9 +2516,10 @@ function renderBadgeCollection() {
   const container = $('badgeCollectionContent');
   if (!container) return;
 
-  const challenges = badgeData.challenges || [];
+  const rawChallenges = badgeData.challenges || [];
+  const challenges = badgeCollectionFamilies(rawChallenges);
   const badges = badgeData.badges || [];
-  const challengeKeys = new Set(challenges.map(challenge => challenge.badgeKey));
+  const challengeKeys = new Set(rawChallenges.map(challenge => challenge.badgeKey));
   const extraBadges = badges.filter(badge => !challengeKeys.has(badge.badgeKey));
 
   const categoryOf = badgeCategoryOf;
@@ -2632,6 +2667,7 @@ function renderBadgeCollection() {
         
         ${actions}
         <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Voir le détail →</button>
+        ${badgeStagesMarkup(challenge)}
       </div>`;
   }
 
