@@ -413,12 +413,12 @@
  #pveBattleOverlay .pve-battle-stage::before{background-position:center 60%}
  /* Both fighters share one scale and ground line, with health below the arena. */
  #pveBattleOverlay .pve-battle-arena{grid-template-columns:repeat(2,minmax(0,1fr));column-gap:clamp(24px,8vw,160px);padding-inline:clamp(20px,6vw,120px)}
- #pveBattleOverlay .pve-combatant.player{display:contents;--mobile-lovy-size:var(--desktop-pve-fighter-size)}
+ #pveBattleOverlay .pve-combatant.player{display:grid;grid-column:1;grid-row:1;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr);justify-items:center;align-items:start;width:100%;height:100%;--mobile-lovy-size:var(--desktop-pve-fighter-size)}
  #pveBattleOverlay .pve-combatant.enemy{grid-column:2;grid-row:1}
  #pveBattleOverlay .pve-combatant.player .pve-combatant-sprite,
  #pveBattleOverlay .pve-combatant.enemy .pve-combatant-sprite{width:var(--desktop-pve-fighter-size);height:var(--desktop-pve-fighter-size);max-height:var(--desktop-pve-fighter-size);align-self:start;margin:max(0px,calc(min(61cqh,100cqh - 220px) - 84px - var(--desktop-pve-fighter-size))) auto 0;filter:drop-shadow(0 10px 22px rgba(0,0,0,.42))}
  #pveBattleOverlay .pve-combatant.player .pve-combatant-sprite{grid-column:1;grid-row:1}
- #pveBattleOverlay .pve-combatant.player .pve-combatant-ui{grid-column:1/-1;grid-row:2;min-height:70px}
+ #pveBattleOverlay .pve-battle-arena>.pve-combatant-ui{grid-column:1/-1;grid-row:2;min-height:70px}
  #pveBattleOverlay .pve-combatant.player .pve-damage{left:25%;top:55%}
  #pveBattleOverlay .pve-battle-head{padding:12px 20px}
  #pveBattleOverlay .pve-combatant-name{font-size:17px}

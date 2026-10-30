@@ -19,3 +19,16 @@ test('PvE improvement opens the proper Lovys page for PC and touch navigation',a
   await context.openPveLovysPage();assert.deepEqual(calls,desktop?[['desktop','lovys']]:[['touch','creatures']]);
  }
 });
+test('PC gives the player a separate arena column and restores health on touch resize',()=>{
+ const node=()=>({parentElement:null,children:[],appendChild(child){child.parentElement?.removeChild(child);this.children.push(child);child.parentElement=this;},removeChild(child){this.children=this.children.filter(x=>x!==child);child.parentElement=null;},insertBefore(child){this.appendChild(child);}});
+ const player=node(),enemy=node(),arena=node(),heading=node(),playerHealth=node(),enemyHealth=node();
+ player.appendChild(playerHealth);enemy.appendChild(enemyHealth);
+ const elements={pveBattlePlayer:player,pveBattleEnemy:enemy,pveBattlePlayerName:{closest:()=>playerHealth},pveBattleEnemyName:{closest:()=>enemyHealth},pveBattleOverlay:{querySelector:selector=>selector==='.pve-battle-arena'?arena:heading}};
+ let desktop=true;
+ const context=vm.createContext({$:id=>elements[id],PVE_SIMPLE_UI:true,isDesktopGameUi:()=>desktop});
+ vm.runInContext(slice('function syncPveBattleLayout(){',"window.addEventListener('resize',syncPveBattleLayout)"),context);
+ context.syncPveBattleLayout();context.syncPveBattleLayout();
+ assert.equal(playerHealth.parentElement,arena);assert.equal(arena.children.length,1);assert.equal(enemyHealth.parentElement,heading);
+ desktop=false;context.syncPveBattleLayout();assert.equal(playerHealth.parentElement,player);
+ desktop=true;context.syncPveBattleLayout();assert.equal(playerHealth.parentElement,arena);
+});

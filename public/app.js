@@ -4800,6 +4800,16 @@ function syncPveBattleLayout(){
   const enemy=$('pveBattleEnemy');
   const health=$('pveBattleEnemyName')?.closest('.pve-combatant-ui');
   const heading=overlay?.querySelector('.pve-battle-head>div');
+  const player=$('pveBattlePlayer');
+  const playerHealth=$('pveBattlePlayerName')?.closest('.pve-combatant-ui');
+  const arena=overlay?.querySelector('.pve-battle-arena');
+  if(player&&playerHealth&&arena){
+    if(isDesktopGameUi()){
+      if(playerHealth.parentElement!==arena)arena.appendChild(playerHealth);
+    }else if(playerHealth.parentElement!==player){
+      player.insertBefore(playerHealth,$('pveBattlePlayerDamage'));
+    }
+  }
   if(!enemy||!health||!heading)return;
   if(PVE_SIMPLE_UI){
     if(health.parentElement!==heading)heading.appendChild(health);
