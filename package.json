@@ -26,5 +26,9 @@
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
     "postcss": "8.5.6"
+  },
+  "overrides": {
+    "body-parser": "1.20.9",
+    "qs": "6.16.2"
   }
 }
