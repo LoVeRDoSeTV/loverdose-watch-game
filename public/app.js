@@ -3730,11 +3730,11 @@ let lovysIncubatorData=null;
 const LOVYS_MILESTONES=[{level:25,power:15,label:'Forme évoluée'},{level:50,power:30,label:'Évolution maximale'}];
 function lovysCanonicalId(id){return LOVYS_ID_ALIASES[id]||id;}
 function applyLovysHeroTheme(box,lovy){
-  const themes={plant:['forest','87,194,139'],water:['tide','78,181,230'],voltis:['storm','244,207,82'],brumee:['night','172,195,224'],fire:['ember','245,128,73'],crysal:['frost','133,211,246'],ferox:['automata','221,161,96'],dark:['night','173,111,237'],solka:['dune','246,197,109'],dream:['dream','212,147,232']};
+  const themes={plant:'87,194,139',water:'78,181,230',voltis:'244,207,82',brumee:'172,195,224',fire:'245,128,73',crysal:'133,211,246',ferox:'221,161,96',dark:'173,111,237',solka:'246,197,109',dream:'212,147,232'};
   const id=lovysCanonicalId(lovy?.creatureId),theme=themes[id];
   box.dataset.lovysTheme=theme?id:'';
-  box.style.setProperty('--lovys-scene',theme?`url("/assets/pve-battle-${theme[0]}-desktop.webp")`:'none');
-  box.style.setProperty('--lovys-accent',theme?.[1]||'145,71,255');
+  box.style.setProperty('--lovys-scene',theme?`url("/assets/lovys-backgrounds/${id}-v566.webp")`:'none');
+  box.style.setProperty('--lovys-accent',theme||'145,71,255');
 }
 function lovysRole(l){return LOVYS_ROLES[lovysCanonicalId(l?.creatureId)]||'Polyvalent';}
 function lovysRarityClass(r='Commun'){return String(r).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
