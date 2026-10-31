@@ -46,8 +46,8 @@
 
 <script type="application/ld+json">{"@context":"https://schema.org","@graph":[{"@type":"WebSite","@id":"https://loverwatchgame.fr/#website","url":"https://loverwatchgame.fr/","name":"LoVeR Watch Game","inLanguage":"fr-FR","description":"Jeu de visionnage Twitch associé aux lives de LoVeRDoSeTV."},{"@type":"VideoGame","@id":"https://loverwatchgame.fr/#game","name":"LoVeR Watch Game","alternateName":["jeu LoVeRDoSe","jeu LoVeRDoSeTV","LoVeR Watch Game Twitch"],"url":"https://loverwatchgame.fr/","description":"Jeu communautaire de collection de Lovys et de progression basé sur le temps de visionnage des lives Twitch de LoVeRDoSeTV.","inLanguage":"fr-FR","genre":["Jeu de collection de créatures","Jeu de visionnage Twitch"],"gamePlatform":"Navigateur web","creator":{"@type":"Person","name":"LoVeRDoSe","alternateName":"LoVeRDoSeTV","sameAs":["https://www.twitch.tv/loverdosetv"]},"image":"https://loverwatchgame.fr/partage-lover-watch-game.png","mainEntityOfPage":"https://loverwatchgame.fr/"}]}</script>
 <script defer src="/live-xp-boost.js?v=521"></script>
-<script defer src="/lovys-evolution.min.js?v=564"></script>
-<script defer src="/app.min.js?v=568"></script>
+<script defer src="/lovys-evolution.min.js?v=569"></script>
+<script defer src="/app.min.js?v=569"></script>
 <script defer src="/bot-studio.min.js?v=550"></script>
 <script defer src="/auth-fallback.js?v=111"></script>
 </head>
@@ -913,6 +913,13 @@
     <details id="adminDashboardHistory" class="admin-dashboard-group">
       <summary>📜 Historique admin <span>Corrections et actions effectuées</span></summary>
       <div id="adminHistoryContent" class="admin-history-list"></div>
+    </details>
+    <details class="admin-dashboard-group admin-danger-section">
+      <summary>⚠️ Réinitialisation globale <span>Repartir au niveau 1 pour tous les joueurs</span></summary>
+      <p>Remet à zéro l’XP, les niveaux, le Prestige, les Lovys, le PvE, le visionnage, les monnaies, les œufs, les inventaires et les badges de tout le monde, toi compris. Les échanges en attente et les drops en cours sont annulés.</p>
+      <p>Les comptes, mots de passe, liaisons Twitch, réglages du bot et historiques sont conservés. Cette action est définitive.</p>
+      <button id="adminResetAllGame" class="btn warning" type="button">↻ Réinitialiser le jeu pour tout le monde</button>
+      <p id="adminResetAllMessage" role="status" aria-live="polite"></p>
     </details>
   </div>
 </div>

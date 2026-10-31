@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveBoostStatus } from './src/live-boost-timeline.js';
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
+import { registerGlobalGameReset } from './src/reset-game.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import { globalThresholdForLevel, lovysProgressionFromXp, migrateLovysProgressionCurve, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
@@ -5816,6 +5817,7 @@ const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt
 app.use('/api',gameBot.router);
 
 registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
+registerGlobalGameReset(app,{pool,getBroadcasterAccount,pushLiveUpdate});
 
 app.get('/api/admin/players', async (req, res) => {
   try {

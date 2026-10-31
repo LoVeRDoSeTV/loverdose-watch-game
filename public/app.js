@@ -427,7 +427,7 @@ function lovysEvolutionMarkup(l){
 }
 function observeLovysEvolutions(lovys){
   window.LovysEvolutionCelebration?.observe({
-    accountId:me?.user?.id,lovys,imageFor:lovysImageUrl,
+    accountId:me?.user?.id,progressResetAt:me?.user?.progress_reset_at,lovys,imageFor:lovysImageUrl,
     isBlocked:()=>Boolean(badgeCelebrationActive||returnSummaryBusy||returnSummaryPending||rewardWheelSpinning||activeTradeExchange
       ||document.querySelector('#pveBattleOverlay:not(.hidden),.lovys-xp-transfer-modal,.lovys-xp-success,.desktop-egg-boost-overlay,.desktop-boost-accepted-overlay,.hatch-cinematic.active,#returnSummaryOverlay,#rewardWheelWinPopup:not(.hidden)'))
   });
@@ -7705,7 +7705,7 @@ function showResetAccountConfirmation(details){
     const previousFocus=document.activeElement;
     const overlay=document.createElement('div');
     overlay.className='admin-confirm-overlay';overlay.setAttribute('data-admin-confirm-overlay','');
-    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="resetAccountTitle"><h3 id="resetAccountTitle">Réinitialiser ${escapeHtml(details.username)} ?</h3><p>${escapeHtml(details.question)}</p><label class="admin-reset-label" for="adminResetUsername">Pseudo : <strong>${escapeHtml(details.username)}</strong></label><input id="adminResetUsername" class="admin-reset-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-reset-cancel>Annuler</button><button type="button" class="btn warning" data-reset-approve disabled>Réinitialiser définitivement</button></div></div>`;
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="resetAccountTitle"><h3 id="resetAccountTitle">${escapeHtml(details.title||`Réinitialiser ${details.username} ?`)}</h3><p>${escapeHtml(details.question)}</p><label class="admin-reset-label" for="adminResetUsername">${escapeHtml(details.confirmationLabel||'Pseudo')} : <strong>${escapeHtml(details.username)}</strong></label><input id="adminResetUsername" class="admin-reset-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-reset-cancel>Annuler</button><button type="button" class="btn warning" data-reset-approve disabled>Réinitialiser définitivement</button></div></div>`;
     document.body.appendChild(overlay);
     const input=overlay.querySelector('input'),approve=overlay.querySelector('[data-reset-approve]');
     let finished=false;
@@ -7945,6 +7945,26 @@ $('adminPlayersButton')?.addEventListener('click', openAdminPlayersModal);
 $('adminPlayersClose')?.addEventListener('click', closeAdminPlayersModal);
 $('adminDashboardButton')?.addEventListener('click',()=>openAdminModal('adminDashboardModal',loadAdminDashboard));
 $('adminDashboardRefresh')?.addEventListener('click',async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;try{await loadAdminDashboard();}finally{button.disabled=false;}});
+let adminResetAllBusy=false;
+async function resetAllPlayersGame(){
+  const button=$('adminResetAllGame'),message=$('adminResetAllMessage');
+  if(adminResetAllBusy||!button)return;
+  adminResetAllBusy=true;button.disabled=true;message.textContent='';
+  const confirmation='REINITIALISER TOUT LE JEU';
+  try{
+    const confirmed=await showResetAccountConfirmation({username:confirmation,title:'Réinitialiser le jeu pour tout le monde ?',confirmationLabel:'Phrase de confirmation',question:'Tous les joueurs, toi compris, repartiront au niveau 1, sans Lovys, XP, Prestige, monnaies, inventaire ou badges. Les comptes et les liaisons sont conservés. Cette action est définitive. Recopie la phrase ci-dessous pour confirmer.'});
+    if(!confirmed)return;
+    message.textContent='Réinitialisation en cours…';
+    const response=await fetch('/api/admin/reset-game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation,confirmAll:true,requestId:crypto.randomUUID()})});
+    const data=await response.json();
+    if(!response.ok||!data.ok)throw Error(data.error||'Réinitialisation impossible.');
+    message.textContent=data.message||'Le jeu a été réinitialisé pour tout le monde.';
+    window.LovysEvolutionCelebration?.reset();
+    setTimeout(()=>location.reload(),1200);
+  }catch(error){message.textContent=error.message||'La réponse du serveur n’a pas pu être vérifiée. Actualise le dashboard avant de réessayer.';}
+  finally{adminResetAllBusy=false;button.disabled=false;}
+}
+$('adminResetAllGame')?.addEventListener('click',resetAllPlayersGame);
 $('adminDashboardHistory')?.addEventListener('toggle',event=>{if(event.currentTarget.open)void loadAdminHistory();});
 $('adminPlayersBack')?.addEventListener('click',()=>{closeAdminPlayersModal();openAdminModal('adminDashboardModal');});
 $('adminTrackerButton')?.addEventListener('click',()=>{openAdminModal('adminTrackerModal',loadAdminTrackerPanel);if(isDesktopGameUi())loadTrackerStatus();});
@@ -9207,6 +9227,7 @@ function startLiveUpdates() {
   if (!me?.user || !window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
+  liveUpdates.addEventListener('game-reset-all',()=>{if(me?.user){window.LovysEvolutionCelebration?.reset();location.reload();}});
   liveUpdates.addEventListener('account-reset', event => {
     try{const data=JSON.parse(event.data);if(data.twitchId&&String(data.twitchId)===String(me?.user?.twitch_id))location.reload();}catch{}
   });

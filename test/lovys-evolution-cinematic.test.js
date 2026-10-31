@@ -22,7 +22,7 @@ function harness(storage=new Map(),reduced=false){
   const context=vm.createContext({window,document,Map,Promise,localStorage:{getItem:key=>storage.get(key)||null,setItem:(key,value)=>{if(storageFails)throw Error('Storage unavailable');storage.set(key,value);}},setTimeout:(fn,delay)=>{const id=++sequence;timers.set(id,{fn,at:now+delay});return id;},clearTimeout:id=>timers.delete(id)});
   vm.runInContext(source,context);
   function advance(ms=0){const target=now+ms;let count=0;while(true){const next=[...timers].filter(([,x])=>x.at<=target).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;assert.ok(++count<100);now=next[1].at;timers.delete(next[0]);next[1].fn();}now=target;}
-  const observe=(level,accountId='a',extra={})=>window.LovysEvolutionCelebration.observe({accountId,lovys:[{creatureId:'voltis',name:'Voltis',level,...extra}],imageFor:(id,evo)=>id==='voltis'?`/Voltis-${evo}.webp`:'',isBlocked:()=>blocked});
+  const observe=(level,accountId='a',extra={},meta={})=>window.LovysEvolutionCelebration.observe({accountId,lovys:[{creatureId:'voltis',name:'Voltis',level,...extra}],imageFor:(id,evo)=>id==='voltis'?`/Voltis-${evo}.webp`:'',isBlocked:()=>blocked,...meta});
   return {observe,advance,storage,document,overlays,focus,api:window.LovysEvolutionCelebration,
     setBlocked:value=>{blocked=value;},failStorage:()=>{storageFails=true;},current:()=>overlays.findLast(x=>x.isConnected),
     pressEscape:()=>listeners.get('keydown')?.({key:'Escape',preventDefault(){},stopImmediatePropagation(){}})};
@@ -64,4 +64,10 @@ test('unavailable storage never prevents the game from celebrating and dismissin
   const h=harness();h.failStorage();h.observe(24);h.observe(25);h.advance();
   h.current().querySelector('button').click();h.current().querySelector('button').click();
   h.observe(25);h.advance();assert.equal(h.overlays.length,1);
+});
+test('a server-confirmed reset starts a new evolution cycle and discards old pending celebrations',()=>{
+  const h=harness();h.observe(49);h.observe(50);h.advance();assert.equal(h.api.isActive(),true);
+  const meta={progressResetAt:'2026-10-31T03:00:00Z'};
+  h.observe(1,'a',{},meta);h.advance();assert.equal(h.api.isActive(),false);
+  h.observe(25,'a',{},meta);h.advance();assert.match(h.current().innerHTML,/NIVEAU 25/);
 });

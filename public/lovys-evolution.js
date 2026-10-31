@@ -9,7 +9,7 @@
     if (memory.has(id)) return memory.get(id);
     let value;
     try { value = JSON.parse(localStorage.getItem(key(id))); } catch {}
-    const data = {levels: {}, pending: []};
+    const data = {levels: {}, pending: [], generation: String(value?.generation || '')};
     if (value && typeof value.levels === 'object' && value.levels) {
       for (const [id, level] of Object.entries(value.levels)) {
         if (/^[a-z0-9_-]+$/i.test(id) && Number.isFinite(level)) data.levels[id] = Math.max(1, Math.min(50, level));
@@ -47,6 +47,10 @@
     const id = String(input.accountId);
     if (id !== account) { reset(); account = id; state = read(id); }
     options = input;
+    const generation=String(input.progressResetAt||'');
+    if(state.generation!==generation){
+      dismiss?.();dismiss=null;state.levels={};state.pending=[];state.generation=generation;
+    }
     for (const lovy of input.lovys || []) {
       const creatureId = String(lovy.creatureId || '');
       const level = Number(lovy.level);
