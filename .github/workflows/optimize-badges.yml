@@ -1,0 +1,44 @@
+name: Optimiser les badges restants
+
+on:
+  push:
+    branches: [performance-safe-modules-20261029]
+    paths:
+      - '.github/workflows/optimize-badges.yml'
+permissions:
+  contents: write
+jobs:
+  optimize:
+    if: github.repository == 'LoVeRDoSeTV/loverdose-watch-game'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install Pillow==11.3.0
+          npm install --no-audit --no-fund
+      - run: python scripts/optimize-all-badges.py
+      - run: |
+          node --check public/app.js
+          npm test
+      - name: Check only badge assets changed
+        run: |
+          python - <<'PY'
+          import subprocess
+          changed=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          assert changed and all(x.startswith('public/badges/') and x.endswith('.webp') for x in changed),changed
+          print('Validated',len(changed),'badge assets only')
+          PY
+      - name: Commit reviewed batch on performance branch only
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/badges/
+          git commit -m "Optimize remaining badge WebPs on performance branch"
+          git push origin HEAD:performance-safe-modules-20261029

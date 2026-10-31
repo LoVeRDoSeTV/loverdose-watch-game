@@ -1,0 +1,48 @@
+name: Optimiser les images PvE sur branche test
+on:
+  push:
+    branches: [performance-safe-modules-20261029]
+    paths:
+      - 'scripts/optimize-pve-webp.py'
+      - '.github/workflows/optimize-pve-webp.yml'
+permissions:
+  contents: write
+jobs:
+  optimize-pve:
+    if: github.repository == 'LoVeRDoSeTV/loverdose-watch-game'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: |
+          python -m pip install Pillow==11.3.0
+          npm install --no-audit --no-fund
+      - run: python scripts/optimize-pve-webp.py
+      - run: |
+          node --check public/app.js
+          npm test
+      - name: Confirm only PvE image files changed
+        run: |
+          python - <<'PY'
+          import subprocess
+          changed=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          assert all(x.startswith('public/pve/') and x.endswith('.webp') for x in changed),changed
+          print('Validated',len(changed),'PvE WebP files')
+          PY
+      - name: Commit optimized PvE images to isolated branch
+        run: |
+          if git diff --quiet -- public/pve/; then
+            echo "No meaningful PvE image savings"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/pve/
+          git commit -m "Conservatively optimize PvE images on isolated branch"
+          git push origin HEAD:performance-safe-modules-20261029

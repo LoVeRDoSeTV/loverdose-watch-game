@@ -1,7 +1,7 @@
 import { legacyLovysThresholdForLevel as rewardBudgetThreshold } from '../xp-economy.js';
 
 // Stable fight keys preserve existing victories and first-win rewards.
-// Enemy levels describe the recommended Lovys level (campaign ends at 30), not a global level.
+// Enemy levels describe the recommended Lovys level (campaign ends at 50), not a global level.
 const LEGACY_ZONES = [
   { key:'forest', name:'Forêt des Premiers Éclats', icon:'🌿', fights:[
     {key:'forest_1',name:'Germe sauvage',level:1,type:'Verdance',hp:110,power:42,rewards:{creatureXp:4,globalXp:2,fragments:1}},
@@ -51,11 +51,12 @@ const archetypes = {
 
 function balancedStats(level, {position=0,boss=false,finalBoss=false,family='quadruped',zoneIndex=0}={}) {
   const [hp,atk,def,speed] = archetypes[family] || archetypes.quadruped;
-  const pressure = .80 + Math.min(position,7)*.018 + zoneIndex*.003;
+  const pressure = (.80 + Math.min(position,7)*.018 + zoneIndex*.003)*(1+Math.max(0,Math.min(20,level-29))*.006)*(level>=30?1.04:1);
+  const maturity=level>=50?1.22:level>=25?1.10:1;
   return {
-    hp:Math.round((150+22.0*(level-1))*hp*(finalBoss?1.14:boss?1.06:1)),
-    attack:Math.round((42+7.7*(level-1))*atk*pressure*(finalBoss?.86:boss?.94:1)*(finalBoss&&zoneIndex===9?.85:finalBoss&&zoneIndex===4?.92:1)),
-    defense:Math.round((20+4.2*(level-1))*def*(finalBoss?1.04:1)),
+    hp:Math.round((150+22.0*(level-1))*hp*maturity*(finalBoss?(level>=30?1.24:1.14):boss?1.06:1)),
+    attack:Math.round((42+7.7*(level-1))*atk*pressure*maturity*(finalBoss?(level>=30?.92:.86):boss?.94:1)*(finalBoss&&zoneIndex===9?.85:finalBoss&&zoneIndex===4?.92:1)),
+    defense:Math.round((20+4.2*(level-1))*def*maturity*(finalBoss?1.04:1)),
     speed:Math.round(6+level*.24+speed)
   };
 }
@@ -597,29 +598,33 @@ const EXISTING_CREATURE_ART={
   frost_2:'/pve/frost/renardeau-givre-v503.webp'
 };
 
+const CAMPAIGN_LEVEL_RANGES=[[17,21],[21,25],[25,30],[30,35],[35,40],[40,45],[45,50]];
 const expansion = THEMES.map((zone,zi)=>{
+  const [minLevel,maxLevel]=CAMPAIGN_LEVEL_RANGES[zi];
+  const recommendedRank=zi>=5?3:zi>=3?2:1;
   const visual={accent:zone.accent,secondary:zone.secondary,sky:zone.sky,deep:zone.deep,background:`/assets/pve-battle-${zone.key}.webp`};
   const fights=zone.roster.map((entry,i)=>{
     const miniBoss=i===8,finalBoss=i===9,boss=miniBoss||finalBoss;
     const key=`${zone.key}_${finalBoss?'boss':i+1}`;
-    const level=Math.round(zone.minLevel+(zone.maxLevel-zone.minLevel)*i/9);
+    const rewardLevel=Math.round(zone.minLevel+(zone.maxLevel-zone.minLevel)*i/9);
+    const level=Math.round(minLevel+(maxLevel-minLevel)*i/9);
     const stats=balancedStats(level,{position:i,boss,finalBoss,family:entry.family,zoneIndex:zi+3});
     const mechanic=(i===3||i===6||boss)?{key:zone.mechanic,...MECHANICS[zone.mechanic],shieldPercent:finalBoss?14:10}:null;
     // Status mechanics are occasional early in a zone, then guaranteed on its guardians.
-    const rewardXp=Math.round(10+level*.72+(i%3));
-    return {key,name:entry.name,level,type:entry.type,...stats,power:stats.attack,
-      boss,miniBoss,finalBoss,zoneKey:zone.key,recommendedRank:zone.recommendedRank,...(mechanic?{mechanic}:{}),
+    const rewardXp=Math.round(10+rewardLevel*.72+(i%3));
+    return {key,name:entry.name,level,rewardLevel,type:entry.type,...stats,power:stats.attack,
+      boss,miniBoss,finalBoss,zoneKey:zone.key,recommendedRank,...(mechanic?{mechanic}:{}),
       visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:EXISTING_CREATURE_ART[key]||`/pve/${zone.key}/${i+1}.webp?v=490`},
-      rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+level*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:finalBoss?6:miniBoss?3:zi>=4?2:1}};
+      rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+rewardLevel*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:finalBoss?6:miniBoss?3:zi>=4?2:1}};
   });
-  return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank:zone.recommendedRank,minLevel:zone.minLevel,maxLevel:zone.maxLevel,visual,fights};
+  return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank,minLevel,maxLevel,visual,fights};
 });
 
 // Keep the existing 40% reward budget on the historical curve. Guardians take
 // larger shares without letting the last zones fund the next zone outright.
 let cumulativeBudget=0,roundedBudget=0;
 export const PVE_ZONES=[...legacy,...expansion].map(zone=>{
-  cumulativeBudget+=(rewardBudgetThreshold(zone.fights.at(-1).level)-rewardBudgetThreshold(zone.fights[0].level))*.4;
+  cumulativeBudget+=(rewardBudgetThreshold(zone.fights.at(-1).rewardLevel??zone.fights.at(-1).level)-rewardBudgetThreshold(zone.fights[0].rewardLevel??zone.fights[0].level))*.4;
   const nextBudget=Math.round(cumulativeBudget),budget=nextBudget-roundedBudget;
   roundedBudget=nextBudget;
   const weights=zone.fights.map(f=>f.finalBoss?3:f.miniBoss?2:1);

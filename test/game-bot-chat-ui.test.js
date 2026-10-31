@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
-const source=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+const source=fs.readFileSync(new URL('../public/bot-studio.js',import.meta.url),'utf8');
 const notice=source.slice(source.indexOf('let adminBotActionNotice=null;'),source.indexOf('async function loadGameBotPanel(){'));
 const start=source.indexOf("  const action=event.target.closest('[data-game-bot-subscribe]");
-const body=source.slice(start,source.indexOf("\n});\n$('adminTrackerContent')",start));
+const body=source.slice(start,source.indexOf("\n});",start));
 function setup(request){
   let status={textContent:'',dataset:{}};const attributes=new Set(['data-game-bot-test']);
   const action={disabled:false,textContent:'Tester le chat',dataset:{},hasAttribute:name=>attributes.has(name),setAttribute:name=>attributes.add(name),removeAttribute:name=>attributes.delete(name)};

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveBoostStatus } from './src/live-boost-timeline.js';
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
+import { registerGlobalGameReset } from './src/reset-game.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import { globalThresholdForLevel, lovysProgressionFromXp, migrateLovysProgressionCurve, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
@@ -21,6 +22,7 @@ import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
+import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
 const { Pool } = pg;
@@ -362,8 +364,7 @@ const GLOBAL_LOVYS_XP_REWARDS = [
   {level:50,xp:300},
   {level:55,xp:400}
 ];
-const CREATURE_MILESTONES=[{level:5,power:5,label:'Éveil'},{level:10,power:5,label:'Instinct'},{level:15,power:5,label:'Affinité'},{level:20,power:5,label:'Maîtrise'},{level:25,power:10,label:'Ascendant'},{level:30,power:10,label:'Harmonie'},{level:40,power:15,label:'Domination'},{level:50,power:20,label:'Apogée'}];
-function creatureMilestonePower(level){return CREATURE_MILESTONES.filter(m=>level>=m.level).reduce((a,m)=>a+m.power,0);}
+const CREATURE_MILESTONES=[{level:25,power:15,label:'Forme évoluée'},{level:50,power:30,label:'Évolution maximale'}];
 
 /* =========================================
    CRÉATURES
@@ -489,13 +490,34 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   const userState = userStateResult.rows[0];
   if (!userState) return { lovysXpGranted:0, pendingXpGranted:0, globalXpGranted:0, cashGranted:0, globalXp:Number(globalXp||0) };
 
+  // The player lock above serializes reward grants. Read existing markers once
+  // instead of issuing one conflicting INSERT per previously earned level.
+  const prestige = Number(userState.prestige || 0);
+  const earned = await clientOrPool.query(`
+    SELECT 'global' AS family, level FROM user_global_xp_level_rewards WHERE user_id=$1 AND prestige=$2
+    UNION ALL
+    SELECT 'cash' AS family, level FROM user_global_cash_level_rewards WHERE user_id=$1 AND prestige=$2
+    UNION ALL
+    SELECT 'lovys' AS family, level FROM user_global_lovys_xp_rewards WHERE user_id=$1 AND prestige=$2
+  `, [userId, prestige]);
+  const earnedLevels = { global:new Set(), cash:new Set(), lovys:new Set() };
+  for (const row of earned.rows) earnedLevels[row.family].add(Number(row.level));
+  const cosmeticKeys = [...GLOBAL_LEVEL_GRADES.map(g => g.rewardKey), 'reward_bg_level55'];
+  const owned = await clientOrPool.query(
+    'SELECT item_key FROM shop_inventory WHERE account_id=$1 AND item_key=ANY($2::text[])',
+    [accountId, cosmeticKeys]
+  );
+  const ownedKeys = new Set(owned.rows.map(row => row.item_key));
+
   globalXp=Number(userState.global_xp||0);
   let effectiveGlobalXp = Math.max(0, Number(globalXp) || 0);
   let progression = globalProgressionFromXp(effectiveGlobalXp);
   const rewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) rewardKeys.push('reward_bg_level55');
   for (const key of rewardKeys) {
+    if (ownedKeys.has(key)) continue;
     await clientOrPool.query(`INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`, [accountId,key]);
+    ownedKeys.add(key);
   }
 
   // Récompense chaque niveau atteint une seule fois. Si le bonus fait franchir
@@ -506,7 +528,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
     changed = false;
     progression = globalProgressionFromXp(effectiveGlobalXp);
     for (const reward of GLOBAL_LEVEL_XP_REWARDS) {
-      if (reward.level > progression.level) continue;
+      if (reward.level > progression.level || earnedLevels.global.has(reward.level)) continue;
       const inserted = await clientOrPool.query(
         `INSERT INTO user_global_xp_level_rewards (user_id,prestige,level,xp_amount)
          VALUES ($1,$2,$3,$4)
@@ -514,6 +536,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
          RETURNING xp_amount`,
         [userId, Number(userState.prestige || 0), reward.level, reward.xp]
       );
+      earnedLevels.global.add(reward.level);
       if (!inserted.rowCount) continue;
       const amount = Math.max(0, Number(inserted.rows[0]?.xp_amount || reward.xp || 0));
       if (!amount) continue;
@@ -533,7 +556,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   // Tous les 5 niveaux, le bonus d'XP globale est remplacé par du LoVeR'Cash.
   let cashGranted = 0;
   for (const reward of GLOBAL_LEVEL_CASH_REWARDS) {
-    if (progression.level < reward.level) continue;
+    if (progression.level < reward.level || earnedLevels.cash.has(reward.level)) continue;
     const inserted = await clientOrPool.query(
       `INSERT INTO user_global_cash_level_rewards (user_id,prestige,level,cash_amount)
        VALUES ($1,$2,$3,$4)
@@ -541,6 +564,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
        RETURNING cash_amount`,
       [userId, Number(userState.prestige || 0), reward.level, reward.cash]
     );
+    earnedLevels.cash.add(reward.level);
     if (!inserted.rowCount) continue;
     cashGranted += Math.max(0, Number(inserted.rows[0]?.cash_amount || reward.cash || 0));
   }
@@ -554,16 +578,18 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
   const finalRewardKeys = GLOBAL_LEVEL_GRADES.filter(g => progression.level >= g.min).map(g => g.rewardKey);
   if (progression.level >= 55) finalRewardKeys.push('reward_bg_level55');
   for (const key of finalRewardKeys) {
+    if (ownedKeys.has(key)) continue;
     await clientOrPool.query(
       `INSERT INTO shop_inventory (account_id,item_key,quantity) VALUES ($1,$2,1) ON CONFLICT (account_id,item_key) DO NOTHING`,
       [accountId,key]
     );
+    ownedKeys.add(key);
   }
 
   let lovysXpGranted = 0;
   let pendingXpGranted = 0;
   for (const reward of GLOBAL_LOVYS_XP_REWARDS) {
-    if (progression.level < reward.level) continue;
+    if (progression.level < reward.level || earnedLevels.lovys.has(reward.level)) continue;
     const inserted = await clientOrPool.query(
       `INSERT INTO user_global_lovys_xp_rewards (user_id,prestige,level,xp_amount)
        VALUES ($1,$2,$3,$4)
@@ -571,6 +597,7 @@ async function grantGlobalLevelRewards(clientOrPool, userId, accountId, globalXp
        RETURNING xp_amount`,
       [userId, Number(userState.prestige || 0), reward.level, reward.xp]
     );
+    earnedLevels.lovys.add(reward.level);
     if (!inserted.rowCount) continue;
     const amount = Number(inserted.rows[0]?.xp_amount || reward.xp || 0);
     // Les bonus d'XP Lovys des niveaux globaux sont placés dans une réserve.
@@ -2520,6 +2547,8 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(createBotStudioRouter({getBroadcasterAccount}));
+
 app.use(
   express.static('public', {
     etag: true,
@@ -3211,6 +3240,7 @@ app.get('/auth/twitch/tracker', async (req, res) => {
     const state = crypto.randomBytes(24).toString('hex');
     req.session.trackerOauthState = state;
     req.session.trackerOauthStateStartedAt = Date.now();
+    req.session.trackerStudioReturn = req.query.studio === '1';
     await saveSession(req);
 
     res.redirect(trackerAuthUrl(state));
@@ -3231,6 +3261,8 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
       return res.status(400).send('OAuth tracker invalide.');
     }
 
+    const studioReturn = req.session.trackerStudioReturn === true;
+    delete req.session.trackerStudioReturn;
     delete req.session.trackerOauthState;
     delete req.session.trackerOauthStateStartedAt;
     await saveSession(req);
@@ -3273,7 +3305,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
     await saveSession(req);
     await runTrackerTick();
 
-    res.redirect('/?tracker=connected');
+    res.redirect(studioReturn ? '/bot?tracker=connected' : '/?tracker=connected');
   } catch (error) {
     console.error('Erreur callback tracker Twitch :', error);
     res.status(500).send('Impossible de configurer le tracker Twitch.');
@@ -3517,11 +3549,13 @@ app.get('/api/tracker/status', async (req, res) => {
     }
 
     let viewerCount = 0;
+    let gameName = null;
     if (row.last_live) {
       try {
         const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
         const streamData = await trackerTwitchFetch(`/streams?user_id=${encodeURIComponent(broadcasterId)}`);
         viewerCount = Number(streamData.data?.[0]?.viewer_count || 0);
+        gameName = streamData.data?.[0]?.game_name || null;
       } catch {}
     }
 
@@ -3530,6 +3564,7 @@ app.get('/api/tracker/status', async (req, res) => {
       authorized: true,
       live: Boolean(row.last_live),
       viewerCount,
+      gameName,
       lastPollAt: row.last_poll_at,
       lastSuccessAt: row.last_success_at,
       lastSubSyncAt: row.last_sub_sync_at,
@@ -5782,6 +5817,7 @@ const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt
 app.use('/api',gameBot.router);
 
 registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
+registerGlobalGameReset(app,{pool,getBroadcasterAccount,pushLiveUpdate});
 
 app.get('/api/admin/players', async (req, res) => {
   try {
@@ -6223,7 +6259,7 @@ app.get('/api/lovys', async (req,res)=>{
     ]);
     const liveXpBoosts = [{multiplier:2,expiresAt:personalBoostResult.rows[0]?.expires_at}, {multiplier:adminBoost.xp,expiresAt:adminBoost.expiresAt}];
     const baseXpPerHour = user.is_sub ? 120 : 100;
-    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,liveSecondsToNextLevel:prog.maxLevel?null:estimateLovysLiveSeconds(Math.max(0,prog.nextThreshold-Number(row.xp||0)),baseXpPerHour,liveXpBoosts),progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
+    const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,liveSecondsToNextLevel:prog.maxLevel?null:estimateLovysLiveSeconds(Math.max(0,prog.nextThreshold-Number(row.xp||0)),baseXpPerHour,liveXpBoosts),progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,evolutionBonusPercent:prog.evolutionBonusPercent,nextEvolutionLevel:prog.nextEvolutionLevel,rankBonusPercent:stats.rankBonusPercent,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
     res.json({ok:true,lovys,maxXp:LOVYS_MAX_XP,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
   }catch(error){console.error('Erreur collection Lovys :',error);res.status(500).json({error:'Impossible de charger tes Lovys.'});}
 });

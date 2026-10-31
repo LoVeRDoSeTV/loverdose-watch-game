@@ -1,0 +1,31 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#11131e"><title>LoVeRWatchBot · Studio privé</title><link rel="icon" href="/pwa-icon-192.webp"><link rel="stylesheet" href="/styles.css?v=524"><link rel="stylesheet" href="/styles-extended.min.css?v=549"><link rel="stylesheet" href="/bot-dashboard.css?v=553"><script defer src="/bot-bootstrap.js?v=550"></script><script defer src="/bot-studio.min.js?v=550"></script><script defer src="/bot-page.js?v=552"></script></head><body class="bot-studio-standalone"><div id="adminBotModal" class="admin-players-modal" role="dialog" aria-modal="true" aria-labelledby="adminBotTitle">
+  <div class="admin-players-panel bot-studio-panel">
+    <div class="bot-studio-sky" aria-hidden="true"><svg class="bot-twitch-symbol" aria-hidden="true"><defs><symbol id="botTwitchLogo" viewBox="0 0 24 28"><path fill="currentColor" d="M2 0 0 5v19h6v4l4-4h5l9-9V0H2zm20 14-4 4h-6l-4 4v-4H3V2h19v12zM17 5h2v7h-2V5zm-6 0h2v7h-2V5z"/></symbol></defs></svg><svg viewBox="0 0 24 28" style="--x:22%;--y:15%;--size:42px;--duration:19s;--delay:-3s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:72%;--y:12%;--size:76px;--duration:25s;--delay:-11s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:92%;--y:45%;--size:52px;--duration:22s;--delay:-7s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:38%;--y:72%;--size:58px;--duration:24s;--delay:-9s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:65%;--y:88%;--size:40px;--duration:18s;--delay:-2s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:86%;--y:76%;--size:86px;--duration:28s;--delay:-14s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:48%;--y:38%;--size:32px;--duration:20s;--delay:-6s"><use href="#botTwitchLogo"/></svg><svg viewBox="0 0 24 28" style="--x:9%;--y:67%;--size:48px;--duration:26s;--delay:-8s"><use href="#botTwitchLogo"/></svg></div>
+    <header class="bot-studio-header">
+      <div class="bot-studio-brand"><span class="bot-studio-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M16 5v4M14 5h4"/><rect x="5" y="9" width="22" height="18" rx="6"/><path d="M2 16v5M30 16v5M12 22h8"/><circle cx="11" cy="16" r="1.3" fill="currentColor"/><circle cx="21" cy="16" r="1.3" fill="currentColor"/></svg></span><div><h2 id="adminBotTitle">LoVeRWatchBot</h2><span>LE STUDIO DE TON CHAT TWITCH</span></div></div>
+      <div class="bot-studio-header-actions"><span id="botStudioLive" class="bot-status-chip">Chargement…</span><button id="botStudioFullscreen" class="bot-back-button" type="button">⛶ Plein écran</button><a class="bot-back-button" href="/">← Le jeu</a></div>
+    </header><p id="botStudioNotice" role="status" aria-live="polite"></p>
+    <div class="bot-studio-shell">
+      <aside class="bot-studio-sidebar">
+        <span class="bot-sidebar-label">ESPACE STREAMER</span>
+        <nav class="bot-studio-nav" aria-label="Rubriques du bot">
+          <button type="button" data-bot-view="overview" class="active" aria-current="page"><span aria-hidden="true">◈</span> Vue d’ensemble</button>
+          <button type="button" data-bot-view="commands"><span aria-hidden="true">⌨</span> Commandes <small id="botCommandNavCount">0</small></button>
+          <button type="button" data-bot-view="announcements"><span aria-hidden="true">☷</span> Annonces</button>
+          <button type="button" data-bot-view="drops"><span aria-hidden="true">◇</span> Drops !catch</button>
+          <button type="button" data-bot-view="history"><span aria-hidden="true">◷</span> Historique</button>
+          <button type="button" data-bot-view="twitch"><span aria-hidden="true">▣</span> Twitch du site</button>
+          <button type="button" data-bot-view="settings"><span aria-hidden="true">⚙</span> Fonctionnement</button>
+        </nav>
+        <div class="bot-sidebar-footer"><span class="bot-sidebar-dot" aria-hidden="true"></span><div><strong id="botStudioAccount">LoVeRWatchBot</strong><small>Connecté à LoVeR Watch Game</small></div></div>
+      </aside>
+      <main class="bot-studio-main">
+        <div class="bot-page-heading"><div><span class="bot-page-kicker">TON BOT, TON CHAT, TES RÈGLES</span><h3 id="botStudioPageTitle" tabindex="-1">Vue d’ensemble</h3><p id="botStudioPageDescription">Tout ce qu’il faut pour animer ta communauté.</p></div><span id="botStudioPower" class="bot-status-chip">Chargement…</span></div>
+        <div id="adminBotContent" class="admin-dashboard-content"><div class="admin-players-empty">Chargement du tableau de bord…</div></div>
+      <section id="botStudioTwitch" class="hidden" aria-label="Twitch du site"></section>
+      </main>
+    </div>
+  </div>
+</div>
+
+</body></html>

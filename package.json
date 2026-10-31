@@ -8,7 +8,9 @@
     "start": "node server.js",
     "check:ovh": "node scripts/check-ovh.mjs",
     "migrate:ovh": "node scripts/migrate-ovh.mjs",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "build:css": "node scripts/build-css.mjs",
+    "check:css": "node scripts/build-css.mjs --check"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -22,6 +24,11 @@
     "express-rate-limit": "^7.5.0"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "0.5.11"
+    "@electric-sql/pglite": "0.5.11",
+    "postcss": "8.5.6"
+  },
+  "overrides": {
+    "body-parser": "1.20.9",
+    "qs": "6.16.2"
   }
 }

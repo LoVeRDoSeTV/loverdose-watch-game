@@ -39,7 +39,7 @@ export function createBattleState({fight, player, typeMultiplier=1, bossMechanic
 export function battlePublicState(state){
   return {
     fightKey:state.fightKey, round:state.round, status:state.status, endReason:state.endReason||null, maxRounds:MAX_BATTLE_ROUNDS, typeMultiplier:state.typeMultiplier,
-    player:{name:state.player.name,level:state.player.level,rank:state.player.rank,type:state.player.type,hp:state.player.hp,maxHp:state.player.maxHp,attack:state.player.attack,defense:state.player.defense,speed:state.player.speed,power:state.player.attack,talent:state.player.talent,skills:state.player.skills,cooldowns:state.player.cooldowns},
+    player:{name:state.player.name,creatureId:state.player.creatureId,evolution:state.player.evolution,evolutionName:state.player.evolutionName,evolutionBonusPercent:state.player.evolutionBonusPercent,level:state.player.level,rank:state.player.rank,type:state.player.type,hp:state.player.hp,maxHp:state.player.maxHp,attack:state.player.attack,defense:state.player.defense,speed:state.player.speed,power:state.player.attack,talent:state.player.talent,skills:state.player.skills,cooldowns:state.player.cooldowns},
     enemy:{name:state.enemy.name,level:state.enemy.level,type:state.enemy.type,hp:state.enemy.hp,maxHp:state.enemy.maxHp,attack:state.enemy.attack,defense:state.enemy.defense,speed:state.enemy.speed,power:state.enemy.attack,boss:state.enemy.boss,mechanic:state.enemy.mechanic,shield:Number(state.enemy.mechanicState.shield||0),phase:Number(state.enemy.mechanicState.phase||1),intent:enemyIntent(state)}
   };
 }
