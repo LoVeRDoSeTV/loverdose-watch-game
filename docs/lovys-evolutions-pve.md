@@ -10,6 +10,14 @@
 - Aucun transfert ou changement d’XP, niveau ou rang existant. Les Lovys déjà au niveau 25 ou 50 obtiennent automatiquement la forme correspondante.
 - Les combats déjà démarrés conservent leurs statistiques enregistrées ; les nouveaux calculs prennent effet au prochain combat.
 
+## Animation d’évolution
+
+Les prochains passages aux niveaux 25 et 50 déclenchent une séquence plein écran : halo violet, silhouette lumineuse puis nouvelle forme et bonus total. « Passer l’animation » affiche immédiatement le résultat ; « Continuer » ferme la séquence. Le réglage de réduction des animations affiche directement le résultat.
+
+Les observations utilisent uniquement les niveaux confirmés par le serveur, sur le Lovys actif et la collection (y compris les dons d’XP aux Lovys inactifs). Un saut franchissant les deux paliers présente les deux formes successivement. La séquence attend la fermeture du combat, de la confirmation d’XP et des célébrations déjà ouvertes. Elle ne modifie aucune progression ni récompense.
+
+Le navigateur conserve les niveaux observés et les séquences en attente par compte. Une actualisation reprend une séquence non acquittée, sans rejouer les paliers déjà fermés. Au premier chargement après installation, les formes déjà acquises servent de référence et ne déclenchent pas de célébration rétroactive. Aucun changement de schéma SQL.
+
 ## Difficulté PvE
 
 Les trois premières zones gardent leurs niveaux. Les sept suivantes couvrent 17–50. Les clés des 100 combats et les victoires existantes sont conservées. Les budgets de récompenses restent basés sur les anciens niveaux : 1 920 XP Lovys au total, sans nouvelle attribution pour les combats déjà gagnés.

@@ -425,6 +425,17 @@ function lovysEvolutionMarkup(l){
   const name=stage===3?'Évolution maximale':stage===2?'Forme évoluée':'Forme de départ';
   return `<div class="lovys-evolution-summary"><strong>✨ ${name}</strong><span>${bonus?`+${bonus} % PV, ATQ, DEF et VIT`:'Évolution au niveau 25'}</span><small>Évolution : niveau et apparence · Rang ⭐ : fragments et talent</small></div>`;
 }
+function observeLovysEvolutions(lovys){
+  window.LovysEvolutionCelebration?.observe({
+    accountId:me?.user?.id,lovys,imageFor:lovysImageUrl,
+    isBlocked:()=>Boolean(badgeCelebrationActive||returnSummaryBusy||returnSummaryPending||rewardWheelSpinning||activeTradeExchange
+      ||document.querySelector('#pveBattleOverlay:not(.hidden),.lovys-xp-transfer-modal,.lovys-xp-success,.desktop-egg-boost-overlay,.desktop-boost-accepted-overlay,.hatch-cinematic.active,#returnSummaryOverlay,#rewardWheelWinPopup:not(.hidden)'))
+  });
+}
+function observeActiveLovysEvolution(){
+  if(!me?.user?.creature_id)return;
+  observeLovysEvolutions([{creatureId:me.user.creature_id,name:me.creatures?.find(c=>c.id===me.user.creature_id)?.name,level:me.user.progression?.level}]);
+}
 function art(type, evo = 0, small = false) {
   const monsterNames = {
     fire: 'Flamby',
@@ -1046,6 +1057,7 @@ async function loadGameOnce() {
     const data = await response.json();
 
     if (!response.ok || !data.authenticated) {
+      window.LovysEvolutionCelebration?.reset();
       $('app').classList.add('hidden');
       return;
     }
@@ -1056,6 +1068,7 @@ async function loadGameOnce() {
       }
     }
     me = data;
+    if(window.LovysEvolutionCelebration)observeActiveLovysEvolution();
     lastGameRefreshAt=Date.now();
     void refreshReturnSummary();
     reapplyPendingCosmetics();
@@ -1078,6 +1091,7 @@ async function loadGameOnce() {
     }
     await loadIncubatorSlots();
     await Promise.allSettled([syncDesktopLovysHub(),loadBadges(),loadDailyChallenges(),loadRewardWheels()]);
+    if(window.LovysEvolutionCelebration)observeActiveLovysEvolution();
     renderNextActions();
     updatePwaInstallUi();
     setupTopDashboardSync();
@@ -1888,7 +1902,7 @@ function showNextBadgeCelebration() {
   clearTimeout(badgeCelebrationRetry);
   if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
   const wheelPopup = $('rewardWheelWinPopup');
-  if (document.hidden || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
+  if (document.hidden || window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
       || pveBattleState.running || activeTradeExchange) {
     badgeCelebrationRetry = setTimeout(showNextBadgeCelebration, 400);
     return;
@@ -2209,6 +2223,7 @@ function applyBadgeRewardSummary(summary){
     if(summary[source]!==undefined)me.user[target]=Number(summary[source]||0);
   }
   if(summary.creatureProgression)me.user.progression=summary.creatureProgression;
+  if(globalThis.LovysEvolutionCelebration)observeActiveLovysEvolution();
   if(summary.globalProgression)me.user.global_progression=summary.globalProgression;
   if(summary.globalGrade)me.user.global_grade=summary.globalGrade;
   syncLoverCashDisplays(me.user);
@@ -3887,6 +3902,7 @@ async function loadLovysCollection(){
     if(incubatorResponse?.ok){try{lovysIncubatorData=await incubatorResponse.json();}catch{lovysIncubatorData=null;}}
     if(!response.ok) throw new Error(data.error||'Impossible de charger la collection.');
     lovysCollectionData=data;
+    if(window.LovysEvolutionCelebration)observeLovysEvolutions(data.lovys);
     renderLovysReserve(data);
     renderLovysCollection(data);
     return data;

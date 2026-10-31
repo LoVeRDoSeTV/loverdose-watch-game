@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import postcss from 'postcss';
 
-export const stylesheets = ['styles-extended', 'pve-expansion', 'return-summary', 'live-xp-boost', 'tablet'];
+export const stylesheets = ['styles-extended', 'pve-expansion', 'return-summary', 'live-xp-boost', 'tablet', 'lovys-evolution'];
 
 // Only remove formatting outside CSS tokens. Keep selectors, values, custom
 // properties, rule order, duplicate declarations and browser hacks verbatim.
