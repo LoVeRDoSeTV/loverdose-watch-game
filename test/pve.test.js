@@ -28,7 +28,7 @@ test('campaign preserves keys, ordered levels, unique assets and cross-zone unlo
  assert.equal(pvePreviousFight('forest_1'),null);
  assert.equal(pvePreviousFight('tide_1').key,'night_boss');
  assert.equal(pvePreviousFight('origin_1').key,'automata_boss');
- assert.equal(PVE_FIGHTS.at(-1).level,30);
+ assert.equal(PVE_FIGHTS.at(-1).level,50);
  PVE_FIGHTS.forEach((f,i)=>{assert.ok(f.level>= (PVE_FIGHTS[i-1]?.level||1));assert.equal(pveFightByKey(f.key),f);if(f.visual)assert.ok(fs.existsSync(new URL('../public'+f.visual.image,import.meta.url)));});
  PVE_ZONES.forEach(z=>{assert.equal(z.fights.length,10);assert.equal(z.fights.filter(f=>f.miniBoss).length,1);assert.equal(z.fights.filter(f=>f.finalBoss).length,1);if(z.visual?.background)assert.ok(fs.existsSync(new URL('../public'+z.visual.background,import.meta.url)));});
 });
@@ -61,6 +61,6 @@ test('version 2 legacy battles still resolve after restart',()=>{
  const s=createBattleState({fight:PVE_FIGHTS[0],player});s.version=2;delete s.enemy.baseAttack;delete s.enemy.baseDefense;delete s.player.frostUntilRound;delete s.enemy.mechanicState.shield;
  assert.doesNotThrow(()=>turn(JSON.parse(JSON.stringify(s))));
 });
-test('all species at max level can finish the campaign',()=>{
- for(const id of Object.keys(LOVYS_COMBAT_CONFIG))for(const f of PVE_FIGHTS){const p=buildLovysBattleStats({creature:{id,name:id,type:'Neutre'},level:50,rank:1});const s=createBattleState({fight:f,player:p});for(let i=0;i<30&&s.status==='active';i++){const sk=[...s.player.skills].reverse().find(sk=>Number(s.player.cooldowns[sk.key]||0)<=1);resolveBattleAction(s,sk?.key||'basic');}assert.equal(s.status,'victory',id+' / '+f.key);}
+test('all species at max level and max rank can finish the campaign',()=>{
+ for(const id of Object.keys(LOVYS_COMBAT_CONFIG))for(const f of PVE_FIGHTS){const p=buildLovysBattleStats({creature:{id,name:id,type:'Neutre'},level:50,rank:5});const s=createBattleState({fight:f,player:p});for(let i=0;i<30&&s.status==='active';i++){const sk=[...s.player.skills].reverse().find(sk=>Number(s.player.cooldowns[sk.key]||0)<=1);resolveBattleAction(s,sk?.key||'basic');}assert.equal(s.status,'victory',id+' / '+f.key);}
 });

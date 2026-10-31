@@ -22,6 +22,14 @@ export function lovysThresholdForLevel(level) {
   return 3500 + 260*steps + 25*steps*(steps-1);
 }
 
+// Evolution follows XP levels; fragments and stars belong only to rank.
+export function lovysEvolutionFromLevel(level) {
+  const value=Math.max(1,Math.min(50,Number(level)||1));
+  const evolution=value>=50?3:value>=25?2:0;
+  return {evolution,evolutionName:evolution===3?'Évolution maximale':evolution===2?'Forme évoluée':'Forme de départ',
+    evolutionBonusPercent:evolution===3?30:evolution===2?15:0,nextEvolutionLevel:value<25?25:value<50?50:null};
+}
+
 export function lovysProgressionFromXp(xp) {
   const value=Math.max(0,Number(xp)||0);
   let low=1,high=50;
@@ -29,8 +37,8 @@ export function lovysProgressionFromXp(xp) {
     const middle=Math.ceil((low+high)/2);
     if(value>=lovysThresholdForLevel(middle))low=middle;else high=middle-1;
   }
-  const level=low,evolution=level>=50?3:level>=25?2:level>=10?1:0;
-  return {level,evolution,evolutionName:['Forme de départ','Évolution 1','Évolution 2','Forme finale'][evolution],
+  const level=low;
+  return {level,...lovysEvolutionFromLevel(level),
     currentThreshold:lovysThresholdForLevel(level),nextThreshold:lovysThresholdForLevel(Math.min(50,level+1)),maxLevel:level===50,maxXp:LOVYS_MAX_XP};
 }
 

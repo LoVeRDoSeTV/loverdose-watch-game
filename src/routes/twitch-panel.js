@@ -25,6 +25,7 @@ export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattl
 
   router.get('/art/:file',(req,res)=>{
     const files=new Set(['Mossy.webp','Nymea.webp','Voltis.webp','Brumee.webp','Flamby.webp','Crysal.webp','Ferox.webp','Nocty.webp','Solka.webp','Mimo.webp']);
+    for(const name of [...files])for(const level of [25,50])files.add(name.replace('.webp',`-evolution-${level}.webp`));
     if(!files.has(req.params.file))return res.sendStatus(404);
     res.set('Cross-Origin-Resource-Policy','cross-origin');
     res.set('Cache-Control','public, max-age=3600');

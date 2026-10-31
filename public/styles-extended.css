@@ -4706,3 +4706,6 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   .game-bot-editor .egg-boost-actions{position:sticky;bottom:-20px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:12px 0;background:#111528}
   .game-bot-editor .egg-boost-actions .shop-action{min-height:48px;font-size:16px}
 }
+
+/* Level-based evolution is separate from fragment-based rank. */
+.lovys-evolution-summary{display:grid;gap:5px;margin:12px 0;padding:12px 14px;border:1px solid #9772bd66;border-radius:12px;background:#241b3880;color:#eadbff}.lovys-evolution-summary strong{font-size:14px}.lovys-evolution-summary span{font-size:13px;color:#c4e7ce}.lovys-evolution-summary small{font-size:12px;line-height:1.5;color:#beb6cc}
