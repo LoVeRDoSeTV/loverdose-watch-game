@@ -3735,6 +3735,22 @@ function applyLovysHeroTheme(box,lovy){
   box.dataset.lovysTheme=theme?id:'';
   box.style.setProperty('--lovys-scene',theme?`url("/assets/lovys-backgrounds/${id}-v566.webp")`:'none');
   box.style.setProperty('--lovys-accent',theme||'145,71,255');
+  box.style.setProperty('--lovys-ground',String(({plant:.76,water:.84,voltis:.76,brumee:.79,fire:.76,crysal:.82,ferox:.80,dark:.80,solka:.76,dream:.77})[id]||.76));
+}
+let lovysHeroGroundObserver=null;
+function positionLovysHeroOnGround(){
+  const box=$('lovysActiveHero'),art=box?.querySelector('.lovys-active-art');
+  if(!art||!isDesktopGameUi())return;
+  const hero=box.getBoundingClientRect(),frame=art.getBoundingClientRect();
+  if(!hero.width||!hero.height)return;
+  const scale=Math.max(hero.width/1672,hero.height/941);
+  const ground=Number(box.style.getPropertyValue('--lovys-ground'))||.76;
+  const y=941*scale*ground-(941*scale-hero.height)/2-(frame.top-hero.top);
+  art.style.setProperty('--lovys-ground-y',`${Math.max(210,Math.min(frame.height-16,y))}px`);
+}
+function syncLovysHeroGround(box){
+  if(typeof ResizeObserver!=='undefined'&&!lovysHeroGroundObserver){lovysHeroGroundObserver=new ResizeObserver(positionLovysHeroOnGround);lovysHeroGroundObserver.observe(box);}
+  requestAnimationFrame(positionLovysHeroOnGround);
 }
 function lovysRole(l){return LOVYS_ROLES[lovysCanonicalId(l?.creatureId)]||'Polyvalent';}
 function lovysRarityClass(r='Commun'){return String(r).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
@@ -3877,6 +3893,7 @@ function renderLovysActiveHero(data){
   }
   if(isMobileGameUi())renderMobileLovysIncubator(now);
   else now.innerHTML=`<div class="lovys-moment-tip"><div class="lovys-moment-tip-icon">${tipIcon}</div><div class="lovys-moment-tip-copy"><span>CONSEIL DU MOMENT</span><strong>${tipTitle}</strong><p>${tipText}</p></div>${tipAction}</div>`;
+  syncLovysHeroGround(box);
 }
 function renderLovysFragmentInventory(data){
   const universalBox=$('lovysUniversalFragments'),grid=$('lovysFragmentsGrid'); if(!grid)return;
