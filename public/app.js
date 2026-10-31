@@ -3729,6 +3729,13 @@ let lovysPveData=null;
 let lovysIncubatorData=null;
 const LOVYS_MILESTONES=[{level:25,power:15,label:'Forme évoluée'},{level:50,power:30,label:'Évolution maximale'}];
 function lovysCanonicalId(id){return LOVYS_ID_ALIASES[id]||id;}
+function applyLovysHeroTheme(box,lovy){
+  const themes={plant:['forest','87,194,139'],water:['tide','78,181,230'],voltis:['storm','244,207,82'],brumee:['night','172,195,224'],fire:['ember','245,128,73'],crysal:['frost','133,211,246'],ferox:['automata','221,161,96'],dark:['night','173,111,237'],solka:['dune','246,197,109'],dream:['dream','212,147,232']};
+  const id=lovysCanonicalId(lovy?.creatureId),theme=themes[id];
+  box.dataset.lovysTheme=theme?id:'';
+  box.style.setProperty('--lovys-scene',theme?`url("/assets/pve-battle-${theme[0]}-desktop.webp")`:'none');
+  box.style.setProperty('--lovys-accent',theme?.[1]||'145,71,255');
+}
 function lovysRole(l){return LOVYS_ROLES[lovysCanonicalId(l?.creatureId)]||'Polyvalent';}
 function lovysRarityClass(r='Commun'){return String(r).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
 function lovysNextRankText(l){const n=l?.nextRankPreview;if(!n)return 'Rang maximum atteint';const cur=l.stats||{}, parts=[];if(Number(n.stats?.attack)>Number(cur.attack))parts.push(`ATQ ${cur.attack} → ${n.stats.attack}`);if(Number(n.stats?.hp)>Number(cur.hp))parts.push(`PV ${cur.hp} → ${n.stats.hp}`);if(l.talent?.description!==n.talent?.description)parts.push(`${l.talent?.name||'Talent'} : ${l.talent?.description||''} → ${n.talent?.description||''}`);return parts.slice(0,2).join(' · ')||'Statistiques renforcées au prochain rang';}
@@ -3808,6 +3815,7 @@ function renderMobileLovysIncubator(now){
 function renderLovysActiveHero(data){
   const box=$('lovysActiveHero'),now=$('lovysNowStrip');if(!box||!now)return;
   const active=(data?.lovys||[]).find(l=>l.isActive)||(data?.lovys||[])[0];
+  applyLovysHeroTheme(box,active);
   if(!active){box.innerHTML='';now.innerHTML='';if(isMobileGameUi())renderMobileLovysIncubator(now);return;}
   const st=active.stats||{},skills=active.skills||[],frag=lovysFragmentProgress(active),nextRank=Number(active.rank||1)+1,nextPreview=lovysNextRankText(active);
   const prog=active.progression||{},cur=Math.max(0,Number(prog.currentThreshold||0)),next=Math.max(cur,Number(prog.nextThreshold||cur)),total=Math.max(0,Number(active.xp||0)),into=Math.max(0,Math.floor(total-cur)),need=Math.max(0,Math.ceil(next-cur)),xpPct=active.maxLevel?100:Math.max(0,Math.min(100,need?into/need*100:0));
