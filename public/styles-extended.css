@@ -1456,7 +1456,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   body[data-desktop-view="lovys"] .lovys-collection-card{
     padding:12px!important;
     border-radius:16px!important;
-    background:linear-gradient(180deg,rgba(17,22,42,.98),rgba(12,16,31,.98))!important;
+    background:linear-gradient(180deg,rgba(12,16,31,.08),rgba(12,16,31,.35) 100px,#0c101f 170px),var(--lovys-scene,none) center top/cover no-repeat,#0c101f!important;
     box-shadow:0 10px 28px rgba(0,0,0,.12)!important;
   }
   body[data-desktop-view="lovys"] .lovys-collection-card.active{
@@ -1466,7 +1466,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
     height:128px!important;
     margin:-2px 0 4px!important;
     border-radius:13px!important;
-    background:radial-gradient(circle at 50% 54%,rgba(145,71,255,.10),transparent 66%)!important;
+    background:radial-gradient(circle at 50% 54%,rgba(var(--lovys-accent,145,71,255),.12),transparent 66%)!important;
   }
   body[data-desktop-view="lovys"] .lovys-collection-art img{
     width:auto!important;
@@ -1683,8 +1683,10 @@ body[data-desktop-view="lovys"] .lovys-collection-grid{grid-template-columns:rep
   #lovysCollectionModal .lovys-collection-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
   #lovysCollectionModal .lovys-collection-tab{min-height:44px;font-size:12px;padding:8px}
   #lovysCollectionModal .lovys-collection-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px;align-items:stretch}
-  #lovysCollectionModal .lovys-collection-card{display:flex;flex-direction:column;min-width:0;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:#101427}
+  #lovysCollectionModal .lovys-collection-card{display:flex;flex-direction:column;min-width:0;padding:10px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:linear-gradient(180deg,rgba(16,20,39,.10),rgba(16,20,39,.40) 95px,#101427 150px),var(--lovys-scene,none) left top/auto 180px no-repeat,#101427}
   #lovysCollectionModal .lovys-collection-card.active{border-color:#9147ff}
+  #lovysCollectionModal .lovys-collection-card.missing{opacity:.68}
+  #lovysCollectionModal .lovys-collection-art.silhouette img{filter:brightness(0) saturate(0);opacity:.32}
   #lovysCollectionModal .lovys-collection-art{position:relative;display:grid;place-items:center;height:105px}
   #lovysCollectionModal .lovys-card-active-badge{position:absolute;top:0;right:0;left:auto;padding:3px 6px;border-radius:8px;background:#39235d;color:#ecdfff;font-size:10px;font-weight:800}
   #lovysCollectionModal .lovys-collection-art img{height:100px;max-width:100%;object-fit:contain}
