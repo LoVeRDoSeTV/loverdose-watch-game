@@ -97,3 +97,15 @@ test('ambiguous or missing Twitch recipients never receive a partial or guessed 
  const {pool}=await betaPlayers();await db.query("UPDATE users SET login='someone' WHERE id=22");
  const result=await initPermanentRewards(pool);assert.equal(result.completed,false);assert.equal((await db.query('SELECT COUNT(*)::int n FROM account_permanent_rewards')).rows[0].n,0);
 });
+test('the three existing players resolve an abbreviated third login only with a verified owner and two exact logins',()=>{
+ const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Izkll3_'},{id:4,twitch_id:'owner',login:'loverdosetv'}];
+ assert.deepEqual(resolveBetaTesters(accounts,'owner').selected.map(a=>a.id),[1,2,3]);
+ assert.equal(resolveBetaTesters(accounts).selected.length,0);
+ assert.equal(resolveBetaTesters(accounts.filter(a=>a.id!==4),'owner').selected.length,0);
+ assert.equal(resolveBetaTesters([...accounts,{id:5,twitch_id:'5',login:'another'}],'owner').selected.length,0);
+ assert.equal(resolveBetaTesters(accounts.map(a=>a.id===2?{...a,login:'someone'}:a),'owner').selected.length,0);
+});
+test('the broadcaster cannot receive the beta title through a matching login',()=>{
+ const accounts=[{id:1,twitch_id:'owner',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Lzkll3_'}];
+ assert.deepEqual(resolveBetaTesters(accounts,'owner').selected,[]);
+});

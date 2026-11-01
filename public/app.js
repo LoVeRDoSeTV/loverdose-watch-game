@@ -7489,6 +7489,11 @@ function adminPlayerAvatar(player){
   const initial=Array.from(String(player.username||'?').trim())[0]||'?';
   return `<span class="admin-player-avatar" aria-hidden="true"><span>${escapeHtml(initial.toUpperCase())}</span>${image}</span>`;
 }
+function adminPlayerTwitchLink(player){
+  const login=String(player.twitchLogin||'');
+  if(!/^[a-z0-9_]{1,25}$/i.test(login))return 'Twitch non lié';
+  return `<a href="https://www.twitch.tv/${encodeURIComponent(login)}" target="_blank" rel="noopener noreferrer" class="admin-twitch-link">Twitch : ${escapeHtml(login)} ↗</a>`;
+}
 function renderAdminPlayers(data) {
   const list = $('adminPlayersList');
   const total = $('adminPlayersTotal');
@@ -7510,7 +7515,7 @@ function renderAdminPlayers(data) {
         ? `Œuf · ${formatAdminHours(player.watchSeconds)}`
         : '👤 Compte créé';
     const twitchText = player.twitchConnected
-      ? `✅ Twitch${player.twitchLogin ? ` · ${escapeHtml(player.twitchLogin)}` : ''}`
+      ? `✅ ${adminPlayerTwitchLink(player)}`
       : '⚪ Twitch non lié';
     const discordText = player.discordVerified
       ? `✅ Discord${player.discordUsername ? ` · ${escapeHtml(player.discordUsername)}` : ''}`
@@ -7581,7 +7586,8 @@ function renderAdminPlayerEditor(player){
   const eggs=Array.isArray(player.inventory)?player.inventory.find(x=>x.item_key==='mystery_egg')?.quantity||0:0;
   const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
   editor.innerHTML=`
-    <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${adminPlayerTwitchLink(player)}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-section"><h3>🏅 Titres permanents</h3><div class="admin-player-stock">${(player.permanentTitles||[]).length?player.permanentTitles.map(item=>`<div><strong>${escapeHtml(item.name)}</strong><span>Permanent · conservé après les resets</span></div>`).join(''):'<p class="admin-player-meta">Aucun titre permanent attribué.</p>'}</div></div>
     <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
