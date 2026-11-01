@@ -3661,7 +3661,8 @@ app.get('/auth/discord', (req, res) => {
   if (!req.session.account) return res.redirect('/');
 
   if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET || !process.env.DISCORD_GUILD_ID) {
-    return res.status(500).send('Configure DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET et DISCORD_GUILD_ID dans le fichier .env du serveur.');
+    console.error('Connexion Discord indisponible : configuration OAuth incomplète.');
+    return res.redirect('/?discord=error');
   }
 
   const state = crypto.randomBytes(24).toString('hex');
