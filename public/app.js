@@ -1977,7 +1977,7 @@ async function syncBadgeUnlockCelebrations(challenges = []) {
   }
 }
 
-function badgeAssetUrl(value){if(typeof value!=='string'||!value.startsWith('/badges/'))return value;const path=value.split('?')[0];return path+'?v='+(/^\/badges\/watch-mw4-[1-4]\.webp$/.test(path)?'572':'531');}
+function badgeAssetUrl(value){if(typeof value!=='string'||!value.startsWith('/badges/'))return value;const path=value.split('?')[0];return path+'?v='+(/^\/badges\/watch-mw4-[1-5]\.webp$/.test(path)?'573':'531');}
 function badgeVisual(badge, className = 'badge-art') {
   if (badge?.badgeImage) {
     return `<img loading="lazy" decoding="async" class="${className}" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
