@@ -7072,6 +7072,11 @@ registerForm.addEventListener('submit', async event => {
 
 loginForm.addEventListener('submit', async event => {
   event.preventDefault();
+  event.lwgLoginHandled = true;
+  if(loginForm.dataset.loginPending === '1') return;
+  loginForm.dataset.loginPending = '1';
+  const loginSubmit = loginForm.querySelector('button[type="submit"]');
+  if(loginSubmit) loginSubmit.disabled = true;
   loginError.style.display = 'none';
 
   showLoading(
@@ -7143,6 +7148,9 @@ showSuccess(
 
   loginError.textContent = 'Impossible de contacter le serveur.';
   loginError.style.display = 'block';
+} finally {
+  delete loginForm.dataset.loginPending;
+  if(loginSubmit) loginSubmit.disabled = false;
 }
 });
 

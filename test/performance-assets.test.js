@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import vm from 'node:vm';
 
 const read = name => fs.readFileSync(new URL('../public/' + name, import.meta.url), 'utf8');
 
@@ -44,8 +45,12 @@ test('community notification refresh requests do not overlap in hidden tabs', ()
 });
 
 test('optimized badges use fresh cache key', () => {
-  const app = read('app.js');
-  assert.match(app, /function badgeAssetUrl\(value\).*\+'\?v=531'/);
+  for(const file of ['app.js','app.min.js']){
+    const app=read(file),context=vm.createContext({});
+    vm.runInContext(app.slice(app.indexOf('function badgeAssetUrl('),app.indexOf('function badgeVisual(')),context);
+    assert.equal(context.badgeAssetUrl('/badges/watch-dofus-1.webp?old=1'),'/badges/watch-dofus-1.webp?v=531');
+    for(let i=1;i<=5;i++)assert.equal(context.badgeAssetUrl(`/badges/watch-mw4-${i}.webp?old=1`),`/badges/watch-mw4-${i}.webp?v=573`);
+  }
 });
 
 test('decorative landing images do not compete with game artwork on initial load', () => {
