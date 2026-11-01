@@ -1,6 +1,7 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import vm from 'node:vm';
 import {PGlite} from '@electric-sql/pglite';
 import {LOVYS_MAX_XP} from '../src/xp-economy.js';
+import {BETA_TESTER_TITLE} from '../src/permanent-rewards.js';
 const source=fs.readFileSync(new URL('../server.js',import.meta.url),'utf8');
 let db,client,context,historyFails=false,notificationsFail=false;const routes=new Map();
 const response=()=>({statusCode:200,status(n){this.statusCode=n;return this;},json(body){this.body=body;return this;}});
@@ -14,6 +15,7 @@ test.before(async()=>{
  context=vm.createContext({console:{warn(){},error(){}},pool:{connect:async()=>client},economyWriteRateLimit(){},app:{post:(path,...handlers)=>routes.set(path,handlers.at(-1))},pushLiveUpdate(){},
  recordPlayerHistory:async(c,entry)=>{if(historyFails)throw Error('History interrupted');await c.query('INSERT INTO history VALUES($1::jsonb)',[JSON.stringify(entry)]);},
  wizebotAlerts:{collect:async()=>{if(notificationsFail)throw Error('Notification offline');}}});
+ context.BETA_TESTER_TITLE=BETA_TESTER_TITLE;
  vm.runInContext(source.slice(source.indexOf('const SHOP_ITEMS = ['),source.indexOf('\nfunction titleCosmeticFor(')),context);
  for(const [start,end] of [["app.post('/api/shop/buy'",'// Tenue cosmétique'],["app.post('/api/shop/use'",'\n});']]){
   const a=source.indexOf(start),b=end==='\n});'?source.indexOf(end,a)+4:source.indexOf(end,a);vm.runInContext(source.slice(a,b),context);

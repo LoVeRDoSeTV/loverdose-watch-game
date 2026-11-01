@@ -24,7 +24,11 @@ export async function resetAllGameProgress(client) {
   await client.query("UPDATE game_bot_drops SET status='cancelled',settled_at=CURRENT_TIMESTAMP WHERE status IN ('pending','open')");
   await client.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');
   await client.query('UPDATE wizebot_game_alerts SET valid_until=CURRENT_TIMESTAMP WHERE user_id IS NOT NULL');
-  for(const table of GLOBAL_PROGRESS_TABLES)await client.query(`DELETE FROM ${table}`);
+  for(const table of GLOBAL_PROGRESS_TABLES){
+    if(table==='shop_inventory')await client.query(`DELETE FROM shop_inventory i
+      WHERE NOT EXISTS(SELECT 1 FROM account_permanent_rewards p WHERE p.account_id=i.account_id AND p.item_key=i.item_key)`);
+    else await client.query(`DELETE FROM ${table}`);
+  }
   await client.query(`UPDATE users SET creature_id=NULL,xp=0,pending_xp=0,global_xp=0,prestige=0,
     egg_fragments=0,universal_lovys_fragments=0,points=0,lifetime_lovercash_earned=0,
     lifetime_lovercash_spent=0,watch_seconds=0,incubator_accelerated_seconds=0,

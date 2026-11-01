@@ -3,6 +3,7 @@ import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveB
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
 import { registerGlobalGameReset } from './src/reset-game.js';
+import { initPermanentRewards, BETA_TESTER_TITLE } from './src/permanent-rewards.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import { globalThresholdForLevel, lovysProgressionFromXp, migrateLovysProgressionCurve, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
@@ -672,6 +673,7 @@ const SHOP_ITEMS = [
   { key:'title_etoile_rose', category:'title', subcategory:'pink', name:'Étoile rose', price:400, color:'#ff95ef', description:'Un titre lumineux et pétillant pour les profils les plus stylés.' },
   { key:'title_roi_arene', category:'title', subcategory:'gold', name:'Reine de l’arène', price:500, color:'#f4cd67', description:"Un titre doré premium réservé aux plus grosses collectionneuses de LoVeR'Cash." },
   { key:'title_souverain_live', category:'title', subcategory:'gold', name:'Souverain du live', price:600, color:'#ffd86b', description:'Un grand titre doré pour les profils les plus prestigieux.' },
+  BETA_TESTER_TITLE,
   { key:'reward_title_recrue', category:'title', subcategory:'silver', name:'Recrue de LoVeR Watch Game', price:0, color:'#9aa3b8', description:'Débloqué au niveau global 1.', rewardOnly:true },
   { key:'reward_title_eclaireur', category:'title', subcategory:'blue', name:'Éclaireur du Live', price:0, color:'#67c7ff', description:'Débloqué au niveau global 6.', rewardOnly:true },
   { key:'reward_title_veilleur', category:'title', subcategory:'blue', name:'Veilleur du Live', price:0, color:'#7dd8d0', description:'Débloqué au niveau global 11.', rewardOnly:true },
@@ -1410,6 +1412,7 @@ async function initDatabase() {
   await initWizebotAlerts(pool);
   await initGameBot(pool);
   await initPlayerHistory(pool);
+  await initPermanentRewards(pool);
 
   // V107 — boosts live globaux pilotés depuis le panneau Événements.
   await pool.query(`CREATE TABLE IF NOT EXISTS admin_live_boosts (

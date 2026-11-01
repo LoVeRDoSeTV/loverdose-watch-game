@@ -34,7 +34,8 @@ export async function resetPlayerProgress(client, target, { achievementService, 
       lifetime_lovercash_spent=0,watch_seconds=0,incubator_accelerated_seconds=0,
       total_lovys_hatched=0,last_live_seen_at=NULL,progress_reset_at=clock_timestamp(),updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [userId]);
   }
-  await client.query('DELETE FROM shop_inventory WHERE account_id=$1', [target.id]);
+  await client.query(`DELETE FROM shop_inventory i WHERE account_id=$1
+    AND NOT EXISTS(SELECT 1 FROM account_permanent_rewards p WHERE p.account_id=i.account_id AND p.item_key=i.item_key)`, [target.id]);
   await client.query(`UPDATE accounts SET equipped_title_key=NULL,equipped_background_key=NULL,
     equipped_frame_key=NULL,equipped_avatar_frame_key=NULL,game_intro_seen=FALSE,
     community_intro_seen=FALSE,updated_at=CURRENT_TIMESTAMP WHERE id=$1`, [target.id]);

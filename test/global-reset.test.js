@@ -2,29 +2,33 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {PGlite} from '@electric-sql/pglite';
 import {GLOBAL_RESET_PHRASE,GLOBAL_PROGRESS_TABLES,registerGlobalGameReset} from '../src/reset-game.js';
+import {BETA_TESTER_TITLE,initPermanentRewards,resolveBetaTesters} from '../src/permanent-rewards.js';
+import {resetPlayerProgress} from '../src/reset-player.js';
 let db;
 const numeric=['xp','pending_xp','global_xp','prestige','egg_fragments','universal_lovys_fragments','points','lifetime_lovercash_earned','lifetime_lovercash_spent','watch_seconds','incubator_accelerated_seconds','total_lovys_hatched','away_lovys_xp','away_global_xp','away_lovercash','away_watch_seconds'];
 test.before(async()=>{
  db=new PGlite();
  await db.exec(`CREATE TABLE users(id int PRIMARY KEY,twitch_id text,login text,is_sub boolean,creature_id text,${numeric.map(k=>k+' double precision DEFAULT 99').join(',')},last_live_seen_at timestamptz,progress_reset_at timestamptz,updated_at timestamptz);
  CREATE TABLE accounts(id int PRIMARY KEY,username text,email text,password_hash text,twitch_id text,equipped_title_key text,equipped_background_key text,equipped_frame_key text,equipped_avatar_frame_key text,game_intro_seen boolean,community_intro_seen boolean,updated_at timestamptz);
- CREATE TABLE player_trade_offers(id int,status text,updated_at timestamptz);CREATE TABLE trade_offers(id int,status text,updated_at timestamptz);
+ CREATE TABLE player_trade_offers(id int,status text,updated_at timestamptz,creator_user_id int,target_user_id int);CREATE TABLE trade_offers(id int,status text,updated_at timestamptz,creator_user_id int);
  CREATE TABLE game_bot_drops(id int,status text,settled_at timestamptz);CREATE TABLE game_bot_drop_schedule(id int,next_at timestamptz,enabled boolean);
  CREATE TABLE wizebot_game_alerts(user_id int,valid_until timestamptz);
  CREATE TABLE admin_audit_log(admin_account_id int,target_account_id int,action_key text,summary text,details_json jsonb);
- CREATE TABLE user_sessions(id text);CREATE TABLE game_bot_auth(enabled boolean);CREATE TABLE player_economy_history(id int);`);
+ CREATE TABLE user_sessions(id text);CREATE TABLE game_bot_auth(enabled boolean);CREATE TABLE player_economy_history(id int);
+ CREATE TABLE account_permanent_rewards(account_id int REFERENCES accounts(id) ON DELETE CASCADE,item_key text,source text,twitch_id text,granted_at timestamptz DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(account_id,item_key));
+ CREATE TABLE permanent_reward_campaigns(key text PRIMARY KEY,completed boolean DEFAULT FALSE,completed_at timestamptz);`);
  for(const table of GLOBAL_PROGRESS_TABLES){
-  if(table==='shop_inventory')await db.exec(`CREATE TABLE ${table}(account_id int REFERENCES accounts(id),item_key text,quantity int)`);
+  if(table==='shop_inventory')await db.exec(`CREATE TABLE ${table}(account_id int REFERENCES accounts(id),item_key text,quantity int,PRIMARY KEY(account_id,item_key))`);
   else if(table==='user_badge_celebrations')await db.exec(`CREATE TABLE ${table}(user_id int PRIMARY KEY REFERENCES users(id),seen_signatures text[])`);
   else await db.exec(`CREATE TABLE ${table}(user_id int REFERENCES users(id))`);
  }
 });
 test.after(async()=>db?.close());
 test.beforeEach(async()=>{
- await db.exec(`TRUNCATE ${[...GLOBAL_PROGRESS_TABLES,'player_trade_offers','trade_offers','game_bot_drops','game_bot_drop_schedule','wizebot_game_alerts','admin_audit_log','user_sessions','game_bot_auth','player_economy_history','accounts','users'].join(',')};
+ await db.exec(`TRUNCATE ${[...GLOBAL_PROGRESS_TABLES,'account_permanent_rewards','permanent_reward_campaigns','player_trade_offers','trade_offers','game_bot_drops','game_bot_drop_schedule','wizebot_game_alerts','admin_audit_log','user_sessions','game_bot_auth','player_economy_history','accounts','users'].join(',')};
  INSERT INTO users(id,twitch_id,login,is_sub,creature_id) VALUES(11,'one','one',true,'voltis'),(22,'two','two',false,'plant'),(33,'three','three',false,'fire'),(44,'detected','detected',true,'water');
  INSERT INTO accounts(id,username,email,password_hash,twitch_id,equipped_title_key,game_intro_seen) VALUES(1,'owner','owner@example.test','hash','one','title',true),(2,'player','player@example.test','hash2','two','title',true),(3,'unlinked','unlinked@example.test','hash3',NULL,'title',true);
- INSERT INTO player_trade_offers VALUES(1,'open',NULL),(2,'accepted',NULL);INSERT INTO trade_offers VALUES(1,'open',NULL),(2,'accepted',NULL);
+ INSERT INTO player_trade_offers(id,status,updated_at) VALUES(1,'open',NULL),(2,'accepted',NULL);INSERT INTO trade_offers(id,status,updated_at) VALUES(1,'open',NULL),(2,'accepted',NULL);
  INSERT INTO game_bot_drops VALUES(1,'open',NULL),(2,'settled',NULL);INSERT INTO game_bot_drop_schedule VALUES(1,CURRENT_TIMESTAMP,true);
  INSERT INTO wizebot_game_alerts VALUES(11,CURRENT_TIMESTAMP+INTERVAL '1 day');
  INSERT INTO user_sessions VALUES('session-kept');INSERT INTO game_bot_auth VALUES(true);INSERT INTO player_economy_history VALUES(1);`);
@@ -66,4 +70,30 @@ test('failure after clearing data rolls back balances, inventory, trades and the
 });
 test('a concurrent reset is refused before any progress is touched',async()=>{
  const h=harness({locked:false});assert.equal((await h.invoke()).statusCode,409);assert.equal((await db.query('SELECT xp FROM users WHERE id=11')).rows[0].xp,99);assert.equal(h.events.length,0);
+});
+async function betaPlayers(){
+ await db.exec("UPDATE users SET login=CASE id WHEN 11 THEN 'LoVeRMiyu' WHEN 22 THEN 'LoVeRKiLLeR__' WHEN 33 THEN 'Lzkll3_' ELSE login END;UPDATE accounts SET twitch_id='three' WHERE id=3");
+ const client={query:(...args)=>db.query(...args),release(){}};
+ const pool={query:(...args)=>db.query(...args),connect:async()=>client};
+ return {pool,client};
+}
+test('beta title belongs only to the three resolved Twitch accounts and survives repeated global and individual resets',async()=>{
+ const {pool,client}=await betaPlayers();assert.equal((await initPermanentRewards(pool)).completed,true);
+ let rows=(await db.query('SELECT account_id FROM shop_inventory WHERE item_key=$1 ORDER BY account_id',[BETA_TESTER_TITLE.key])).rows;
+ assert.deepEqual(rows.map(x=>x.account_id),[1,2,3]);
+ const h=harness();await h.invoke();await h.invoke({confirmation:GLOBAL_RESET_PHRASE,confirmAll:true,requestId:'abcdefab-1234-1234-1234-123456789abc'});
+ await db.query('BEGIN');await resetPlayerProgress(client,{id:1,user_id:11},{achievementService:{reset:async()=>{}},changeTradeAsset:async()=>{throw Error('Unexpected refund');}});await db.query('COMMIT');
+ rows=(await db.query('SELECT account_id,item_key,quantity FROM shop_inventory ORDER BY account_id')).rows;
+ assert.equal(rows.length,3);assert.ok(rows.every(x=>x.item_key===BETA_TESTER_TITLE.key&&x.quantity===1));
+ // Renames and newly matching people cannot add new recipients after the one-time grant.
+ await db.exec("UPDATE users SET login='renamed' WHERE id=11;UPDATE users SET login='lovermiyu' WHERE id=44;INSERT INTO accounts(id,username,twitch_id) VALUES(4,'new-person','detected')");
+ assert.equal((await initPermanentRewards(pool)).completed,true);
+ assert.equal((await db.query('SELECT COUNT(*)::int n FROM account_permanent_rewards')).rows[0].n,3);
+ assert.equal((await db.query('SELECT COUNT(*)::int n FROM shop_inventory WHERE account_id=4')).rows[0].n,0);
+});
+test('ambiguous or missing Twitch recipients never receive a partial or guessed beta grant',async()=>{
+ const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Lzkll3_'},{id:4,twitch_id:'4',login:'lzk-other'}];
+ assert.deepEqual(resolveBetaTesters(accounts).selected,[]);assert.deepEqual(resolveBetaTesters(accounts).unresolved,['lzk']);
+ const {pool}=await betaPlayers();await db.query("UPDATE users SET login='someone' WHERE id=22");
+ const result=await initPermanentRewards(pool);assert.equal(result.completed,false);assert.equal((await db.query('SELECT COUNT(*)::int n FROM account_permanent_rewards')).rows[0].n,0);
 });

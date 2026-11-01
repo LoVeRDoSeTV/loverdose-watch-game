@@ -7698,7 +7698,7 @@ function trapDesktopAdminFocus(event,container){
   else if(!event.shiftKey && (document.activeElement===last || !container.contains(document.activeElement))){event.preventDefault();first.focus();}
 }
 function resetAccountConfirmationDetails(username){
-  return {username,requireUsername:true,actionText:'Remettre toute la progression à zéro',question:'Cette action efface définitivement la progression et tout l’inventaire. Les comptes liés et les identifiants sont conservés. Recopie le pseudo du joueur pour confirmer.'};
+  return {username,requireUsername:true,actionText:'Remettre toute la progression à zéro',question:'Cette action efface définitivement la progression et l’inventaire ordinaire. Les comptes liés, les identifiants et les titres permanents sont conservés. Recopie le pseudo du joueur pour confirmer.'};
 }
 function showResetAccountConfirmation(details){
   return new Promise(resolve=>{
@@ -7952,7 +7952,7 @@ async function resetAllPlayersGame(){
   adminResetAllBusy=true;button.disabled=true;message.textContent='';
   const confirmation='REINITIALISER TOUT LE JEU';
   try{
-    const confirmed=await showResetAccountConfirmation({username:confirmation,title:'Réinitialiser le jeu pour tout le monde ?',confirmationLabel:'Phrase de confirmation',question:'Tous les joueurs, toi compris, repartiront au niveau 1, sans Lovys, XP, Prestige, monnaies, inventaire ou badges. Les comptes et les liaisons sont conservés. Cette action est définitive. Recopie la phrase ci-dessous pour confirmer.'});
+    const confirmed=await showResetAccountConfirmation({username:confirmation,title:'Réinitialiser le jeu pour tout le monde ?',confirmationLabel:'Phrase de confirmation',question:'Tous les joueurs, toi compris, repartiront au niveau 1, sans Lovys, XP, Prestige, monnaies, inventaire ou badges. Les comptes, les liaisons et les titres permanents sont conservés. Cette action est définitive. Recopie la phrase ci-dessous pour confirmer.'});
     if(!confirmed)return;
     message.textContent='Réinitialisation en cours…';
     const response=await fetch('/api/admin/reset-game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation,confirmAll:true,requestId:crypto.randomUUID()})});
