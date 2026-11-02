@@ -8634,6 +8634,10 @@ function syncDesktopLeaderboardPlacement(){
 }
 async function openDesktopView(view='home'){
   if(!isDesktopGameUi())return;
+  if(view==='admin' && !await refreshDesktopAdminAccess()){
+    history.replaceState(null,'',location.pathname+location.search+'#accueil');
+    return openDesktopView('home');
+  }
   if(view==='inventory') return openInventory();
   if(view!=='lobby' && !$('communityGuideModal')?.classList.contains('hidden'))closeCommunityGuide();
   syncDesktopLeaderboardPlacement();

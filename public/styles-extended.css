@@ -4013,6 +4013,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   .mobile-page-heading h2{margin:0;color:#f7f5ff;font-size:24px;line-height:1.25}
   .mobile-page-heading p{margin:8px 0 20px;color:#aeb8d4;font-size:13px;line-height:1.5}
   .mobile-more-links{display:grid;gap:12px}
+  .mobile-more-link.hidden{display:none}
   .mobile-more-link{display:grid;grid-template-columns:28px minmax(0,1fr) 16px;align-items:center;gap:12px;min-height:80px;padding:16px;text-align:left;border:1px solid #393050;border-radius:14px;background:#17182b;color:#fff;font:inherit;touch-action:manipulation}
   .mobile-more-link>span:first-child{font-size:24px}
   .mobile-more-link b{display:block;font-size:16px;line-height:1.4}
