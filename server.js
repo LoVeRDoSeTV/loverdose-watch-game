@@ -1136,15 +1136,7 @@ async function initDatabase() {
       [broadcasterIdForProfile]
     );
 
-    // Mode test propriétaire : tant que le diffuseur n'a pas encore fait éclore
-    // son premier Lovys, son œuf de départ est directement prêt à éclore.
-    await pool.query(
-      `UPDATE users
-       SET watch_seconds = GREATEST(COALESCE(watch_seconds,0), $2),
-           updated_at = CURRENT_TIMESTAMP
-       WHERE twitch_id = $1 AND creature_id IS NULL`,
-      [broadcasterIdForProfile, EGG_HATCH_SECONDS]
-    );
+
 
   }
 
