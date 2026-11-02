@@ -4392,7 +4392,7 @@ body:has(#pveModal:not(.hidden)){
 @keyframes badgeConfettiFall{0%{opacity:0;transform:translate3d(0,-20px,0) rotate(0)}8%{opacity:.95}85%{opacity:.85}100%{opacity:0;transform:translate3d(var(--confetti-drift),105dvh,0) rotate(var(--confetti-turn))}}
 @media(prefers-reduced-motion:reduce){.badge-unlock-confetti{display:none}}
 
-.badge-unlock-card{position:relative;width:min(520px,calc(100vw - 32px));overflow:hidden;border:1px solid rgba(162,104,255,.58);border-radius:28px;padding:30px 28px 24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 34%),linear-gradient(180deg,#171a34 0%,#0d1021 100%);box-shadow:0 30px 100px rgba(0,0,0,.68),0 0 55px rgba(145,71,255,.18);text-align:center;transform:translateY(22px) scale(.92);opacity:0;transition:transform .42s cubic-bezier(.2,.85,.25,1.15),opacity .28s ease}
+.badge-unlock-card{position:relative;width:min(520px,calc(100vw - 32px));max-height:calc(100dvh - 28px);overflow-x:hidden;overflow-y:auto;border:1px solid rgba(162,104,255,.58);border-radius:28px;padding:30px 28px 24px;background:radial-gradient(circle at 50% 8%,rgba(145,71,255,.28),transparent 34%),linear-gradient(180deg,#171a34 0%,#0d1021 100%);box-shadow:0 30px 100px rgba(0,0,0,.68),0 0 55px rgba(145,71,255,.18);text-align:center;transform:translateY(22px) scale(.92);opacity:0;transition:transform .42s cubic-bezier(.2,.85,.25,1.15),opacity .28s ease}
 .badge-unlock-celebration.show .badge-unlock-card{transform:translateY(0) scale(1);opacity:1}
 .badge-unlock-glow{position:absolute;left:50%;top:-110px;width:340px;height:340px;transform:translateX(-50%);border-radius:50%;background:radial-gradient(circle,rgba(173,119,255,.34),rgba(145,71,255,.08) 48%,transparent 70%);filter:blur(3px);pointer-events:none;animation:badgeUnlockGlow 2.1s ease-in-out infinite}
 .badge-unlock-kicker{position:relative;z-index:2;display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(255,255,255,.055);color:#d9c8ff;font-size:10px;font-weight:1000;letter-spacing:.16em;text-transform:uppercase}
@@ -4404,6 +4404,8 @@ body:has(#pveModal:not(.hidden)){
 .badge-unlock-logo{position:relative;z-index:2;width:108px;height:108px;object-fit:contain;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));animation:badgeUnlockLogo .62s cubic-bezier(.2,.85,.25,1.2) both}
 .badge-unlock-logo-fallback{position:relative;z-index:2;width:108px;height:108px;display:grid;place-items:center;font-size:70px;filter:drop-shadow(0 12px 20px rgba(0,0,0,.42));animation:badgeUnlockLogo .62s cubic-bezier(.2,.85,.25,1.2) both}
 .badge-unlock-name{position:relative;z-index:2;font-size:21px;font-weight:1000;color:#fff}
+.badge-unlock-condition{position:relative;z-index:2;margin:11px 0 0;color:#c5cee4;font-size:13px;line-height:1.45;font-weight:650}
+.badge-unlock-condition[hidden]{display:none}
 .badge-unlock-reward-title{position:relative;z-index:2;margin:18px 0 9px;color:#8f98b4;font-size:10px;font-weight:1000;letter-spacing:.14em;text-transform:uppercase}
 .badge-unlock-rewards{position:relative;z-index:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
 .badge-unlock-reward{min-height:64px;padding:10px 7px;border:1px solid rgba(255,255,255,.09);border-radius:14px;background:rgba(255,255,255,.045);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:#fff}

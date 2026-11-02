@@ -1844,6 +1844,7 @@ function badgeCelebrationDescriptor(challenge) {
     signature: badgeCelebrationSignature(challenge),
     badgeName: String(challenge.badgeName || 'Nouveau badge'),
     badgeImage: String(challenge.badgeImage || ''),
+    badgeChallenge: String(challenge.badgeChallenge || '').trim(),
     stageName: String(progressive ? (challenge.celebrationStageName || challenge.evolutionName || '') : ''),
     lovysXp,
     globalXp,
@@ -1863,6 +1864,7 @@ function badgeCelebrationDescriptors(challenge) {
     ...challenge,
     badgeName: challenge.missionType === 'achievement' ? stage.name : challenge.badgeName,
     badgeImage: stage.image || challenge.badgeImage,
+    badgeChallenge: stage.badgeChallenge || challenge.badgeChallenge,
     celebrationStageId: stage.goal,
     celebrationStageName: stage.name,
     celebrationRewardLovysXp: stage.rewards?.lovysXp || 0,
@@ -1887,6 +1889,7 @@ function ensureBadgeCelebrationModal() {
     <div class="badge-unlock-stage" id="badgeUnlockStage"></div>
     <div class="badge-unlock-logo-wrap"><div class="badge-unlock-ring"></div><div id="badgeUnlockLogo"></div></div>
     <div class="badge-unlock-name" id="badgeUnlockName"></div>
+    <div class="badge-unlock-condition" id="badgeUnlockCondition"></div>
     <div class="badge-unlock-reward-title">Récompenses obtenues</div>
     <div class="badge-unlock-rewards" id="badgeUnlockRewards"></div>
     <div class="badge-unlock-reserve" id="badgeUnlockReserve"></div>
@@ -1919,6 +1922,8 @@ function showNextBadgeCelebration() {
   const reserve = modal.querySelector('#badgeUnlockReserve');
   if (stage) stage.textContent = item.stageName ? `Nouvelle évolution · ${item.stageName}` : 'Un nouveau badge rejoint ta collection';
   if (name) name.textContent = item.badgeName;
+  const condition = modal.querySelector('#badgeUnlockCondition');
+  if (condition) { condition.textContent = item.badgeChallenge ? `Obtenu en : ${item.badgeChallenge}` : ''; condition.hidden = !item.badgeChallenge; }
   if (logo) logo.innerHTML = item.badgeImage
     ? `<img loading="lazy" decoding="async" class="badge-unlock-logo" src="${escapeHtml(badgeAssetUrl(item.badgeImage))}" alt="${escapeHtml(item.badgeName)}">`
     : '<div class="badge-unlock-logo-fallback">🏆</div>';
