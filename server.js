@@ -5925,6 +5925,67 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
 });
 
+// Correction administrative du pseudo, tracée et réservée au diffuseur.
+app.patch('/api/admin/players/:accountId/username', async (req, res) => {
+  let client;
+  try {
+    const admin = await getBroadcasterAccount(req);
+    if (!admin) return res.status(403).json({error:'Accès réservé au diffuseur.'});
+    const id = Number(req.params.accountId);
+    const username = String(req.body?.username || '').trim();
+    if (!Number.isSafeInteger(id) || id < 1) return res.status(400).json({error:'Compte invalide.'});
+    const validationError = validateGameUsername(username);
+    if (validationError) return res.status(400).json({error:validationError});
+
+    client = await pool.connect();
+    await client.query('BEGIN');
+    const original = (await client.query(
+      'SELECT id,username,twitch_id FROM accounts WHERE id=$1 FOR UPDATE', [id]
+    )).rows[0];
+    if (!original) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({error:'Joueur introuvable.'});
+    }
+    if (original.twitch_id && String(original.twitch_id) === String(process.env.TWITCH_BROADCASTER_ID || '')) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({error:'Le pseudo du diffuseur est protégé.'});
+    }
+    if (original.username === username) {
+      await client.query('ROLLBACK');
+      return res.json({ok:true,username});
+    }
+    const used = (await client.query(
+      'SELECT id FROM accounts WHERE LOWER(username)=LOWER($1) AND id<>$2 LIMIT 1',
+      [username,id]
+    )).rowCount;
+    if (used) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({error:'Ce pseudo est déjà utilisé.'});
+    }
+    await client.query(
+      'UPDATE accounts SET username=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',
+      [id,username]
+    );
+    if (original.twitch_id) {
+      await client.query(
+        'UPDATE users SET display_name=$2,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',
+        [original.twitch_id,username]
+      );
+    }
+    await logAdminAction(admin.id,id,'change_username',
+      `Pseudo corrigé · ${original.username} → ${username}`,
+      {oldUsername:original.username,newUsername:username},client);
+    await client.query('COMMIT');
+    res.json({ok:true,username});
+  } catch (error) {
+    if (client) try { await client.query('ROLLBACK'); } catch {}
+    console.error('Correction pseudo admin :',error);
+    res.status(error.code === '23505' ? 409 : 500).json({
+      error:error.code === '23505' ? 'Ce pseudo est déjà utilisé.' : 'Modification impossible.'
+    });
+  } finally { client?.release(); }
+});
+
 // Correction administrative d'une adresse existante, tracée et réservée au diffuseur.
 app.patch('/api/admin/players/:accountId/email', async (req,res) => {
   let client;
