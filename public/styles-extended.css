@@ -601,6 +601,13 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   .admin-players-toolbar{flex-wrap:wrap}
   .admin-players-search{flex-basis:100%;font-size:16px}
   .admin-players-panel{overflow-x:auto}
+
+  /* La gestion des joueurs et la fiche ouverte occupent tout l'écran tactile. */
+  #adminPlayersModal:not(.hidden){inset:0;z-index:1000110;align-items:stretch;justify-content:stretch;padding:0;overflow:hidden;background:#0d1122;backdrop-filter:none}
+  #adminPlayersModal>.admin-players-panel{box-sizing:border-box;width:100%;height:100dvh;max-width:none;max-height:none;min-height:0;margin:0;padding:calc(18px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border:0;border-radius:0}
+  #adminPlayersModal .admin-player-editor:not(.hidden){position:fixed;inset:0;z-index:1;box-sizing:border-box;width:100%;height:100dvh;margin:0;padding:calc(18px + env(safe-area-inset-top)) 14px calc(30px + env(safe-area-inset-bottom));overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;border:0;border-radius:0;background:#0d1122}
+  #adminPlayersModal .admin-editor-head{align-items:flex-start}
+  #adminPlayersModal .admin-editor-identity>div{min-width:0}
   .badge-collection-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .account-edit-row,.account-username-edit{flex-wrap:wrap}
   .account-username-input,.account-username-edit input{flex-basis:100%;font-size:16px}

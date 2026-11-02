@@ -7583,7 +7583,8 @@ async function openAdminPlayerEditor(accountId){
   document.querySelector(`.admin-player-card[data-account-id="${CSS.escape(String(accountId))}"]`)?.classList.add('editor-selected');
   editor.classList.remove('hidden');
   editor.innerHTML='<div class="admin-players-empty">Chargement du compte…</div>';
-  editor.scrollIntoView({behavior:'smooth',block:'start'});
+  if(isDesktopGameUi())editor.scrollIntoView({behavior:'smooth',block:'start'});
+  else editor.scrollTop=0;
   try{
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/detail`);
     if(requestId!==adminPlayerEditorRequest)return;
