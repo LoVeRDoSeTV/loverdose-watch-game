@@ -7133,15 +7133,14 @@ app.get(
         FROM users u
         LEFT JOIN accounts a ON a.twitch_id = u.twitch_id
         WHERE u.twitch_id IS NOT NULL
-          AND ($1::text <> '' OR NOT ${broadcasterMatch})
           AND (
             $1::text = ''
             OR COALESCE(a.username, u.display_name, u.login) ILIKE '%' || $1::text || '%'
             OR COALESCE(u.display_name, '') ILIKE '%' || $1::text || '%'
             OR COALESCE(u.login, '') ILIKE '%' || $1::text || '%'
           )
-        ORDER BY ${orderByMetric}
-        LIMIT 50
+        ORDER BY excluded_from_ranking ASC, ${orderByMetric}
+        LIMIT 51
         `,
         [search, broadcasterId, CHANNEL.trim()]
       );
