@@ -7458,6 +7458,7 @@ function renderAdminPlayerEditor(player){
   const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
   editor.innerHTML=`
     <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-section admin-email-edit"><h3>👤 Pseudo du joueur</h3><p class="admin-player-meta">Modifier le pseudo affiché dans le jeu. Le compte Twitch lié reste le même.</p><div class="admin-email-edit-row"><input data-admin-username type="text" autocomplete="off" minlength="3" maxlength="24" value="${escapeHtml(player.username||'')}" ${player.isBroadcaster?'disabled':''} aria-label="Pseudo du joueur"><button type="button" class="btn secondary" data-admin-username-save ${player.isBroadcaster?'disabled':''}>Enregistrer</button></div><p data-admin-username-message class="admin-player-meta" role="status">${player.isBroadcaster?'Pseudo du diffuseur protégé.':''}</p></div>
     <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
@@ -8016,6 +8017,28 @@ $('adminPlayerEditor')?.addEventListener('click', async event=>{
   if(event.target.closest('[data-admin-history-refresh]')){await loadAdminPlayerHistory();return;}
   if(event.target.closest('[data-admin-history-more]')){await loadAdminPlayerHistory(true);return;}
   if(event.target.closest('[data-admin-close-editor]')){adminPlayerEditorRequest++;$('adminPlayerEditor')?.classList.add('hidden');return;}
+  const saveUsername=event.target.closest('[data-admin-username-save]');
+  if(saveUsername){
+    const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-username]'),message=editor?.querySelector('[data-admin-username-message]');
+    const username=String(field?.value||'').trim();
+    if(!field?.checkValidity() || username.length<3 || username.length>24){
+      if(message)message.textContent='Le pseudo doit contenir entre 3 et 24 caractères.';
+      return;
+    }
+    if(username===editor.dataset.playerUsername)return;
+    if(!await showAdminActionConfirmation({username:editor.dataset.playerUsername||'Joueur',actionText:'Modifier le pseudo',question:`Remplacer le pseudo ${editor.dataset.playerUsername||'Joueur'} par ${username} ?`}))return;
+    saveUsername.disabled=true;
+    try{
+      const accountId=editor.dataset.accountId;
+      const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/username`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+      await loadAdminPlayers();
+      await openAdminPlayerEditor(accountId);
+      const result=$('adminPlayerEditor')?.querySelector('[data-admin-username-message]');
+      if(result)result.textContent='✓ Pseudo mis à jour : '+data.username;
+    }catch(error){if(message)message.textContent='⚠️ '+error.message;}
+    finally{saveUsername.disabled=false;}
+    return;
+  }
   const saveEmail=event.target.closest('[data-admin-email-save]');
   if(saveEmail){
     const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-email]'),message=editor?.querySelector('[data-admin-email-message]');
