@@ -7603,6 +7603,7 @@ function renderAdminPlayerEditor(player){
   editor.innerHTML=`
     <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${adminPlayerTwitchLink(player)}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
     <div class="admin-editor-section"><h3>🏅 Titres permanents</h3><div class="admin-player-stock">${(player.permanentTitles||[]).length?player.permanentTitles.map(item=>`<div><strong>${escapeHtml(item.name)}</strong><span>Permanent · conservé après les resets</span></div>`).join(''):'<p class="admin-player-meta">Aucun titre permanent attribué.</p>'}</div></div>
+    <div class="admin-editor-section admin-email-edit"><h3>👤 Pseudo du joueur</h3><p class="admin-player-meta">Le nouveau pseudo apparaîtra dans le jeu et servira aussi à la connexion. Le nom Twitch ne change pas.</p><div class="admin-email-edit-row"><input data-admin-username type="text" autocomplete="off" minlength="3" maxlength="24" value="${escapeHtml(player.username||'')}" ${player.isBroadcaster?'disabled':''} aria-label="Pseudo du joueur"><button type="button" class="btn secondary" data-admin-username-save ${player.isBroadcaster?'disabled':''}>Enregistrer</button></div><p data-admin-username-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
@@ -8056,6 +8057,24 @@ $('adminPlayerEditor')?.addEventListener('click', async event=>{
   if(event.target.closest('[data-admin-history-refresh]')){await loadAdminPlayerHistory();return;}
   if(event.target.closest('[data-admin-history-more]')){await loadAdminPlayerHistory(true);return;}
   if(event.target.closest('[data-admin-close-editor]')){adminPlayerEditorRequest++;$('adminPlayerEditor')?.classList.add('hidden');return;}
+  const saveUsername=event.target.closest('[data-admin-username-save]');
+  if(saveUsername){
+    const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-username]'),message=editor?.querySelector('[data-admin-username-message]');
+    const username=String(field?.value||'').trim();
+    if(!field?.checkValidity() || username.length<3 || username.length>24){if(message)message.textContent='Le pseudo doit contenir entre 3 et 24 caractères.';return;}
+    if(!await showAdminActionConfirmation({username:editor.dataset.playerUsername||'Joueur',actionText:'Modifier le pseudo',question:`Enregistrer « ${username} » comme nouveau pseudo de connexion et d’affichage ?`}))return;
+    saveUsername.disabled=true;
+    try{
+      const data=await adminFetch(`/api/admin/players/${encodeURIComponent(editor.dataset.accountId)}/username`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+      if(message)message.textContent='✓ Pseudo mis à jour : '+data.username;
+      editor.dataset.playerUsername=data.username;
+      const title=editor.querySelector('.admin-editor-title');
+      if(title)title.textContent='⚙️ '+data.username;
+      await loadAdminPlayers();
+    }catch(error){if(message)message.textContent='⚠️ '+error.message;}
+    finally{saveUsername.disabled=false;}
+    return;
+  }
   const saveEmail=event.target.closest('[data-admin-email-save]');
   if(saveEmail){
     const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-email]'),message=editor?.querySelector('[data-admin-email-message]');
