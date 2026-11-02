@@ -4636,7 +4636,10 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
 }
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
   body:not(.auth-locked) :is(#lovysCollectionModal,#progressionModal,#pveModal){background:#090b17!important;backdrop-filter:none!important}
-  body:not(.auth-locked) :is(#shopModal,#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel,#desktopLobbyPage,.global-leaderboard){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
+  body:not(.auth-locked) :is(#shopModal,#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel,#desktopLobbyPage){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
+  /* Classement : le décor reste sur la fenêtre, les résultats défilent devant. */
+  body:not(.auth-locked).mobile-leaderboard-open::before{content:"";position:fixed;inset:0;z-index:1000054;pointer-events:none;background-color:#090b17;background-image:var(--game-page-art);background-size:var(--game-page-art-size);background-position:center top;background-repeat:no-repeat}
+  body:not(.auth-locked).mobile-leaderboard-open .global-leaderboard{background:transparent!important}
 }
 .admin-reset-label{display:block;margin:18px 0 8px;color:#e9defa}
 .admin-reset-input{display:block;width:100%;box-sizing:border-box;padding:12px;border:1px solid #69518c;border-radius:10px;background:#111528;color:#fff;font:inherit}
