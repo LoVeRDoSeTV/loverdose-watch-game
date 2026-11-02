@@ -5865,6 +5865,7 @@ app.get('/api/admin/players', async (req, res) => {
 
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
 
+    res.setHeader('Cache-Control', 'no-store');
     res.json({
       ok: true,
       total: Number(totalResult.rows[0]?.total || 0),
@@ -5932,14 +5933,14 @@ app.get('/api/admin/economy', async (req,res)=>{
 });
 
 app.get('/api/admin/history',async(req,res)=>{
-  try{const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).json({error:'Accès réservé au diffuseur.'});const result=await pool.query(`SELECT l.id,l.target_account_id,l.action_key,l.summary,l.details_json,l.created_at,a.username target_username FROM admin_audit_log l LEFT JOIN accounts a ON a.id=l.target_account_id ORDER BY l.created_at DESC LIMIT 150`);res.json({ok:true,items:result.rows});}catch(error){console.error('Erreur historique admin :',error);res.status(500).json({error:'Impossible de charger l’historique.'});}
+  try{const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).json({error:'Accès réservé au diffuseur.'});const result=await pool.query(`SELECT l.id,l.target_account_id,l.action_key,l.summary,l.details_json,l.created_at,a.username target_username FROM admin_audit_log l LEFT JOIN accounts a ON a.id=l.target_account_id ORDER BY l.created_at DESC LIMIT 150`);res.setHeader('Cache-Control','no-store');res.json({ok:true,items:result.rows});}catch(error){console.error('Erreur historique admin :',error);res.status(500).json({error:'Impossible de charger l’historique.'});}
 });
 
 app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
   try{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).json({error:'Accès réservé au diffuseur.'});
     const accountId=Number.parseInt(req.params.accountId,10);if(!Number.isInteger(accountId)||accountId<=0)return res.status(400).json({error:'Compte invalide.'});
-    const ar=await pool.query(`SELECT a.*,u.id user_id,u.login twitch_login,u.display_name twitch_display_name,u.profile_image_url,u.is_sub,u.creature_id,u.xp,u.pending_xp,u.points,u.watch_seconds,u.global_xp,u.prestige,u.egg_fragments,u.universal_lovys_fragments,u.lifetime_lovercash_earned,u.lifetime_lovercash_spent FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1`,[accountId]);
+    const ar=await pool.query(`SELECT a.id,a.username,a.email,a.created_at,a.twitch_id,a.discord_user_id,a.discord_username,a.discord_member_verified,u.id user_id,u.login twitch_login,u.display_name twitch_display_name,u.profile_image_url,u.is_sub,u.creature_id,u.xp,u.pending_xp,u.points,u.watch_seconds,u.global_xp,u.prestige,u.egg_fragments,u.universal_lovys_fragments,u.lifetime_lovercash_earned,u.lifetime_lovercash_spent FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.id=$1`,[accountId]);
     const row=ar.rows[0];if(!row)return res.status(404).json({error:'Joueur introuvable.'});
     let lovys=[],incubator=[],badges=[],pve=[];
     const permanentTitles=(await pool.query('SELECT item_key,granted_at FROM account_permanent_rewards WHERE account_id=$1 ORDER BY granted_at',[accountId])).rows.map(item=>({...item,name:shopItemByKey(item.item_key)?.name||item.item_key}));
@@ -5954,6 +5955,7 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
       lovys=results[0].rows.map(l=>{const c=creatures.find(x=>x.id===l.creature_id);return {...l,name:c?.name||l.creature_id,rarity:c?.rarity||'—',type:c?.type||'—',level:progressionFromXp(Number(l.xp||0)).level};});
       incubator=results[1].rows;badges=results[2].rows;pve=results[3].rows;
     }
+    res.setHeader('Cache-Control', 'no-store');
     res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),permanentTitles,lovys,incubator,badges,pve,inventory}});
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
 });
