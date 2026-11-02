@@ -11,12 +11,13 @@ export function isGameBotCallback(query,session){
 }
 
 const rewards=[
-  {key:'cash',weight:50,label:"20 LoVeR’Cash",icon:'💰'},
+  {key:'cash',weight:50,label:"3 à 25 LoVeR’Cash",icon:'💰'},
   {key:'fragments',weight:25,label:'2 fragments d’œuf',icon:'🧩'},
   {key:'xp',weight:20,label:'une bouteille de 100 XP',icon:'🧪'},
   {key:'egg',weight:5,label:'un œuf mystère',icon:'🥚'}
 ];
 export function chooseDropReward(random=crypto.randomInt){let n=random(100);for(const r of rewards){if(n<r.weight)return r;n-=r.weight;}return rewards[0];}
+export function chooseCashDropAmount(random=crypto.randomInt){return random(3,26);}
 export function chooseWinnerCount(random=crypto.randomInt){const n=random(100);return n<70?1:n<95?2:3;}
 export function verifyEventSub(headers,raw,secret,now=Date.now()){
   const id=String(headers['twitch-eventsub-message-id']||''),timestamp=String(headers['twitch-eventsub-message-timestamp']||'');
@@ -177,15 +178,20 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
       JOIN users u ON u.id=e.user_id AND u.twitch_id=e.twitch_id WHERE e.drop_id=$1`,[round.id])).rows;
     const shuffled=entries.map(entry=>({entry,sort:crypto.randomInt(0x7fffffff)})).sort((a,b)=>a.sort-b.sort);
     const winners=shuffled.slice(0,Math.min(entries.length,chooseWinnerCount())).map(item=>item.entry);
+    const cashAmounts=new Map();
     for(const winner of winners){
-      if(round.reward_key==='cash')await client.query('UPDATE users SET points=points+20,lifetime_lovercash_earned=lifetime_lovercash_earned+20,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[winner.user_id]);
+      if(round.reward_key==='cash'){
+        const amount=chooseCashDropAmount();
+        cashAmounts.set(winner.twitch_id,amount);
+        await client.query('UPDATE users SET points=points+$2,lifetime_lovercash_earned=lifetime_lovercash_earned+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[winner.user_id,amount]);
+      }
       else if(round.reward_key==='fragments')await client.query('UPDATE users SET egg_fragments=egg_fragments+2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[winner.user_id]);
       else await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$2,1)
         ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+1,purchased_at=CURRENT_TIMESTAMP`,[winner.account_id,round.reward_key==='egg'?'mystery_egg':'xp_bottle_100']);
     }
     const names=winners.length?(await client.query('SELECT twitch_id,login FROM users WHERE twitch_id=ANY($1::text[])',[winners.map(w=>w.twitch_id)])).rows:[];
     const byId=new Map(names.map(row=>[row.twitch_id,row.login]));
-    const mentions=winners.map(w=>`@${String(byId.get(w.twitch_id)||'joueur').replace(/[^a-zA-Z0-9_]/g,'')}`).join(', ');
+    const mentions=winners.map(w=>`@${String(byId.get(w.twitch_id)||'joueur').replace(/[^a-zA-Z0-9_]/g,'')}${cashAmounts.has(w.twitch_id)?` (+${cashAmounts.get(w.twitch_id)} LoVeR’Cash)`:''}`).join(', ');
     await client.query("UPDATE game_bot_drops SET status='settled',settled_at=CURRENT_TIMESTAMP WHERE id=$1",[round.id]);
     return messageText(winners.length?'winners':'empty',{gagnants:mentions,recompense:rewards.find(r=>r.key===round.reward_key).label});
   }
