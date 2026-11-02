@@ -193,6 +193,34 @@ test('global rewards read locked current XP and prestige keeps excess instead of
  assert.equal(res.statusCode,200);assert.equal((await balances(id)).prestige,1);assert.equal((await balances(id)).global_xp,3350);
 });
 
+test('profile reward refresh uses five queries without rewriting earned rewards and preserves prestige grants',async()=>{
+ const statements=[];
+ const trackedClient={query:async(sql,args)=>{statements.push(sql);return query(sql,args);},release(){}};
+ const trackedPool={query:trackedClient.query,connect:async()=>trackedClient};
+ const ctx=extracted('async function syncGlobalLevelRewards','function typeMultiplier',{pool:trackedPool});
+ for(const name of ['GLOBAL_LEVEL_CASH_REWARDS','GLOBAL_LEVEL_CASH_LEVELS','GLOBAL_LEVEL_XP_REWARDS']){
+  const a=source.indexOf(`const ${name} =`);
+  const b=name==='GLOBAL_LEVEL_XP_REWARDS'?source.indexOf('\n);',a)+3:source.indexOf(';',a)+1;
+  vm.runInContext(source.slice(a,b),ctx);
+ }
+ vm.runInContext(source.slice(source.indexOf('function globalProgressionFromXp'),source.indexOf('const CREATURE_MILESTONES')),ctx);
+ const id=await player();await query('UPDATE users SET global_xp=$2 WHERE id=$1',[id,globalThresholdForLevel(55)]);
+ const first=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.ok(first.globalXpGranted>0);assert.ok(first.cashGranted>0);assert.ok(first.pendingXpGranted>0);
+ const before=await balances(id);statements.length=0;
+ const repeat=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.equal(statements.length,5,'BEGIN, three reads and COMMIT only');
+ assert.ok(statements.every(sql=>!/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)));
+ assert.deepEqual(await balances(id),before);
+ assert.equal(repeat.globalXpGranted,0);assert.equal(repeat.pendingXpGranted,0);assert.equal(repeat.cashGranted,0);
+ await query('DELETE FROM user_global_cash_level_rewards WHERE user_id=$1 AND prestige=0 AND level=5',[id]);
+ assert.ok((await ctx.syncGlobalLevelRewards(trackedPool,id,id,0)).cashGranted>0,'missing legacy reward is still backfilled');
+ assert.equal((await ctx.syncGlobalLevelRewards(trackedPool,id,id,0)).cashGranted,0);
+ await query('UPDATE users SET prestige=1 WHERE id=$1',[id]);
+ const prestige=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.ok(prestige.globalXpGranted>0);assert.ok(prestige.cashGranted>0);assert.ok(prestige.pendingXpGranted>0);
+});
+
 test('startup global XP backfill runs once and never refills a completed prestige',async()=>{
  const legacy=await player(0,{hatched:false}),prestiged=await player(0,{hatched:false});
  await query('UPDATE users SET watch_seconds=7200 WHERE id=ANY($1::int[])',[[legacy,prestiged]]);

@@ -1,3 +1,4 @@
+import {lovysEvolutionFromLevel} from '../xp-economy.js';
 export const LOVYS_RANK_COSTS = Object.freeze({ 2:20, 3:40, 4:70, 5:120 });
 export const LOVYS_MAX_RANK = 5;
 export const DUPLICATE_FRAGMENT_REWARDS = Object.freeze({ Commun:10, Rare:15, 'Épique':25, Mythique:40 });
@@ -94,12 +95,13 @@ export function buildLovysBattleStats({ creature, level=1, rank=1 }){
   const cfg=LOVYS_COMBAT_CONFIG[creature?.id] || LOVYS_COMBAT_CONFIG.plant;
   const lvl=Math.max(1, Math.min(50, Number(level||1)));
   const r=Math.max(1, Math.min(LOVYS_MAX_RANK, Number(rank||1)));
-  const bonus=rankStatMultiplier(r);
+  const evolution=lovysEvolutionFromLevel(lvl);
+  const bonus=rankStatMultiplier(r)*(1+evolution.evolutionBonusPercent/100);
   const calc=(key)=>Math.round((Number(cfg.base[key]||0)+Number(cfg.growth[key]||0)*(lvl-1))*bonus);
   const tier=talentTierForRank(r);
   const talent={...cfg.talent,tier,value:Number(cfg.talent.values?.[tier]||0),secondaryValue:Number(cfg.talent.secondary?.[tier]||0),tertiaryValue:Number(cfg.talent.tertiary?.[tier]||0)};
   return {
-    level:lvl, rank:r, hp:calc('hp'), attack:calc('attack'), defense:calc('defense'), speed:calc('speed'), power:calc('attack'),
+    level:lvl, rank:r, ...evolution, rankBonusPercent:Math.round((rankStatMultiplier(r)-1)*100), hp:calc('hp'), attack:calc('attack'), defense:calc('defense'), speed:calc('speed'), power:calc('attack'),
     type:creature?.type||'Neutre', name:creature?.name||'Lovys', rarity:creature?.rarity||'Commun', creatureId:creature?.id||'plant',
     talent, skills:cfg.skills.map(skill=>({...skill}))
   };

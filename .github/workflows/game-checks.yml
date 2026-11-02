@@ -1,0 +1,42 @@
+name: Vérification du jeu
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+      - name: Vérifier les feuilles CSS allégées
+        run: npm run check:css
+      - name: Vérifier la syntaxe JavaScript côté client
+        run: node --check public/app.js
+      - name: Vérifier que le JS allégé correspond au source
+        run: |
+          npx --yes terser@5.44.1 public/app.js --format comments=false --output /tmp/app-generated.min.js
+          cmp public/app.min.js /tmp/app-generated.min.js
+          node --check public/app.min.js
+          npx --yes terser@5.44.1 public/bot-studio.js --format comments=false --output /tmp/bot-generated.min.js
+          cmp public/bot-studio.min.js /tmp/bot-generated.min.js
+          node --check public/bot-studio.min.js
+          node --check public/bot-page.js
+      - name: Vérifier la syntaxe des serveurs
+        run: |
+          node --check server.js
+          node --check public/server.js
+      - name: Exécuter les tests
+        run: npm test

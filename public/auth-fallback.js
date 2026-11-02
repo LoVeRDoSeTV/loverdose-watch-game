@@ -33,18 +33,20 @@
   if(form && !form.dataset.fallbackSubmitBound){
     form.dataset.fallbackSubmitBound='1';
     form.addEventListener('submit', async function(ev){
-      /* Si le gestionnaire principal fonctionne déjà, il aura affiché l'écran de chargement. */
-      await new Promise(r=>setTimeout(r,0));
-      const loading=byId('loadingScreen');
-      if(loading && !loading.classList.contains('hidden')) return;
+      // Cancel the native submit synchronously, even if app.js did not load.
       ev.preventDefault();
+      await new Promise(r=>setTimeout(r,0));
+      // The event marker stays valid even if the primary handler already failed.
+      if(ev.lwgLoginHandled || form.dataset.loginPending==='1') return;
+      form.dataset.loginPending='1';
       const error=byId('loginError');
       if(error){ error.style.display='none'; error.textContent=''; }
       const submit=form.querySelector('button[type="submit"]');
       if(submit){ submit.disabled=true; submit.dataset.oldText=submit.textContent; submit.textContent='Connexion…'; }
+      let timer;
       try{
         const controller=new AbortController();
-        const timer=setTimeout(()=>controller.abort(),15000);
+        timer=setTimeout(()=>controller.abort(),15000);
         const response=await fetch('/api/account/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:byId('loginEmail')?.value||'',password:byId('loginPassword')?.value||''}),signal:controller.signal});
         clearTimeout(timer);
         let data={}; try{ data=await response.json(); }catch(_){ data={error:'Réponse serveur invalide.'}; }
@@ -58,6 +60,8 @@
         if(error){ error.textContent=err?.name==='AbortError'?'Le serveur met trop de temps à répondre. Réessaie dans quelques secondes.':(err?.message||'Impossible de contacter le serveur.'); error.style.display='block'; }
         showLoginFallback();
       }finally{
+        clearTimeout(timer);
+        delete form.dataset.loginPending;
         if(submit){ submit.disabled=false; submit.textContent=submit.dataset.oldText||'Se connecter'; }
       }
     }, true);

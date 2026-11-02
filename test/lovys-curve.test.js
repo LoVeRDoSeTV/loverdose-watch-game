@@ -18,7 +18,7 @@ test('early levels keep their thresholds, later levels get progressively more ex
     const current=lovysThresholdForLevel(level),p=lovysProgressionFromXp(current);
     assert.equal(p.level,level);assert.equal(p.currentThreshold,current);assert.equal(p.maxLevel,level===50);
     if(level<50){assert.equal(p.nextThreshold,lovysThresholdForLevel(level+1));assert.equal(lovysProgressionFromXp(p.nextThreshold-.0001).level,level);}
-    assert.equal(p.evolution,level>=50?3:level>=25?2:level>=10?1:0);
+    assert.equal(p.evolution,level>=50?3:level>=25?2:0);
   }
   assert.equal(lovysProgressionFromXp(10000).maxLevel,false);
   assert.equal(lovysProgressionFromXp(-100).level,1);

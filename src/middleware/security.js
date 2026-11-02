@@ -1,4 +1,5 @@
 import helmet from 'helmet';
+import { createHash } from 'node:crypto';
 import { rateLimit } from 'express-rate-limit';
 
 export function validOAuthCallback(query, session, stateKey, now = Date.now()) {
@@ -76,14 +77,26 @@ export function createOriginGuard({ baseUrl }) {
   };
 }
 
-export const loginRateLimit = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
-  standardHeaders: 'draft-7',
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  message: { error: 'Trop de tentatives de connexion. Réessaie dans quelques minutes.' }
-});
+// A shared connection must not let one mistyped account lock out every viewer.
+// Count authentication refusals only; outages and OAuth/navigation requests are not failures.
+export function createLoginRateLimits(){
+  const common={windowMs:15*60*1000,standardHeaders:'draft-7',legacyHeaders:false,
+    skipSuccessfulRequests:true,requestWasSuccessful:(_req,res)=>res.statusCode!==401,
+    handler(req,res,_next,options){
+      const reset=req.rateLimit?.resetTime?.getTime();
+      const retryAfterSeconds=Math.max(1,Math.ceil(((reset||Date.now()+options.windowMs)-Date.now())/1000));
+      const minutes=Math.ceil(retryAfterSeconds/60);
+      res.setHeader('Retry-After',String(retryAfterSeconds));
+      res.status(429).json({error:`Trop de tentatives de connexion incorrectes. Réessaie dans ${minutes} minute${minutes>1?'s':''}.`,retryAfterSeconds});
+    }};
+  return [
+    rateLimit({...common,limit:60}),
+    rateLimit({...common,limit:10,keyGenerator:req=>createHash('sha256')
+      .update(String(req.ip||'')).update('\0')
+      .update(String(req.body?.email||'').trim().toLowerCase()).digest('hex')})
+  ];
+}
+export const loginRateLimit=createLoginRateLimits();
 
 export const registerRateLimit = rateLimit({
   windowMs: 60 * 60 * 1000,

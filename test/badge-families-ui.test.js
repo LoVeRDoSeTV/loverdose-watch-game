@@ -1,0 +1,50 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const source=fs.readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+const context=vm.createContext({escapeHtml:v=>String(v),badgeVisual:b=>`<img src="${b.badgeImage}" alt="${b.badgeName}">`});
+vm.runInContext(source.slice(source.indexOf('function badgeCollectionFamilies('),source.indexOf('function badgeMobileProgress(')),context);
+const discovery=(id,unlocked=false)=>({badgeKey:'achievement:'+id,badgeName:id,badgeImage:id+'.webp',badgeChallenge:'Obtenir '+id,badgeCategory:'collection',missionType:'achievement',unlocked,maxed:unlocked,progressValue:Number(unlocked),progressTarget:1,progressUnit:id,rewardLovysXp:25,rewardGlobalXp:10,rewardCash:2,stages:[{goal:1}]});
+test('one discovery family contains every obtained and future badge without mutating reward data',()=>{
+ const input=[discovery('rare',true),discovery('epic'),discovery('mimo')],snapshot=JSON.stringify(input);
+ const [family]=context.badgeCollectionFamilies(input);
+ assert.equal(context.badgeCollectionFamilies(input).length,1);assert.equal(family.badgeName,'Découverte de Lovys');
+ assert.equal(family.badgeKey,'achievement:rare');assert.equal(family.unlocked,true);assert.equal(family.maxed,false);
+ assert.equal(family.progressValue,1);assert.equal(family.progressTarget,3);
+ assert.equal(family.stages.length,3);assert.equal(family.stages[1].sourceBadgeKey,'achievement:epic');
+ assert.equal(family.stages[1].rewards.lovysXp,25);assert.equal(family.stages[1].unlocked,false);
+ assert.equal(JSON.stringify(input),snapshot);
+ const markup=context.badgeStagesMarkup(family);
+ for(const member of input)assert.ok(markup.includes(member.badgeName+'.webp'));
+ assert.ok(markup.includes('Prochain badge'));assert.ok(markup.includes('À débloquer'));
+});
+test('independent discovery conditions may be met in any order and equipment uses an owned key',()=>{
+ const input=[discovery('rare'),discovery('epic',true),discovery('mimo')];
+ const [family]=context.badgeCollectionFamilies(input);
+ assert.equal(family.badgeKey,'achievement:epic');assert.equal(family.progressValue,1);
+ assert.equal(family.stages[0].unlocked,false);assert.equal(family.stages[1].unlocked,true);
+ assert.ok(context.badgeStagesMarkup(family).includes('Obtenir rare'));
+ const [complete]=context.badgeCollectionFamilies(input.map(x=>({...x,unlocked:true})));
+ assert.equal(complete.maxed,true);assert.equal(complete.progressValue,3);
+});
+test('existing watch and collection families retain all their stages, and isolated badges remain intact',()=>{
+ const watch={badgeKey:'watch',stages:[25,50,100,250,500].map(goal=>({goal,name:goal+' h'}))};
+ const collection={badgeKey:'achievement:collection',stages:[3,5,10].map(goal=>({goal,name:goal+' Lovys'}))};
+ const isolated={badgeKey:'achievement:flawless',stages:[{goal:1}]};
+ const output=context.badgeCollectionFamilies([watch,discovery('rare'),discovery('epic'),discovery('mimo'),collection,isolated]);
+ assert.equal(output.length,4);assert.equal(output[0],watch);assert.equal(output[2],collection);assert.equal(output[3],isolated);
+ assert.ok(context.badgeStagesMarkup(watch).includes('500 h'));assert.ok(context.badgeStagesMarkup(collection).includes('10 Lovys'));
+ assert.equal(context.badgeStagesMarkup(isolated),'');
+});
+test('opening a future discovery shows its own condition, progress and rewards',()=>{
+ const nodes=new Map();
+ const node=id=>{if(!nodes.has(id))nodes.set(id,{innerHTML:'',classList:{contains:()=>false,add(){},remove(){}},focus(){},scrollTo(){}});return nodes.get(id);};
+ const c=vm.createContext({badgeData:{badges:[],challenges:[discovery('rare',true),{...discovery('epic'),rewardLovysXp:75},discovery('mimo')]},$:node,document:{querySelector:()=>node('panel')},badgeVisual:()=>'',escapeHtml:v=>String(v),mobileBadgeCollectionScroll:0});
+ vm.runInContext(source.slice(source.indexOf('function badgeCategoryOf('),source.indexOf('function renderMobileNextBadges(')),c);
+ vm.runInContext(source.slice(source.indexOf('function openMobileBadgeDetail('),source.indexOf('function renderBadgeCollection(')),c);
+ c.openMobileBadgeDetail('achievement:rare',2);
+ const html=node('badgeMobileDetailBody').innerHTML;
+ assert.ok(html.includes('Obtenir epic'));assert.ok(html.includes('+75 XP Lovys'));assert.ok(html.includes('0 / 1 epic'));assert.ok(html.includes('🔒 À débloquer'));
+ c.openMobileBadgeDetail('achievement:epic');assert.ok(node('badgeMobileDetailBody').innerHTML.includes('Découverte de Lovys'));
+});

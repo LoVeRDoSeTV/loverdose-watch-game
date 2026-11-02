@@ -51,5 +51,5 @@ export async function loadPanelSnapshot({pool,twitchId,hatchSeconds,creatureBatt
   });
   const objects=new Map(catalog.filter(item=>item.category==='object').map(item=>[item.key,item]));
   const items=inventory.rows.filter(row=>objects.has(row.item_key)).map(row=>({key:row.item_key,name:objects.get(row.item_key).name,icon:objects.get(row.item_key).icon||'🎒',quantity:Number(row.quantity)}));
-  return {state:'player',player:{name:user.username,avatarUrl:user.avatar_url||null,pendingXp:Math.max(0,Math.floor(Number(user.pending_xp||0))),lovys:stats?{name:stats.name,level:stats.level,rank:stats.rank,type:stats.type,image:'/api/twitch-panel/art'+(ART[active.creature_id]||'/Mossy.webp')}:null},eggs:slots,items:items.slice(0,4),itemTypes:items.length,updatedAt:new Date().toISOString()};
+  return {state:'player',player:{name:user.username,avatarUrl:user.avatar_url||null,pendingXp:Math.max(0,Math.floor(Number(user.pending_xp||0))),lovys:stats?{name:stats.name,level:stats.level,rank:stats.rank,type:stats.type,evolution:stats.evolution,evolutionName:stats.evolutionName,image:'/api/twitch-panel/art'+(ART[active.creature_id]||'/Mossy.webp').replace('.webp',stats.level>=50?'-evolution-50.webp':stats.level>=25?'-evolution-25.webp':'.webp')}:null},eggs:slots,items:items.slice(0,4),itemTypes:items.length,updatedAt:new Date().toISOString()};
 }
