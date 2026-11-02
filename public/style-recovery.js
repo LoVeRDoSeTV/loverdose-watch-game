@@ -22,9 +22,15 @@
     link.href = url.href;
   }
 
+  function updateStylesReady() {
+    const styles = [...document.querySelectorAll('link[rel="stylesheet"]')].filter(isLocalStylesheet);
+    document.documentElement.classList.toggle('game-styles-ready', styles.length > 0 && styles.every(link => Boolean(link.sheet)));
+  }
+
   function recoverMissingStyles() {
     if (document.hidden) return;
     document.querySelectorAll('link[rel="stylesheet"]').forEach(recover);
+    updateStylesReady();
   }
 
   document.addEventListener('error', event => {
@@ -33,10 +39,12 @@
     const state = retries.get(link);
     if (state) state.pending = false;
     if (!document.hidden) recover(link);
+    updateStylesReady();
   }, true);
 
   document.addEventListener('load', event => {
     if (isLocalStylesheet(event.target)) retries.delete(event.target);
+    updateStylesReady();
   }, true);
 
   if (document.readyState === 'loading') {

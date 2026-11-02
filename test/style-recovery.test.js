@@ -11,21 +11,24 @@ function fixture({ missing = false, hidden = false } = {}) {
     get href() { return href; }, set href(value) { href = value; requests++; } };
   const external = { tagName: 'LINK', rel: 'stylesheet', href: 'https://example.com/styles.css', sheet: null };
   const listen = (name, fn) => { events.set(name, [...(events.get(name) || []), fn]); };
-  const document = { hidden, readyState: 'interactive', querySelectorAll: () => [link, external], addEventListener: listen };
+  let stylesReady = false;
+  const document = { hidden, readyState: 'interactive', documentElement: { classList: { toggle: (_, ready) => { stylesReady = ready; } } }, querySelectorAll: () => [link, external], addEventListener: listen };
   runInNewContext(script, { document, window: { addEventListener: listen }, location: new URL('https://loverwatchgame.fr/'), URL, Date });
-  return { link, document, get requests() { return requests; }, emit(name, target = link) {
+  return { link, document, get stylesReady() { return stylesReady; }, get requests() { return requests; }, emit(name, target = link) {
     for (const fn of events.get(name) || []) fn({ target });
   } };
 }
 
 test('a healthy stylesheet stays cached through mobile return events', () => {
   const f = fixture();
+  assert.equal(f.stylesReady, true);
   f.emit('pageshow'); f.emit('visibilitychange'); f.emit('online');
   assert.equal(f.requests, 0);
 });
 
 test('a missing stylesheet retries without changing its version or duplicating requests', () => {
   const f = fixture({ missing: true });
+  assert.equal(f.stylesReady, false);
   assert.equal(f.requests, 1);
   assert.equal(new URL(f.link.href).searchParams.get('v'), '578');
   assert.ok(new URL(f.link.href).searchParams.has('_css_retry'));
@@ -33,6 +36,7 @@ test('a missing stylesheet retries without changing its version or duplicating r
   assert.equal(f.requests, 1);
   f.link.sheet = {}; f.emit('load'); f.emit('pageshow');
   assert.equal(f.requests, 1);
+  assert.equal(f.stylesReady, true);
 });
 
 test('persistent failures stop after two attempts and can recover when the network returns', () => {
