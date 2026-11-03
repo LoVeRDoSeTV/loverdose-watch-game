@@ -1,4 +1,4 @@
-// Shared economy rules. Levels 1–25 and live rates stay unchanged.
+// Shared economy rules. Live rates and badge rewards stay unchanged.
 export const LOVYS_MAX_XP = 25000;
 const LEGACY_LOVYS_MAX_XP = 10000;
 export const LIVE_ATTENDANCE_SECONDS = 3600;
@@ -16,10 +16,28 @@ export function legacyLovysThresholdForLevel(level) {
   return Math.min(LEGACY_LOVYS_MAX_XP, 3500 + (level - 25) * 260);
 }
 
-export function lovysThresholdForLevel(level) {
+function previousLovysThresholdForLevel(level) {
   if (level <= 25) return legacyLovysThresholdForLevel(level);
   const steps=Math.min(25,level-25);
   return 3500 + 260*steps + 25*steps*(steps-1);
+}
+
+export function lovysThresholdForLevel(level) {
+  if (level <= 10) return legacyLovysThresholdForLevel(level);
+  if (level <= 25) return 1000 + (level-10)*5000/15;
+  const steps=Math.min(25,level-25);
+  return 6000 + 310*steps + 18.75*steps*(steps-1);
+}
+
+export function migratePreviousLovysXp(xp) {
+  const value=Math.max(0,Math.min(LOVYS_MAX_XP,Number(xp)||0));
+  if(value<=1000||value>=LOVYS_MAX_XP)return value;
+  let level=1;
+  while(level<50&&value>=previousLovysThresholdForLevel(level+1))level++;
+  const before=previousLovysThresholdForLevel(level),after=previousLovysThresholdForLevel(level+1);
+  const fraction=(value-before)/(after-before);
+  const mapped=lovysThresholdForLevel(level)+fraction*(lovysThresholdForLevel(level+1)-lovysThresholdForLevel(level));
+  return Math.min(LOVYS_MAX_XP,mapped);
 }
 
 // Evolution follows XP levels; fragments and stars belong only to rank.
@@ -48,7 +66,7 @@ export function migrateLegacyLovysXp(xp) {
   if(value<=3500)return value;
   if(value>=LEGACY_LOVYS_MAX_XP)return LOVYS_MAX_XP;
   const steps=Math.floor((value-3500)/260),fraction=(value-(3500+steps*260))/260;
-  const current=lovysThresholdForLevel(25+steps),next=lovysThresholdForLevel(26+steps);
+  const current=previousLovysThresholdForLevel(25+steps),next=previousLovysThresholdForLevel(26+steps);
   return current+fraction*(next-current);
 }
 
@@ -147,18 +165,34 @@ export async function migrateLovysProgressionCurve(pool) {
   try {
     await client.query('BEGIN');
     await client.query(`CREATE TABLE IF NOT EXISTS economy_migrations(version TEXT PRIMARY KEY,applied_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
-    const marker=await client.query(`INSERT INTO economy_migrations(version) VALUES('v498-lovys-curve') ON CONFLICT DO NOTHING RETURNING version`);
-    if(!marker.rowCount){await client.query('COMMIT');return {applied:false,migrated:0};}
-    // Recover any historical overflow using the OLD cap before converting XP.
-    await reconcileLovysXpWithClient(client,LEGACY_LOVYS_MAX_XP);
-    const rows=(await client.query('SELECT id,xp FROM user_lovys WHERE xp>3500 ORDER BY id FOR UPDATE')).rows;
-    const converted=rows.map(row=>({id:Number(row.id),xp:migrateLegacyLovysXp(row.xp)}));
-    if(converted.length)await client.query(`UPDATE user_lovys l SET xp=m.xp,updated_at=CURRENT_TIMESTAMP
-      FROM jsonb_to_recordset($1::jsonb) AS m(id int,xp double precision) WHERE l.id=m.id`,[JSON.stringify(converted)]);
-    await client.query(`UPDATE users u SET xp=l.xp,updated_at=CURRENT_TIMESTAMP
-      FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+    const legacyMarker=await client.query(`INSERT INTO economy_migrations(version) VALUES('v498-lovys-curve') ON CONFLICT DO NOTHING RETURNING version`);
+    let migrated=0;
+    if(legacyMarker.rowCount){
+      // First upgrade old 10 000 XP accounts onto the previous 25 000 XP curve.
+      await reconcileLovysXpWithClient(client,LEGACY_LOVYS_MAX_XP);
+      const rows=(await client.query('SELECT id,xp FROM user_lovys WHERE xp>3500 ORDER BY id FOR UPDATE')).rows;
+      const converted=rows.map(row=>({id:Number(row.id),xp:migrateLegacyLovysXp(row.xp)}));
+      if(converted.length)await client.query(`UPDATE user_lovys l SET xp=m.xp,updated_at=CURRENT_TIMESTAMP
+        FROM jsonb_to_recordset($1::jsonb) AS m(id int,xp double precision) WHERE l.id=m.id`,[JSON.stringify(converted)]);
+      migrated+=converted.length;
+      await client.query(`UPDATE users u SET xp=l.xp,updated_at=CURRENT_TIMESTAMP
+        FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+    }
+    const paceMarker=await client.query(`INSERT INTO economy_migrations(version) VALUES('v499-lovys-early-pace') ON CONFLICT DO NOTHING RETURNING version`);
+    if(paceMarker.rowCount){
+      // Preserve each Lovys' level and progress within it, including inactive Lovys.
+      // The unallocated XP reserve remains unchanged.
+      await reconcileLovysXpWithClient(client,LOVYS_MAX_XP);
+      const rows=(await client.query('SELECT id,xp FROM user_lovys WHERE xp>1000 AND xp<25000 ORDER BY id FOR UPDATE')).rows;
+      const converted=rows.map(row=>({id:Number(row.id),xp:migratePreviousLovysXp(row.xp)}));
+      if(converted.length)await client.query(`UPDATE user_lovys l SET xp=m.xp,updated_at=CURRENT_TIMESTAMP
+        FROM jsonb_to_recordset($1::jsonb) AS m(id int,xp double precision) WHERE l.id=m.id`,[JSON.stringify(converted)]);
+      migrated+=converted.length;
+      await client.query(`UPDATE users u SET xp=l.xp,updated_at=CURRENT_TIMESTAMP
+        FROM user_lovys l WHERE l.user_id=u.id AND l.is_active=TRUE`);
+    }
     await client.query('COMMIT');
-    return {applied:true,migrated:converted.length};
+    return {applied:Boolean(legacyMarker.rowCount||paceMarker.rowCount),migrated};
   } catch(error){await client.query('ROLLBACK');throw error;}
   finally{client.release();}
 }
