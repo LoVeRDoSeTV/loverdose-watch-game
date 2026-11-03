@@ -136,6 +136,12 @@ body{
   overscroll-behavior: contain;
 }
 
+/* Masque la barre verticale du navigateur sur PC sans bloquer le défilement. */
+@media (min-width: 901px) and (hover: hover) and (pointer: fine) {
+  html, .auth-overlay { scrollbar-width: none; }
+  html::-webkit-scrollbar, .auth-overlay::-webkit-scrollbar { display: none; }
+}
+
 .auth-overlay.hidden { display:none; }
 
 body.auth-locked { overflow:hidden; }
