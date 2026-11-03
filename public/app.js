@@ -6107,7 +6107,8 @@ function renderShop() {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
   if(isMobileGameUi())items=mobileShopPageItems(items);
-  $('shopGrid').innerHTML = items.map(item => {
+  const fragmentEggCard=shopCategory==='object'?`<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`:'';
+  $('shopGrid').innerHTML = fragmentEggCard + (items.map(item => {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
@@ -6123,7 +6124,7 @@ function renderShop() {
       ${activeText}
       <div class="shop-actions">${actions}</div>
     </article>`;
-  }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>';
+  }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>');
 
   const shopCounts = Object.create(null);
   for (const item of shopData.catalog || []) {
