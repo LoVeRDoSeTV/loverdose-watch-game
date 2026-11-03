@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
-import { globalThresholdForLevel,lovysProgressionFromXp,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
+import { globalThresholdForLevel,lovysProgressionFromXp,lovysThresholdForLevel,migratePreviousLovysXp,migrateLovysProgressionCurve,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
 import { ACHIEVEMENT_FAMILIES,WATCH_FAMILIES,WATCH_HOUR_STAGES,createAchievements } from '../src/achievements.js';
 import { PVE_ZONES,PVE_FIGHTS,pveFightByKey,pvePreviousFight } from '../src/combat/zones.js';
 import { createPveRouter } from '../src/routes/pve.js';
@@ -70,6 +70,39 @@ function response(){return {statusCode:200,status(n){this.statusCode=n;return th
 test('global thresholds keep their current curve',()=>{
  assert.equal(globalThresholdForLevel(10),810);assert.equal(globalThresholdForLevel(25),3960);assert.equal(globalThresholdForLevel(55),17010);assert.equal(globalThresholdForLevel(56),17600);
 });
+test('slower curve keeps existing Lovys levels, progress and all badge rewards',()=>{
+ assert.equal(lovysThresholdForLevel(10),1000);
+ assert.equal(Math.round(lovysThresholdForLevel(18)),3667);
+ assert.equal(lovysThresholdForLevel(25),6000);
+ assert.equal(lovysThresholdForLevel(50),LOVYS_MAX_XP);
+ for(const level of [1,10,11,18,25,26,40,50]){
+  const old=level<=25?(level<=10?(level-1)*1000/9:1000+(level-10)*2500/15):3500+260*(level-25)+25*(level-25)*(level-26);
+  const mapped=migratePreviousLovysXp(old);
+  assert.equal(lovysProgressionFromXp(mapped).level,level);
+  assert.ok(Math.abs(mapped-lovysThresholdForLevel(level))<1e-7);
+ }
+});
+
+test('pace migration preserves active and inactive levels once without changing reserve',async()=>{
+ const id=await player(1000+8*2500/15);
+ const inactive=id+10000;
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,xp,is_active) VALUES($1,$2,'water',$3,FALSE)",[inactive,id,3500]);
+ await query('UPDATE users SET pending_xp=500 WHERE id=$1',[id]);
+ // This fixture already uses the previous 25 000 XP curve.
+ await query("CREATE TABLE IF NOT EXISTS economy_migrations(version text PRIMARY KEY,applied_at timestamptz DEFAULT CURRENT_TIMESTAMP)");
+ await query("INSERT INTO economy_migrations(version) VALUES('v498-lovys-curve') ON CONFLICT DO NOTHING");
+ await migrateLovysProgressionCurve(pool);
+ let u=await balances(id),other=(await query('SELECT xp FROM user_lovys WHERE id=$1',[inactive])).rows[0];
+ assert.equal(lovysProgressionFromXp(u.xp).level,18);
+ assert.equal(lovysProgressionFromXp(other.xp).level,25);
+ assert.equal(u.pending_xp,500);
+ const xp=u.xp;
+ await migrateLovysProgressionCurve(pool);
+ u=await balances(id);
+ assert.equal(u.xp,xp);
+ assert.equal(u.pending_xp,500);
+});
+
 test('real SQL credits normal, subscriber and pre-hatch reserve without multiplying watch time',async()=>{
  const a=await player(),b=await player(0,{sub:true}),c=await player(0,{hatched:false});
  await tick([a,b,c]);
