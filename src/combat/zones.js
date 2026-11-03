@@ -9,11 +9,11 @@ const LEGACY_ZONES = [
     {key:'forest_3',name:'Sentinelle des racines',level:3,type:'Verdance',hp:150,power:54,rewards:{creatureXp:6,globalXp:3,fragments:1}},
     {key:'forest_4',name:'Lucibulle sylvestre',level:4,type:'Verdance',hp:175,power:60,rewards:{creatureXp:7,globalXp:3,fragments:1}},
     {key:'forest_5',name:'Mycélium vif',level:5,type:'Verdance',hp:205,power:66,rewards:{creatureXp:8,globalXp:4,fragments:1}},
-    {key:'forest_6',name:'Gardien des Racines',level:6,type:'Verdance',hp:250,power:74,boss:true,miniBoss:true,mechanic:{key:'root_guard',name:'Écorce ancienne',description:'Le premier échange est fortement amorti. Toutes les 3 attaques, le Gardien utilise un écrasement racinaire.'},rewards:{creatureXp:12,globalXp:5,fragments:3}},
+    {key:'forest_6',name:'Gardien des Racines',level:6,type:'Verdance',hp:250,power:74,boss:true,miniBoss:true,mechanic:{key:'root_guard',name:'Écorce ancienne',description:'Le premier échange est fortement amorti. Toutes les 3 attaques, le Gardien utilise un écrasement racinaire.'},rewards:{creatureXp:12,globalXp:5,fragments:1}},
     {key:'forest_7',name:'Esprit du sous-bois',level:7,type:'Mirage',hp:275,power:78,rewards:{creatureXp:9,globalXp:4,fragments:1}},
     {key:'forest_8',name:'Sylve fractale',level:8,type:'Verdance',hp:305,power:84,rewards:{creatureXp:10,globalXp:5,fragments:1}},
-    {key:'forest_9',name:'Grand mycéliarque',level:9,type:'Verdance',hp:340,power:90,rewards:{creatureXp:12,globalXp:5,fragments:2}},
-    {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,mechanic:{key:'monarch_phases',name:'Règne des racines',description:'Change de phase à 60 % puis 30 % de PV : défense, régénération puis offensive finale.'},rewards:{creatureXp:20,globalXp:8,fragments:5}}
+    {key:'forest_9',name:'Grand mycéliarque',level:9,type:'Verdance',hp:340,power:90,rewards:{creatureXp:12,globalXp:5,fragments:1}},
+    {key:'forest_boss',name:'Monarque des Premiers Éclats',level:10,type:'Verdance',hp:410,power:100,boss:true,finalBoss:true,mechanic:{key:'monarch_phases',name:'Règne des racines',description:'Change de phase à 60 % puis 30 % de PV : défense, régénération puis offensive finale.'},rewards:{creatureXp:20,globalXp:8,fragments:1}}
   ]},
   { key:'ember', name:'Forges du Cœur Ardent', icon:'🔥', fights:[
     {key:'ember_1',name:'Flammèche cavernicole',level:5,type:'Cendre',hp:235,power:76,rewards:{creatureXp:10,globalXp:4,fragments:1}},
@@ -21,23 +21,23 @@ const LEGACY_ZONES = [
     {key:'ember_3',name:'Salamandre de braise',level:7,type:'Cendre',hp:305,power:92,rewards:{creatureXp:12,globalXp:5,fragments:1}},
     {key:'ember_4',name:'Scarabraise',level:8,type:'Forge',hp:345,power:100,rewards:{creatureXp:13,globalXp:5,fragments:1}},
     {key:'ember_5',name:'Fumarok',level:9,type:'Cendre',hp:385,power:108,rewards:{creatureXp:14,globalXp:6,fragments:1}},
-    {key:'ember_6',name:'Colosse des scories',level:10,type:'Forge',hp:450,power:120,boss:true,miniBoss:true,mechanic:{key:'colossus_armor',name:'Armure de scories',description:'Sa carapace absorbe fortement le premier coup reçu.'},rewards:{creatureXp:20,globalXp:8,fragments:3}},
+    {key:'ember_6',name:'Colosse des scories',level:10,type:'Forge',hp:450,power:120,boss:true,miniBoss:true,mechanic:{key:'colossus_armor',name:'Armure de scories',description:'Sa carapace absorbe fortement le premier coup reçu.'},rewards:{creatureXp:20,globalXp:8,fragments:1}},
     {key:'ember_7',name:'Vipère magmatique',level:11,type:'Cendre',hp:480,power:126,rewards:{creatureXp:16,globalXp:7,fragments:1}},
-    {key:'ember_8',name:'Obsidrake',level:12,type:'Forge',hp:525,power:134,rewards:{creatureXp:18,globalXp:8,fragments:2}},
-    {key:'ember_9',name:'Titan de la Forge',level:13,type:'Forge',hp:580,power:144,rewards:{creatureXp:20,globalXp:9,fragments:2}},
-    {key:'ember_boss',name:'Cœur de Magma',level:15,type:'Cendre',hp:700,power:160,boss:true,finalBoss:true,mechanic:{key:'magma_core',name:'Cœur en fusion',description:'Prend toujours l’initiative. Surchauffe toutes les 3 attaques et entre en éruption sous 25 % de PV.',alwaysFirst:true},rewards:{creatureXp:32,globalXp:14,fragments:6}}
+    {key:'ember_8',name:'Obsidrake',level:12,type:'Forge',hp:525,power:134,rewards:{creatureXp:18,globalXp:8,fragments:1}},
+    {key:'ember_9',name:'Titan de la Forge',level:13,type:'Forge',hp:580,power:144,rewards:{creatureXp:20,globalXp:9,fragments:1}},
+    {key:'ember_boss',name:'Cœur de Magma',level:15,type:'Cendre',hp:700,power:160,boss:true,finalBoss:true,mechanic:{key:'magma_core',name:'Cœur en fusion',description:'Prend toujours l’initiative. Surchauffe toutes les 3 attaques et entre en éruption sous 25 % de PV.',alwaysFirst:true},rewards:{creatureXp:32,globalXp:14,fragments:1}}
   ]},
   { key:'night', name:'Ruines Nocturnes', icon:'🌙', fights:[
     {key:'night_1',name:'Ombre errante',level:10,type:'Néant',hp:420,power:116,rewards:{creatureXp:10,globalXp:4,fragments:1}},
     {key:'night_2',name:'Veilleur brisé',level:11,type:'Cristal',hp:455,power:124,rewards:{creatureXp:11,globalXp:4,fragments:1}},
-    {key:'night_3',name:'Spectre du miroir',level:12,type:'Mirage',hp:495,power:132,rewards:{creatureXp:12,globalXp:5,fragments:2}},
-    {key:'night_4',name:'Chevalier du Néant',level:13,type:'Néant',hp:540,power:142,rewards:{creatureXp:13,globalXp:5,fragments:2}},
-    {key:'night_5',name:'Chauvebrume astrale',level:16,type:'Mirage',family:'manta',rewards:{creatureXp:14,globalXp:6,fragments:2}},
-    {key:'night_6',name:'Arachnuit des arches',level:16,type:'Cristal',family:'crab',rewards:{creatureXp:15,globalXp:6,fragments:2}},
-    {key:'night_7',name:'Salamandre lunaire',level:16,type:'Mirage',family:'quadruped',rewards:{creatureXp:16,globalXp:7,fragments:2}},
-    {key:'night_8',name:'Basilic d’obsidienne',level:16,type:'Néant',family:'wyrm',rewards:{creatureXp:17,globalXp:7,fragments:2}},
-    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,miniBoss:true,mechanic:{key:'oracle_dodge',name:'Mirage prophétique',description:'Esquive automatiquement la première attaque du combat.'},rewards:{creatureXp:18,globalXp:7,fragments:4}},
-    {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,mechanic:{key:'eclipse_phases',name:'Éclipse totale',description:'Peut esquiver au maximum deux attaques. Sous 50 % de PV, gagne ATQ/VIT et perce périodiquement la DEF.',dodgeChance:10,maxDodges:2},rewards:{creatureXp:28,globalXp:10,fragments:7}}
+    {key:'night_3',name:'Spectre du miroir',level:12,type:'Mirage',hp:495,power:132,rewards:{creatureXp:12,globalXp:5,fragments:1}},
+    {key:'night_4',name:'Chevalier du Néant',level:13,type:'Néant',hp:540,power:142,rewards:{creatureXp:13,globalXp:5,fragments:1}},
+    {key:'night_5',name:'Chauvebrume astrale',level:16,type:'Mirage',family:'manta',rewards:{creatureXp:14,globalXp:6,fragments:1}},
+    {key:'night_6',name:'Arachnuit des arches',level:16,type:'Cristal',family:'crab',rewards:{creatureXp:15,globalXp:6,fragments:1}},
+    {key:'night_7',name:'Salamandre lunaire',level:16,type:'Mirage',family:'quadruped',rewards:{creatureXp:16,globalXp:7,fragments:1}},
+    {key:'night_8',name:'Basilic d’obsidienne',level:16,type:'Néant',family:'wyrm',rewards:{creatureXp:17,globalXp:7,fragments:1}},
+    {key:'night_mini',name:'Oracle des Ruines',level:14,type:'Mirage',hp:600,power:152,boss:true,miniBoss:true,mechanic:{key:'oracle_dodge',name:'Mirage prophétique',description:'Esquive automatiquement la première attaque du combat.'},rewards:{creatureXp:18,globalXp:7,fragments:1}},
+    {key:'night_boss',name:'Seigneur de l’Éclipse',level:15,type:'Néant',hp:720,power:166,boss:true,finalBoss:true,mechanic:{key:'eclipse_phases',name:'Éclipse totale',description:'Peut esquiver au maximum deux attaques. Sous 50 % de PV, gagne ATQ/VIT et perce périodiquement la DEF.',dodgeChance:10,maxDodges:2},rewards:{creatureXp:28,globalXp:10,fragments:1}}
   ]}
 ];
 
@@ -615,7 +615,7 @@ const expansion = THEMES.map((zone,zi)=>{
     return {key,name:entry.name,level,rewardLevel,type:entry.type,...stats,power:stats.attack,
       boss,miniBoss,finalBoss,zoneKey:zone.key,recommendedRank,...(mechanic?{mechanic}:{}),
       visual:{zone:zone.key,family:entry.family,index:i,glow:zone.accent,size:finalBoss?1.25:miniBoss?1.10:.78+i*.035,image:EXISTING_CREATURE_ART[key]||`/pve/${zone.key}/${i+1}.webp?v=490`},
-      rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+rewardLevel*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:finalBoss?6:miniBoss?3:zi>=4?2:1}};
+      rewards:{creatureXp:boss?Math.round(rewardXp*(finalBoss?1.9:1.4)):rewardXp,globalXp:Math.round((5+rewardLevel*.25)*(finalBoss?1.7:miniBoss?1.3:1)),fragments:1}};
   });
   return {key:zone.key,name:zone.name,icon:zone.icon,lore:zone.lore,danger:zone.danger,recommendedRank,minLevel,maxLevel,visual,fights};
 });
