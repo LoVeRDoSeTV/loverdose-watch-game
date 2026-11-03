@@ -1050,6 +1050,49 @@ function createTrailingRefresh(task){
 }
 const queuedGameRefresh=createTrailingRefresh(loadGameOnce);
 async function loadGame(){return queuedGameRefresh();}
+let heartGiftCheckedAccount = null;
+async function showPendingHeartGift() {
+  const accountKey = String(me?.user?.id || me?.user?.username || '');
+  if (!accountKey || heartGiftCheckedAccount === accountKey) return;
+  heartGiftCheckedAccount = accountKey;
+  try {
+    const response = await fetch('/api/gifts/pending', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Cadeau indisponible');
+    const { gift } = await response.json();
+    if (!gift || gift.item_key !== 'bg_tiny_hearts' || accountKey !== String(me?.user?.id || me?.user?.username || '')) return;
+    const modal = document.createElement('div');
+    modal.id = 'heartGiftCelebration';
+    modal.className = 'badge-unlock-celebration';
+    modal.setAttribute('aria-hidden', 'false');
+    modal.innerHTML = `<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:48},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#ff8bc7','#b78aff','#ffd76b'][i%3]}"></i>`).join('')}</div><div class="badge-unlock-card" role="dialog" aria-modal="true" aria-labelledby="heartGiftTitle">
+      <div class="badge-unlock-glow"></div>
+      <div class="badge-unlock-kicker">✦ Un cadeau pour toi</div>
+      <div class="badge-unlock-title" id="heartGiftTitle">Surprise ! 💖</div>
+      <div class="badge-unlock-stage">Offert par ${escapeHtml(gift.sender_name)}</div>
+      <div class="badge-unlock-logo-wrap"><div class="badge-unlock-ring"></div><div class="badge-unlock-logo-fallback">💗</div></div>
+      <div class="badge-unlock-name">Fond Cœurs pastel</div>
+      <div class="badge-unlock-condition">Une petite attention pour toi. Retrouve ton nouveau fond dans Inventaire → Fonds.</div>
+      <button class="badge-unlock-ok" type="button">Merci !</button>
+    </div>`;
+    document.body.appendChild(modal);
+    const close = async () => {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      setTimeout(() => modal.remove(), 300);
+      try {
+        await fetch('/api/gifts/' + encodeURIComponent(gift.id) + '/acknowledge', { method: 'POST' });
+      } catch (error) { console.error('Confirmation du cadeau :', error); }
+      setTimeout(showNextBadgeCelebration, 320);
+    };
+    modal.querySelector('button')?.addEventListener('click', close, { once: true });
+    requestAnimationFrame(() => modal.classList.add('show'));
+    setTimeout(() => modal.querySelector('button')?.focus(), 260);
+  } catch (error) {
+    heartGiftCheckedAccount = null;
+    console.error('Chargement du cadeau :', error);
+  }
+}
+
 async function loadGameOnce() {
   const cosmeticLoadRevision = cosmeticRevision;
   try {
@@ -1080,6 +1123,7 @@ async function loadGameOnce() {
     renderPlayerSubscriptionStatus();
 
     renderGame();
+    await showPendingHeartGift();
     // Restaurer les pages mobiles uniquement au premier chargement authentifié,
     // après l'affichage de l'application ; jamais lors des rafraîchissements.
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
@@ -1903,7 +1947,7 @@ function ensureBadgeCelebrationModal() {
 
 function showNextBadgeCelebration() {
   clearTimeout(badgeCelebrationRetry);
-  if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
+  if (badgeCelebrationActive || document.getElementById('heartGiftCelebration') || !badgeCelebrationQueue.length) return;
   const wheelPopup = $('rewardWheelWinPopup');
   if (document.hidden || window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
       || pveBattleState.running || activeTradeExchange) {
