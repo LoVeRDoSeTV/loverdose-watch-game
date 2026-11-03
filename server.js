@@ -1002,6 +1002,19 @@ async function initDatabase() {
 
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS player_gift_notifications (
+      id BIGSERIAL PRIMARY KEY,
+      account_id INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+      event_key TEXT NOT NULL,
+      item_key TEXT NOT NULL,
+      sender_name TEXT NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      acknowledged_at TIMESTAMPTZ,
+      UNIQUE (account_id, event_key)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS user_incubator_eggs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -6339,6 +6352,36 @@ app.post('/api/lovys/activate', async (req,res)=>{
 /* =========================================
    BOUTIQUE
 ========================================= */
+app.get('/api/gifts/pending', async (req, res) => {
+  if (!req.session.account) return res.status(401).json({ error: 'Connexion requise.' });
+  try {
+    const result = await pool.query(`
+      SELECT id, item_key, sender_name FROM player_gift_notifications
+      WHERE account_id = $1 AND acknowledged_at IS NULL
+      ORDER BY id ASC LIMIT 1
+    `, [req.session.account.id]);
+    res.json({ gift: result.rows[0] || null });
+  } catch (error) {
+    console.error('Cadeau en attente :', error);
+    res.status(500).json({ error: 'Cadeau indisponible.' });
+  }
+});
+
+app.post('/api/gifts/:id/acknowledge', async (req, res) => {
+  if (!req.session.account) return res.status(401).json({ error: 'Connexion requise.' });
+  try {
+    const result = await pool.query(`
+      UPDATE player_gift_notifications SET acknowledged_at = CURRENT_TIMESTAMP
+      WHERE id = $1 AND account_id = $2 AND acknowledged_at IS NULL
+      RETURNING id
+    `, [req.params.id, req.session.account.id]);
+    res.json({ acknowledged: result.rowCount > 0 });
+  } catch (error) {
+    console.error('Confirmation cadeau :', error);
+    res.status(500).json({ error: 'Confirmation indisponible.' });
+  }
+});
+
 app.get('/api/shop', async (req, res) => {
   try {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
