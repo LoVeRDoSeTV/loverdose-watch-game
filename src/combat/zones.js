@@ -53,16 +53,10 @@ function balancedStats(level, {position=0,boss=false,finalBoss=false,family='qua
   const [hp,atk,def,speed] = archetypes[family] || archetypes.quadruped;
   const pressure = (.80 + Math.min(position,7)*.018 + zoneIndex*.003)*(1+Math.max(0,Math.min(20,level-29))*.006)*(level>=30?1.04:1);
   const maturity=level>=50?1.22:level>=25?1.10:1;
-  // From the fourth zone onward, longer fights and sturdier enemies keep
-  // the campaign challenging even when badges supply Lovys XP quickly.
-  const advanced=Math.max(0,zoneIndex-2);
-  const challengeHp=1+Math.min(.25,advanced*.10);
-  const challengeAttack=1+Math.min(.15,advanced*.06);
-  const challengeDefense=1+Math.min(.10,advanced*.04);
   return {
-    hp:Math.round((150+22.0*(level-1))*hp*maturity*(finalBoss?(level>=30?1.24:1.14):boss?1.06:1)*challengeHp),
-    attack:Math.round((42+7.7*(level-1))*atk*pressure*maturity*(finalBoss?(level>=30?.92:.86):boss?.94:1)*(finalBoss&&zoneIndex===9?.85:finalBoss&&zoneIndex===4?.92:1)*challengeAttack),
-    defense:Math.round((20+4.2*(level-1))*def*maturity*(finalBoss?1.04:1)*challengeDefense),
+    hp:Math.round((150+22.0*(level-1))*hp*maturity*(finalBoss?(level>=30?1.24:1.14):boss?1.06:1)),
+    attack:Math.round((42+7.7*(level-1))*atk*pressure*maturity*(finalBoss?(level>=30?.92:.86):boss?.94:1)*(finalBoss&&zoneIndex===9?.85:finalBoss&&zoneIndex===4?.92:1)),
+    defense:Math.round((20+4.2*(level-1))*def*maturity*(finalBoss?1.04:1)),
     speed:Math.round(6+level*.24+speed)
   };
 }
