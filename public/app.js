@@ -5533,6 +5533,12 @@ $('playerProfileContent')?.addEventListener('click', event => {
   if (badge) {
     event.stopPropagation();
     badge.classList.toggle('touch-open');
+    if(badge.classList.contains('touch-open')){
+      const rect=badge.getBoundingClientRect();
+      const half=Math.min(130,(window.innerWidth-32)/2);
+      const center=Math.max(half+16,Math.min(window.innerWidth-half-16,rect.left+rect.width/2));
+      badge.style.setProperty('--badge-tooltip-offset', `${center-(rect.left+rect.width/2)}px`);
+    }
   }
 });
 document.addEventListener('click', event => {
@@ -9478,17 +9484,26 @@ $('gameFeedbackModal')?.addEventListener('click',e=>{if(e.target===$('gameFeedba
 $('gameFeedbackRemoveImage')?.addEventListener('click',clearFeedbackImage);
 $('gameFeedbackKind')?.addEventListener('change',()=>{const bug=$('gameFeedbackKind').value==='bug';$('gameFeedbackDescriptionLabel').textContent=bug?'Que s’est-il passé ? Comment reproduire le bug ?':'Quelle est ton idée et que pourrait-elle améliorer ?';$('gameFeedbackDescription').placeholder=bug?'Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…':'Décris ton idée et pourquoi elle serait utile aux joueurs…';});
 $('gameFeedbackScreenshot')?.addEventListener('change',async()=>{
-  const file=$('gameFeedbackScreenshot').files[0];clearFeedbackImage();if(!file)return;
-  const version=gameFeedbackImageVersion;gameFeedbackImageBusy=true;feedbackMessage('Préparation de la capture…');
+  const input=$('gameFeedbackScreenshot'),file=input.files?.[0];
+  gameFeedbackImageVersion++;const version=gameFeedbackImageVersion;
+  gameFeedbackScreenshot=null;$('gameFeedbackImage').removeAttribute('src');$('gameFeedbackImagePreview').classList.add('hidden');
+  if(!file){gameFeedbackImageBusy=false;feedbackMessage('');return;}
+  gameFeedbackImageBusy=true;feedbackMessage('Préparation de la capture…');
   let url;
   try {
     if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>12000000)throw Error('Choisis une image PNG, JPEG ou WebP de moins de 12 Mo.');
-    url=URL.createObjectURL(file);const image=new Image();image.src=url;await image.decode();
+    url=URL.createObjectURL(file);
+    const image=new Image();
+    await new Promise((resolve,reject)=>{
+      image.onload=resolve;
+      image.onerror=()=>reject(Error('Impossible de lire cette photo. Essaie une capture PNG ou JPEG.'));
+      image.src=url;
+    });
     if(image.width*image.height>40000000)throw Error('Cette image est trop grande.');
-    const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+    const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const context=canvas.getContext('2d');if(!context)throw Error('Impossible de préparer cette capture.');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
     const result=canvas.toDataURL('image/jpeg',.82);if(result.length>2000000)throw Error('La capture est trop lourde. Essaie une image plus petite.');
     if(version!==gameFeedbackImageVersion)return;gameFeedbackScreenshot=result;$('gameFeedbackImage').src=result;$('gameFeedbackImagePreview').classList.remove('hidden');feedbackMessage('Capture prête à être envoyée.');
-  } catch(error){if(version===gameFeedbackImageVersion)feedbackMessage(error.message||'Capture illisible.',true);}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
+  } catch(error){if(version===gameFeedbackImageVersion){input.value='';feedbackMessage(error.message||'Capture illisible.',true);}}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
 });
 $('gameFeedbackDescription')?.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.isComposing)return;
