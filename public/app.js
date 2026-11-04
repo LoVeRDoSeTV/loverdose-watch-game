@@ -9580,8 +9580,8 @@ $('adminFeedbackPurge')?.addEventListener('click',async()=>{
     $('adminFeedbackNotice').textContent='Suppression des messages sélectionnés…';
     const data=await adminFetch('/api/admin/feedback/archive',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
     await loadAdminFeedback();
-    const deleted=Number(data.deleted)||0,failed=data.failedIds||[];
-    $('adminFeedbackNotice').textContent=`✓ ${deleted} message${deleted>1?'s':''} supprimé${deleted>1?'s':''}.${failed.length?` Conservé${failed.length>1?'s':''} : ${failed.map(id=>`#${id}`).join(', ')} (Discord indisponible ou ancien message sans identifiant).`:''}`;
+    const deleted=Number(data.deleted)||0,failed=data.failedIds||[],discordNotDeleted=data.discordNotDeletedIds||[];
+    $('adminFeedbackNotice').textContent='✓ '+deleted+' message'+(deleted>1?'s':'')+' supprimé'+(deleted>1?'s':'')+'.'+(failed.length?' Conservés : '+failed.map(id=>'#'+id).join(', ')+'.':'')+(discordNotDeleted.length?' Messages Discord à effacer manuellement : '+discordNotDeleted.map(id=>'#'+id).join(', ')+'.':'');
   }catch(error){$('adminFeedbackNotice').textContent=`Aucun message supprimé : ${error.message}. Vérifie que le serveur a bien été redéployé avec ce correctif.`;}
   finally{updateAdminFeedbackSelection();}
 });
