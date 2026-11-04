@@ -1215,7 +1215,7 @@ function renderIncubatorOverview() {
   const box = $('incubatorOverview');
   if (!box || !incubatorData?.slots) return;
   const active = incubatorData.slots.filter(slot => slot && !slot.empty);
-  const next = active.filter(slot => !slot.ready).sort((a,b)=>Number(b.watchedSeconds||0)-Number(a.watchedSeconds||0))[0];
+  const next = active.filter(slot => !slot.ready).sort((a,b)=>(incubatorSlotHatchSeconds(a,incubatorData)-Number(a.watchedSeconds||0))-(incubatorSlotHatchSeconds(b,incubatorData)-Number(b.watchedSeconds||0)))[0];
   const ready = active.find(slot => slot.ready);
   const remaining = next ? Math.max(0, incubatorSlotHatchSeconds(next)-Number(next.watchedSeconds||0)) : 0;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
@@ -5249,30 +5249,25 @@ function arrangeIncubatorCarousel(){
   const mobile = isMobileGameUi();
   const slots = new Map(incubatorData.slots.map(slot=>[Number(slot.slot),slot]));
   const cards = [...track.querySelectorAll('[data-incubator-slot]')];
+  const remaining = slot => slot.ready ? 0 : Math.max(0, incubatorSlotHatchSeconds(slot,incubatorData)-Number(slot.watchedSeconds||0));
   cards.sort((a,b)=>{
     const aSlot = Number(a.dataset.incubatorSlot), bSlot = Number(b.dataset.incubatorSlot);
-    if(mobile){
-      const aOccupied = slots.has(aSlot) && !slots.get(aSlot).empty;
-      const bOccupied = slots.has(bSlot) && !slots.get(bSlot).empty;
-      if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
-      if(aOccupied && bOccupied){
-        const hatchSeconds = Number(incubatorData.hatchSeconds || 18000);
-        const remaining = slot => slot.ready ? 0 : Math.max(0,incubatorSlotHatchSeconds(slot)-Number(slot.watchedSeconds || 0));
-        const timeDifference = remaining(slots.get(aSlot)) - remaining(slots.get(bSlot));
-        if(timeDifference) return timeDifference;
-      }
-    }
-    return aSlot - bSlot;
+    const aData = slots.get(aSlot), bData = slots.get(bSlot);
+    const aOccupied = Boolean(aData && !aData.empty), bOccupied = Boolean(bData && !bData.empty);
+    if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
+    if(aOccupied && bOccupied) return remaining(aData)-remaining(bData) || aSlot-bSlot;
+    return aSlot-bSlot;
   });
   const order = (mobile ? 'mobile:' : 'pc:') + cards.map(card=>card.dataset.incubatorSlot).join(',');
-  if(order === incubatorCarouselOrder) return;
-  incubatorCarouselOrder = order;
-  // Seul l'ordre visuel change : les identifiants et actions gardent le vrai numéro du slot.
-  cards.forEach(card=>track.appendChild(card));
-  incubatorCarouselIndex = 0;
-  if(mobile){
-    track.scrollTo({left:0,behavior:'instant'});
-    updateIncubatorCarousel();
+  if(order !== incubatorCarouselOrder){
+    incubatorCarouselOrder = order;
+    // Les cartes changent de place, mais chaque action garde son vrai numéro de slot.
+    cards.forEach(card=>track.appendChild(card));
+    incubatorCarouselIndex = 0;
+    if(mobile){
+      track.scrollTo({left:0,behavior:'instant'});
+      updateIncubatorCarousel();
+    }
   }
 }
 window.matchMedia(MOBILE_GAME_MEDIA).addEventListener?.('change',arrangeIncubatorCarousel);
