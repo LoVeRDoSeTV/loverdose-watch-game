@@ -117,6 +117,16 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     await pool.query('UPDATE game_bot_auth SET subscription_id=$1,last_error=NULL WHERE id=1',[data.data[0].id]);
     return data;
   }
+  // Source navigateur OBS : informations publiques, sans données de joueur.
+  router.get('/game-bot/drop-alert',async(req,res)=>{
+    res.set('Cache-Control','no-store');
+    try{
+      const row=(await pool.query(`SELECT id,started_at,reward_key FROM game_bot_drops
+        WHERE status='open' AND ends_at>CURRENT_TIMESTAMP
+        ORDER BY id DESC LIMIT 1`)).rows[0];
+      res.json({drop:row?{id:String(row.id),startedAt:row.started_at,reward:rewards.find(item=>item.key===row.reward_key)?.label||'Récompense surprise'}:null});
+    }catch(error){console.error('Alerte OBS drop :',error);res.status(503).json({drop:null});}
+  });
   router.get('/game-bot/connect',async(req,res)=>{
     const admin=await getBroadcasterAccount(req);if(!admin)return res.status(403).send('Accès réservé au diffuseur.');
     const state=crypto.randomBytes(24).toString('hex');req.session.gameBotOauthState=state;req.session.gameBotOauthStateStartedAt=Date.now();req.session.gameBotStudioReturn=req.query.studio==='1';await saveSession(req);
