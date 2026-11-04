@@ -69,6 +69,7 @@ button:focus-visible{outline:3px solid var(--canvas);outline-offset:3px}#replay{
     <rect class="lid" x="153" y="392" width="94" height="12" fill="#3a2590"/>
   </g></g>
 </svg>
+<audio id="dropSound" src="/obs/drop-alert.mp3" preload="auto"></audio>
 <div class="caption">
   <h1 id="reward">Colis livré</h1>
   <p id="instruction">Tape !catch dans le chat !</p>
@@ -83,27 +84,9 @@ button:focus-visible{outline:3px solid var(--canvas);outline-offset:3px}#replay{
     xp:{image:'data:image/svg+xml;charset=utf-8,'+encodeURIComponent(flask),label:'Une fiole de 100 XP',notes:[523,659,784,1047]},
     egg:{image:'/assets/egg-premium.webp',label:'Un œuf mystère',notes:[392,587,784,1175]}
   };
-  let lastId=null,initialized=false,timeoutId=0,audio=null,polling=false;
+  let lastId=null,initialized=false,timeoutId=0,polling=false;
+  const sound=document.getElementById("dropSound");
   const item=document.getElementById('dropItem');
-  function chime(kind){
-    try{
-      const AudioContext=window.AudioContext||window.webkitAudioContext;
-      if(!AudioContext)return;
-      audio ||= new AudioContext();
-      audio.resume().catch(()=>{});
-      const start=audio.currentTime+.04;
-      variants[kind].notes.forEach((frequency,index)=>{
-        const oscillator=audio.createOscillator(),gain=audio.createGain(),at=start+index*.15;
-        oscillator.type=kind==='egg'?'triangle':'sine';
-        oscillator.frequency.setValueAtTime(frequency,at);
-        gain.gain.setValueAtTime(.0001,at);
-        gain.gain.exponentialRampToValueAtTime(.15,at+.025);
-        gain.gain.exponentialRampToValueAtTime(.0001,at+.38);
-        oscillator.connect(gain).connect(audio.destination);
-        oscillator.start(at);oscillator.stop(at+.4);
-      });
-    }catch(error){console.warn('Son de drop indisponible',error);}
-  }
   function play(drop,withSound=true){
     const kind=Object.hasOwn(variants,drop.rewardKey)?drop.rewardKey:'egg';
     const variant=variants[kind];
@@ -116,7 +99,11 @@ button:focus-visible{outline:3px solid var(--canvas);outline-offset:3px}#replay{
     body.classList.add('play');
     clearTimeout(timeoutId);
     timeoutId=setTimeout(()=>body.classList.remove('play'),12000);
-    if(withSound)chime(kind);
+    if(withSound){
+      sound.pause();
+      sound.currentTime=0;
+      sound.play().catch(error=>console.warn("Son de largage indisponible",error));
+    }
   }
   async function poll(){
     if(polling)return;
@@ -135,12 +122,12 @@ button:focus-visible{outline:3px solid var(--canvas);outline-offset:3px}#replay{
   }
   const test=new URLSearchParams(location.search).get('test');
   if(Object.hasOwn(variants,test)){
-    play({rewardKey:test,reward:variants[test].label},false);
+    play({rewardKey:test,reward:variants[test].label},true);
     document.getElementById('replay').style.display='inline-block';
-    document.getElementById('replay').addEventListener('click',()=>play({rewardKey:test,reward:variants[test].label},false));
+    document.getElementById('replay').addEventListener('click',()=>play({rewardKey:test,reward:variants[test].label},true));
   }else{
     poll();
-    setInterval(poll,1500);
+    setInterval(poll,1000);
   }
 })();
 </script>
