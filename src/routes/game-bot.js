@@ -124,7 +124,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
       const row=(await pool.query(`SELECT id,started_at,reward_key FROM game_bot_drops
         WHERE status='open' AND ends_at>CURRENT_TIMESTAMP
         ORDER BY id DESC LIMIT 1`)).rows[0];
-      res.json({drop:row?{id:String(row.id),startedAt:row.started_at,reward:rewards.find(item=>item.key===row.reward_key)?.label||'Récompense surprise'}:null});
+      res.json({drop:row?{id:String(row.id),startedAt:row.started_at,rewardKey:row.reward_key,reward:rewards.find(item=>item.key===row.reward_key)?.label||'Récompense surprise'}:null});
     }catch(error){console.error('Alerte OBS drop :',error);res.status(503).json({drop:null});}
   });
   router.get('/game-bot/connect',async(req,res)=>{
