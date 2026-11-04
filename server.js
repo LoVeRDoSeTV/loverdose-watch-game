@@ -1034,6 +1034,8 @@ async function initDatabase() {
     ON user_incubator_eggs (user_id)
   `);
 
+  await pool.query(`UPDATE user_incubator_eggs SET status='ready',updated_at=CURRENT_TIMESTAMP WHERE status='incubating' AND watched_seconds >= ${EGG_HATCH_SECONDS}`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_lovys (
       id SERIAL PRIMARY KEY,
