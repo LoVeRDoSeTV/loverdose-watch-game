@@ -28,7 +28,7 @@ export function verifyExtensionToken(token,{secret,channelId},now=Date.now()){
   return payload;
 }
 
-export async function loadPanelSnapshot({pool,twitchId,hatchSeconds,creatureBattleStats,catalog}){
+export async function loadPanelSnapshot({pool,twitchId,hatchSeconds,starterHatchSeconds=hatchSeconds,creatureBattleStats,catalog}){
   // Identify only from the verified Twitch JWT; never accept an account ID from the client.
   const result=await pool.query(`SELECT a.id AS account_id,a.username,a.twitch_panel_enabled,u.id AS user_id,u.profile_image_url AS avatar_url,u.creature_id,u.xp,u.pending_xp,u.watch_seconds
     FROM accounts a LEFT JOIN users u ON u.twitch_id=a.twitch_id WHERE a.twitch_id=$1 LIMIT 1`,[twitchId]);
@@ -45,9 +45,10 @@ export async function loadPanelSnapshot({pool,twitchId,hatchSeconds,creatureBatt
     const starter=slot===1&&!user.creature_id;
     const row=starter?{watched_seconds:user.watch_seconds}:eggs.rows.find(egg=>Number(egg.slot)===slot);
     if(!row)return {slot,empty:true};
-    const watched=Math.max(0,Math.min(hatchSeconds,Number(row.watched_seconds||0)));
-    const ready=row.status==='ready'||watched>=hatchSeconds;
-    return {slot,empty:false,ready,progress:Math.min(100,watched/hatchSeconds*100),remainingWatchSeconds:ready?0:Math.max(0,hatchSeconds-watched)};
+    const target=starter?starterHatchSeconds:hatchSeconds;
+    const watched=Math.max(0,Math.min(target,Number(row.watched_seconds||0)));
+    const ready=row.status==='ready'||watched>=target;
+    return {slot,empty:false,ready,progress:Math.min(100,watched/target*100),remainingWatchSeconds:ready?0:Math.max(0,target-watched)};
   });
   const objects=new Map(catalog.filter(item=>item.category==='object').map(item=>[item.key,item]));
   const items=inventory.rows.filter(row=>objects.has(row.item_key)).map(row=>({key:row.item_key,name:objects.get(row.item_key).name,icon:objects.get(row.item_key).icon||'🎒',quantity:Number(row.quantity)}));
