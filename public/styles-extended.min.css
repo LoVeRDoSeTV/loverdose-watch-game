@@ -336,14 +336,22 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   .dashboard-side-stack .daily-challenge-top>div:last-child{min-width:0}
   .dashboard-side-stack .daily-challenge-icon{
     width:28px!important;height:28px!important;flex:0 0 28px!important;
-    font-size:16px!important;border:0!important;border-radius:0!important;
+    font-size:20px!important;border:0!important;border-radius:0!important;
     background:none!important;box-shadow:none!important;
   }
   .dashboard-side-stack .daily-challenge-title{
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    font-size:13px!important;line-height:1.25!important;
+    font-size:18px!important;line-height:1.25!important;
   }
-  .dashboard-side-stack .daily-challenge-desc,
+  .dashboard-side-stack .daily-challenge-desc{
+    display:block!important;
+    margin-top:5px!important;
+    color:#b7bfd8!important;
+    font-size:12.5px!important;
+    line-height:1.35!important;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
   .dashboard-side-stack .daily-challenge-rewards,
   .dashboard-side-stack .daily-challenge-actions{display:none!important}
   .dashboard-side-stack .daily-challenge-progress{
