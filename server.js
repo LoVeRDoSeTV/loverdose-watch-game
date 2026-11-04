@@ -5879,6 +5879,21 @@ app.get('/api/admin/players', async (req, res) => {
       pool.query(`SELECT COUNT(*)::int AS total FROM accounts`)
     ]);
 
+    const playerIds=playersResult.rows.map(player=>Number(player.account_id));
+    const lovysRows=playerIds.length?(await pool.query(`
+      SELECT a.id account_id,l.creature_id,l.xp,l.is_active
+      FROM accounts a JOIN users u ON u.twitch_id=a.twitch_id
+      JOIN user_lovys l ON l.user_id=u.id
+      WHERE a.id=ANY($1::int[])
+      ORDER BY l.is_active DESC,l.hatched_at,l.id
+    `,[playerIds])).rows:[];
+    const lovysByAccount=new Map();
+    for(const lovy of lovysRows){
+      const id=Number(lovy.account_id),creature=creatures.find(item=>item.id===lovy.creature_id);
+      if(!lovysByAccount.has(id))lovysByAccount.set(id,[]);
+      lovysByAccount.get(id).push({creatureId:lovy.creature_id,name:creature?.name||lovy.creature_id,level:progressionFromXp(Number(lovy.xp||0)).level,isActive:Boolean(lovy.is_active)});
+    }
+
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
 
     res.setHeader('Cache-Control', 'no-store');
@@ -5900,6 +5915,7 @@ app.get('/api/admin/players', async (req, res) => {
         isBroadcaster: Boolean(player.twitch_id) && player.twitch_id === broadcasterId,
         isSub: Boolean(player.is_sub),
         state: player.creature_id ? 'creature' : (player.twitch_id ? 'egg' : 'account'),
+        lovys: lovysByAccount.get(Number(player.account_id)) || [],
         creatureId: player.creature_id || null,
         xp: Number(player.xp || 0),
         pendingXp: Number(player.pending_xp || 0),
