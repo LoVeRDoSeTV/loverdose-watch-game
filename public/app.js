@@ -365,7 +365,7 @@ function renderDesktopLovysHub(pveData = null) {
       <div class="lovys-home-statusline">Ton prochain Lovys se prépare</div>
       <div class="lovys-home-meta">
         <span class="lovys-pill is-accent">Incubation</span>
-        <span class="lovys-pill">${formatEggTime(egg.watchedSeconds || 0)} / 6 h 00</span>
+        <span class="lovys-pill">${formatEggTime(egg.watchedSeconds || 0)} / ${formatEggTime(egg.hatchSeconds || 14400)}</span>
         <span class="lovys-pill">⚡ ${pendingXp.toLocaleString('fr-FR')} XP en attente</span>
       </div>
       <div class="lovys-home-desc">Fais éclore ton œuf pour obtenir ton premier Lovys, puis débloquer les combats PvE et les récompenses liées à l’aventure.</div>
@@ -385,7 +385,7 @@ function renderDesktopLovysHub(pveData = null) {
     <div class="lovys-pve-kicker"><span class="egg-inline-icon" aria-hidden="true"></span> Aventure verrouillée</div>
     <div class="lovys-pve-name">Débloque ton premier Lovys</div>
     <div class="lovys-home-empty-note">Le mode PvE s’ouvrira automatiquement après l’éclosion.</div>
-    <div class="lovys-home-empty-helper">Continue à regarder les lives pour compléter les 6 heures d’incubation. Les XP gagnés via les défis seront conservés et ajoutés à ton Lovys au moment de l’éclosion.</div>
+    <div class="lovys-home-empty-helper">Continue à regarder les lives pour compléter les 4 heures d’incubation. Les XP gagnés via les défis seront conservés et ajoutés à ton Lovys au moment de l’éclosion.</div>
     <div class="lovys-home-empty-tag">⚡ ${pendingXp.toLocaleString('fr-FR')} XP en attente</div>
     <div class="lovys-pve-stats">
       <div class="lovys-pve-stat"><div class="lovys-pve-stat-label">Temps restant</div><div class="lovys-pve-stat-value">${egg.ready ? '0 h 00' : escapeHtml(formatEggTime(egg.remainingSeconds || 0))}</div><div class="lovys-pve-stat-sub">avant l’éclosion</div></div>
@@ -1203,7 +1203,7 @@ function renderIncubatorSlot(slotData) {
   el.classList.add(isStarter ? 'active' : 'extra-egg');
   if (slotData.ready) el.classList.add('ready');
   const title = slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation';
-  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
+  const remaining = Math.max(0, incubatorSlotHatchSeconds(slotData) - Number(slotData.watchedSeconds || 0));
   const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans <strong class="incubator-remaining-time">${formatEggTime(remaining)}</strong>`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
   const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">🎲 Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
@@ -1217,7 +1217,7 @@ function renderIncubatorOverview() {
   const active = incubatorData.slots.filter(slot => slot && !slot.empty);
   const next = active.filter(slot => !slot.ready).sort((a,b)=>Number(b.watchedSeconds||0)-Number(a.watchedSeconds||0))[0];
   const ready = active.find(slot => slot.ready);
-  const remaining = next ? Math.max(0, Number(incubatorData?.hatchSeconds || 21600)-Number(next.watchedSeconds||0)) : 0;
+  const remaining = next ? Math.max(0, incubatorSlotHatchSeconds(next)-Number(next.watchedSeconds||0)) : 0;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
   box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Clique sur un œuf en incubation pour voir les Lovys possibles avec leurs pourcentages d’obtention.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
   if(isMobileGameUi()){
@@ -1484,12 +1484,13 @@ function openExtraEggInfo(slotData) {
   if (!content) return;
   selectedIncubatorSlot = Number(slotData.slot);
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · œuf en cours d’incubation.`;
-  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
-  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé ses 6 heures d’incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / 6 h 00</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}</div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+  const remaining = Math.max(0, incubatorSlotHatchSeconds(slotData) - Number(slotData.watchedSeconds || 0));
+  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé son incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / ${formatEggTime(incubatorSlotHatchSeconds(slotData))}</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}</div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
   $('incubatorHatchExtraEgg')?.addEventListener('click',()=>hatchExtraIncubatorEgg(slotData.slot));
   $('incubatorAddModal')?.classList.remove('hidden');
 }
 
+function incubatorSlotHatchSeconds(slot, data=incubatorData) { return Math.max(1, Number(slot?.hatchSeconds || (slot?.source === 'starter' ? 14400 : data?.hatchSeconds) || 18000)); }
 function formatEggTime(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0));
   const hours = Math.floor(total / 3600);
@@ -1505,9 +1506,9 @@ function updateEgg(egg) {
 
   const eggProgress = Math.max(0, Math.min(100, egg.progress || 0));
   $('eggProgressBar').style.width = `${eggProgress}%`;
-  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / ${formatEggTime(egg.hatchSeconds || 14400)}`;
   if ($('topIncubatorProgressBar')) $('topIncubatorProgressBar').style.width = `${eggProgress}%`;
-  if ($('topIncubatorTime')) $('topIncubatorTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  if ($('topIncubatorTime')) $('topIncubatorTime').textContent = `${formatEggTime(egg.watchedSeconds)} / ${formatEggTime(egg.hatchSeconds || 14400)}`;
   if ($('topIncubatorPendingXp')) $('topIncubatorPendingXp').textContent = pendingXp + ' XP';
   $('topIncubatorEgg')?.classList.remove('hidden');
   $('topIncubatorEggArt')?.classList.remove('hidden');
@@ -1546,7 +1547,7 @@ const tutorialSteps = [
   },
   {
     icon:'🥚', title:'Œufs et incubateur', target:'.incubator-topbar',
-    text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 6 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
+    text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 5 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
     tip:'Le temps se cumule sur plusieurs lives et se met en pause hors ligne. Quand l’œuf est prêt, clique sur « Faire éclore ». Tu peux faire progresser jusqu’à 3 œufs en même temps.'
   },
   {
@@ -1741,7 +1742,7 @@ function buildNextActions() {
 
   if (!me.user.creature_id && !readySlot) {
     const starter = slots.find(slot => slot.source === 'starter');
-    if (starter && !starter.ready) actions.push({ id:'incubator-view', icon:'⏱️', title:'Continue l’incubation', desc:`Il reste ${formatEggTime(Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(starter.watchedSeconds || 0)))} avant ton premier Lovys.`, button:'Voir' });
+    if (starter && !starter.ready) actions.push({ id:'incubator-view', icon:'⏱️', title:'Continue l’incubation', desc:`Il reste ${formatEggTime(Math.max(0, incubatorSlotHatchSeconds(starter) - Number(starter.watchedSeconds || 0)))} avant ton premier Lovys.`, button:'Voir' });
   }
 
   const pendingXp = Math.max(0, Number(me.user.pending_xp || 0));
@@ -3227,7 +3228,7 @@ function renderMobileHomeDashboard(){
     $('mobileDashboardLovy').innerHTML='<span class="mobile-dashboard-kicker">TON PREMIER LOVY</span><h3>Un œuf, un nouveau compagnon</h3><p>Fais éclore ton premier œuf pour découvrir ton Lovy. L’XP en réserve est conservée pendant son incubation.</p><button type="button" data-mobile-dashboard="incubator">Voir mon œuf</button>';
   }
   const slots=(incubatorData?.slots||[]).filter(slot=>slot&&!slot.empty),ready=slots.find(slot=>slot.ready),running=slots.filter(slot=>!slot.ready);
-  const hatch=Number(incubatorData?.hatchSeconds||21600),remaining=running.length?Math.min(...running.map(slot=>Math.max(0,hatch-Number(slot.watchedSeconds||0)))):0;
+  const hatch=Number(incubatorData?.hatchSeconds||18000),remaining=running.length?Math.min(...running.map(slot=>Math.max(0,incubatorSlotHatchSeconds(slot)-Number(slot.watchedSeconds||0)))):0;
   const summary=ready?'Un œuf est prêt à éclore !':running.length?`${running.length} œuf${running.length>1?'s':''} en incubation`:'Aucune incubation en cours';
   $('mobileDashboardIncubator').innerHTML=`<div><h3>🥚 ${summary}</h3><p>${ready?'Découvre ton nouveau Lovy.':running.length?`Prochaine éclosion dans ${formatEggTime(remaining)} de présence en live.`:'Place un œuf dans un emplacement libre.'}</p></div><button type="button" data-mobile-dashboard="${ready?'hatch':'incubator'}">${ready?'Faire éclore':'Voir mes œufs'}</button>`;
 }
@@ -3868,9 +3869,9 @@ function lovysLiveXpExplanation() {
 function renderMobileLovysIncubator(now){
   const slots=lovysIncubatorData?.slots||[];
   const ready=slots.some(slot=>slot?.ready);
-  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||21600);
+  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||18000);
   const incubating=slots.filter(slot=>slot&&!slot.ready&&Number(slot.watchedSeconds||0)>0);
-  const remaining=incubating.length?Math.min(...incubating.map(slot=>Math.max(0,hatchSeconds-Number(slot.watchedSeconds||0)))):0;
+  const remaining=incubating.length?Math.min(...incubating.map(slot=>Math.max(0,incubatorSlotHatchSeconds(slot,lovysIncubatorData)-Number(slot.watchedSeconds||0)))):0;
   const label=ready?'Un œuf est prêt à éclore !':incubating.length?`Éclosion dans ${formatEggTime(remaining)}`:'Ouvrir l’incubateur';
   now.innerHTML=`<button class="mobile-lovys-incubator" type="button" data-lovys-incubator><span aria-hidden="true">🥚</span><strong>${escapeHtml(label)}</strong><span aria-hidden="true">›</span></button>`;
 }
@@ -3922,12 +3923,12 @@ function renderLovysActiveHero(data){
   const pending=Math.floor(Number(data.pendingXp||0));
   const readySlot=(lovysIncubatorData?.slots||[]).find(x=>x?.ready);
   const incubating=(lovysIncubatorData?.slots||[]).find(x=>x&&!x.ready&&Number(x.watchedSeconds||0)>0);
-  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||21600);
+  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||18000);
   let tipIcon='📺',tipTitle='Regarde le live pour progresser',tipText='Tu gagneras de l’XP et avanceras la progression de ton Lovys.',tipAction='';
   if(readySlot){
     tipIcon='🥚';tipTitle='Ton œuf est prêt à éclore !';tipText='Passe par l’Incubateur pour découvrir ton nouveau Lovys.';tipAction='<button type="button" data-lovys-incubator>Voir l’incubateur</button>';
   }else if(incubating){
-    const left=Math.max(0,hatchSeconds-Number(incubating.watchedSeconds||0));
+    const left=Math.max(0,incubatorSlotHatchSeconds(incubating,lovysIncubatorData)-Number(incubating.watchedSeconds||0));
     tipIcon='🥚';tipTitle=`Éclosion dans ${formatEggTime(left)}`;tipText='Ton œuf progresse pendant le live. Tu peux suivre son avancée dans l’Incubateur.';tipAction='<button type="button" data-lovys-incubator>Voir l’incubateur</button>';
   }else if(pending>0&&!active.maxLevel){
     tipIcon='⚡';tipTitle=`${pending.toLocaleString('fr-FR')} XP à distribuer`;tipText=`Tu as de l’XP en réserve : donne-la à ${escapeHtml(active.name)} pour accélérer sa progression.`;tipAction=`<button type="button" data-transfer-lovys="${active.id}">Distribuer l’XP</button>`;
@@ -5247,8 +5248,8 @@ function arrangeIncubatorCarousel(){
       const bOccupied = slots.has(bSlot) && !slots.get(bSlot).empty;
       if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
       if(aOccupied && bOccupied){
-        const hatchSeconds = Number(incubatorData.hatchSeconds || 21600);
-        const remaining = slot => slot.ready ? 0 : Math.max(0,hatchSeconds - Number(slot.watchedSeconds || 0));
+        const hatchSeconds = Number(incubatorData.hatchSeconds || 18000);
+        const remaining = slot => slot.ready ? 0 : Math.max(0,incubatorSlotHatchSeconds(slot)-Number(slot.watchedSeconds || 0));
         const timeDifference = remaining(slots.get(aSlot)) - remaining(slots.get(bSlot));
         if(timeDifference) return timeDifference;
       }
@@ -5316,7 +5317,7 @@ function awaitStarterHatchFromCard() {
   const button = $('hatchEgg');
   if (!button) return;
   // Les données des emplacements font foi pour ce clic ; le serveur vérifie
-  // de nouveau les 6 heures avant d'accorder le Lovys.
+  // de nouveau le temps requis avant d'accorder le Lovys.
   button.disabled = false;
   hatchEgg();
 }
@@ -6665,8 +6666,8 @@ async function chooseEggForAcceleration(preferredSlot = null) {
     if (buy) await openShopForIncubatorAccelerators();
     return null;
   }
-  const hatch = Number(data.hatchSeconds || 21600);
-  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < hatch);
+  const hatch = Number(data.hatchSeconds || 18000);
+  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < incubatorSlotHatchSeconds(slot,data));
   if (!slots.length) throw new Error('Aucun œuf à accélérer.');
   return new Promise(resolve => {
     const previousFocus = document.activeElement;
@@ -6676,9 +6677,9 @@ async function chooseEggForAcceleration(preferredSlot = null) {
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
     let selected = slots.find(slot=>Number(slot.slot)===Number(preferredSlot)) || null;
-    const maxQuantity = slot => Math.min(12,owned,Math.ceil(Math.max(0,hatch-Number(slot.watchedSeconds))/1800));
+    const maxQuantity = slot => Math.min(12,owned,Math.ceil(Math.max(0,incubatorSlotHatchSeconds(slot,data)-Number(slot.watchedSeconds))/1800));
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⚡ Accélérer un œuf</h2><p>Tu possèdes <strong>${owned}</strong> accélérateur${owned>1?'s':''} de 30 minutes. Choisis l’œuf et la quantité à utiliser.</p><div class="egg-boost-choices">${slots.map(slot => {
-      const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
+      const remaining = Math.max(0,incubatorSlotHatchSeconds(slot,data)-Number(slot.watchedSeconds));
       return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="${selected===slot}"><span>🥚 Emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} restantes</strong></button>`;
     }).join('')}</div><div class="egg-boost-quantity" data-egg-boost-quantity-wrap><label for="eggBoostQuantity">Quantité</label><div><button type="button" data-egg-minus aria-label="Réduire">−</button><input id="eggBoostQuantity" type="number" min="1" max="12" value="1" step="1" inputmode="numeric"><button type="button" data-egg-plus aria-label="Augmenter">＋</button></div></div><p class="egg-boost-question" data-egg-boost-question></p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Utiliser</button></div></div>`;
     const input = overlay.querySelector('#eggBoostQuantity');
@@ -6690,7 +6691,7 @@ async function chooseEggForAcceleration(preferredSlot = null) {
       overlay.querySelector('[data-egg-boost-confirm]').disabled = !valid;
       overlay.querySelector('[data-egg-minus]').disabled = !selected || !valid || amount<=1;
       overlay.querySelector('[data-egg-plus]').disabled = !selected || !valid || amount>=max;
-      const remaining = selected ? Math.max(0,hatch-Number(selected.watchedSeconds)) : 0;
+      const remaining = selected ? Math.max(0,incubatorSlotHatchSeconds(selected,data)-Number(selected.watchedSeconds)) : 0;
       overlay.querySelector('[data-egg-boost-question]').textContent = !selected ? 'Choisis un œuf.' : !valid ? `Choisis de 1 à ${max} accélérateur(s).` : `${amount} accélérateur(s) · −${formatEggTime(Math.min(remaining,amount*1800))} · ${remaining<=amount*1800?'Prêt à éclore !':formatEggTime(remaining-amount*1800)+' restantes'}`;
     };
     const finish = value => {document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus();resolve(value);};
