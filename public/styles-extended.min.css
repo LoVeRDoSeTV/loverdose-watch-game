@@ -271,21 +271,26 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 }
 
 
-/* Défis du jour PC : liste compacte, détails ouverts au clic. */
+/* Défis du jour PC : trois blocs empilés, détails ouverts au clic. */
 @media (min-width:901px) and (hover:hover) and (pointer:fine){
   .dashboard-side-stack .daily-challenges-card{
     box-sizing:border-box;
     background:#0d1122!important;
     background-image:none!important;
+    display:flex;
+    flex-direction:column;
     overflow:hidden;
   }
   .dashboard-side-stack .daily-challenges-card::before{display:none!important}
   .dashboard-side-stack .daily-challenges-grid{
     display:grid!important;
     grid-template-columns:minmax(0,1fr)!important;
-    gap:0!important;
+    grid-template-rows:repeat(3,minmax(0,1fr))!important;
+    flex:1 1 auto;
+    gap:10px!important;
     width:100%;
     min-width:0;
+    min-height:0;
     overflow:hidden;
   }
   .dashboard-side-stack .daily-challenge,
@@ -296,22 +301,24 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
     align-items:center!important;
     min-width:0!important;
     min-height:0!important;
-    height:auto!important;
-    padding:12px 4px!important;
+    height:100%!important;
+    box-sizing:border-box;
+    padding:12px 14px!important;
     gap:5px 12px!important;
-    border:0!important;
-    border-bottom:1px solid rgba(171,145,225,.22)!important;
-    border-radius:0!important;
-    background:none!important;
+    border:1px solid rgba(171,145,225,.26)!important;
+    border-radius:12px!important;
+    background:rgba(17,22,42,.78)!important;
     background-image:none!important;
     box-shadow:none!important;
     transform:none!important;
     overflow:hidden;
   }
-  .dashboard-side-stack .daily-challenge:last-child{border-bottom:0!important}
   .dashboard-side-stack .daily-challenge::before{display:none!important}
+  .dashboard-side-stack .daily-challenge.claimed{border-color:rgba(55,205,117,.4)!important}
+  .dashboard-side-stack .daily-challenge.complete:not(.claimed){border-color:rgba(185,130,255,.48)!important}
   .dashboard-side-stack .daily-challenge:hover{
-    background:rgba(145,71,255,.07)!important;
+    background:rgba(145,71,255,.12)!important;
+    border-color:rgba(185,130,255,.58)!important;
     transform:none!important;
     box-shadow:none!important;
   }
@@ -352,6 +359,7 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
   .dashboard-side-stack .daily-challenge-progress-text span:last-child{
     padding:0!important;background:none!important;
   }
+  @media (max-width:1180px){.dashboard-side-stack .daily-challenges-grid{min-height:270px}}
   .daily-challenge-detail-panel.has-challenge-bg{
     background:#101427!important;background-image:none!important;
   }
