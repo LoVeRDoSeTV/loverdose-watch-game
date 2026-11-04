@@ -5131,6 +5131,14 @@ function restoreMobilePageScroll(id){
 }
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  if(!$('desktopAdminModal')?.classList.contains('hidden')){
+    closeAdminPlayersModal();
+    for(const id of ['adminDashboardModal','adminBotModal','eventsModal'])$(id)?.classList.add('hidden');
+    $('adminFeedbackSection')?.classList.add('hidden');
+    $('adminFeedbackOpen')?.classList.remove('hidden');
+    $('desktopAdminContent')?.classList.remove('hidden');
+    closeDesktopAdmin();
+  }
   mobileNavigationRevision++;
   closeMobileBadgeDetail();
   $('badgeCollectionModal')?.classList.add('hidden');
@@ -7556,6 +7564,13 @@ function adminPlayerTwitchLink(player){
   if(!/^[a-z0-9_]{1,25}$/i.test(login))return 'Twitch non lié';
   return `<a href="https://www.twitch.tv/${encodeURIComponent(login)}" target="_blank" rel="noopener noreferrer" class="admin-twitch-link">Twitch : ${escapeHtml(login)} ↗</a>`;
 }
+function adminLovysPortrait(lovy){
+  const level=Math.max(1,Number(lovy.level)||1);
+  const name=String(lovy.name||lovy.creatureId||lovy.creature_id||'Lovys');
+  const image=lovysImageUrl(lovy.creatureId||lovy.creature_id,lovysEvolutionForLevel(level));
+  const label=escapeHtml(name+' · Niveau '+level);
+  return `<span class="admin-lovys-portrait" tabindex="0" aria-label="${label}" title="${label}">${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async">`:'🐉'}<span class="admin-lovys-tooltip">${label}</span><small>Niv. ${level}</small></span>`;
+}
 function renderAdminPlayers(data) {
   const list = $('adminPlayersList');
   const total = $('adminPlayersTotal');
@@ -7592,6 +7607,7 @@ function renderAdminPlayers(data) {
         <div>
           <div class="admin-player-meta">${stateText}</div>
           <div class="admin-player-status"><span class="admin-player-pill">${player.isSub ? '⭐ Sub' : '☆ Non sub'}</span><span class="admin-player-pill">💰 ${Math.round(Number(player.points || 0))} LoVeR'Cash</span></div>
+          <div class="admin-player-lovys" aria-label="Lovys du joueur">${(player.lovys||[]).length?(player.lovys||[]).map(adminLovysPortrait).join(''):'<span class="admin-player-meta">Aucun Lovys</span>'}</div>
         </div>
         <div>
           <div class="admin-player-meta">${twitchText}</div>
@@ -7676,7 +7692,7 @@ function renderAdminPlayerEditor(player){
       ${adminAdjustRow('🥚','Donner des œufs','grant_egg','quantité',true)}
       ${adminAdjustRow('👑','Régler le Prestige','prestige','valeur',true)}
     </div></div>
-    <div class="admin-editor-section"><h3>🐉 Lovys & fragments</h3><div class="admin-lovys-admin-list">${lovys.length?lovys.map(l=>`<div class="admin-lovys-row"><div><strong>${l.is_active?'⭐ ':''}${escapeHtml(l.name)}</strong><div class="admin-player-meta">Niv. ${l.level} · Rang ${l.rank}/5 · ${escapeHtml(l.rarity)} · ${formatAdminNumber(l.xp)} XP</div></div><div class="admin-lovys-fragments"><span>🧩 ${formatAdminNumber(l.fragments)}</span><input type="number" value="10" step="1" data-lovys-fragment-input="${l.id}"><button class="btn secondary" data-admin-action="lovys_fragments" data-lovys-id="${l.id}">Appliquer</button></div></div>`).join(''):'<div class="admin-player-meta">Aucun Lovys.</div>'}</div></div>
+    <div class="admin-editor-section"><h3>🐉 Lovys & fragments</h3><div class="admin-lovys-admin-list">${lovys.length?lovys.map(l=>`<div class="admin-lovys-row"><div class="admin-lovys-main">${adminLovysPortrait(l)}<div><strong>${l.is_active?'⭐ ':''}${escapeHtml(l.name)}</strong><div class="admin-player-meta">Niv. ${l.level} · Rang ${l.rank}/5 · ${escapeHtml(l.rarity)} · ${formatAdminNumber(l.xp)} XP</div></div></div><div class="admin-lovys-fragments"><span>🧩 ${formatAdminNumber(l.fragments)}</span><input type="number" value="10" step="1" data-lovys-fragment-input="${l.id}"><button class="btn secondary" data-admin-action="lovys_fragments" data-lovys-id="${l.id}">Appliquer</button></div></div>`).join(''):'<div class="admin-player-meta">Aucun Lovys.</div>'}</div></div>
     <div class="admin-editor-columns">
       <div class="admin-editor-section"><h3>🥚 Incubateur</h3>${incubator.length?incubator.map(e=>`<div class="admin-mini-row"><span>Slot ${e.slot}</span><strong>${e.status==='ready'?'✅ Prêt':'⏳ En cours'}</strong></div>`).join(''):'<div class="admin-player-meta">Aucun œuf placé.</div>'}</div>
       <div class="admin-editor-section"><h3>🏅 Badges</h3><div class="admin-badge-admin-list">${badges.length?badges.slice(0,12).map(b=>`<span class="admin-player-pill">${escapeHtml(b.badge_name||b.badge_key)}</span>`).join(''):'<span class="admin-player-meta">Aucun badge.</span>'}</div></div>
