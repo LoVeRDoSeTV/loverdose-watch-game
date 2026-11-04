@@ -371,7 +371,8 @@ const CREATURE_MILESTONES=[{level:25,power:15,label:'Forme évoluée'},{level:50
    CRÉATURES
 ========================================= */
 
-const EGG_HATCH_SECONDS = 6 * 60 * 60;
+const STARTER_EGG_HATCH_SECONDS = 4 * 60 * 60;
+const EGG_HATCH_SECONDS = 5 * 60 * 60;
 
 const RARITY_RATES = {
   Commun: 70,
@@ -630,11 +631,11 @@ function eggState(user) {
   return {
     type: 'standard',
     name: 'Œuf en incubation',
-    hatchSeconds: EGG_HATCH_SECONDS,
-    watchedSeconds: Math.min(watched, EGG_HATCH_SECONDS),
-    remainingSeconds: Math.max(0, EGG_HATCH_SECONDS - watched),
-    progress: Math.min(100, (watched / EGG_HATCH_SECONDS) * 100),
-    ready: !hatched && watched >= EGG_HATCH_SECONDS,
+    hatchSeconds: STARTER_EGG_HATCH_SECONDS,
+    watchedSeconds: Math.min(watched, STARTER_EGG_HATCH_SECONDS),
+    remainingSeconds: Math.max(0, STARTER_EGG_HATCH_SECONDS - watched),
+    progress: Math.min(100, (watched / STARTER_EGG_HATCH_SECONDS) * 100),
+    ready: !hatched && watched >= STARTER_EGG_HATCH_SECONDS,
     hatched,
     rarityRates: RARITY_RATES
   };
@@ -2531,7 +2532,7 @@ app.use(
 );
 
 
-app.use('/api/twitch-panel', createTwitchPanelRouter({pool,baseUrl:BASE_URL,hatchSeconds:EGG_HATCH_SECONDS,creatureBattleStats,catalog:SHOP_ITEMS}));
+app.use('/api/twitch-panel', createTwitchPanelRouter({pool,baseUrl:BASE_URL,hatchSeconds:EGG_HATCH_SECONDS,starterHatchSeconds:STARTER_EGG_HATCH_SECONDS,creatureBattleStats,catalog:SHOP_ITEMS}));
 
 // Présence récente sur le site (et non présence dans le chat Twitch).
 const activeGameAccounts = new Map();
@@ -4378,7 +4379,7 @@ app.post(
         return res.status(400).json({ error: 'Ton œuf a déjà éclos.' });
       }
 
-      if (Number(u.watch_seconds) < EGG_HATCH_SECONDS) {
+      if (Number(u.watch_seconds) < STARTER_EGG_HATCH_SECONDS) {
         await client.query('ROLLBACK');
         return res.status(400).json({
           error: 'Ton œuf n’est pas encore prêt à éclore.',
@@ -5820,7 +5821,7 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
 ========================================= */
 
 app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
-const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:EGG_HATCH_SECONDS});
+const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:STARTER_EGG_HATCH_SECONDS});
 app.use('/api',wizebotAlerts.router);
 const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction});
 app.use('/api',gameBot.router);
@@ -6155,14 +6156,15 @@ app.get('/api/incubator', async (req, res) => {
     const slots = [1,2,3].map(slot => {
       // Tant que le premier Lovys n'a pas éclos, le slot 1 reste l'œuf historique.
       if (slot === 1 && !user.creature_id) {
-        const watched = Math.max(0, Math.min(EGG_HATCH_SECONDS, Number(user.watch_seconds || 0)));
+        const watched = Math.max(0, Math.min(STARTER_EGG_HATCH_SECONDS, Number(user.watch_seconds || 0)));
         return {
           slot,
           source:'starter',
           eggKey:'starter_egg',
           watchedSeconds:watched,
-          progress:Math.min(100, watched / EGG_HATCH_SECONDS * 100),
-          ready:watched >= EGG_HATCH_SECONDS,
+          progress:Math.min(100, watched / STARTER_EGG_HATCH_SECONDS * 100),
+          ready:watched >= STARTER_EGG_HATCH_SECONDS,
+          hatchSeconds:STARTER_EGG_HATCH_SECONDS,
           pendingXp:Number(user.pending_xp || 0)
         };
       }
@@ -6178,6 +6180,7 @@ app.get('/api/incubator', async (req, res) => {
         watchedSeconds:watched,
         progress:Math.min(100, watched / EGG_HATCH_SECONDS * 100),
         ready:extra.status === 'ready' || watched >= EGG_HATCH_SECONDS,
+        hatchSeconds:EGG_HATCH_SECONDS,
         placedAt:extra.placed_at
       };
     });
@@ -6664,20 +6667,21 @@ app.post('/api/shop/use', async (req, res) => {
           (!starter && req.body?.eggId != null && Number(req.body.eggId) !== Number(egg.id))) {
         await client.query('ROLLBACK');return res.status(409).json({error:'L’œuf de cet emplacement a changé. Choisis-le à nouveau.'});
       }
+      const targetHatchSeconds = starter ? STARTER_EGG_HATCH_SECONDS : EGG_HATCH_SECONDS;
       const watched = Math.max(0, Number(starter ? user.watch_seconds : egg.watched_seconds) || 0);
-      if (watched >= EGG_HATCH_SECONDS || egg?.status === 'ready') {await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf est déjà prêt à éclore.'});}
-      const required = Math.ceil((EGG_HATCH_SECONDS - watched) / 1800);
+      if (watched >= targetHatchSeconds || egg?.status === 'ready') {await client.query('ROLLBACK');return res.status(400).json({error:'Cet œuf est déjà prêt à éclore.'});}
+      const required = Math.ceil((targetHatchSeconds - watched) / 1800);
       if (requestedQuantity > required) {
         await client.query('ROLLBACK');
         return res.status(400).json({error:`${required} accélérateur(s) suffisent pour terminer cet œuf.`});
       }
-      const next = Math.min(EGG_HATCH_SECONDS, watched + 1800 * requestedQuantity);
+      const next = Math.min(targetHatchSeconds, watched + 1800 * requestedQuantity);
       if (starter) {
         await client.query('UPDATE users SET watch_seconds=$2, incubator_accelerated_seconds=incubator_accelerated_seconds+$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1', [user.id,next,next-watched]);
       } else {
-        await client.query("UPDATE user_incubator_eggs SET watched_seconds=$2, status=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1", [egg.id,next,next >= EGG_HATCH_SECONDS ? 'ready' : 'incubating']);
+        await client.query("UPDATE user_incubator_eggs SET watched_seconds=$2, status=$3, updated_at=CURRENT_TIMESTAMP WHERE id=$1", [egg.id,next,next >= targetHatchSeconds ? 'ready' : 'incubating']);
       }
-      acceleration = {slot,quantity:requestedQuantity,secondsReduced:next-watched,remainingSeconds:EGG_HATCH_SECONDS-next,ready:next>=EGG_HATCH_SECONDS};
+      acceleration = {slot,quantity:requestedQuantity,secondsReduced:next-watched,remainingSeconds:targetHatchSeconds-next,ready:next>=targetHatchSeconds};
       const minutes = Math.ceil((next-watched)/60);
       message = `Œuf de l’emplacement ${slot} accéléré de ${minutes} min.${acceleration.ready ? ' Il est prêt à éclore !' : ''}`;
     }
@@ -7279,7 +7283,7 @@ app.get(
       const leaderboard = playersResult.rows.map(player => {
         const hatched = Boolean(player.creature_id);
         const watched = Math.max(0, (Number(player.watch_seconds) || 0) - (Number(player.incubator_accelerated_seconds) || 0));
-        const eggWatched = Math.min(watched, EGG_HATCH_SECONDS);
+        const eggWatched = Math.min(watched, STARTER_EGG_HATCH_SECONDS);
 
         return {
           id: Number(player.id),
@@ -7319,9 +7323,9 @@ app.get(
           global_progression: globalProgressionFromXp(Number(player.global_xp || 0)),
           egg: hatched ? null : {
             watchedSeconds: eggWatched,
-            remainingSeconds: Math.max(0, EGG_HATCH_SECONDS - watched),
-            progress: Math.min(100, (watched / EGG_HATCH_SECONDS) * 100),
-            ready: watched >= EGG_HATCH_SECONDS
+            remainingSeconds: Math.max(0, STARTER_EGG_HATCH_SECONDS - watched),
+            progress: Math.min(100, (watched / STARTER_EGG_HATCH_SECONDS) * 100),
+            ready: watched >= STARTER_EGG_HATCH_SECONDS
           }
         };
       });
