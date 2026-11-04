@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LoVeR Watch Game · Alerte drop OBS</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;font-family:Arial,sans-serif}
+#alert{position:absolute;left:50%;bottom:12%;transform:translate(-50%,30px) scale(.9);width:max-content;max-width:90%;box-sizing:border-box;padding:16px 26px;border:2px solid #b886ff;border-radius:20px;background:linear-gradient(135deg,rgba(24,13,52,.97),rgba(53,24,94,.96));color:#fff;text-align:center;box-shadow:0 0 34px rgba(145,71,255,.7);opacity:0;transition:transform .35s,opacity .35s;pointer-events:none}
+#alert.show{opacity:1;transform:translate(-50%,0) scale(1)}
+#alert strong{display:block;color:#ffd86f;font-size:30px}
+#alert span{display:block;margin-top:5px;font-size:19px}
+</style>
+</head>
+<body>
+<div id="alert" role="status" aria-live="polite"><strong>🎁 DROP EN COURS !</strong><span id="reward">Tape !catch dans le chat</span></div>
+<script>
+(() => {
+  let lastId = null, initialized = false, timeoutId = 0, audio = null;
+  function chime(){
+    try{
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if(!AudioContext)return;
+      audio ||= new AudioContext();
+      audio.resume().catch(()=>{});
+      const start=audio.currentTime+.04;
+      [523.25,659.25,783.99,1046.5].forEach((frequency,index)=>{
+        const oscillator=audio.createOscillator(),gain=audio.createGain(),at=start+index*.16;
+        oscillator.type='sine';oscillator.frequency.setValueAtTime(frequency,at);
+        gain.gain.setValueAtTime(.0001,at);
+        gain.gain.exponentialRampToValueAtTime(.19,at+.025);
+        gain.gain.exponentialRampToValueAtTime(.0001,at+.38);
+        oscillator.connect(gain).connect(audio.destination);
+        oscillator.start(at);oscillator.stop(at+.4);
+      });
+    }catch(error){console.warn('Son de drop indisponible',error);}
+  }
+  async function poll(){
+    try{
+      const response=await fetch('/api/game-bot/drop-alert',{cache:'no-store'});
+      if(!response.ok)return;
+      const {drop}=await response.json();
+      if(!initialized){initialized=true;lastId=drop?.id||null;return;}
+      if(!drop||drop.id===lastId)return;
+      lastId=drop.id;
+      if(Date.now()-Date.parse(drop.startedAt)>15000)return;
+      document.getElementById('reward').textContent='Tape !catch dans le chat · '+drop.reward;
+      document.getElementById('alert').classList.add('show');
+      clearTimeout(timeoutId);
+      timeoutId=setTimeout(()=>document.getElementById('alert').classList.remove('show'),8500);
+      chime();
+    }catch(error){console.warn('Alerte drop indisponible',error);}
+  }
+  poll();
+  setInterval(poll,1500);
+})();
+</script>
+</body>
+</html>
