@@ -175,6 +175,14 @@ test('actual PvE action route preserves live XP, pays the first victory once and
   assert.equal((await balances(id)).xp,600+fight.rewards.creatureXp);
  }
  assert.equal((await query('SELECT wins FROM user_pve_progress WHERE user_id=$1',[id])).rows[0].wins,2);
+ const achievements=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:async()=>{}});
+ await achievements.init();
+ const badge=(await achievements.sync(id,id)).find(item=>item.badgeKey==='achievement:victories');
+ assert.equal(badge.progressValue,1);
+ assert.equal(badge.stages[0].unlocked,true);
+ // Corrige également les anciens compteurs qui avaient déjà inclus les replays.
+ await query("UPDATE user_achievement_progress SET value=30 WHERE user_id=$1 AND metric='victories'",[id]);
+ assert.equal((await achievements.sync(id,id)).find(item=>item.badgeKey==='achievement:victories').progressValue,1);
 });
 
 test('badge rebalance tops up old tiers once and pays the same total to a new player',async()=>{
