@@ -382,3 +382,4 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 @keyframes twitch-logo-float{from{transform:translate3d(0,-3px,0);opacity:.22}to{transform:translate3d(-5px,5px,0);opacity:.45}}
 @media(prefers-reduced-motion:reduce){.twitch-live-background,.player-visit-card.twitch-live-background::after,.shop-profile-preview-card.twitch-live-background::after,.shop-preview-bg.twitch-live-background::after{animation:none!important}}
 .shop-twitch-setup{grid-column:1/-1;padding:14px;border:1px solid #6f42ac;border-radius:12px;background:#211638;color:#f0e6ff}.shop-twitch-setup a{color:#d9b8ff;text-decoration:underline}
+.shop-actions a.shop-action,#shopItemPreviewActions a.shop-action{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none}
