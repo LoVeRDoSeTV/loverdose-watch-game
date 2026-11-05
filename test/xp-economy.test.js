@@ -24,6 +24,7 @@ test.before(async()=>{
  CREATE TABLE user_daily_activity(user_id int,activity_date date,watch_seconds bigint,global_xp_earned double precision,lovercash_earned double precision,updated_at timestamptz,PRIMARY KEY(user_id,activity_date));
  CREATE TABLE user_game_tabs(user_id int,last_seen_at timestamptz);
  CREATE TABLE user_pve_progress(user_id int,fight_key text,wins int DEFAULT 0,attempts int DEFAULT 0,first_won_at timestamptz,last_fought_at timestamptz,PRIMARY KEY(user_id,fight_key));
+ CREATE TABLE user_lovys_pve_progress(user_id int,lovys_id int REFERENCES user_lovys(id),fight_key text,won_at timestamptz DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,lovys_id,fight_key));
  CREATE TABLE user_pve_battles(user_id int PRIMARY KEY,fight_key text,state_json jsonb,updated_at timestamptz);
  CREATE TABLE user_combat_reports(id serial PRIMARY KEY,user_id int,fight_key text,result text,creature_level int,enemy_level int,creature_power int,enemy_power int,reward_creature_xp int,reward_global_xp int,reward_fragments int,report_json jsonb);
  ALTER TABLE users ADD COLUMN egg_fragments int DEFAULT 0;
@@ -41,6 +42,32 @@ test.before(async()=>{
  CREATE TABLE user_global_xp_level_rewards(user_id int,prestige int,level int,xp_amount double precision,PRIMARY KEY(user_id,prestige,level));
  CREATE TABLE user_global_cash_level_rewards(user_id int,prestige int,level int,cash_amount double precision,PRIMARY KEY(user_id,prestige,level));
  CREATE TABLE user_global_lovys_xp_rewards(user_id int,prestige int,level int,xp_amount double precision,PRIMARY KEY(user_id,prestige,level));`);
+});
+
+test('PvE replays reward each other Lovys once, then stop after its zone boss',async()=>{
+ const id=await player(600),otherId=id+10000;
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,xp,is_active) VALUES($1,$2,'plant',0,FALSE)",[otherId,id]);
+ const router=createPveRouter({pool,zones:PVE_ZONES,previousFight:pvePreviousFight,fightByKey:pveFightByKey,globalThresholdForLevel});
+ const handler=router.stack.find(layer=>layer.route?.path==='/action').route.stack[0].handle;
+ const fight=PVE_FIGHTS[0],boss=PVE_ZONES[0].fights.find(item=>item.finalBoss);
+ async function win(lovysId,fightToWin=fight){
+  const state=createBattleState({fight:fightToWin,player:{name:'Test',creatureId:'plant',lovysId,level:5,rank:1,type:'Neutre',hp:100000,attack:100000,defense:10000,speed:100}});
+  await query('INSERT INTO user_pve_battles VALUES($1,$2,$3,NULL)',[id,fightToWin.key,JSON.stringify(state)]);
+  const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}},body:{action:'basic'}},res);
+  assert.equal(res.statusCode,200);assert.equal(res.body.victory,true);return res.body;
+ }
+ await win(id);
+ assert.equal((await win(id)).replayReward,false);
+ const replay=await win(otherId);
+ assert.equal(replay.replayReward,true);assert.equal(replay.reward.cash,1);
+ assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[otherId])).rows[0].xp,replay.reward.creatureXp);
+ assert.equal((await balances(id)).points,1);
+ assert.equal((await win(otherId)).replayReward,false);
+ await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,boss.key]);
+ await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,PVE_FIGHTS[1].key]);
+ const blocked=await win(otherId,PVE_FIGHTS[1]);
+ assert.equal(blocked.replayReward,false);assert.equal(blocked.reward.cash,0);
+ assert.equal((await balances(id)).points,1);
 });
 test.after(async()=>{await db?.close();});
 let next=0;
