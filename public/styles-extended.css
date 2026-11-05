@@ -3200,6 +3200,7 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
 
 /* Création guidée d’une offre : contrôles réservés au PC. */
 .trade-pc-steps,.trade-pc-control,.trade-pc-help,.trade-pc-heading{display:none}
+.trade-mobile-divider,.trade-mobile-section-icon{display:none}
 @media((min-width:901px) and (not ((max-width:1366px) and (hover:none) and (pointer:coarse)))){
   .desktop-trade-wizard .trade-pc-steps{display:flex;align-items:center;gap:15px;margin:22px 0 0;padding:0 0 18px;border-bottom:1px solid #33334d}
   .trade-pc-steps>span{display:flex;align-items:center;gap:8px;color:#8994b3;font-size:13px;font-weight:850}
@@ -3991,10 +3992,19 @@ body[data-desktop-view="lobby"] .desktop-lobby-shell{background:transparent!impo
   #tradeComposer .trade-composer-head h2{margin:0;font-size:22px}
   #tradeComposer .trade-composer-head p{margin:5px 0 0;color:#9ea7c6;font-size:13px;line-height:1.5}
   #tradeComposer .trade-composer-head>button{width:38px;height:38px;flex:0 0 38px;border:1px solid #343b5f;border-radius:50%;background:#1a1f35;color:#fff;font-size:20px}
-  #tradeComposer .trade-composer-section{margin-top:12px;padding:11px;border:1px solid rgba(255,255,255,.07);border-radius:13px;background:#101427}
+  #tradeComposer .trade-composer-section{margin-top:12px;padding:14px;border:1px solid rgba(177,127,255,.32);border-radius:15px;background:#101427}
+  #tradeComposer #tradeOfferSection{border-top:3px solid #9855e8;background:linear-gradient(145deg,#211630,#121526)}
+  #tradeComposer #tradeRequestSection{margin-top:0;border-top:3px solid #c29cf5;background:linear-gradient(145deg,#19182e,#101427)}
+  #tradeComposer .trade-mobile-section-icon{display:inline-grid;place-items:center;flex:0 0 27px;width:27px;height:27px;margin-top:-2px;border:1px solid #a875ed;border-radius:8px;background:#7735bd;color:#fff;font-size:13px;font-weight:900}
+  #tradeRequestSection .trade-mobile-section-icon{background:#302243;color:#e5d2ff;border-color:#8965b4}
+  #tradeComposer .trade-mobile-divider{display:flex;align-items:center;gap:12px;margin:13px 0;color:#d0a8ff}
+  #tradeComposer .trade-mobile-divider::before,#tradeComposer .trade-mobile-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,#8f58cb)}
+  #tradeComposer .trade-mobile-divider::after{transform:scaleX(-1)}
+  #tradeComposer .trade-mobile-divider>span{display:flex;align-items:center;gap:9px;font-size:10px;font-weight:850;letter-spacing:.1em}
+  #tradeComposer .trade-mobile-divider svg{box-sizing:border-box;width:40px;height:40px;padding:9px;border:1px solid #8c51cc;border-radius:50%;background:#241733;color:#e5caff}
   #tradeComposer .trade-asset-row,
   #tradeComposer .trade-option-edit{display:grid!important;grid-template-columns:1fr!important;gap:7px}
-  #tradeComposer .trade-composer-section h3{margin:0 0 10px;font-size:15px}
+  #tradeComposer .trade-composer-section h3{margin:0 0 10px;font-size:15px;display:flex;align-items:flex-start;gap:9px;line-height:1.4}
   #tradeComposer .trade-options-list{display:grid;gap:12px}
   #tradeComposer :is(.trade-asset-row,.trade-option-edit) :is(input,select),#tradeComposer .trade-composer-footer select{width:100%;min-width:0;min-height:44px;padding:10px 12px;border:1px solid #343b5f;border-radius:10px;background:#0b1020;color:#fff;font:inherit;font-size:16px}
   #tradeComposer .trade-selected-preview{min-width:0;overflow-wrap:anywhere}
