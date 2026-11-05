@@ -2435,7 +2435,7 @@ function readPendingBadgeSocialVisit(){
   const storageKey=badgeCelebrationStorageKey()+':social-return';
   try{
     const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');
-    if(saved?.challenge&&['instagram','tiktok'].includes(saved.challenge.socialNetwork))return {...saved,storageKey};
+    if(saved?.challenge&&['instagram','instagram_lorenzo','tiktok'].includes(saved.challenge.socialNetwork))return {...saved,storageKey};
   }catch{}
   return pendingBadgeSocialVisit?.storageKey===storageKey?pendingBadgeSocialVisit:null;
 }
@@ -2565,7 +2565,7 @@ function openMobileBadgeDetail(key,stageGoal=null) {
     ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>${selectedStage?.unlocked?'Récompense déjà obtenue':selectedStage?'Récompense de ce palier':'Prochaine récompense'}</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
     ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
     ${badgeStagesMarkup(challenge,true,selectedStage?.goal??null)}
-    ${(!unlocked || ['instagram','tiktok'].includes(challenge.socialNetwork)) && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
+    ${(!unlocked || ['instagram','instagram_lorenzo','tiktok'].includes(challenge.socialNetwork)) && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
   $('badgeMobileDetail')?.classList.remove('hidden');
@@ -2639,6 +2639,8 @@ function renderBadgeCollection() {
           ? 'Rejoins la communauté sur Discord'
           : challenge.socialNetwork === 'instagram'
             ? 'Retrouve LoVeRDoSeTV sur Instagram'
+            : challenge.socialNetwork === 'instagram_lorenzo'
+              ? 'Découvre @lorenzo_dessin_27 sur Instagram'
             : challenge.socialNetwork === 'tiktok'
               ? 'Retrouve LoVeRDoSeTV sur TikTok'
               : `Réseaux sociaux · ${challenge.gameName}`)
