@@ -4748,6 +4748,8 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 .twitch-logo-layer img:nth-child(6){right:3%;bottom:8%;width:19px;opacity:.34;animation-duration:8s;animation-delay:-4s}
 .twitch-logo-layer img:nth-child(7){left:55%;bottom:5%;width:14px;opacity:.20;animation-duration:11s;animation-delay:-7s}
 .twitch-logo-layer img:nth-child(8){left:2%;bottom:4%;width:13px;opacity:.18;animation-duration:9s;animation-delay:-6s}
+.twitch-logo-layer img:nth-child(9){right:28%;bottom:17%;width:15px;opacity:.24;animation-duration:10s;animation-delay:-2s}
+.twitch-logo-layer img:nth-child(10){right:10%;bottom:5%;width:18px;opacity:.30;animation-duration:8s;animation-delay:-5s}
 .shop-preview-bg.twitch-live-background{position:relative}.shop-preview-bg.twitch-live-background .twitch-logo-layer img{width:12px;height:12px}.shop-preview-bg.twitch-live-background .twitch-logo-layer img:nth-child(4){width:17px;height:17px}
 @keyframes twitch-logo-drift{from{transform:translate3d(-3px,4px,0) rotate(-5deg)}to{transform:translate3d(5px,-7px,0) rotate(5deg)}}
 @media(prefers-reduced-motion:reduce){.twitch-live-background .twitch-logo-layer img{animation:none!important}}

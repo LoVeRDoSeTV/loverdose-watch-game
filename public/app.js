@@ -2196,7 +2196,7 @@ function applyProfileCosmetics(element, backgroundKey, frameKey) {
     logos = document.createElement('span');
     logos.className = 'twitch-logo-layer';
     logos.setAttribute('aria-hidden', 'true');
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 10; i++) {
       const icon = document.createElement('img');
       icon.src = '/assets/twitch-glyph.svg';
       icon.alt = '';
@@ -5805,7 +5805,7 @@ function shopSuccessLabel(url, itemKey, fallback) {
 
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
-  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"><span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:8},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span></div>`;
+  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"><span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span></div>`;
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);
