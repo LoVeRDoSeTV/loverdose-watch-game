@@ -102,13 +102,16 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
           ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[user.id,fight.key,victory?1:0,firstWin?new Date():null]);
         if(victory&&lovysId)await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
           VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[user.id,lovysId,fight.key]);
-        reward=firstWin?{...fight.rewards,cash:0}:replayReward
-          ?{creatureXp:Math.max(1,Math.round(Number(fight.rewards.creatureXp||0)*.5)),globalXp:0,fragments:0,cash:fight.finalBoss?3:fight.miniBoss?2:1}:reward;
+        // Le cash de base suit la valeur d'XP globale du combat ; les replays ne donnent pas d'XP globale.
+        const baseCash=Number(fight.rewards.cash??fight.rewards.globalXp??0);
+        reward=firstWin?{...fight.rewards,cash:baseCash}:replayReward
+          ?{creatureXp:Number(fight.rewards.creatureXp||0),globalXp:0,fragments:0,cash:baseCash}:reward;
         if(firstWin){
           if(lovysId){
             await creditLovysXp(client,user.id,lovysId,reward.creatureXp);
           }
-          await client.query(`UPDATE users SET global_xp=global_xp+$2,egg_fragments=egg_fragments+$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments]);
+          await client.query(`UPDATE users SET global_xp=global_xp+$2,egg_fragments=egg_fragments+$3,
+            points=points+$4,lifetime_lovercash_earned=lifetime_lovercash_earned+$4,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments,reward.cash]);
         }else if(replayReward){
           await creditLovysXp(client,user.id,lovysId,reward.creatureXp);
           await client.query(`UPDATE users SET points=points+$2,lifetime_lovercash_earned=lifetime_lovercash_earned+$2,
