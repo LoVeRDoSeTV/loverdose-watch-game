@@ -1531,12 +1531,13 @@ async function initDatabase() {
         CASE WHEN threshold_hours>=250 THEN '7' WHEN threshold_hours>=100 THEN '6' WHEN threshold_hours>=50 THEN '5' WHEN threshold_hours>=25 THEN '4' WHEN threshold_hours>=10 THEN '3' WHEN threshold_hours>=5 THEN '2' ELSE '1' END || '.webp'
       WHEN badge_key='mission:discord:membre-communaute' THEN '/badges/discord-1.webp'
       WHEN badge_key='mission:instagram:communaute' THEN '/badges/instagram-1.webp'
+      WHEN badge_key='mission:instagram:lorenzo-dessins27' THEN '/badges/lorenzo-dessins27.webp'
       WHEN badge_key='mission:tiktok:communaute' THEN '/badges/tiktok-1.webp'
       WHEN badge_key='mission:sub:soutien-absolu' THEN '/badges/subscription-1.webp'
       ELSE badge_image END
     WHERE badge_key IN ('challenge:dofus:gardien-emeraude:50h','challenge:palworld:maitre-des-spheres:50h',
       'challenge:mw4:operateur-elite:50h','mission:zombie:maitre-des-morts:25h','mission:global:fidele-chaine',
-      'mission:attendance:lives-assistes','mission:discord:membre-communaute','mission:instagram:communaute',
+      'mission:attendance:lives-assistes','mission:discord:membre-communaute','mission:instagram:communaute','mission:instagram:lorenzo-dessins27',
       'mission:tiktok:communaute','mission:sub:soutien-absolu')
   `);
 
@@ -5078,6 +5079,9 @@ app.get('/api/badges', async (req, res) => {
     const instagramBadgeKey = 'mission:instagram:communaute';
     const instagramUnlocked = badgeResult.rows.find(item => item.badge_key === instagramBadgeKey) || null;
 
+    const lorenzoBadgeKey = 'mission:instagram:lorenzo-dessins27';
+    const lorenzoUnlocked = badgeResult.rows.find(item => item.badge_key === lorenzoBadgeKey) || null;
+
     const tiktokBadgeKey = 'mission:tiktok:communaute';
     const tiktokUnlocked = badgeResult.rows.find(item => item.badge_key === tiktokBadgeKey) || null;
 
@@ -5165,6 +5169,7 @@ app.get('/api/badges', async (req, res) => {
     const badgeEconomyRewards = [
       ['mission:discord:membre-communaute', BADGE_DISCORD_REWARD],
       ['mission:instagram:communaute', BADGE_SOCIAL_REWARD],
+      ['mission:instagram:lorenzo-dessins27', BADGE_SOCIAL_REWARD],
       ['mission:tiktok:communaute', BADGE_SOCIAL_REWARD],
       // Le bonus abonné est géré par période active dans achievementService.
     ];
@@ -5255,6 +5260,30 @@ app.get('/api/badges', async (req, res) => {
           leaderboardSlot: instagramUnlocked?.leaderboard_slot === null || instagramUnlocked?.leaderboard_slot === undefined
             ? null
             : Number(instagramUnlocked.leaderboard_slot)
+        },
+        {
+          badgeKey: lorenzoBadgeKey,
+          badgeName: 'Lorenzo Dessins',
+          badgeImage: '/badges/lorenzo-dessins27.webp',
+          badgeChallenge: 'Ouvre le compte Instagram @lorenzo_dessin_27 avec le bouton de ce défi pour débloquer le badge.',
+          gameName: 'Lorenzo Dessins',
+          missionType: 'instagram',
+          badgeCategory: 'social',
+          rewardXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardLovysXp: BADGE_SOCIAL_REWARD.lovysXp,
+          rewardGlobalXp: BADGE_SOCIAL_REWARD.globalXp,
+          rewardCash: BADGE_SOCIAL_REWARD.cash,
+          lovysXpToReserve: true,
+          socialNetwork: 'instagram_lorenzo',
+          socialActionUrl: 'https://www.instagram.com/lorenzo_dessin_27/',
+          unlockOnClick: true,
+          targetHours: 0,
+          watchSeconds: 0,
+          unlocked: Boolean(lorenzoUnlocked),
+          equippedSlot: lorenzoUnlocked?.equipped_slot === null || lorenzoUnlocked?.equipped_slot === undefined
+            ? null : Number(lorenzoUnlocked.equipped_slot),
+          leaderboardSlot: lorenzoUnlocked?.leaderboard_slot === null || lorenzoUnlocked?.leaderboard_slot === undefined
+            ? null : Number(lorenzoUnlocked.leaderboard_slot)
         },
         {
           badgeKey: tiktokBadgeKey,
@@ -5415,6 +5444,15 @@ app.post('/api/badges/social-click', async (req, res) => {
         badgeImage: '/badges/instagram-1.webp',
         badgeChallenge: 'Visiter le compte Instagram de LoVeRDoSeTV',
         url: 'https://www.instagram.com/loverdosetv/'
+      },
+      instagram_lorenzo: {
+        badgeKey: 'mission:instagram:lorenzo-dessins27',
+        gameId: 'social-instagram-lorenzo',
+        gameName: 'Lorenzo Dessins',
+        badgeName: 'Lorenzo Dessins',
+        badgeImage: '/badges/lorenzo-dessins27.webp',
+        badgeChallenge: 'Visiter le compte Instagram @lorenzo_dessin_27',
+        url: 'https://www.instagram.com/lorenzo_dessin_27/'
       },
       tiktok: {
         badgeKey: 'mission:tiktok:communaute',
