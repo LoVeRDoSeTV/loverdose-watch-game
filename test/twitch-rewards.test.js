@@ -25,7 +25,7 @@ test('un objet Twitch ne se crédite qu’une fois ; le deuxième échange et un
   process.env.TWITCH_BROADCASTER_ID='channel';
   const {pool,inventory}=fakeDb(),statuses=[];
   const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>null,
-    trackerTwitchFetch:async(_url,options)=>{statuses.push(JSON.parse(options.body).status);return {ok:true};},
+    trackerTwitchFetch:async(_url,options)=>{statuses.push(JSON.parse(options.body).status);return {data:[]};},
     getBroadcasterAccount:async()=>null});
   const app=express();app.use(express.json({verify(req,_res,raw){req.rawEventSubBody=Buffer.from(raw);}}));app.use('/api',rewards.router);
   const server=app.listen(0);
@@ -57,9 +57,9 @@ test('une activation interrompue récupère le titre existant et crée seulement
   try{
     const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>({twitch_user_id:'channel',scopes:'channel:manage:redemptions'}),
       trackerTwitchFetch:async(_url,options)=>{
-        if(!options)return {ok:true,json:async()=>({data:[{id:'title-existing',title:'LoVeR Watch · Écho du chat',cost:1000}]})};
+        if(!options)return {data:[{id:'title-existing',title:'LoVeR Watch / Titre : Écho du chat',cost:1000}]};
         const body=JSON.parse(options.body);created.push(body.title);
-        return {ok:true,json:async()=>({data:[{id:'background-new'}]})};
+        return {data:[{id:'background-new'}]};
       },getBroadcasterAccount:async()=>null});
     await rewards.setup();
     assert.deepEqual(created,['LoVeR Watch · Signal du direct']);

@@ -3,7 +3,7 @@ import crypto from 'node:crypto';
 import {verifyEventSub} from './game-bot.js';
 
 const REWARDS = [
-  {key:'reward_title_echo_chat', title:'LoVeR Watch · Écho du chat', cost:1000},
+  {key:'reward_title_echo_chat', title:'LoVeR Watch · Écho du chat', aliases:['LoVeR Watch / Titre : Écho du chat'], cost:1000},
   {key:'reward_bg_twitch_live', title:'LoVeR Watch · Signal du direct', cost:2000}
 ];
 
@@ -31,29 +31,21 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
     const row=await getTrackerAuthRow();
     if(!row || row.twitch_user_id!==broadcasterId || !String(row.scopes||'').split(' ').includes('channel:manage:redemptions'))
       throw new Error('Reconnecte le tracker Twitch avec les autorisations des points de chaîne.');
-    const listResponse=await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,only_manageable_rewards:'true'}));
-    const list=await listResponse.json();
-    if(!listResponse.ok)throw new Error(`Lecture des récompenses Twitch refusée : ${list.message||listResponse.status}`);
+    const list=await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,only_manageable_rewards:'true'}));
     const manageable=new Map((list.data||[]).map(reward=>[reward.title,reward]));
     for(const item of REWARDS) {
       const known=(await pool.query('SELECT reward_id FROM twitch_reward_items WHERE item_key=$1',[item.key])).rows[0];
       if(known)continue;
-      const existing=manageable.get(item.title);
+      const existing=[item.title,...(item.aliases||[])].map(title=>manageable.get(title)).find(Boolean);
       if(existing){
         await pool.query('INSERT INTO twitch_reward_items(item_key,reward_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[item.key,existing.id]);
         continue;
       }
-      const response=await trackerTwitchFetch('/channel_points/custom_rewards?broadcaster_id='+encodeURIComponent(broadcasterId),{
+      const result=await trackerTwitchFetch('/channel_points/custom_rewards?broadcaster_id='+encodeURIComponent(broadcasterId),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({title:item.title,cost:item.cost,prompt:'Compte LoVeR Watch Game lié à Twitch requis. Une seule fois par joueur.',should_redemptions_skip_request_queue:false})
       });
-      const result=await response.json();
-      if(!response.ok||!result.data?.[0]?.id){
-        const reason=response.status===400 && /maximum|limit|50/i.test(String(result.message||''))
-          ? 'La limite Twitch de 50 récompenses personnalisées est atteinte, même avec les récompenses désactivées. Libère une place puis relance l’activation.'
-          : (result.message||`Erreur ${response.status}`);
-        throw new Error(`Création de « ${item.title} » refusée : ${reason}`);
-      }
+      if(!result.data?.[0]?.id)throw new Error(`Création de « ${item.title} » : Twitch n’a pas renvoyé son identifiant.`);
       await pool.query('INSERT INTO twitch_reward_items(item_key,reward_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[item.key,result.data[0].id]);
       manageable.set(item.title,result.data[0]);
     }
@@ -84,9 +76,8 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
   });
 
   async function settle(redemptionId,rewardId,decision){
-    const response=await trackerTwitchFetch('/channel_points/custom_rewards/redemptions?'+new URLSearchParams({broadcaster_id:broadcasterId,reward_id:rewardId,id:redemptionId}),{
+    await trackerTwitchFetch('/channel_points/custom_rewards/redemptions?'+new URLSearchParams({broadcaster_id:broadcasterId,reward_id:rewardId,id:redemptionId}),{
       method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision==='grant'?'FULFILLED':'CANCELED'})});
-    if(!response.ok)throw new Error(`Échange Twitch non confirmé (${response.status}).`);
     await pool.query('UPDATE twitch_reward_redemptions SET settled=TRUE WHERE redemption_id=$1',[redemptionId]);
   }
 
