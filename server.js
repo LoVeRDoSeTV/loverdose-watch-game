@@ -1397,6 +1397,14 @@ async function initDatabase() {
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_lovys_pve_progress (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lovys_id INTEGER NOT NULL REFERENCES user_lovys(id) ON DELETE CASCADE,
+    fight_key TEXT NOT NULL,
+    won_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id,lovys_id,fight_key)
+  )`);
+
   await pool.query(`CREATE TABLE IF NOT EXISTS user_combat_reports (
     id BIGSERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     fight_key TEXT NOT NULL, result TEXT NOT NULL, creature_level INTEGER NOT NULL, enemy_level INTEGER NOT NULL,
@@ -1404,6 +1412,20 @@ async function initDatabase() {
     reward_global_xp DOUBLE PRECISION NOT NULL DEFAULT 0, reward_fragments INTEGER NOT NULL DEFAULT 0,
     report_json JSONB, created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
+
+  // Avant le suivi par Lovys, les rapports ne conservaient que l'espèce.
+  // On rattache les anciennes victoires seulement lorsqu'un unique Lovys de cette espèce existe.
+  await pool.query(`WITH migration AS (
+    INSERT INTO economy_migrations(version) VALUES('v594-lovys-pve-victories')
+    ON CONFLICT DO NOTHING RETURNING version
+  ) INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key,won_at)
+    SELECT r.user_id,l.id,r.fight_key,MIN(r.created_at)
+    FROM user_combat_reports r JOIN user_lovys l ON l.user_id=r.user_id
+      AND (CASE WHEN (r.report_json->>'lovysId') ~ '^[0-9]+$' THEN (r.report_json->>'lovysId')::int=l.id
+        ELSE l.creature_id=r.report_json->>'creatureId' AND
+          (SELECT COUNT(*) FROM user_lovys other WHERE other.user_id=r.user_id AND other.creature_id=l.creature_id)=1 END)
+    WHERE r.result='victory' AND EXISTS(SELECT 1 FROM migration) GROUP BY r.user_id,l.id,r.fight_key
+    ON CONFLICT DO NOTHING`);
 
 
   // V107 — journal d'administration : toute correction sensible reste traçable.
@@ -6126,7 +6148,7 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
     }else if(action==='reset_battle'){
       await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);summary=`Combat actif réinitialisé · ${target.username}`;
     }else if(action==='reset_pve'){
-      await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_pve_progress WHERE user_id=$1`,[target.user_id]);summary=`Progression PvE réinitialisée · ${target.username}`;
+      await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_pve_progress WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_lovys_pve_progress WHERE user_id=$1`,[target.user_id]);summary=`Progression PvE réinitialisée · ${target.username}`;
     }else{await client.query('ROLLBACK');return res.status(400).json({error:'Action admin inconnue.'});}
     await logAdminAction(admin.id,accountId,action,summary,details,client);
     await client.query('COMMIT');
