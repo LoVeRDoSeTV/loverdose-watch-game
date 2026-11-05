@@ -21,10 +21,13 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
       if (!user) return res.status(404).json({ error:'Joueur introuvable.' });
       const progress = await pool.query(`SELECT fight_key,wins,attempts FROM user_pve_progress WHERE user_id=$1`, [user.id]);
       const progressMap = new Map(progress.rows.map(row => [row.fight_key, row]));
+      const lovysProgress=user.lovys_id?(await pool.query(`SELECT fight_key FROM user_lovys_pve_progress WHERE user_id=$1 AND lovys_id=$2`,[user.id,user.lovys_id])).rows:[];
+      const lovysWins=new Set(lovysProgress.map(row=>row.fight_key));
       const publicZones = zones.map(zone => ({ ...zone, fights:zone.fights.map(fight => {
         const previous = previousFight(fight.key);
         const ownWins=Number(progressMap.get(fight.key)?.wins || 0);
-        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:ownWins > 0, unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
+        const bossKey=zone.fights.find(item=>item.finalBoss)?.key;
+        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:ownWins > 0, replayRewardAvailable:ownWins>0&&!lovysWins.has(fight.key)&&!lovysWins.has(bossKey), unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
       }) }));
       const creature=user.creature_id ? creatureBattleStats({creature_id:user.creature_id,xp:Number(user.xp || 0),rank:Number(user.rank||1)}) : null;
       res.json({ ok:true, hasCreature:Boolean(user.creature_id), creature, eggFragments:Number(user.egg_fragments || 0), zones:publicZones });
@@ -84,30 +87,42 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         resolved.state.achievementDamageTaken=state.achievementDamageTaken+Math.max(damage,beforeHp-Number(resolved.state.player.hp),fatalSaved?1:0);
       }
       const final=resolved.state.status!=='active';
-      let firstWin=false,reward={creatureXp:0,globalXp:0,fragments:0};
+      let firstWin=false,replayReward=false,reward={creatureXp:0,globalXp:0,fragments:0,cash:0};
       if(final){
         const victory=resolved.state.status==='victory';
+        const lovysId=Number(resolved.state.player.lovysId||0);
         const old=await client.query(`SELECT wins FROM user_pve_progress WHERE user_id=$1 AND fight_key=$2`,[user.id,fight.key]);
         firstWin=victory&&Number(old.rows[0]?.wins||0)<=0;
+        const zone=zones.find(item=>item.key===fight.zoneKey||item.fights.some(f=>f.key===fight.key));
+        const bossKey=zone?.fights.find(item=>item.finalBoss)?.key;
+        const lovysWins=victory&&lovysId&&bossKey?(await client.query(`SELECT fight_key FROM user_lovys_pve_progress
+          WHERE user_id=$1 AND lovys_id=$2 AND fight_key=ANY($3::text[])`,[user.id,lovysId,[fight.key,bossKey]])).rows:[];
+        replayReward=Boolean(victory&&!firstWin&&lovysId&&!lovysWins.some(row=>row.fight_key===fight.key||row.fight_key===bossKey));
         await client.query(`INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts,first_won_at,last_fought_at) VALUES($1,$2,$3,1,$4,CURRENT_TIMESTAMP)
           ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[user.id,fight.key,victory?1:0,firstWin?new Date():null]);
-        reward=firstWin?fight.rewards:reward;
+        if(victory&&lovysId)await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
+          VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[user.id,lovysId,fight.key]);
+        reward=firstWin?{...fight.rewards,cash:0}:replayReward
+          ?{creatureXp:Math.max(1,Math.round(Number(fight.rewards.creatureXp||0)*.5)),globalXp:0,fragments:0,cash:fight.finalBoss?3:fight.miniBoss?2:1}:reward;
         if(firstWin){
-          const lovysId=Number(resolved.state.player.lovysId||0);
           if(lovysId){
             await creditLovysXp(client,user.id,lovysId,reward.creatureXp);
           }
           await client.query(`UPDATE users SET global_xp=global_xp+$2,egg_fragments=egg_fragments+$3,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.globalXp,reward.fragments]);
+        }else if(replayReward){
+          await creditLovysXp(client,user.id,lovysId,reward.creatureXp);
+          await client.query(`UPDATE users SET points=points+$2,lifetime_lovercash_earned=lifetime_lovercash_earned+$2,
+            updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[user.id,reward.cash]);
         }
         // Report power columns are INTEGER; battle attacks may contain decimals.
         await client.query(`INSERT INTO user_combat_reports(user_id,fight_key,result,creature_level,enemy_level,creature_power,enemy_power,reward_creature_xp,reward_global_xp,reward_fragments,report_json)
-          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Math.round(Number(resolved.state.player.attack||0)),Math.round(Number(resolved.state.enemy.attack||fight.power||0)),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({creatureId:resolved.state.player.creatureId||null,playerMaxHp:resolved.state.player.maxHp,flawless:resolved.state.achievementDamageTaken===0,rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key})]);
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb)`,[user.id,fight.key,victory?'victory':'defeat',Number(resolved.state.player.level||1),Number(fight.level||1),Math.round(Number(resolved.state.player.attack||0)),Math.round(Number(resolved.state.enemy.attack||fight.power||0)),reward.creatureXp,reward.globalXp,reward.fragments,JSON.stringify({creatureId:resolved.state.player.creatureId||null,lovysId,playerMaxHp:resolved.state.player.maxHp,flawless:resolved.state.achievementDamageTaken===0,rounds:resolved.state.round,playerRemainingHp:resolved.state.player.hp,enemyRemainingHp:resolved.state.enemy.hp,typeMultiplier:resolved.state.typeMultiplier,events:resolved.events,rank:resolved.state.player.rank,talent:resolved.state.player.talent?.key,cash:reward.cash})]);
         await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[user.id]);
       }else{
         await client.query(`UPDATE user_pve_battles SET state_json=$2::jsonb,updated_at=CURRENT_TIMESTAMP WHERE user_id=$1`,[user.id,JSON.stringify(resolved.state)]);
       }
       await client.query('COMMIT');
-      res.json({ok:true,finished:final,victory:resolved.state.status==='victory',firstWin,reward,events:resolved.events,battle:battlePublicState(resolved.state),rounds:resolved.state.round});
+      res.json({ok:true,finished:final,victory:resolved.state.status==='victory',firstWin,replayReward,reward,events:resolved.events,battle:battlePublicState(resolved.state),rounds:resolved.state.round});
     }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur action combat PvE :',error);res.status(500).json({error:'Action de combat impossible.'});}finally{client.release();}
   });
 
