@@ -56,19 +56,24 @@ test('PvE replays reward each other Lovys once, then stop after its zone boss',a
   const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}},body:{action:'basic'}},res);
   assert.equal(res.statusCode,200);assert.equal(res.body.victory,true);return res.body;
  }
- await win(id);
+ const first=await win(id);
+ assert.ok(first.reward.cash>=3&&first.reward.cash<=5);
  assert.equal((await win(id)).replayReward,false);
  const replay=await win(otherId);
- assert.equal(replay.replayReward,true);assert.equal(replay.reward.cash,fight.rewards.globalXp);
+ assert.equal(replay.replayReward,true);assert.ok(replay.reward.cash>=3&&replay.reward.cash<=5);
  assert.equal(replay.reward.creatureXp,fight.rewards.creatureXp);
  assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[otherId])).rows[0].xp,replay.reward.creatureXp);
- assert.equal((await balances(id)).points,fight.rewards.globalXp*2);
+ assert.equal((await balances(id)).points,first.reward.cash+replay.reward.cash);
  assert.equal((await win(otherId)).replayReward,false);
  await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,boss.key]);
  await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,PVE_FIGHTS[1].key]);
  const blocked=await win(otherId,PVE_FIGHTS[1]);
  assert.equal(blocked.replayReward,false);assert.equal(blocked.reward.cash,0);
- assert.equal((await balances(id)).points,fight.rewards.globalXp*2);
+ const mini=PVE_ZONES[0].fights.find(item=>item.miniBoss);
+ assert.equal((await win(id,mini)).reward.cash,10);
+ assert.equal((await win(id,boss)).reward.cash,10);
+ assert.equal((await win(id,boss)).reward.cash,0);
+ assert.equal((await balances(id)).points,first.reward.cash+replay.reward.cash+20);
 });
 test.after(async()=>{await db?.close();});
 let next=0;
@@ -203,7 +208,7 @@ test('actual PvE action route preserves live XP, pays the first victory once and
   assert.equal((await balances(id)).xp,600+fight.rewards.creatureXp);
  }
  assert.equal((await query('SELECT wins FROM user_pve_progress WHERE user_id=$1',[id])).rows[0].wins,2);
- assert.equal((await balances(id)).points,fight.rewards.globalXp);
+ assert.ok((await balances(id)).points>=3&&(await balances(id)).points<=5);
  assert.equal((await balances(id)).egg_fragments,fight.rewards.fragments);
  const achievements=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:async()=>{}});
  await achievements.init();

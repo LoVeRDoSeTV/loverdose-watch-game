@@ -1,4 +1,5 @@
 import express from 'express';
+import { randomInt } from 'node:crypto';
 import { creditLovysXp } from '../xp-economy.js';
 import { createBattleState, battlePublicState, resolveBattleAction } from '../combat/battle.js';
 import { isPveFightUnlocked } from '../combat/progression.js';
@@ -102,8 +103,8 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
           ON CONFLICT(user_id,fight_key) DO UPDATE SET wins=user_pve_progress.wins+$3,attempts=user_pve_progress.attempts+1,first_won_at=COALESCE(user_pve_progress.first_won_at,$4),last_fought_at=CURRENT_TIMESTAMP`,[user.id,fight.key,victory?1:0,firstWin?new Date():null]);
         if(victory&&lovysId)await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
           VALUES($1,$2,$3) ON CONFLICT DO NOTHING`,[user.id,lovysId,fight.key]);
-        // Le cash de base suit la valeur d'XP globale du combat ; les replays ne donnent pas d'XP globale.
-        const baseCash=Number(fight.rewards.cash??fight.rewards.globalXp??0);
+        // Même barème pour la première victoire et celle d’un autre Lovys.
+        const baseCash=firstWin||replayReward?((fight.boss||fight.miniBoss||fight.finalBoss)?10:randomInt(3,6)):0;
         reward=firstWin?{...fight.rewards,cash:baseCash}:replayReward
           ?{creatureXp:Number(fight.rewards.creatureXp||0),globalXp:0,fragments:0,cash:baseCash}:reward;
         if(firstWin){
