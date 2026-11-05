@@ -69,7 +69,7 @@ export function achievementDescription(id, goal) {
     'rank-team': `Possède ${goal} Lovys au rang 5 dans ta collection.`,
     level: `Fais atteindre le niveau ${goal} à au moins un de tes Lovys. Il s’agit du niveau du Lovys, pas de ton niveau global.`,
     'level-team': `Possède ${goal} Lovys ayant chacun atteint le niveau 50.`,
-    victories: `Remporte ${goal} combat${plural ? 's' : ''} PvE au total. Les combats rejoués comptent aussi.`,
+    victories: `Remporte ${goal} combat${plural ? 's' : ''} PvE différent${plural ? 's' : ''}. Chaque adversaire ne compte qu’une fois, même si tu rejoues le combat.`,
     'close-win': 'Remporte un combat PvE avec ton Lovys encore en vie et moins de 10 % de ses PV maximum restants.',
     flawless: 'Remporte un combat PvE sans que ton Lovys subisse le moindre dégât.',
     variety: `Remporte au moins un combat PvE avec chacune de ${goal} espèces de Lovys différentes.`,
@@ -152,7 +152,7 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       eggs:Number(user.total_lovys_hatched||0),collection:owned.size,rare:Number(owns('rare')),epic:Number(owns('épique')),mimo:Number(owned.has('dream')),
       rank:Math.max(0,...lovys.map(row=>Number(row.rank))),rankTeam:lovys.filter(row=>Number(row.rank)>=5).length,
       level:Math.max(0,...levels),levelTeam:levels.filter(level=>level>=50).length,
-      victories:progress.reduce((n,row)=>n+Number(row.wins),0),closeWin:Number(report.close_win),flawless:Number(report.flawless),variety:Number(report.variety),
+      victories:progress.filter(row=>Number(row.wins)>0).length,closeWin:Number(report.close_win),flawless:Number(report.flawless),variety:Number(report.variety),
       trades:trades.length,partners:new Set(trades.map(row=>Number(row.other_id)).filter(id=>id&&id!==userId)).size,
       challenges:days.reduce((n,row)=>n+Number(row.count),0),perfectDay:Number(days.some(row=>Number(row.count)>=3)),
       dailyWheel:Number(wheels.find(row=>row.wheel_type==='daily')?.count||0),weeklyWheel:Number(wheels.find(row=>row.wheel_type==='weekly')?.count||0),
@@ -168,11 +168,12 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       await client.query('SELECT id FROM users WHERE id=$1 FOR UPDATE',[userId]);
       const values=await metrics(client,userId,accountId);
       const previous=(await client.query('SELECT metric,value FROM user_achievement_progress WHERE user_id=$1',[userId])).rows;
-      for(const row of previous)values[row.metric]=Math.max(Number(row.value),Number(values[row.metric]||0));
+      for(const row of previous)if(row.metric!=='victories')values[row.metric]=Math.max(Number(row.value),Number(values[row.metric]||0));
       for(const [metric,value] of Object.entries(values)){
-        if(previous.some(row=>row.metric===metric&&Number(row.value)>=value))continue;
+        if(previous.some(row=>row.metric===metric&&(metric==='victories'?Number(row.value)===value:Number(row.value)>=value)))continue;
         await client.query(`INSERT INTO user_achievement_progress(user_id,metric,value) VALUES($1,$2,$3)
-          ON CONFLICT(user_id,metric) DO UPDATE SET value=GREATEST(user_achievement_progress.value,EXCLUDED.value)`,[userId,metric,value]);
+          ON CONFLICT(user_id,metric) DO UPDATE SET value=CASE WHEN user_achievement_progress.metric='victories'
+            THEN EXCLUDED.value ELSE GREATEST(user_achievement_progress.value,EXCLUDED.value) END`,[userId,metric,value]);
       }
       const watch=(await client.query('SELECT game_id,game_name,watch_seconds FROM user_game_watch WHERE user_id=$1',[userId])).rows;
       const definitions=[...ACHIEVEMENT_FAMILIES.map(f=>({...f,value:values[f.metric]})),...WATCH_FAMILIES.map(f=>({
