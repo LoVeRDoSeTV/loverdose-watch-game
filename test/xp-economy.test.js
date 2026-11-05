@@ -6,6 +6,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { globalThresholdForLevel,lovysProgressionFromXp,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
 import { ACHIEVEMENT_FAMILIES,WATCH_FAMILIES,WATCH_HOUR_STAGES,createAchievements } from '../src/achievements.js';
 import { PVE_ZONES,PVE_FIGHTS,pveFightByKey,pvePreviousFight } from '../src/combat/zones.js';
+import { initPveRewards } from '../src/combat/rewards.js';
 import { createPveRouter } from '../src/routes/pve.js';
 import { createBattleState } from '../src/combat/battle.js';
 
@@ -25,7 +26,8 @@ test.before(async()=>{
  CREATE TABLE user_game_tabs(user_id int,last_seen_at timestamptz);
  CREATE TABLE user_pve_progress(user_id int,fight_key text,wins int DEFAULT 0,attempts int DEFAULT 0,first_won_at timestamptz,last_fought_at timestamptz,PRIMARY KEY(user_id,fight_key));
  CREATE TABLE user_pve_battles(user_id int PRIMARY KEY,fight_key text,state_json jsonb,updated_at timestamptz);
- CREATE TABLE user_combat_reports(id serial PRIMARY KEY,user_id int,fight_key text,result text,creature_level int,enemy_level int,creature_power int,enemy_power int,reward_creature_xp int,reward_global_xp int,reward_fragments int,report_json jsonb);
+ CREATE TABLE user_combat_reports(id serial PRIMARY KEY,user_id int,fight_key text,result text,creature_level int,enemy_level int,creature_power int,enemy_power int,reward_creature_xp int,reward_global_xp int,reward_fragments int,report_json jsonb,created_at timestamptz DEFAULT CURRENT_TIMESTAMP);
+ CREATE TABLE economy_migrations(version text PRIMARY KEY);
  ALTER TABLE users ADD COLUMN egg_fragments int DEFAULT 0;
  CREATE TABLE accounts(id int PRIMARY KEY,equipped_title_key text,equipped_background_key text,equipped_frame_key text,equipped_avatar_frame_key text);
  CREATE TABLE user_game_watch(user_id int,game_id text,game_name text,watch_seconds bigint);
@@ -93,6 +95,7 @@ test('restart reconciles stale active XP and recovers every overflow exactly onc
  await reconcileLovysXp(pool);u=await balances(id);assert.equal(u.pending_xp,2000);
 });
 test('a first win preserves live XP despite an old collection snapshot',async()=>{
+ await initPveRewards(pool);
  const id=await player(600);await query('UPDATE user_lovys SET xp=500 WHERE id=$1',[id]);
  await query('BEGIN');await creditLovysXp(client,id,id,20);await query('COMMIT');
  assert.equal((await balances(id)).xp,620);assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[id])).rows[0].xp,620);
@@ -129,6 +132,7 @@ test('all progressive badge images exist, including the five MW4 stages',()=>{
 });
 
 test('actual PvE action route preserves live XP, pays the first victory once and allows a replay',async()=>{
+ await initPveRewards(pool);
  const id=await player(600);await query('UPDATE user_lovys SET xp=500 WHERE id=$1',[id]);
  const router=createPveRouter({pool,zones:PVE_ZONES,previousFight:pvePreviousFight,fightByKey:pveFightByKey,globalThresholdForLevel});
  const handler=router.stack.find(layer=>layer.route?.path==='/action').route.stack[0].handle;
@@ -220,4 +224,21 @@ test('attendance migration preserves old wheel credits without granting unearned
  assert.equal((await wheel.syncRewardWheelState(client,id)).total_live_attendance,1);
  await query('UPDATE user_live_attendance SET badge_watch_seconds=3600 WHERE user_id=$1 AND stream_id=\'legacy-short\'',[id]);
  assert.equal((await wheel.syncRewardWheelState(client,id)).total_live_attendance,1);
+});
+
+
+test('combat badge corrects inflated replay totals for existing players',async()=>{
+ const id=await player();
+ const service=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:async()=>{}});
+ await service.init();
+ for(let n=0;n<10;n++)await query('INSERT INTO user_pve_progress(user_id,fight_key,wins,attempts) VALUES($1,$2,3,3)',[id,`fight_${n}`]);
+ await query("INSERT INTO user_achievement_progress VALUES($1,'victories',30)",[id]);
+ await query("INSERT INTO user_badges(user_id,badge_key,tier,threshold_hours) VALUES($1,'achievement:victories','achievement-2',25)",[id]);
+ for(let n=0;n<2;n++){
+  const card=(await service.sync(id,id)).find(c=>c.badgeKey==='achievement:victories');
+  assert.equal(card.progressValue,10);assert.equal(card.evolutionLevel,1);
+  assert.match(card.badgeChallenge,/une seule fois/);
+ }
+ assert.equal((await query("SELECT value FROM user_achievement_progress WHERE user_id=$1 AND metric='victories'",[id])).rows[0].value,10);
+ assert.equal((await query("SELECT threshold_hours FROM user_badges WHERE user_id=$1 AND badge_key='achievement:victories'",[id])).rows[0].threshold_hours,1);
 });

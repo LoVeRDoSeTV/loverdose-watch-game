@@ -23,7 +23,7 @@ export async function resetPlayerProgress(client, target, { achievementService, 
       'user_daily_challenge_state','user_daily_activity','user_global_lovys_xp_rewards',
       'user_global_xp_level_rewards','user_global_cash_level_rewards','user_live_attendance',
       'user_game_watch','user_reward_wheel_spins','user_reward_wheels','user_active_boosts',
-      'user_pve_battles','user_pve_progress','user_combat_reports','user_incubator_eggs',
+      'user_pve_battles','user_pve_lovys_wins','user_pve_progress','user_combat_reports','user_incubator_eggs',
       'user_lovys','trade_wishes','trade_notifications'];
     for (const table of tables) await client.query(`DELETE FROM ${table} WHERE user_id=$1`, [userId]);
     await achievementService.reset(client, userId);

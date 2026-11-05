@@ -16,6 +16,7 @@ import { createHelmetMiddleware, createOriginGuard, loginRateLimit, registerRate
 import { createChangePasswordHandler, getDiscordInviteUrl } from './src/account-settings.js';
 import { createStreamDeckRouter } from './src/routes/streamdeck.js';
 import { PVE_ZONES, PVE_FIGHTS, pveFightByKey, pvePreviousFight } from './src/combat/zones.js';
+import { initPveRewards } from './src/combat/rewards.js';
 import { createPveRouter } from './src/routes/pve.js';
 import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
@@ -1380,6 +1381,7 @@ async function initDatabase() {
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC)`);
+  await initPveRewards(pool);
   await initWizebotAlerts(pool);
   await initGameBot(pool);
   await initPlayerHistory(pool);
@@ -6049,7 +6051,7 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
     }else if(action==='reset_battle'){
       await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);summary=`Combat actif réinitialisé · ${target.username}`;
     }else if(action==='reset_pve'){
-      await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_pve_progress WHERE user_id=$1`,[target.user_id]);summary=`Progression PvE réinitialisée · ${target.username}`;
+      await client.query(`DELETE FROM user_pve_battles WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_pve_progress WHERE user_id=$1`,[target.user_id]);await client.query(`DELETE FROM user_pve_lovys_wins WHERE user_id=$1`,[target.user_id]);summary=`Progression PvE réinitialisée · ${target.username}`;
     }else{await client.query('ROLLBACK');return res.status(400).json({error:'Action admin inconnue.'});}
     await logAdminAction(admin.id,accountId,action,summary,details,client);
     await client.query('COMMIT');
@@ -7153,7 +7155,7 @@ app.get(
           u.incubator_accelerated_seconds,
           u.created_at,
           (SELECT COUNT(*)::int FROM user_lovys ul WHERE ul.user_id = u.id) AS collection_count,
-          (SELECT COALESCE(SUM(upp.wins), 0)::int FROM user_pve_progress upp WHERE upp.user_id = u.id) AS pve_wins,
+          (SELECT COUNT(*)::int FROM user_pve_progress upp WHERE upp.user_id = u.id AND upp.wins > 0) AS pve_wins,
           a.equipped_title_key,
           a.equipped_background_key,
           a.equipped_frame_key,
