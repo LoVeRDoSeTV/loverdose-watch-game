@@ -31,16 +31,31 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
     const row=await getTrackerAuthRow();
     if(!row || row.twitch_user_id!==broadcasterId || !String(row.scopes||'').split(' ').includes('channel:manage:redemptions'))
       throw new Error('Reconnecte le tracker Twitch avec les autorisations des points de chaîne.');
+    const listResponse=await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,only_manageable_rewards:'true'}));
+    const list=await listResponse.json();
+    if(!listResponse.ok)throw new Error(`Lecture des récompenses Twitch refusée : ${list.message||listResponse.status}`);
+    const manageable=new Map((list.data||[]).map(reward=>[reward.title,reward]));
     for(const item of REWARDS) {
       const known=(await pool.query('SELECT reward_id FROM twitch_reward_items WHERE item_key=$1',[item.key])).rows[0];
       if(known)continue;
+      const existing=manageable.get(item.title);
+      if(existing){
+        await pool.query('INSERT INTO twitch_reward_items(item_key,reward_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[item.key,existing.id]);
+        continue;
+      }
       const response=await trackerTwitchFetch('/channel_points/custom_rewards?broadcaster_id='+encodeURIComponent(broadcasterId),{
         method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({title:item.title,cost:item.cost,prompt:'Compte LoVeR Watch Game lié à Twitch requis. Une seule fois par joueur.',should_redemptions_skip_request_queue:false})
       });
       const result=await response.json();
-      if(!response.ok||!result.data?.[0]?.id)throw new Error(`Création Twitch ${item.title} refusée : ${result.message||response.status}`);
+      if(!response.ok||!result.data?.[0]?.id){
+        const reason=response.status===400 && /maximum|limit|50/i.test(String(result.message||''))
+          ? 'La limite Twitch de 50 récompenses personnalisées est atteinte, même avec les récompenses désactivées. Libère une place puis relance l’activation.'
+          : (result.message||`Erreur ${response.status}`);
+        throw new Error(`Création de « ${item.title} » refusée : ${reason}`);
+      }
       await pool.query('INSERT INTO twitch_reward_items(item_key,reward_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[item.key,result.data[0].id]);
+      manageable.set(item.title,result.data[0]);
     }
     const config=(await pool.query('SELECT * FROM twitch_reward_config WHERE id=1')).rows[0];
     const appResponse=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:'client_credentials'})});
@@ -60,7 +75,8 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
   router.get('/twitch-rewards/status',async(req,res)=>{
     if(!await getBroadcasterAccount(req))return res.sendStatus(403);
     const row=(await pool.query('SELECT COUNT(*)::int AS count FROM twitch_reward_items')).rows[0];
-    res.json({ready:row.count===REWARDS.length,connectUrl:'/auth/twitch/tracker'});
+    const config=(await pool.query('SELECT subscription_id FROM twitch_reward_config WHERE id=1')).rows[0];
+    res.json({ready:row.count===REWARDS.length&&Boolean(config?.subscription_id),created:row.count,total:REWARDS.length,connectUrl:'/auth/twitch/tracker'});
   });
   router.post('/twitch-rewards/setup',async(req,res)=>{
     if(!await getBroadcasterAccount(req))return res.sendStatus(403);

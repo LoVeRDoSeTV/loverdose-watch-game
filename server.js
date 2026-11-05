@@ -661,7 +661,7 @@ function rollStandardEgg() {
 ========================================= */
 const SHOP_ITEMS = [
   { key:'title_noctambule', category:'title', subcategory:'violet', name:'Noctambule', price:100, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
-  { key:'reward_title_echo_chat', category:'title', subcategory:'violet', name:'Écho du chat', price:0, color:'#cba6ff', description:'Titre exclusif obtenu avec 1 000 points de chaîne Twitch. Une seule fois par joueur.', rewardOnly:true, twitchPoints:1000 },
+  { key:'reward_title_echo_chat', category:'title', subcategory:'violet', name:'Écho du chat', price:0, color:'#cba6ff', description:'Titre exclusif de la chaîne Twitch, obtenable une seule fois par joueur.', rewardOnly:true, twitchPoints:1000 },
   { key:'title_collectionneur', category:'title', subcategory:'blue', name:'Collectionneuse', price:120, color:'#4fd1c5', description:'Un titre pour celles qui aiment compléter leur collection.' },
   { key:'title_gardien_live', category:'title', subcategory:'blue', name:'Gardien du live', price:150, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
   { key:'title_legende', category:'title', subcategory:'gold', name:'Légende de LoVeR Watch Game', price:250, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
@@ -696,7 +696,7 @@ const SHOP_ITEMS = [
   { key:'reward_title_live_100', category:'title', subcategory:'gold', name:'Vétéran du live', price:0, color:'#f3c85b', description:'Débloqué en assistant à 100 lives.', rewardOnly:true },
   { key:'reward_title_live_250', category:'title', subcategory:'gold', name:'Légende des lives', price:0, color:'#ffd86b', description:'Débloqué en assistant à 250 lives.', rewardOnly:true },
   { key:'reward_bg_level55', category:'background', subcategory:'special', name:'Ascension', price:0, preview:'level55', description:'Fond exclusif débloqué au niveau global 55.', rewardOnly:true },
-  { key:'reward_bg_twitch_live', category:'background', subcategory:'special', name:'Signal du direct', price:0, preview:'twitch-live', description:'Fond animé exclusif obtenu avec 2 000 points de chaîne Twitch. Une seule fois par joueur.', rewardOnly:true, twitchPoints:2000 },
+  { key:'reward_bg_twitch_live', category:'background', subcategory:'special', name:'Signal du direct', price:0, preview:'twitch-live', description:'Fond animé exclusif de la chaîne Twitch, obtenable une seule fois par joueur.', rewardOnly:true, twitchPoints:2000 },
   { key:'bg_nebula', category:'background', subcategory:'classic', name:'Nébuleuse violette', price:150, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
   { key:'bg_starry', category:'background', subcategory:'classic', name:'Nuit étoilée', price:220, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
   { key:'bg_ember', category:'background', subcategory:'classic', name:'Braises', price:300, preview:'ember', description:'Fond chaud inspiré des braises et du feu.' },

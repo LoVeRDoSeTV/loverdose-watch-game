@@ -42,3 +42,27 @@ test('un objet Twitch ne se crédite qu’une fois ; le deuxième échange et un
     assert.deepEqual([...inventory],['42:reward_bg_twitch_live']);
   }finally{server.close();delete process.env.TWITCH_BROADCASTER_ID;}
 });
+
+test('une activation interrompue récupère le titre existant et crée seulement le fond manquant',async()=>{
+  const previousFetch=globalThis.fetch,previousId=process.env.TWITCH_BROADCASTER_ID;
+  process.env.TWITCH_BROADCASTER_ID='channel';
+  const items=new Map(),created=[];
+  const pool={query:async(sql,args=[])=>{
+    if(sql.includes('SELECT reward_id FROM twitch_reward_items'))return {rows:items.has(args[0])?[{reward_id:items.get(args[0])}]:[]};
+    if(sql.includes('INSERT INTO twitch_reward_items')){items.set(args[0],args[1]);return {rowCount:1};}
+    if(sql.includes('SELECT * FROM twitch_reward_config'))return {rows:[{secret:'secret',subscription_id:null}]};
+    return {rows:[]};
+  }};
+  globalThis.fetch=async url=>({ok:true,json:async()=>url.includes('oauth2/token')?{access_token:'app-token'}:{data:[{id:'subscription'}]}});
+  try{
+    const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>({twitch_user_id:'channel',scopes:'channel:manage:redemptions'}),
+      trackerTwitchFetch:async(_url,options)=>{
+        if(!options)return {ok:true,json:async()=>({data:[{id:'title-existing',title:'LoVeR Watch · Écho du chat',cost:1000}]})};
+        const body=JSON.parse(options.body);created.push(body.title);
+        return {ok:true,json:async()=>({data:[{id:'background-new'}]})};
+      },getBroadcasterAccount:async()=>null});
+    await rewards.setup();
+    assert.deepEqual(created,['LoVeR Watch · Signal du direct']);
+    assert.deepEqual([...items],[['reward_title_echo_chat','title-existing'],['reward_bg_twitch_live','background-new']]);
+  }finally{globalThis.fetch=previousFetch;if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
+});

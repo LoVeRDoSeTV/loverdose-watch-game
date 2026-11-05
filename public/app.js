@@ -6060,7 +6060,7 @@ function renderShopItemPreview() {
   $('shopItemPreviewName').textContent = item.name || 'Article';
   $('shopItemPreviewDesc').textContent = item.description || '';
 
-  const price = item.twitchPoints ? `${item.twitchPoints} points Twitch · une seule fois` : item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+  const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
   let statusText = '';
   if (item.category === 'object') {
     if (Number(item.quantity || 0) > 0) statusText = `Possédé : ${Number(item.quantity)}`;
@@ -6070,7 +6070,7 @@ function renderShopItemPreview() {
     statusText = 'Possédé';
   }
 
-  $('shopItemPreviewMeta').innerHTML = `<span class="shop-preview-pill price">${item.twitchPoints?'💜':'💰'} ${escapeHtml(price)}</span>${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
+  $('shopItemPreviewMeta').innerHTML = `${item.twitchPoints?'':`<span class="shop-preview-pill price">💰 ${escapeHtml(price)}</span>`}${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
   $('shopItemPreviewOwned').textContent = statusText;
 
   const effectEl = $('shopItemPreviewEffect');
@@ -6193,9 +6193,9 @@ function renderShop() {
   if(isMobileGameUi())items=mobileShopPageItems(items);
   const fragmentEggCard=shopCategory==='object'?`<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`:'';
   const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
-    ? '<div class="shop-twitch-setup">Activation nécessaire : <a href="/auth/twitch/tracker">Connecter mon compte diffuseur Twitch</a></div>' : '';
+    ? '<div class="shop-twitch-setup">Activation Twitch incomplète. <button type="button" data-twitch-setup>Terminer l’activation</button> <a href="/auth/twitch/tracker">Reconnecter mon compte Twitch</a><p id="twitchSetupError" role="alert"></p></div>' : '';
   $('shopGrid').innerHTML = twitchSetup + fragmentEggCard + (items.map(item => {
-    const price = item.twitchPoints ? `${item.twitchPoints} points Twitch · une seule fois` : item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+    const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
     const activeText = isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
@@ -6206,7 +6206,7 @@ function renderShop() {
       ${shopPreview(item)}
       <div class="shop-item-name">${escapeHtml(item.name)}</div>
       <div class="shop-item-desc">${escapeHtml(item.description || '')}</div>
-      <div class="shop-item-meta"><span class="shop-price">${escapeHtml(price)}</span>${ownedText}</div>
+      ${item.twitchPoints ? (ownedText ? `<div class="shop-item-meta">${ownedText}</div>` : '') : `<div class="shop-item-meta"><span class="shop-price">${escapeHtml(price)}</span>${ownedText}</div>`}
       ${activeText}
       <div class="shop-actions">${actions}</div>
     </article>`;
@@ -6995,6 +6995,25 @@ $('inventoryModal')?.addEventListener('mousedown', event => { inventoryBackdropM
 $('inventoryModal')?.addEventListener('mouseup', event => { if (!isMobileGameUi() && inventoryBackdropMouseDown && event.target.id === 'inventoryModal') closeInventory(); inventoryBackdropMouseDown = false; });
 
 $('shopGrid')?.addEventListener('click', event => {
+  const twitchSetup = event.target.closest('[data-twitch-setup]');
+  if (twitchSetup) {
+    twitchSetup.disabled = true;
+    twitchSetup.textContent = 'Activation…';
+    (async () => {
+      try {
+        const response = await fetch('/api/twitch-rewards/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || 'Activation Twitch impossible.');
+        await loadShop();
+      } catch (error) {
+        const message = $('twitchSetupError');
+        if (message) message.textContent = error.message;
+        twitchSetup.disabled = false;
+        twitchSetup.textContent = 'Réessayer l’activation';
+      }
+    })();
+    return;
+  }
   const preview = event.target.closest('[data-shop-preview]');
   const buy = event.target.closest('[data-shop-buy]');
   const equip = event.target.closest('[data-shop-equip]');
