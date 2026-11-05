@@ -2096,7 +2096,7 @@ function profileBackgroundValue(key) {
 
     bg_camo_kawaii: 'linear-gradient(110deg,rgba(36,20,43,.76),rgba(36,20,43,.43)),url("/assets/profile-camo-kawaii.webp")',
     bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
-    reward_bg_twitch_live: 'url("/assets/profile-twitch-live.webp")',
+    reward_bg_twitch_live: 'url("/assets/profile-twitch-live.webp?v=600")',
     bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
     bg_ember: 'radial-gradient(circle at 22% 90%,rgba(255,102,40,.42),transparent 34%),linear-gradient(150deg,rgba(55,18,16,.96),rgba(18,15,29,.98))',
     bg_dawn_violet: 'radial-gradient(circle at 72% 22%,rgba(228,190,255,.28),transparent 28%),linear-gradient(150deg,rgba(85,42,116,.96),rgba(34,22,58,.98) 56%,rgba(14,20,38,.99))',
@@ -2189,7 +2189,21 @@ function applyAvatarFrameCosmetics(element, avatarFrameKey) {
 
 function applyProfileCosmetics(element, backgroundKey, frameKey) {
   if (!element) return;
-  element.classList.toggle('twitch-live-background', backgroundKey === 'reward_bg_twitch_live');
+  const twitchBackground = backgroundKey === 'reward_bg_twitch_live';
+  element.classList.toggle('twitch-live-background', twitchBackground);
+  let logos = element.querySelector(':scope > .twitch-logo-layer');
+  if (twitchBackground && !logos) {
+    logos = document.createElement('span');
+    logos.className = 'twitch-logo-layer';
+    logos.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 8; i++) {
+      const icon = document.createElement('img');
+      icon.src = '/assets/twitch-glyph.svg';
+      icon.alt = '';
+      logos.append(icon);
+    }
+    element.prepend(logos);
+  } else if (!twitchBackground && logos) logos.remove();
   element.style.setProperty('--profile-card-image', profileBackgroundValue(backgroundKey));
   const frame = profileFrameStyle(frameKey);
   element.classList.toggle('cosmetic-card-decoration', Boolean(frame?.corner));
@@ -5791,7 +5805,7 @@ function shopSuccessLabel(url, itemKey, fallback) {
 
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
-  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
+  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"><span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:8},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span></div>`;
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);

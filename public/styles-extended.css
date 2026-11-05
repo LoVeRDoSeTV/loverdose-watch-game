@@ -4736,12 +4736,20 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 /* Level-based evolution is separate from fragment-based rank. */
 .lovys-evolution-summary{display:grid;gap:5px;margin:12px 0;padding:12px 14px;border:1px solid #9772bd66;border-radius:12px;background:#241b3880;color:#eadbff}.lovys-evolution-summary strong{font-size:14px}.lovys-evolution-summary span{font-size:13px;color:#c4e7ce}.lovys-evolution-summary small{font-size:12px;line-height:1.5;color:#beb6cc}
 
-/* Fond Twitch : illustration statique et logos légers animés dans l’aperçu et la carte. */
-.twitch-live-background{background-color:#140925;background-image:url('/assets/profile-twitch-live.webp');background-size:105% 105%!important;background-position:center center;animation:twitch-background-drift 18s ease-in-out infinite alternate}
-.player-visit-card.twitch-live-background::after,.shop-profile-preview-card.twitch-live-background::after,.shop-preview-bg.twitch-live-background::after{content:'';position:absolute;inset:0;width:auto;height:auto;border-radius:inherit;background:url('/assets/twitch-glyph.svg') 82% 24%/24px 24px no-repeat,url('/assets/twitch-glyph.svg') 94% 76%/15px 15px no-repeat;opacity:.32;pointer-events:none;animation:twitch-logo-float 7s ease-in-out infinite alternate}
-.shop-profile-preview-card.twitch-live-background::after{z-index:0}.shop-preview-bg.twitch-live-background{position:relative;overflow:hidden}
-@keyframes twitch-background-drift{from{background-position:48% 50%}to{background-position:52% 50%}}
-@keyframes twitch-logo-float{from{transform:translate3d(0,-3px,0);opacity:.22}to{transform:translate3d(-5px,5px,0);opacity:.45}}
-@media(prefers-reduced-motion:reduce){.twitch-live-background,.player-visit-card.twitch-live-background::after,.shop-profile-preview-card.twitch-live-background::after,.shop-preview-bg.twitch-live-background::after{animation:none!important}}
+/* Fond Twitch : la plaque reste fixe ; seuls les logos indépendants bougent. */
+.twitch-live-background{background-color:#140925;background-image:url('/assets/profile-twitch-live.webp?v=600');background-size:cover!important;background-position:center center!important;overflow:hidden}
+.twitch-live-background .twitch-logo-layer{position:absolute;inset:0;display:block;overflow:hidden;pointer-events:none;z-index:0}
+.twitch-live-background .twitch-logo-layer img{position:absolute;display:block;width:22px;height:22px;object-fit:contain;opacity:.29;animation:twitch-logo-drift 8s ease-in-out infinite alternate;will-change:transform}
+.twitch-logo-layer img:nth-child(1){left:3%;top:4%;width:15px;opacity:.22;animation-duration:9s}
+.twitch-logo-layer img:nth-child(2){left:30%;top:2%;width:13px;opacity:.16;animation-duration:11s;animation-delay:-3s}
+.twitch-logo-layer img:nth-child(3){right:21%;top:7%;width:20px;opacity:.33;animation-duration:7s;animation-delay:-5s}
+.twitch-logo-layer img:nth-child(4){right:5%;top:24%;width:29px;opacity:.40;animation-duration:10s;animation-delay:-2s}
+.twitch-logo-layer img:nth-child(5){right:15%;top:52%;width:17px;opacity:.27;animation-duration:12s;animation-delay:-8s}
+.twitch-logo-layer img:nth-child(6){right:3%;bottom:8%;width:19px;opacity:.34;animation-duration:8s;animation-delay:-4s}
+.twitch-logo-layer img:nth-child(7){left:55%;bottom:5%;width:14px;opacity:.20;animation-duration:11s;animation-delay:-7s}
+.twitch-logo-layer img:nth-child(8){left:2%;bottom:4%;width:13px;opacity:.18;animation-duration:9s;animation-delay:-6s}
+.shop-preview-bg.twitch-live-background{position:relative}.shop-preview-bg.twitch-live-background .twitch-logo-layer img{width:12px;height:12px}.shop-preview-bg.twitch-live-background .twitch-logo-layer img:nth-child(4){width:17px;height:17px}
+@keyframes twitch-logo-drift{from{transform:translate3d(-3px,4px,0) rotate(-5deg)}to{transform:translate3d(5px,-7px,0) rotate(5deg)}}
+@media(prefers-reduced-motion:reduce){.twitch-live-background .twitch-logo-layer img{animation:none!important}}
 .shop-twitch-setup{grid-column:1/-1;padding:14px;border:1px solid #6f42ac;border-radius:12px;background:#211638;color:#f0e6ff}.shop-twitch-setup a{color:#d9b8ff;text-decoration:underline}
 .shop-actions a.shop-action,#shopItemPreviewActions a.shop-action{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none}
