@@ -23,6 +23,7 @@ import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
+import { createTwitchRewards, initTwitchRewards } from './src/routes/twitch-rewards.js';
 import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
@@ -660,6 +661,7 @@ function rollStandardEgg() {
 ========================================= */
 const SHOP_ITEMS = [
   { key:'title_noctambule', category:'title', subcategory:'violet', name:'Noctambule', price:100, color:'#b785ff', description:'Un titre violet pour les habitués des lives tardifs.' },
+  { key:'reward_title_echo_chat', category:'title', subcategory:'violet', name:'Écho du chat', price:0, color:'#cba6ff', description:'Titre exclusif obtenu avec 1 000 points de chaîne Twitch. Une seule fois par joueur.', rewardOnly:true, twitchPoints:1000 },
   { key:'title_collectionneur', category:'title', subcategory:'blue', name:'Collectionneuse', price:120, color:'#4fd1c5', description:'Un titre pour celles qui aiment compléter leur collection.' },
   { key:'title_gardien_live', category:'title', subcategory:'blue', name:'Gardien du live', price:150, color:'#62a8ff', description:'Un titre bleu pour les fidèles de la chaîne.' },
   { key:'title_legende', category:'title', subcategory:'gold', name:'Légende de LoVeR Watch Game', price:250, color:'#f3c85b', description:'Un titre doré pour se faire remarquer.' },
@@ -694,6 +696,7 @@ const SHOP_ITEMS = [
   { key:'reward_title_live_100', category:'title', subcategory:'gold', name:'Vétéran du live', price:0, color:'#f3c85b', description:'Débloqué en assistant à 100 lives.', rewardOnly:true },
   { key:'reward_title_live_250', category:'title', subcategory:'gold', name:'Légende des lives', price:0, color:'#ffd86b', description:'Débloqué en assistant à 250 lives.', rewardOnly:true },
   { key:'reward_bg_level55', category:'background', subcategory:'special', name:'Ascension', price:0, preview:'level55', description:'Fond exclusif débloqué au niveau global 55.', rewardOnly:true },
+  { key:'reward_bg_twitch_live', category:'background', subcategory:'special', name:'Signal du direct', price:0, preview:'twitch-live', description:'Fond animé exclusif obtenu avec 2 000 points de chaîne Twitch. Une seule fois par joueur.', rewardOnly:true, twitchPoints:2000 },
   { key:'bg_nebula', category:'background', subcategory:'classic', name:'Nébuleuse violette', price:150, preview:'violet', description:'Fond violet profond pour ta carte de visite.' },
   { key:'bg_starry', category:'background', subcategory:'classic', name:'Nuit étoilée', price:220, preview:'starry', description:'Fond sombre avec une ambiance étoilée.' },
   { key:'bg_ember', category:'background', subcategory:'classic', name:'Braises', price:300, preview:'ember', description:'Fond chaud inspiré des braises et du feu.' },
@@ -1441,6 +1444,7 @@ async function initDatabase() {
   await pool.query(`CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC)`);
   await initWizebotAlerts(pool);
   await initGameBot(pool);
+  await initTwitchRewards(pool);
   await initPlayerHistory(pool);
   await initPermanentRewards(pool);
 
@@ -1689,7 +1693,7 @@ function trackerAuthUrl(state) {
     client_id: process.env.TWITCH_CLIENT_ID,
     redirect_uri: trackerRedirectUri(),
     response_type: 'code',
-    scope: 'moderator:read:chatters channel:read:subscriptions',
+    scope: 'moderator:read:chatters channel:read:subscriptions channel:manage:redemptions',
     state
   });
 
@@ -2494,7 +2498,7 @@ async function logAdminAction(adminAccountId, targetAccountId, actionKey, summar
 
 app.post('/api/feedback', feedbackRateLimit);
 app.use('/api/feedback', express.json({ limit: '3mb' }));
-app.use(express.json({ limit: '100kb',verify(req,res,raw){if(req.originalUrl?.startsWith('/api/game-bot/eventsub'))req.rawEventSubBody=Buffer.from(raw);} }));
+app.use(express.json({ limit: '100kb',verify(req,res,raw){if((req.originalUrl?.startsWith('/api/game-bot/eventsub')||req.originalUrl?.startsWith('/api/twitch-rewards/eventsub')))req.rawEventSubBody=Buffer.from(raw);} }));
 app.use(createOriginGuard({ baseUrl: BASE_URL }));
 
 
@@ -3336,6 +3340,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
       expiresIn: tokens.expires_in
     });
 
+    await twitchRewards.setup();
     await saveSession(req);
     await runTrackerTick();
 
@@ -5887,6 +5892,8 @@ const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminActi
 app.use('/api',wizebotAlerts.router);
 const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction});
 app.use('/api',gameBot.router);
+const twitchRewards=createTwitchRewards({pool,baseUrl:BASE_URL,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount});
+app.use('/api',twitchRewards.router);
 
 registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
 registerGlobalGameReset(app,{pool,getBroadcasterAccount,pushLiveUpdate});
@@ -6504,9 +6511,14 @@ app.get('/api/shop', async (req, res) => {
       catalog.unshift({ ...MASTER_TITLE, owned:true, equipped: account.equipped_title_key !== TITLE_NONE_KEY && (!account.equipped_title_key || account.equipped_title_key === MASTER_TITLE.key) });
     }
 
+    const twitchRewardsReady = (await pool.query(`SELECT COUNT(*)::int AS item_count,
+      (SELECT subscription_id IS NOT NULL FROM twitch_reward_config WHERE id=1) AS subscribed
+      FROM twitch_reward_items`)).rows[0];
     res.json({
       ok:true,
       balance:Number(user.points || 0),
+      twitchRewardsReady:twitchRewardsReady.item_count===2 && twitchRewardsReady.subscribed===true,
+      twitchRewardsAdmin:Boolean(isBroadcaster),
       catalog,
       activeBoosts,
       equipped:{

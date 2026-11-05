@@ -64,7 +64,7 @@ export function createOriginGuard({ baseUrl }) {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
     if (req.path.startsWith('/api/streamdeck/')) return next();
     // EventSub n'envoie pas Origin ; la route vérifie la signature HMAC de Twitch.
-    if (req.path === '/api/game-bot/eventsub') return next();
+    if (req.path === '/api/game-bot/eventsub' || req.path === '/api/twitch-rewards/eventsub') return next();
 
     const origin = normalizeOrigin(req.get('origin'));
     const currentOrigin = normalizeOrigin(`${req.protocol}://${req.get('host')}`);

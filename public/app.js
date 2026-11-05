@@ -2096,6 +2096,7 @@ function profileBackgroundValue(key) {
 
     bg_camo_kawaii: 'linear-gradient(110deg,rgba(36,20,43,.76),rgba(36,20,43,.43)),url("/assets/profile-camo-kawaii.webp")',
     bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
+    reward_bg_twitch_live: 'url("/assets/profile-twitch-live.webp")',
     bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
     bg_ember: 'radial-gradient(circle at 22% 90%,rgba(255,102,40,.42),transparent 34%),linear-gradient(150deg,rgba(55,18,16,.96),rgba(18,15,29,.98))',
     bg_dawn_violet: 'radial-gradient(circle at 72% 22%,rgba(228,190,255,.28),transparent 28%),linear-gradient(150deg,rgba(85,42,116,.96),rgba(34,22,58,.98) 56%,rgba(14,20,38,.99))',
@@ -2188,6 +2189,7 @@ function applyAvatarFrameCosmetics(element, avatarFrameKey) {
 
 function applyProfileCosmetics(element, backgroundKey, frameKey) {
   if (!element) return;
+  element.classList.toggle('twitch-live-background', backgroundKey === 'reward_bg_twitch_live');
   element.style.setProperty('--profile-card-image', profileBackgroundValue(backgroundKey));
   const frame = profileFrameStyle(frameKey);
   element.classList.toggle('cosmetic-card-decoration', Boolean(frame?.corner));
@@ -5626,7 +5628,7 @@ function saveCommerceMemory() {
 }
 function restoreCommerceMemory() {
   const saved = readNavMemory();
-  const allowed = ['title','background','frame','avatar_frame','object'];
+  const allowed = ['title','background','frame','avatar_frame','object','twitch'];
   if (allowed.includes(saved.shopCategory)) shopCategory = saved.shopCategory;
   if (allowed.includes(saved.inventoryCategory)) inventoryCategory = saved.inventoryCategory;
   if (saved.commerceTab === 'inventory' || saved.commerceTab === 'shop') commerceTab = saved.commerceTab;
@@ -5789,6 +5791,7 @@ function shopSuccessLabel(url, itemKey, fallback) {
 
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
+  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);
@@ -5821,7 +5824,11 @@ function getShopActionButtons(item, { includePreview = false } = {}) {
   const buttons = [];
   if (includePreview && !isDesktopGameUi()) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
 
-  if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
+  if (item.twitchPoints && !item.owned && !item.equipped) {
+    buttons.push(shopData?.twitchRewardsReady
+      ? '<a class="shop-action" href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir les points de chaîne sur Twitch">Ouvrir les points de chaîne ↗</a>'
+      : '<button class="shop-action" type="button" disabled>Activation Twitch en cours</button>');
+  } else if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
   } else if (item.comingSoon) {
     buttons.push('<button class="shop-action" type="button" disabled>Bientôt</button>');
   } else if (item.category === 'object') {
@@ -6031,7 +6038,7 @@ function renderShopItemPreview() {
   const item = getShopItemByKey(shopPreviewCurrentKey);
   if (!item) return;
 
-  $('shopItemPreviewSubtitle').textContent = isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')
+  $('shopItemPreviewSubtitle').textContent = item.twitchPoints ? 'Échange tes points directement sur la chaîne Twitch.' : isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')
     ? 'Essaie cet article sur ta carte avant de l’équiper.'
     : "Découvre l’article avant de dépenser ton LoVeR'Cash.";
   $('shopItemPreviewTitle').textContent = `👁 Prévisualisation · ${shopCategoryLabel(item.category)}`;
@@ -6039,7 +6046,7 @@ function renderShopItemPreview() {
   $('shopItemPreviewName').textContent = item.name || 'Article';
   $('shopItemPreviewDesc').textContent = item.description || '';
 
-  const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+  const price = item.twitchPoints ? `${item.twitchPoints} points Twitch · une seule fois` : item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
   let statusText = '';
   if (item.category === 'object') {
     if (Number(item.quantity || 0) > 0) statusText = `Possédé : ${Number(item.quantity)}`;
@@ -6049,7 +6056,7 @@ function renderShopItemPreview() {
     statusText = 'Possédé';
   }
 
-  $('shopItemPreviewMeta').innerHTML = `<span class="shop-preview-pill price">💰 ${escapeHtml(price)}</span>${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
+  $('shopItemPreviewMeta').innerHTML = `<span class="shop-preview-pill price">${item.twitchPoints?'💜':'💰'} ${escapeHtml(price)}</span>${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
   $('shopItemPreviewOwned').textContent = statusText;
 
   const effectEl = $('shopItemPreviewEffect');
@@ -6150,13 +6157,14 @@ function renderShop() {
   // reste dans Progression / Inventaire et ne doit jamais apparaître ici.
   const isProgressionReward = item => {
     if (!item) return false;
-    if (item.rewardOnly) return true;
+    if (item.twitchPoints) return false;
+    if (item.rewardOnly && !item.twitchPoints) return true;
     const key = String(item.key || '');
     const description = String(item.description || '');
     return /^reward_/.test(key) || /(?:niveau|level)\s+(?:global|général)/i.test(description);
   };
   const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
-    item.category === shopCategory && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
+    (shopCategory === 'twitch' ? Boolean(item.twitchPoints) : item.category === shopCategory && !item.twitchPoints) && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive) || Boolean(item.twitchPoints))
   ), shopCategory);
   let items = allCategoryItems;
   if (!isMobileGameUi() && shopCategory === 'title' && shopTitleFilter !== 'all') {
@@ -6170,8 +6178,10 @@ function renderShop() {
   }
   if(isMobileGameUi())items=mobileShopPageItems(items);
   const fragmentEggCard=shopCategory==='object'?`<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`:'';
-  $('shopGrid').innerHTML = fragmentEggCard + (items.map(item => {
-    const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
+  const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
+    ? '<div class="shop-twitch-setup">Activation nécessaire : <a href="/auth/twitch/tracker">Connecter mon compte diffuseur Twitch</a></div>' : '';
+  $('shopGrid').innerHTML = twitchSetup + fragmentEggCard + (items.map(item => {
+    const price = item.twitchPoints ? `${item.twitchPoints} points Twitch · une seule fois` : item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
     const activeText = isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
@@ -6190,15 +6200,16 @@ function renderShop() {
 
   const shopCounts = Object.create(null);
   for (const item of shopData.catalog || []) {
-    if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))) {
-      shopCounts[item.category] = (shopCounts[item.category] || 0) + 1;
+    if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive) || item.twitchPoints)) {
+      const category = item.twitchPoints ? 'twitch' : item.category;
+      shopCounts[category] = (shopCounts[category] || 0) + 1;
     }
   }
   const desktopShop = isDesktopGameUi();
   document.querySelectorAll('[data-shop-category]').forEach(button => {
     const category = button.dataset.shopCategory;
     button.classList.toggle('active', category === shopCategory);
-    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
+    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets',twitch:'💜 Twitch'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
   });
   // La carte de visite ne dépend pas du filtre ou de la catégorie de la boutique.
 }
