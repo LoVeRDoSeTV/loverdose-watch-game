@@ -59,15 +59,16 @@ test('PvE replays reward each other Lovys once, then stop after its zone boss',a
  await win(id);
  assert.equal((await win(id)).replayReward,false);
  const replay=await win(otherId);
- assert.equal(replay.replayReward,true);assert.equal(replay.reward.cash,1);
+ assert.equal(replay.replayReward,true);assert.equal(replay.reward.cash,fight.rewards.globalXp);
+ assert.equal(replay.reward.creatureXp,fight.rewards.creatureXp);
  assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[otherId])).rows[0].xp,replay.reward.creatureXp);
- assert.equal((await balances(id)).points,1);
+ assert.equal((await balances(id)).points,fight.rewards.globalXp*2);
  assert.equal((await win(otherId)).replayReward,false);
  await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,boss.key]);
  await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,PVE_FIGHTS[1].key]);
  const blocked=await win(otherId,PVE_FIGHTS[1]);
  assert.equal(blocked.replayReward,false);assert.equal(blocked.reward.cash,0);
- assert.equal((await balances(id)).points,1);
+ assert.equal((await balances(id)).points,fight.rewards.globalXp*2);
 });
 test.after(async()=>{await db?.close();});
 let next=0;
@@ -202,6 +203,8 @@ test('actual PvE action route preserves live XP, pays the first victory once and
   assert.equal((await balances(id)).xp,600+fight.rewards.creatureXp);
  }
  assert.equal((await query('SELECT wins FROM user_pve_progress WHERE user_id=$1',[id])).rows[0].wins,2);
+ assert.equal((await balances(id)).points,fight.rewards.globalXp);
+ assert.equal((await balances(id)).egg_fragments,fight.rewards.fragments);
  const achievements=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:async()=>{}});
  await achievements.init();
  const badge=(await achievements.sync(id,id)).find(item=>item.badgeKey==='achievement:victories');
