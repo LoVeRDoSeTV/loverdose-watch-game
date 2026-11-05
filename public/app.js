@@ -4405,10 +4405,14 @@ function mobilePveZoneIndex(data,requested=null){
   const index=requested??pveMapState.selectedZone;
   return Number.isInteger(index)&&zones[index]?index:pveDefaultZoneIndex(data);
 }
-function mobilePveNextFight(data){
-  for(const [zoneIndex,zone] of (data?.zones||[]).entries()){
-    const fight=(zone.fights||[]).find(f=>f.unlocked&&!f.won);
-    if(fight)return {fight,zoneIndex};
+function mobilePveNextFight(data,afterFightKey){
+  const zones=data?.zones||[];
+  for(const [zoneIndex,zone] of zones.entries()){
+    const fights=zone.fights||[],fightIndex=fights.findIndex(f=>f.key===afterFightKey);
+    if(fightIndex<0)continue;
+    const nextZoneIndex=fightIndex+1<fights.length?zoneIndex:zoneIndex+1;
+    const fight=nextZoneIndex===zoneIndex?fights[fightIndex+1]:zones[nextZoneIndex]?.fights?.[0];
+    return fight?.unlocked?{fight,zoneIndex:nextZoneIndex}:null;
   }
   return null;
 }
@@ -4510,7 +4514,7 @@ async function closeMobilePveBattle(action='zone'){
     setHubFragmentsButton(Number(data.eggFragments||0));
     renderPveAdventureMap(data,info?.zoneIndex??null);
     refreshed=true;
-    const target=data.hasCreature?(action==='retry'?pveFightInfoByKey(fightKey):action==='next'?mobilePveNextFight(data):null):null;
+    const target=data.hasCreature?(action==='retry'?pveFightInfoByKey(fightKey):action==='next'?mobilePveNextFight(data,fightKey):null):null;
     if(target){
       pveMapState.selectedFight=target.fight.key;
       renderPveAdventureMap(data,target.zoneIndex);
