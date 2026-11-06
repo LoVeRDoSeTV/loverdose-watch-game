@@ -6266,7 +6266,7 @@ function renderShop() {
     return /^reward_/.test(key) || /(?:niveau|level)\s+(?:global|général)/i.test(description);
   };
   const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
-    (shopCategory === 'twitch' ? Boolean(item.twitchPoints) : item.category === shopCategory && !item.twitchPoints) && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive) || Boolean(item.twitchPoints))
+    (shopCategory === 'twitch' ? Boolean(item.twitchPoints) : item.category === shopCategory && !item.twitchPoints) && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
   ), shopCategory);
   let items = allCategoryItems;
   if (!isMobileGameUi() && shopCategory === 'title' && shopTitleFilter !== 'all') {
@@ -6305,7 +6305,7 @@ function renderShop() {
 
   const shopCounts = Object.create(null);
   for (const item of shopData.catalog || []) {
-    if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive) || item.twitchPoints)) {
+    if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))) {
       const category = item.twitchPoints ? 'twitch' : item.category;
       shopCounts[category] = (shopCounts[category] || 0) + 1;
     }
@@ -9480,7 +9480,7 @@ function startLiveUpdates() {
     try{
       const data=JSON.parse(event.data);
       if(String(data.twitchId)!==String(me?.user?.twitch_id))return;
-      if(shopCategory==='twitch' && !$('shopModal')?.classList.contains('hidden'))void loadShop().catch(console.warn);
+      if((isDesktopGameUi() && desktopView==='shop') || !$('shopModal')?.classList.contains('hidden') || !$('inventoryModal')?.classList.contains('hidden'))void loadShop().catch(console.warn);
       scheduleTwitchRewardCheck(1400);
     }catch(error){console.warn('Récompense Twitch :',error);}
   });
