@@ -4760,9 +4760,17 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 .twitch-reward-card .badge-unlock-title{font-size:clamp(25px,5vw,33px);line-height:1.15}
 .twitch-reward-copy{margin:15px auto 18px;max-width:390px;color:#e6daf8;font-size:16px;line-height:1.5}
 .twitch-reward-copy strong{color:#fff}
+.twitch-reward-items{display:grid;grid-template-columns:1fr;gap:12px;margin-top:15px}
+.twitch-reward-items.multiple{grid-template-columns:repeat(2,minmax(0,1fr))}
+.twitch-reward-entry{min-width:0;padding:9px;border:1px solid #9147ff55;border-radius:18px;background:#130d29a8}
 .twitch-reward-visual{width:min(280px,100%);min-height:125px;margin:0 auto;display:grid;place-items:center;border:1px solid #9147ff99;border-radius:16px;background:#0b0c1d;box-shadow:0 0 30px #9147ff33;overflow:hidden}
 .twitch-reward-visual .shop-item-preview{width:100%;height:140px;min-height:140px;margin:0;border:0;border-radius:0;display:grid;place-items:center}
+.twitch-reward-entry .twitch-reward-visual{width:100%;min-height:105px}
+.twitch-reward-entry .shop-item-preview{height:105px;min-height:105px}
+.twitch-reward-entry-name{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:9px 0 3px;color:#f6efff;font-size:13px;line-height:1.35}
+.twitch-reward-entry-name span{color:#c59aff;font-weight:800}.twitch-reward-entry-name strong{overflow-wrap:anywhere}
 .twitch-reward-visual .shop-preview-title{font-size:clamp(16px,4vw,22px);text-shadow:0 0 20px #b788ff}
 .twitch-reward-card .badge-unlock-condition{margin:18px auto 0;max-width:330px}
 @media(max-width:620px){.twitch-reward-celebration .twitch-reward-card{padding:26px 20px}.twitch-reward-visual .shop-item-preview{height:125px;min-height:125px}}
+@media(max-width:520px){.twitch-reward-items.multiple{grid-template-columns:1fr}.twitch-reward-entry .twitch-reward-visual,.twitch-reward-entry .shop-item-preview{min-height:88px;height:88px}}
 .shop-actions a.shop-action,#shopItemPreviewActions a.shop-action{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none}

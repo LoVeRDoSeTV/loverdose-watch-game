@@ -1124,6 +1124,7 @@ async function loadGameOnce() {
 
     renderGame();
     await showPendingHeartGift();
+    scheduleTwitchRewardCheck(1400);
     // Restaurer les pages mobiles uniquement au premier chargement authentifié,
     // après l'affichage de l'application ; jamais lors des rafraîchissements.
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
@@ -5242,6 +5243,7 @@ async function toggleMobilePanel(panel){
   }
   // Une réponse ancienne ne peut pas réactiver une page quittée entre-temps.
   if(revision===mobileNavigationRevision&&isMobileGameUi())syncMobileNavState();
+  if(panel!=='combat')scheduleTwitchRewardCheck();
 }
 async function hatchExtraIncubatorEgg(slot){
   const message=$('incubatorAddMessage');
@@ -5614,6 +5616,15 @@ let shopData = null;
 let shopCategory = 'title';
 let twitchRewardChecking = false;
 let twitchRewardCelebrationActive = false;
+let twitchRewardCheckTimer = null;
+function scheduleTwitchRewardCheck(delay=900){
+  clearTimeout(twitchRewardCheckTimer);
+  twitchRewardCheckTimer=setTimeout(()=>void showPendingTwitchRewards(),delay);
+}
+function twitchRewardBlockedByPve(){
+  return Boolean(pveBattleState.running || (isDesktopGameUi() && desktopView==='pve') ||
+    !$('pveModal')?.classList.contains('hidden') || !$('pveBattleOverlay')?.classList.contains('hidden'));
+}
 let mobileShopPage = 0;
 let mobileShopPageCategory = 'title';
 const MOBILE_SHOP_PAGE_SIZE = 8;
@@ -5823,50 +5834,78 @@ function shopPreview(item) {
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
 }
 
-async function showPendingTwitchReward() {
-  if(twitchRewardChecking || twitchRewardCelebrationActive || !me?.user || document.hidden || shopCategory!=='twitch' || $('shopModal')?.classList.contains('hidden'))return;
+function renderTwitchRewardSummary(modal,rewards,catalog){
+  modal.rewardIds=rewards.map(reward=>reward.id);
+  const copy=modal.querySelector('#twitchRewardCopy');
+  if(copy)copy.textContent=rewards.length===1?'Vous venez de débloquer un objet sur Twitch :':`Vous venez de débloquer ${rewards.length} objets sur Twitch :`;
+  const list=modal.querySelector('#twitchRewardItems');
+  if(!list)return;
+  list.classList.toggle('multiple',rewards.length>1);
+  list.innerHTML=rewards.map(reward=>{
+    const item=(catalog||[]).find(entry=>entry.key===reward.itemKey)||{
+      key:reward.itemKey,name:reward.name,category:reward.category,color:'#cba6ff',twitchPoints:1
+    };
+    const type=item.category==='title'?'Titre':item.category==='background'?'Fond':'Objet';
+    return `<div class="twitch-reward-entry"><div class="twitch-reward-visual">${shopPreview(item)}</div><div class="twitch-reward-entry-name"><span>${type}</span><strong>« ${escapeHtml(item.name)} »</strong></div></div>`;
+  }).join('');
+}
+
+async function showPendingTwitchRewards(){
+  if(twitchRewardChecking || !me?.user || document.hidden || twitchRewardBlockedByPve())return;
   const accountKey=String(me.user.id||me.user.twitch_id||'');
+  if(!twitchRewardCelebrationActive && (badgeCelebrationActive || document.getElementById('heartGiftCelebration') ||
+      window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning ||
+      !$('shopPurchaseSuccessModal')?.classList.contains('hidden') || !$('rewardWheelWinPopup')?.classList.contains('hidden') ||
+      document.getElementById('returnSummaryOverlay'))){scheduleTwitchRewardCheck(900);return;}
   twitchRewardChecking=true;
   try{
     const response=await fetch('/api/twitch-rewards/notifications/pending',{cache:'no-store'});
     if(!response.ok)return;
-    const {reward}=await response.json();
-    if(!reward || accountKey!==String(me?.user?.id||me?.user?.twitch_id||'') || shopCategory!=='twitch' || $('shopModal')?.classList.contains('hidden'))return;
-    const item=getShopItemByKey(reward.itemKey);
-    if(!item || !item.twitchPoints)return;
-    if(badgeCelebrationActive || document.getElementById('heartGiftCelebration') || !$('shopPurchaseSuccessModal')?.classList.contains('hidden')){
-      setTimeout(showPendingTwitchReward,700);return;
+    const {rewards}=await response.json();
+    if(!Array.isArray(rewards)||!rewards.length||accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    let catalog=shopData?.catalog;
+    if(!catalog){
+      const shopResponse=await fetch('/api/shop',{cache:'no-store'});
+      if(shopResponse.ok)catalog=(await shopResponse.json()).catalog;
     }
+    if(accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    let modal=$('twitchRewardCelebration');
+    if(modal && twitchRewardCelebrationActive){if(!modal.dataset.closing)renderTwitchRewardSummary(modal,rewards,catalog);return;}
     twitchRewardCelebrationActive=true;
-    const modal=document.createElement('div');
+    modal=document.createElement('div');
     modal.id='twitchRewardCelebration';
     modal.className='badge-unlock-celebration twitch-reward-celebration';
-    const kind=item.category==='title'?'titre':'fond';
-    const inventoryCategory=item.category==='title'?'Titres':'Fonds';
     modal.innerHTML=`<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:38},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#9147ff','#d5aaff','#fff','#65ddff'][i%4]}"></i>`).join('')}</div><div class="badge-unlock-card twitch-reward-card" role="dialog" aria-modal="true" aria-labelledby="twitchRewardTitle" aria-describedby="twitchRewardCopy">
       <img class="twitch-reward-glyph" src="/assets/twitch-glyph.svg" alt="">
-      <div class="badge-unlock-kicker">Récompense Twitch</div>
+      <div class="badge-unlock-kicker">Récompenses Twitch</div>
       <h2 class="badge-unlock-title" id="twitchRewardTitle">Félicitations pour votre fidélité !</h2>
-      <p class="twitch-reward-copy" id="twitchRewardCopy">Vous venez de débloquer le ${kind} <strong>« ${escapeHtml(item.name)} »</strong>.</p>
-      <div class="twitch-reward-visual">${shopPreview(item)}</div>
-      <div class="badge-unlock-condition">Votre nouvel objet est dans Inventaire → ${inventoryCategory}. Vous pouvez l’équiper quand vous voulez.</div>
+      <p class="twitch-reward-copy" id="twitchRewardCopy"></p>
+      <div class="twitch-reward-items" id="twitchRewardItems"></div>
+      <div class="badge-unlock-condition">Retrouvez vos nouveaux objets dans l’inventaire pour les équiper.</div>
       <button class="badge-unlock-ok" type="button">Super, merci !</button>
     </div>`;
+    renderTwitchRewardSummary(modal,rewards,catalog);
     document.body.appendChild(modal);
     const close=async()=>{
+      const ids=[...(modal.rewardIds||[])];
+      modal.dataset.closing='1';
       modal.classList.remove('show');
-      setTimeout(()=>modal.remove(),300);
       try{
-        const ack=await fetch('/api/twitch-rewards/notifications/'+encodeURIComponent(reward.id)+'/acknowledge',{method:'POST'});
+        const ack=await fetch('/api/twitch-rewards/notifications/acknowledge',{
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})
+        });
         if(!ack.ok)throw new Error('Confirmation indisponible.');
-        setTimeout(showPendingTwitchReward,350);
-      }catch(error){console.error('Confirmation de la récompense Twitch :',error);}
-      finally{twitchRewardCelebrationActive=false;setTimeout(showNextBadgeCelebration,350);}
+      }catch(error){console.error('Confirmation des récompenses Twitch :',error);}
+      finally{
+        setTimeout(()=>modal.remove(),300);
+        twitchRewardCelebrationActive=false;
+        setTimeout(showNextBadgeCelebration,350);
+      }
     };
     modal.querySelector('button')?.addEventListener('click',close,{once:true});
     requestAnimationFrame(()=>modal.classList.add('show'));
     setTimeout(()=>modal.querySelector('button')?.focus(),260);
-  }catch(error){console.error('Récompense Twitch en attente :',error);}
+  }catch(error){console.error('Récompenses Twitch en attente :',error);}
   finally{twitchRewardChecking=false;}
 }
 
@@ -6278,7 +6317,7 @@ function renderShop() {
     button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets',twitch:'💜 Twitch'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
   });
   // La carte de visite ne dépend pas du filtre ou de la catégorie de la boutique.
-  if(shopCategory==='twitch')void showPendingTwitchReward();
+  if(shopCategory==='twitch')scheduleTwitchRewardCheck();
 }
 
 function inventoryOwnedItems() {
@@ -8827,6 +8866,7 @@ async function openDesktopView(view='home'){
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
+  if(view!=='pve')scheduleTwitchRewardCheck();
   const leaderboardBoard=document.querySelector('.global-leaderboard');
   if(view!=='leaderboard'){
     leaderboardBoard?.style.setProperty('display','none','important');
@@ -9425,6 +9465,7 @@ function startLiveUpdates() {
   });
   liveUpdates.addEventListener('connected', () => {
     if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
+    scheduleTwitchRewardCheck(1400);
   });
   liveUpdates.addEventListener('live-boost-update', () => window.refreshLiveXpBoost?.());
   liveUpdates.addEventListener('connected', () => window.refreshLiveXpBoost?.());
@@ -9440,6 +9481,7 @@ function startLiveUpdates() {
       const data=JSON.parse(event.data);
       if(String(data.twitchId)!==String(me?.user?.twitch_id))return;
       if(shopCategory==='twitch' && !$('shopModal')?.classList.contains('hidden'))void loadShop().catch(console.warn);
+      scheduleTwitchRewardCheck(1400);
     }catch(error){console.warn('Récompense Twitch :',error);}
   });
   liveUpdates.addEventListener('trade-update', () => { void refreshLobbyNotifications();void refreshLobbySilently(); });
@@ -9464,7 +9506,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();void showPendingTwitchReward(); }
+  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();scheduleTwitchRewardCheck(); }
 });
 
 startLiveUpdates();

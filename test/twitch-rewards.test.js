@@ -22,10 +22,10 @@ function fakeDb(){
   const inventory=new Set(),redemptions=new Map();
   const query=async(sql,args=[])=>{
     if(sql.includes('SELECT secret FROM twitch_reward_config'))return {rows:[{secret}]};
-    if(sql.includes('SELECT item_key FROM twitch_reward_items'))return {rows:args[0]==='reward-twitch'? [{item_key:'reward_bg_twitch_live'}]:[]};
+    if(sql.includes('SELECT item_key FROM twitch_reward_items'))return {rows:args[0]==='reward-twitch'?[{item_key:'reward_bg_twitch_live'}]:args[0]==='reward-title'?[{item_key:'reward_title_echo_chat'}]:[]};
     if(sql.includes('SELECT redemption_id,item_key FROM twitch_reward_redemptions')){
-      const reward=[...redemptions.entries()].find(([,row])=>row.account_id===args[0]&&row.decision==='grant'&&row.settled&&!row.announced_at);
-      return {rows:reward?[{redemption_id:reward[0],item_key:reward[1].item_key}]:[]};
+      const rewards=[...redemptions.entries()].filter(([,row])=>row.account_id===args[0]&&row.decision==='grant'&&row.settled&&!row.announced_at);
+      return {rows:rewards.map(([id,row])=>({redemption_id:id,item_key:row.item_key}))};
     }
     if(sql.includes('SELECT decision,settled FROM twitch_reward_redemptions'))return {rows:redemptions.has(args[0])?[redemptions.get(args[0])]:[]};
     if(sql.includes('SELECT id FROM accounts WHERE twitch_id'))return {rows:args[0]==='linked'?[{id:42}]:[]};
@@ -33,8 +33,10 @@ function fakeDb(){
     if(sql.includes('INSERT INTO twitch_reward_redemptions')){redemptions.set(args[0],{item_key:args[1],account_id:args[3],decision:args[4],settled:false,announced_at:null});return {rowCount:1};}
     if(sql.includes('INSERT INTO shop_inventory')){inventory.add(`${args[0]}:${args[1]}`);return {rowCount:1};}
     if(sql.includes('SET announced_at=')){
-      const row=redemptions.get(args[0]);if(!row||row.account_id!==args[1]||row.decision!=='grant'||!row.settled||row.announced_at)return {rowCount:0};
-      row.announced_at=new Date();return {rowCount:1};
+      let count=0;
+      for(const id of args[0]){const row=redemptions.get(id);if(!row||row.account_id!==args[1]||row.decision!=='grant'||!row.settled||row.announced_at)continue;
+        row.announced_at=new Date();count++;}
+      return {rowCount:count};
     }
     if(sql.includes('UPDATE twitch_reward_redemptions')){redemptions.get(args[0]).settled=true;return {rowCount:1};}
     return {rows:[],rowCount:0};
@@ -42,7 +44,7 @@ function fakeDb(){
   return {pool:{query,connect:async()=>({query,release(){}})},inventory,redemptions};
 }
 
-test('seule la première remise Twitch garde une confirmation pour le joueur lié',async()=>{
+test('plusieurs récompenses Twitch sont récapitulées ensemble pour le seul joueur lié',async()=>{
   process.env.TWITCH_BROADCASTER_ID='channel';
   const {pool,inventory}=fakeDb(),statuses=[],events=[];
   const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>null,
@@ -52,26 +54,30 @@ test('seule la première remise Twitch garde une confirmation pour le joueur li�
   app.use(express.json({verify(req,_res,raw){req.rawEventSubBody=Buffer.from(raw);}}));app.use('/api',rewards.router);
   const server=app.listen(0);
   try{
-    async function redeem(id,userId){
-      const body=JSON.stringify({subscription:{type:'channel.channel_points_custom_reward_redemption.add'},event:{id,user_id:userId,broadcaster_user_id:'channel',reward:{id:'reward-twitch'}}});
+    async function redeem(id,userId,rewardId='reward-twitch'){
+      const body=JSON.stringify({subscription:{type:'channel.channel_points_custom_reward_redemption.add'},event:{id,user_id:userId,broadcaster_user_id:'channel',reward:{id:rewardId}}});
       const stamp=new Date().toISOString(),messageId=`msg-${id}`;
       const sig='sha256='+crypto.createHmac('sha256',secret).update(messageId+stamp+body).digest('hex');
       const response=await fetch(`http://127.0.0.1:${server.address().port}/api/twitch-rewards/eventsub`,{method:'POST',headers:{'Content-Type':'application/json','Twitch-Eventsub-Message-Id':messageId,'Twitch-Eventsub-Message-Timestamp':stamp,'Twitch-Eventsub-Message-Signature':sig,'Twitch-Eventsub-Message-Type':'notification'},body});
       assert.equal(response.status,204);
     }
-    await redeem('first','linked');await redeem('second','linked');await redeem('third','not-linked');
-    assert.deepEqual(statuses,['FULFILLED','CANCELED','CANCELED']);
-    assert.deepEqual([...inventory],['42:reward_bg_twitch_live']);
-    assert.deepEqual(events.map(event=>event.type),['twitch-reward']);
+    await redeem('first','linked');await redeem('second','linked','reward-title');await redeem('third','linked');await redeem('fourth','not-linked');
+    assert.deepEqual(statuses,['FULFILLED','FULFILLED','CANCELED','CANCELED']);
+    assert.deepEqual([...inventory],['42:reward_bg_twitch_live','42:reward_title_echo_chat']);
+    assert.deepEqual(events.map(event=>event.type),['twitch-reward','twitch-reward']);
     const url=`http://127.0.0.1:${server.address().port}/api/twitch-rewards/notifications`;
     const player={headers:{'X-Test-Account':'42'}},other={headers:{'X-Test-Account':'43'}};
-    const pending=async options=>(await (await fetch(url+'/pending',options)).json()).reward;
-    assert.deepEqual(await pending(player),{id:'first',itemKey:'reward_bg_twitch_live'});
-    assert.deepEqual(await pending(player),{id:'first',itemKey:'reward_bg_twitch_live'});
-    assert.equal(await pending(other),null);
-    assert.equal((await (await fetch(url+'/first/acknowledge',{method:'POST',...other})).json()).acknowledged,false);
-    assert.equal((await (await fetch(url+'/first/acknowledge',{method:'POST',...player})).json()).acknowledged,true);
-    assert.equal(await pending(player),null);
+    const pending=async options=>(await (await fetch(url+'/pending',options)).json()).rewards;
+    const expected=[{id:'first',itemKey:'reward_bg_twitch_live',name:'Signal du direct',category:'background'},
+      {id:'second',itemKey:'reward_title_echo_chat',name:'Écho du chat',category:'title'}];
+    assert.deepEqual(await pending(player),expected);
+    assert.deepEqual(await pending(player),expected);
+    assert.deepEqual(await pending(other),[]);
+    const acknowledge=async options=>(await (await fetch(url+'/acknowledge',{
+      method:'POST',headers:{'Content-Type':'application/json',...options.headers},body:JSON.stringify({ids:['first','second']})})).json()).acknowledged;
+    assert.equal(await acknowledge(other),0);
+    assert.equal(await acknowledge(player),2);
+    assert.deepEqual(await pending(player),[]);
   }finally{server.close();delete process.env.TWITCH_BROADCASTER_ID;}
 });
 

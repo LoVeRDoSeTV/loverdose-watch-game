@@ -3,8 +3,8 @@ import crypto from 'node:crypto';
 import {verifyEventSub} from './game-bot.js';
 
 const REWARDS = [
-  {key:'reward_title_echo_chat', title:'LoVeR Watch · Écho du chat', aliases:['LoVeR Watch / Titre : Écho du chat'], cost:1000},
-  {key:'reward_bg_twitch_live', title:'LoVeR Watch · Signal du direct', cost:2000}
+  {key:'reward_title_echo_chat', name:'Écho du chat', category:'title', title:'LoVeR Watch · Écho du chat', aliases:['LoVeR Watch / Titre : Écho du chat'], cost:1000},
+  {key:'reward_bg_twitch_live', name:'Signal du direct', category:'background', title:'LoVeR Watch · Signal du direct', cost:2000}
 ];
 
 export function hasTwitchRewardAuthorization(row,broadcasterId){
@@ -88,19 +88,24 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
   router.get('/twitch-rewards/notifications/pending',async(req,res)=>{
     if(!req.session?.account)return res.status(401).json({error:'Connexion requise.'});
     try{
-      const reward=(await pool.query(`SELECT redemption_id,item_key FROM twitch_reward_redemptions
+      const rows=(await pool.query(`SELECT redemption_id,item_key FROM twitch_reward_redemptions
         WHERE account_id=$1 AND decision='grant' AND settled=TRUE AND announced_at IS NULL
-        ORDER BY created_at ASC LIMIT 1`,[req.session.account.id])).rows[0];
-      res.set('Cache-Control','no-store').json({reward:reward?{id:reward.redemption_id,itemKey:reward.item_key}:null});
+        ORDER BY created_at ASC LIMIT 100`,[req.session.account.id])).rows;
+      res.set('Cache-Control','no-store').json({rewards:rows.map(row=>{
+        const item=REWARDS.find(entry=>entry.key===row.item_key);
+        return {id:row.redemption_id,itemKey:row.item_key,name:item?.name||'Récompense Twitch',category:item?.category||'object'};
+      })});
     }catch(error){console.error('Notification Twitch :',error);res.status(500).json({error:'Notification indisponible.'});}
   });
-  router.post('/twitch-rewards/notifications/:id/acknowledge',async(req,res)=>{
+  router.post('/twitch-rewards/notifications/acknowledge',async(req,res)=>{
     if(!req.session?.account)return res.status(401).json({error:'Connexion requise.'});
     try{
+      const ids=[...new Set(Array.isArray(req.body?.ids)?req.body.ids:[])];
+      if(!ids.length||ids.length>100||ids.some(id=>typeof id!=='string'||!id||id.length>128))return res.status(400).json({error:'Récompenses invalides.'});
       const result=await pool.query(`UPDATE twitch_reward_redemptions SET announced_at=CURRENT_TIMESTAMP
-        WHERE redemption_id=$1 AND account_id=$2 AND decision='grant' AND settled=TRUE AND announced_at IS NULL`,
-        [req.params.id,req.session.account.id]);
-      res.json({acknowledged:result.rowCount>0});
+        WHERE redemption_id=ANY($1::text[]) AND account_id=$2 AND decision='grant' AND settled=TRUE AND announced_at IS NULL`,
+        [ids,req.session.account.id]);
+      res.json({acknowledged:result.rowCount});
     }catch(error){console.error('Confirmation Twitch :',error);res.status(500).json({error:'Confirmation indisponible.'});}
   });
 
