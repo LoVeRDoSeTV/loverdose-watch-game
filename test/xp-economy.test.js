@@ -44,6 +44,27 @@ test.before(async()=>{
  CREATE TABLE user_global_lovys_xp_rewards(user_id int,prestige int,level int,xp_amount double precision,PRIMARY KEY(user_id,prestige,level));`);
 });
 
+test('PvE checkmarks follow the active Lovys while unlocks and first rewards follow the account',async()=>{
+ const id=await player(),otherId=id+20000,keys=PVE_FIGHTS.slice(0,2).map(f=>f.key);
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,is_active) VALUES($1,$2,'water',FALSE)",[otherId,id]);
+ for(const key of keys){
+  await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,key]);
+  await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$1,$2)',[id,key]);
+ }
+ const router=createPveRouter({pool,zones:PVE_ZONES,previousFight:pvePreviousFight,fightByKey:pveFightByKey,creatureBattleStats:()=>({name:'Test'})});
+ const handler=router.stack.find(layer=>layer.route?.path==='/').route.stack[0].handle;
+ async function read(){const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}}},res);assert.equal(res.statusCode,200);return res.body;}
+ const first=await read();assert.equal(first.activeLovysId,id);assert.equal(first.zones[0].fights.filter(f=>f.won).length,2);
+ await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,otherId]);
+ const second=await read();assert.equal(second.activeLovysId,otherId);assert.equal(second.zones[0].fights.filter(f=>f.won).length,0);
+ for(const f of second.zones[0].fights.slice(0,2)){assert.equal(f.accountWon,true);assert.equal(f.replayRewardAvailable,true);}
+ assert.deepEqual(second.zones.map(z=>z.fights.map(f=>f.unlocked)),first.zones.map(z=>z.fights.map(f=>f.unlocked)));
+ await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,keys[0]]);
+ const partial=await read();assert.equal(partial.zones[0].fights[0].won,true);assert.equal(partial.zones[0].fights[1].won,false);assert.equal(partial.zones[0].fights[0].replayRewardAvailable,false);
+ await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,id]);
+ assert.equal((await read()).zones[0].fights.filter(f=>f.won).length,2);
+});
+
 test('PvE replays reward each other Lovys once, then stop after its zone boss',async()=>{
  const id=await player(600),otherId=id+10000;
  await query("INSERT INTO user_lovys(id,user_id,creature_id,xp,is_active) VALUES($1,$2,'plant',0,FALSE)",[otherId,id]);

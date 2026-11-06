@@ -28,10 +28,10 @@ export function createPveRouter({ pool, zones, previousFight, fightByKey, creatu
         const previous = previousFight(fight.key);
         const ownWins=Number(progressMap.get(fight.key)?.wins || 0);
         const bossKey=zone.fights.find(item=>item.finalBoss)?.key;
-        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:ownWins > 0, replayRewardAvailable:ownWins>0&&!lovysWins.has(fight.key)&&!lovysWins.has(bossKey), unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
+        return { ...fight, attack:Number(fight.attack ?? (Number(fight.power||1)*.90)), defense:Number(fight.defense??(20+Number(fight.level||1)*3.2)), speed:Number(fight.speed??(6+Number(fight.level||1)*.55)), won:lovysWins.has(fight.key), accountWon:ownWins > 0, replayRewardAvailable:ownWins>0&&!lovysWins.has(fight.key)&&!lovysWins.has(bossKey), unlocked:isPveFightUnlocked(previous, progressMap.get(previous?.key)?.wins, ownWins) };
       }) }));
       const creature=user.creature_id ? creatureBattleStats({creature_id:user.creature_id,xp:Number(user.xp || 0),rank:Number(user.rank||1)}) : null;
-      res.json({ ok:true, hasCreature:Boolean(user.creature_id), creature, eggFragments:Number(user.egg_fragments || 0), zones:publicZones });
+      res.json({ ok:true, hasCreature:Boolean(user.creature_id), activeLovysId:user.lovys_id?Number(user.lovys_id):null, creature, eggFragments:Number(user.egg_fragments || 0), zones:publicZones });
     } catch (error) {
       console.error('Erreur chargement PvE :', error);
       res.status(500).json({ error:'Impossible de charger l’aventure.' });
