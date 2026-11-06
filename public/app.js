@@ -7689,7 +7689,7 @@ function adminLovysPortrait(lovy){
   const name=String(lovy.name||lovy.creatureId||lovy.creature_id||'Lovys');
   const image=lovysImageUrl(lovy.creatureId||lovy.creature_id,lovysEvolutionForLevel(level));
   const label=escapeHtml(name+' · Niveau '+level);
-  return `<span class="admin-lovys-portrait" tabindex="0" aria-label="${label}" title="${label}">${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async">`:'🐉'}<span class="admin-lovys-tooltip">${label}</span><small>Niv. ${level}</small></span>`;
+  return `<span class="admin-lovys-portrait" role="img" aria-label="${label}">${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async">`:'🐉'}</span>`;
 }
 function renderAdminPlayers(data) {
   const list = $('adminPlayersList');
@@ -7727,7 +7727,7 @@ function renderAdminPlayers(data) {
         <div>
           <div class="admin-player-meta">${stateText}</div>
           <div class="admin-player-status"><span class="admin-player-pill">${player.isSub ? '⭐ Sub' : '☆ Non sub'}</span><span class="admin-player-pill">💰 ${Math.round(Number(player.points || 0))} LoVeR'Cash</span></div>
-          <div class="admin-player-lovys" aria-label="Lovys du joueur">${(player.lovys||[]).length?(player.lovys||[]).map(adminLovysPortrait).join(''):'<span class="admin-player-meta">Aucun Lovys</span>'}</div>
+          <div class="admin-player-meta">🐉 ${(player.lovys||[]).length} Lovys</div>
         </div>
         <div>
           <div class="admin-player-meta">${twitchText}</div>

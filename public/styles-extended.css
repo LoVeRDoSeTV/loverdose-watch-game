@@ -740,6 +740,10 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
 .admin-adjust-row{display:grid;grid-template-columns:minmax(130px,1fr) 90px auto;align-items:center;gap:8px;padding:10px;border:1px solid rgba(255,255,255,.07);background:#0b0f1e}
 .admin-adjust-row strong{font-size:11px}.admin-adjust-row .btn{padding:8px 9px;font-size:10px}
 .admin-lovys-admin-list{display:grid;gap:7px}.admin-lovys-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px;border:1px solid rgba(255,255,255,.07);background:#0b0f1e}
+.admin-lovys-main{display:flex;align-items:center;gap:12px;min-width:0}
+.admin-lovys-main>div{min-width:0}
+.admin-lovys-portrait{display:grid;place-items:center;flex:0 0 56px;width:56px;height:56px;overflow:hidden;border:1px solid rgba(145,71,255,.3);border-radius:10px;background:#14172b;font-size:24px}
+.admin-lovys-portrait img{display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:contain}
 .admin-lovys-fragments{display:grid;grid-template-columns:auto 80px auto;align-items:center;gap:7px}.admin-lovys-fragments span{font-size:11px;font-weight:900}.admin-lovys-fragments .btn{padding:8px;font-size:10px}
 .admin-editor-columns{display:grid;grid-template-columns:1fr 1fr;gap:10px}.admin-mini-row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:11px}.admin-badge-admin-list{display:flex;flex-wrap:wrap;gap:6px}
 .admin-editor-actions{display:flex;flex-wrap:wrap;gap:8px}.admin-danger-section{border-color:rgba(255,183,77,.18)}
@@ -757,6 +761,7 @@ body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
   .admin-dashboard-grid,.admin-player-summary{grid-template-columns:1fr 1fr}
   .admin-stat-card{min-height:72px;padding:10px}.admin-stat-value{font-size:17px}.admin-stat-icon{font-size:20px}
   .admin-health,.admin-history-row,.admin-lovys-row{align-items:flex-start;flex-direction:column}
+  .admin-lovys-portrait{flex-basis:48px;width:48px;height:48px}
   .admin-economy-days{grid-template-columns:repeat(2,minmax(0,1fr))}
   .admin-editor-columns{grid-template-columns:1fr}
   .admin-adjust-row{grid-template-columns:1fr 80px auto}
