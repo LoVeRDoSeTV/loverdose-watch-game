@@ -133,12 +133,9 @@
     line-height:1.35!important;
   }
   .dashboard-side-stack .daily-challenge-desc::before{
-    content:'X';
-    display:inline-block;
-    margin-right:8px;
-    color:#64aa7d;
-    font-weight:900;
+    content:'"';
   }
+  .dashboard-side-stack .daily-challenge-desc::after{content:'"'}
   .dashboard-side-stack .daily-challenge-rewards,
   .dashboard-side-stack .daily-challenge-actions{display:none!important}
   .dashboard-side-stack .daily-challenge-progress{
