@@ -2,9 +2,22 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import express from 'express';
-import {createTwitchRewards} from '../src/routes/twitch-rewards.js';
+import {createTwitchRewards,hasTwitchRewardAuthorization} from '../src/routes/twitch-rewards.js';
 
 const secret='test-signing-secret';
+
+test('une autorisation Twitch enregistrée suffit pour les récompenses sans nouvelle connexion',async()=>{
+  assert.equal(hasTwitchRewardAuthorization({twitch_user_id:'channel',scopes:'moderator:read:chatters channel:manage:redemptions'},'channel'),true);
+  assert.equal(hasTwitchRewardAuthorization({twitch_user_id:'channel',scopes:'moderator:read:chatters'},'channel'),false);
+  process.env.TWITCH_BROADCASTER_ID='channel';
+  const rewards=createTwitchRewards({pool:{query:async()=>({rows:[]})},baseUrl:'https://example.com',
+    getTrackerAuthRow:async()=>({twitch_user_id:'channel',scopes:'moderator:read:chatters'}),
+    trackerTwitchFetch:async()=>{throw new Error('Twitch ne doit pas être appelé');},getBroadcasterAccount:async()=>({id:1})});
+  try{
+    await assert.rejects(rewards.setup(),error=>error.twitchAuthorizationRequired===true);
+  }finally{delete process.env.TWITCH_BROADCASTER_ID;}
+});
+
 function fakeDb(){
   const inventory=new Set(),redemptions=new Map();
   const query=async(sql,args=[])=>{

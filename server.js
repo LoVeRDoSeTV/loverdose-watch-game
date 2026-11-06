@@ -23,7 +23,7 @@ import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
-import { createTwitchRewards, initTwitchRewards } from './src/routes/twitch-rewards.js';
+import { createTwitchRewards, initTwitchRewards, hasTwitchRewardAuthorization } from './src/routes/twitch-rewards.js';
 import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
@@ -1858,7 +1858,9 @@ async function trackerTwitchFetch(path, options = {}) {
     throw new Error('Tracker Twitch non configuré.');
   }
 
-  let token = decryptTrackerSecret(row.access_token_enc);
+  let token;
+  try { token = decryptTrackerSecret(row.access_token_enc); }
+  catch (error) { error.twitchAuthorizationRequired = true; throw error; }
 
   const makeRequest = currentToken => fetch(
     `https://api.twitch.tv/helix${path}`,
@@ -1876,12 +1878,15 @@ async function trackerTwitchFetch(path, options = {}) {
 
   if (response.status === 401) {
     row = await getTrackerAuthRow();
-    token = await refreshTrackerAccessToken(row);
+    try { token = await refreshTrackerAccessToken(row); }
+    catch (error) { error.twitchAuthorizationRequired = true; throw error; }
     response = await makeRequest(token);
   }
 
   if (!response.ok) {
-    throw new Error(`Twitch API ${response.status}: ${await response.text()}`);
+    const error = new Error(`Twitch API ${response.status}: ${await response.text()}`);
+    error.twitchAuthorizationRequired = response.status === 401 || response.status === 403;
+    throw error;
   }
 
   return response.json();
@@ -3340,7 +3345,7 @@ app.get('/auth/twitch/tracker/callback', async (req, res) => {
       expiresIn: tokens.expires_in
     });
 
-    await twitchRewards.setup();
+    await syncTwitchRewards();
     await saveSession(req);
     await runTrackerTick();
 
@@ -5894,6 +5899,27 @@ const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt
 app.use('/api',gameBot.router);
 const twitchRewards=createTwitchRewards({pool,baseUrl:BASE_URL,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount});
 app.use('/api',twitchRewards.router);
+let twitchRewardsSyncing=false;
+async function syncTwitchRewards(){
+  if(twitchRewardsSyncing)return;
+  twitchRewardsSyncing=true;
+  try{
+    const tracker=await getTrackerAuthRow();
+    if(!hasTwitchRewardAuthorization(tracker,String(process.env.TWITCH_BROADCASTER_ID||'').trim()))return;
+    const state=(await pool.query(`SELECT (SELECT COUNT(*)::int FROM twitch_reward_items) AS item_count,
+      subscription_id FROM twitch_reward_config WHERE id=1`)).rows[0];
+    if(state?.item_count===2 && state.subscription_id)return;
+    try{
+      await twitchRewards.setup();
+      await pool.query('UPDATE twitch_reward_config SET last_error=NULL,authorization_required=FALSE WHERE id=1');
+    }catch(error){
+      await pool.query('UPDATE twitch_reward_config SET last_error=$1,authorization_required=$2 WHERE id=1',
+        [String(error.message||error).slice(0,400),Boolean(error.twitchAuthorizationRequired)]);
+      console.error('Récompenses Twitch :',error);
+    }
+  }catch(error){console.error('Synchronisation des récompenses Twitch :',error);}
+  finally{twitchRewardsSyncing=false;}
+}
 
 registerAdminPlayerHistory(app,{pool,getBroadcasterAccount});
 registerGlobalGameReset(app,{pool,getBroadcasterAccount,pushLiveUpdate});
@@ -6512,13 +6538,19 @@ app.get('/api/shop', async (req, res) => {
     }
 
     const twitchRewardsReady = (await pool.query(`SELECT COUNT(*)::int AS item_count,
-      (SELECT subscription_id IS NOT NULL FROM twitch_reward_config WHERE id=1) AS subscribed
+      (SELECT subscription_id IS NOT NULL FROM twitch_reward_config WHERE id=1) AS subscribed,
+      (SELECT last_error FROM twitch_reward_config WHERE id=1) AS last_error,
+      (SELECT authorization_required FROM twitch_reward_config WHERE id=1) AS authorization_required
       FROM twitch_reward_items`)).rows[0];
+    const rewardAuthorizationRequired = isBroadcaster &&
+      (twitchRewardsReady.authorization_required || !hasTwitchRewardAuthorization(await getTrackerAuthRow(),broadcasterId));
     res.json({
       ok:true,
       balance:Number(user.points || 0),
       twitchRewardsReady:twitchRewardsReady.item_count===2 && twitchRewardsReady.subscribed===true,
       twitchRewardsAdmin:Boolean(isBroadcaster),
+      twitchRewardsAuthorizationRequired:Boolean(rewardAuthorizationRequired),
+      twitchRewardsError:isBroadcaster ? twitchRewardsReady.last_error || null : null,
       catalog,
       activeBoosts,
       equipped:{
@@ -7461,6 +7493,9 @@ async function start() {
     setTimeout(() => {
       runTrackerTick().catch(error => console.error('Tracker Twitch :', error));
     }, 5000);
+
+    setTimeout(syncTwitchRewards,1500);
+    setInterval(syncTwitchRewards,10*60*1000);
 
     setInterval(() => {
       runTrackerTick().catch(error => console.error('Tracker Twitch :', error));

@@ -6193,7 +6193,10 @@ function renderShop() {
   if(isMobileGameUi())items=mobileShopPageItems(items);
   const fragmentEggCard=shopCategory==='object'?`<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`:'';
   const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
-    ? '<div class="shop-twitch-setup">Activation Twitch incomplète. <button type="button" data-twitch-setup>Terminer l’activation</button> <a href="/auth/twitch/tracker">Reconnecter mon compte Twitch</a><p id="twitchSetupError" role="alert"></p></div>' : '';
+    ? `<div class="shop-twitch-setup">${shopData.twitchRewardsAuthorizationRequired
+        ? 'Autorisation de la chaîne requise pour les récompenses. <a href="/auth/twitch/tracker">Autoriser les points de chaîne ↗</a>'
+        : 'Les récompenses se configurent automatiquement avec la liaison Twitch enregistrée.'}${shopData.twitchRewardsError
+        ? `<p role="alert">${escapeHtml(shopData.twitchRewardsError)}</p>` : ''}</div>` : '';
   $('shopGrid').innerHTML = twitchSetup + fragmentEggCard + (items.map(item => {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
@@ -6995,25 +6998,6 @@ $('inventoryModal')?.addEventListener('mousedown', event => { inventoryBackdropM
 $('inventoryModal')?.addEventListener('mouseup', event => { if (!isMobileGameUi() && inventoryBackdropMouseDown && event.target.id === 'inventoryModal') closeInventory(); inventoryBackdropMouseDown = false; });
 
 $('shopGrid')?.addEventListener('click', event => {
-  const twitchSetup = event.target.closest('[data-twitch-setup]');
-  if (twitchSetup) {
-    twitchSetup.disabled = true;
-    twitchSetup.textContent = 'Activation…';
-    (async () => {
-      try {
-        const response = await fetch('/api/twitch-rewards/setup', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
-        const result = await response.json();
-        if (!response.ok) throw new Error(result.error || 'Activation Twitch impossible.');
-        await loadShop();
-      } catch (error) {
-        const message = $('twitchSetupError');
-        if (message) message.textContent = error.message;
-        twitchSetup.disabled = false;
-        twitchSetup.textContent = 'Réessayer l’activation';
-      }
-    })();
-    return;
-  }
   const preview = event.target.closest('[data-shop-preview]');
   const buy = event.target.closest('[data-shop-buy]');
   const equip = event.target.closest('[data-shop-equip]');

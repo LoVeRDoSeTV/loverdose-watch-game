@@ -7,10 +7,18 @@ const REWARDS = [
   {key:'reward_bg_twitch_live', title:'LoVeR Watch · Signal du direct', cost:2000}
 ];
 
+export function hasTwitchRewardAuthorization(row,broadcasterId){
+  return Boolean(row && String(row.twitch_user_id)===String(broadcasterId) &&
+    String(row.scopes||'').split(' ').includes('channel:manage:redemptions'));
+}
+
 export async function initTwitchRewards(pool) {
   await pool.query(`CREATE TABLE IF NOT EXISTS twitch_reward_config (
     id SMALLINT PRIMARY KEY CHECK(id=1), secret TEXT NOT NULL,
-    subscription_id TEXT, updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+    subscription_id TEXT, last_error TEXT, authorization_required BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+  await pool.query('ALTER TABLE twitch_reward_config ADD COLUMN IF NOT EXISTS last_error TEXT');
+  await pool.query('ALTER TABLE twitch_reward_config ADD COLUMN IF NOT EXISTS authorization_required BOOLEAN NOT NULL DEFAULT FALSE');
   await pool.query(`INSERT INTO twitch_reward_config(id,secret) VALUES(1,$1) ON CONFLICT(id) DO NOTHING`,[crypto.randomBytes(32).toString('hex')]);
   await pool.query(`CREATE TABLE IF NOT EXISTS twitch_reward_items (
     item_key TEXT PRIMARY KEY,reward_id TEXT UNIQUE NOT NULL)`);
@@ -29,8 +37,11 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
 
   async function setup() {
     const row=await getTrackerAuthRow();
-    if(!row || row.twitch_user_id!==broadcasterId || !String(row.scopes||'').split(' ').includes('channel:manage:redemptions'))
-      throw new Error('Reconnecte le tracker Twitch avec les autorisations des points de chaîne.');
+    if(!hasTwitchRewardAuthorization(row,broadcasterId)){
+      const error=new Error('Autorise les points de chaîne avec le compte Twitch du diffuseur.');
+      error.twitchAuthorizationRequired=true;
+      throw error;
+    }
     const list=await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,only_manageable_rewards:'true'}));
     const manageable=new Map((list.data||[]).map(reward=>[reward.title,reward]));
     for(const item of REWARDS) {
@@ -67,14 +78,10 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
   router.get('/twitch-rewards/status',async(req,res)=>{
     if(!await getBroadcasterAccount(req))return res.sendStatus(403);
     const row=(await pool.query('SELECT COUNT(*)::int AS count FROM twitch_reward_items')).rows[0];
-    const config=(await pool.query('SELECT subscription_id FROM twitch_reward_config WHERE id=1')).rows[0];
-    res.json({ready:row.count===REWARDS.length&&Boolean(config?.subscription_id),created:row.count,total:REWARDS.length,connectUrl:'/auth/twitch/tracker'});
+    const config=(await pool.query('SELECT subscription_id,authorization_required FROM twitch_reward_config WHERE id=1')).rows[0];
+    const tracker=await getTrackerAuthRow();
+    res.json({ready:row.count===REWARDS.length&&Boolean(config?.subscription_id),created:row.count,total:REWARDS.length,authorizationRequired:Boolean(config?.authorization_required)||!hasTwitchRewardAuthorization(tracker,broadcasterId)});
   });
-  router.post('/twitch-rewards/setup',async(req,res)=>{
-    if(!await getBroadcasterAccount(req))return res.sendStatus(403);
-    try{await setup();res.json({ok:true});}catch(error){res.status(409).json({error:error.message});}
-  });
-
   async function settle(redemptionId,rewardId,decision){
     await trackerTwitchFetch('/channel_points/custom_rewards/redemptions?'+new URLSearchParams({broadcaster_id:broadcasterId,reward_id:rewardId,id:redemptionId}),{
       method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision==='grant'?'FULFILLED':'CANCELED'})});
