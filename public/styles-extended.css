@@ -128,9 +128,16 @@
   .dashboard-side-stack .daily-challenge-desc{
     display:block!important;
     margin-top:5px!important;
-    color:#b6bfd8!important;
+    color:#78bd91!important;
     font-size:13px!important;
     line-height:1.35!important;
+  }
+  .dashboard-side-stack .daily-challenge-desc::before{
+    content:'X';
+    display:inline-block;
+    margin-right:8px;
+    color:#64aa7d;
+    font-weight:900;
   }
   .dashboard-side-stack .daily-challenge-rewards,
   .dashboard-side-stack .daily-challenge-actions{display:none!important}
