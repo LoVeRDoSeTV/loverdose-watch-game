@@ -25,10 +25,12 @@ export async function initTwitchRewards(pool) {
   await pool.query(`CREATE TABLE IF NOT EXISTS twitch_reward_redemptions (
     redemption_id TEXT PRIMARY KEY,item_key TEXT NOT NULL,twitch_id TEXT NOT NULL,
     account_id INTEGER,decision TEXT NOT NULL,settled BOOLEAN NOT NULL DEFAULT FALSE,
+    announced_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
+  await pool.query('ALTER TABLE twitch_reward_redemptions ADD COLUMN IF NOT EXISTS announced_at TIMESTAMPTZ');
 }
 
-export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount}) {
+export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount,pushLiveUpdate}) {
   const router=express.Router();
   const broadcasterId=String(process.env.TWITCH_BROADCASTER_ID||'');
   const clientId=String(process.env.TWITCH_CLIENT_ID||'');
@@ -82,6 +84,26 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
     const tracker=await getTrackerAuthRow();
     res.json({ready:row.count===REWARDS.length&&Boolean(config?.subscription_id),created:row.count,total:REWARDS.length,authorizationRequired:Boolean(config?.authorization_required)||!hasTwitchRewardAuthorization(tracker,broadcasterId)});
   });
+
+  router.get('/twitch-rewards/notifications/pending',async(req,res)=>{
+    if(!req.session?.account)return res.status(401).json({error:'Connexion requise.'});
+    try{
+      const reward=(await pool.query(`SELECT redemption_id,item_key FROM twitch_reward_redemptions
+        WHERE account_id=$1 AND decision='grant' AND settled=TRUE AND announced_at IS NULL
+        ORDER BY created_at ASC LIMIT 1`,[req.session.account.id])).rows[0];
+      res.set('Cache-Control','no-store').json({reward:reward?{id:reward.redemption_id,itemKey:reward.item_key}:null});
+    }catch(error){console.error('Notification Twitch :',error);res.status(500).json({error:'Notification indisponible.'});}
+  });
+  router.post('/twitch-rewards/notifications/:id/acknowledge',async(req,res)=>{
+    if(!req.session?.account)return res.status(401).json({error:'Connexion requise.'});
+    try{
+      const result=await pool.query(`UPDATE twitch_reward_redemptions SET announced_at=CURRENT_TIMESTAMP
+        WHERE redemption_id=$1 AND account_id=$2 AND decision='grant' AND settled=TRUE AND announced_at IS NULL`,
+        [req.params.id,req.session.account.id]);
+      res.json({acknowledged:result.rowCount>0});
+    }catch(error){console.error('Confirmation Twitch :',error);res.status(500).json({error:'Confirmation indisponible.'});}
+  });
+
   async function settle(redemptionId,rewardId,decision){
     await trackerTwitchFetch('/channel_points/custom_rewards/redemptions?'+new URLSearchParams({broadcaster_id:broadcasterId,reward_id:rewardId,id:redemptionId}),{
       method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({status:decision==='grant'?'FULFILLED':'CANCELED'})});
@@ -118,6 +140,7 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
         await client.query('COMMIT');
       }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
       await settle(event.id,event.reward.id,decision);
+      if(decision==='grant')pushLiveUpdate?.('twitch-reward',{twitchId:event.user_id,at:Date.now()});
       res.sendStatus(204);
     }catch(error){console.error('Récompense points Twitch :',error);res.sendStatus(503);}
   });

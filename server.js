@@ -5897,7 +5897,7 @@ const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminActi
 app.use('/api',wizebotAlerts.router);
 const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction});
 app.use('/api',gameBot.router);
-const twitchRewards=createTwitchRewards({pool,baseUrl:BASE_URL,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount});
+const twitchRewards=createTwitchRewards({pool,baseUrl:BASE_URL,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount,pushLiveUpdate});
 app.use('/api',twitchRewards.router);
 let twitchRewardsSyncing=false;
 async function syncTwitchRewards(){

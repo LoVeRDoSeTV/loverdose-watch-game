@@ -23,24 +23,33 @@ function fakeDb(){
   const query=async(sql,args=[])=>{
     if(sql.includes('SELECT secret FROM twitch_reward_config'))return {rows:[{secret}]};
     if(sql.includes('SELECT item_key FROM twitch_reward_items'))return {rows:args[0]==='reward-twitch'? [{item_key:'reward_bg_twitch_live'}]:[]};
+    if(sql.includes('SELECT redemption_id,item_key FROM twitch_reward_redemptions')){
+      const reward=[...redemptions.entries()].find(([,row])=>row.account_id===args[0]&&row.decision==='grant'&&row.settled&&!row.announced_at);
+      return {rows:reward?[{redemption_id:reward[0],item_key:reward[1].item_key}]:[]};
+    }
     if(sql.includes('SELECT decision,settled FROM twitch_reward_redemptions'))return {rows:redemptions.has(args[0])?[redemptions.get(args[0])]:[]};
     if(sql.includes('SELECT id FROM accounts WHERE twitch_id'))return {rows:args[0]==='linked'?[{id:42}]:[]};
     if(sql.includes('SELECT 1 FROM shop_inventory'))return {rowCount:inventory.has(`${args[0]}:${args[1]}`)?1:0};
-    if(sql.includes('INSERT INTO twitch_reward_redemptions')){redemptions.set(args[0],{decision:args[4],settled:false});return {rowCount:1};}
+    if(sql.includes('INSERT INTO twitch_reward_redemptions')){redemptions.set(args[0],{item_key:args[1],account_id:args[3],decision:args[4],settled:false,announced_at:null});return {rowCount:1};}
     if(sql.includes('INSERT INTO shop_inventory')){inventory.add(`${args[0]}:${args[1]}`);return {rowCount:1};}
+    if(sql.includes('SET announced_at=')){
+      const row=redemptions.get(args[0]);if(!row||row.account_id!==args[1]||row.decision!=='grant'||!row.settled||row.announced_at)return {rowCount:0};
+      row.announced_at=new Date();return {rowCount:1};
+    }
     if(sql.includes('UPDATE twitch_reward_redemptions')){redemptions.get(args[0]).settled=true;return {rowCount:1};}
     return {rows:[],rowCount:0};
   };
   return {pool:{query,connect:async()=>({query,release(){}})},inventory,redemptions};
 }
 
-test('un objet Twitch ne se crédite qu’une fois ; le deuxième échange et un compte non lié sont remboursés',async()=>{
+test('seule la première remise Twitch garde une confirmation pour le joueur lié',async()=>{
   process.env.TWITCH_BROADCASTER_ID='channel';
-  const {pool,inventory}=fakeDb(),statuses=[];
+  const {pool,inventory}=fakeDb(),statuses=[],events=[];
   const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>null,
     trackerTwitchFetch:async(_url,options)=>{statuses.push(JSON.parse(options.body).status);return {data:[]};},
-    getBroadcasterAccount:async()=>null});
-  const app=express();app.use(express.json({verify(req,_res,raw){req.rawEventSubBody=Buffer.from(raw);}}));app.use('/api',rewards.router);
+    getBroadcasterAccount:async()=>null,pushLiveUpdate:(type,payload)=>events.push({type,payload})});
+  const app=express();app.use((req,_res,next)=>{if(req.get('X-Test-Account'))req.session={account:{id:Number(req.get('X-Test-Account'))}};next();});
+  app.use(express.json({verify(req,_res,raw){req.rawEventSubBody=Buffer.from(raw);}}));app.use('/api',rewards.router);
   const server=app.listen(0);
   try{
     async function redeem(id,userId){
@@ -53,6 +62,16 @@ test('un objet Twitch ne se crédite qu’une fois ; le deuxième échange et un
     await redeem('first','linked');await redeem('second','linked');await redeem('third','not-linked');
     assert.deepEqual(statuses,['FULFILLED','CANCELED','CANCELED']);
     assert.deepEqual([...inventory],['42:reward_bg_twitch_live']);
+    assert.deepEqual(events.map(event=>event.type),['twitch-reward']);
+    const url=`http://127.0.0.1:${server.address().port}/api/twitch-rewards/notifications`;
+    const player={headers:{'X-Test-Account':'42'}},other={headers:{'X-Test-Account':'43'}};
+    const pending=async options=>(await (await fetch(url+'/pending',options)).json()).reward;
+    assert.deepEqual(await pending(player),{id:'first',itemKey:'reward_bg_twitch_live'});
+    assert.deepEqual(await pending(player),{id:'first',itemKey:'reward_bg_twitch_live'});
+    assert.equal(await pending(other),null);
+    assert.equal((await (await fetch(url+'/first/acknowledge',{method:'POST',...other})).json()).acknowledged,false);
+    assert.equal((await (await fetch(url+'/first/acknowledge',{method:'POST',...player})).json()).acknowledged,true);
+    assert.equal(await pending(player),null);
   }finally{server.close();delete process.env.TWITCH_BROADCASTER_ID;}
 });
 

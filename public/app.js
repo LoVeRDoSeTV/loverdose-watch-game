@@ -1948,7 +1948,7 @@ function ensureBadgeCelebrationModal() {
 
 function showNextBadgeCelebration() {
   clearTimeout(badgeCelebrationRetry);
-  if (badgeCelebrationActive || document.getElementById('heartGiftCelebration') || !badgeCelebrationQueue.length) return;
+  if (badgeCelebrationActive || document.getElementById('heartGiftCelebration') || document.getElementById('twitchRewardCelebration') || !badgeCelebrationQueue.length) return;
   const wheelPopup = $('rewardWheelWinPopup');
   if (document.hidden || window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
       || pveBattleState.running || activeTradeExchange) {
@@ -5612,6 +5612,8 @@ function sortCatalogItems(items, category) {
 
 let shopData = null;
 let shopCategory = 'title';
+let twitchRewardChecking = false;
+let twitchRewardCelebrationActive = false;
 let mobileShopPage = 0;
 let mobileShopPageCategory = 'title';
 const MOBILE_SHOP_PAGE_SIZE = 8;
@@ -5819,6 +5821,53 @@ function shopPreview(item) {
   }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
+}
+
+async function showPendingTwitchReward() {
+  if(twitchRewardChecking || twitchRewardCelebrationActive || !me?.user || document.hidden || shopCategory!=='twitch' || $('shopModal')?.classList.contains('hidden'))return;
+  const accountKey=String(me.user.id||me.user.twitch_id||'');
+  twitchRewardChecking=true;
+  try{
+    const response=await fetch('/api/twitch-rewards/notifications/pending',{cache:'no-store'});
+    if(!response.ok)return;
+    const {reward}=await response.json();
+    if(!reward || accountKey!==String(me?.user?.id||me?.user?.twitch_id||'') || shopCategory!=='twitch' || $('shopModal')?.classList.contains('hidden'))return;
+    const item=getShopItemByKey(reward.itemKey);
+    if(!item || !item.twitchPoints)return;
+    if(badgeCelebrationActive || document.getElementById('heartGiftCelebration') || !$('shopPurchaseSuccessModal')?.classList.contains('hidden')){
+      setTimeout(showPendingTwitchReward,700);return;
+    }
+    twitchRewardCelebrationActive=true;
+    const modal=document.createElement('div');
+    modal.id='twitchRewardCelebration';
+    modal.className='badge-unlock-celebration twitch-reward-celebration';
+    const kind=item.category==='title'?'titre':'fond';
+    const inventoryCategory=item.category==='title'?'Titres':'Fonds';
+    modal.innerHTML=`<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:38},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#9147ff','#d5aaff','#fff','#65ddff'][i%4]}"></i>`).join('')}</div><div class="badge-unlock-card twitch-reward-card" role="dialog" aria-modal="true" aria-labelledby="twitchRewardTitle" aria-describedby="twitchRewardCopy">
+      <img class="twitch-reward-glyph" src="/assets/twitch-glyph.svg" alt="">
+      <div class="badge-unlock-kicker">Récompense Twitch</div>
+      <h2 class="badge-unlock-title" id="twitchRewardTitle">Félicitations pour votre fidélité !</h2>
+      <p class="twitch-reward-copy" id="twitchRewardCopy">Vous venez de débloquer le ${kind} <strong>« ${escapeHtml(item.name)} »</strong>.</p>
+      <div class="twitch-reward-visual">${shopPreview(item)}</div>
+      <div class="badge-unlock-condition">Votre nouvel objet est dans Inventaire → ${inventoryCategory}. Vous pouvez l’équiper quand vous voulez.</div>
+      <button class="badge-unlock-ok" type="button">Super, merci !</button>
+    </div>`;
+    document.body.appendChild(modal);
+    const close=async()=>{
+      modal.classList.remove('show');
+      setTimeout(()=>modal.remove(),300);
+      try{
+        const ack=await fetch('/api/twitch-rewards/notifications/'+encodeURIComponent(reward.id)+'/acknowledge',{method:'POST'});
+        if(!ack.ok)throw new Error('Confirmation indisponible.');
+        setTimeout(showPendingTwitchReward,350);
+      }catch(error){console.error('Confirmation de la récompense Twitch :',error);}
+      finally{twitchRewardCelebrationActive=false;setTimeout(showNextBadgeCelebration,350);}
+    };
+    modal.querySelector('button')?.addEventListener('click',close,{once:true});
+    requestAnimationFrame(()=>modal.classList.add('show'));
+    setTimeout(()=>modal.querySelector('button')?.focus(),260);
+  }catch(error){console.error('Récompense Twitch en attente :',error);}
+  finally{twitchRewardChecking=false;}
 }
 
 function shopCategoryLabel(category) {
@@ -6229,6 +6278,7 @@ function renderShop() {
     button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets',twitch:'💜 Twitch'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
   });
   // La carte de visite ne dépend pas du filtre ou de la catégorie de la boutique.
+  if(shopCategory==='twitch')void showPendingTwitchReward();
 }
 
 function inventoryOwnedItems() {
@@ -9385,6 +9435,13 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
+  liveUpdates.addEventListener('twitch-reward', event => {
+    try{
+      const data=JSON.parse(event.data);
+      if(String(data.twitchId)!==String(me?.user?.twitch_id))return;
+      if(shopCategory==='twitch' && !$('shopModal')?.classList.contains('hidden'))void loadShop().catch(console.warn);
+    }catch(error){console.warn('Récompense Twitch :',error);}
+  });
   liveUpdates.addEventListener('trade-update', () => { void refreshLobbyNotifications();void refreshLobbySilently(); });
   // Ces actions peuvent valider des badges sans passer par le tracker Twitch.
   for (const type of ['game-update','incubator-update','trade-update']) {
@@ -9407,7 +9464,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration(); }
+  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();void showPendingTwitchReward(); }
 });
 
 startLiveUpdates();
