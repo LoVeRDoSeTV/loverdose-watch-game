@@ -4628,7 +4628,7 @@ body:not(.auth-locked){background-color:#090b17!important;background-image:var(-
 body:not(.auth-locked) :is(#app,.wrap,.dashboard-head-grid,.incubator-topbar){background:transparent!important}
 /* Les panneaux qui défilent seuls portent leur décor. Communauté et classement PC
    restent transparents : leur scroll appartient au document, donc le fond est celui de body. */
-body:not(.auth-locked) :is(#inventoryModal .inventory-panel,#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal,.admin-players-modal:not(#adminBotModal)>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#mobileMorePage){
+body:not(.auth-locked) :is(#accountModal .account-panel,#playerProfileModal .player-profile-panel,#badgeCollectionModal,.admin-players-modal:not(#adminBotModal)>.admin-players-panel,#desktopAdminModal>.desktop-admin-panel,#eventsModal>.events-panel,#subBenefitsModal>.sub-benefits-panel,#mobileMorePage){
   background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important;
 }
 /* Supprime l’enveloppe sombre de la collection, sans toucher aux cartes des Lovys. */
@@ -4645,6 +4645,7 @@ body:not(.auth-locked) #badgeCollectionModal :is(.badge-visit-preview,.badge-cha
   body:not(.auth-locked) :is(#progressionModal,#pveModal)>.game-panel{background:transparent!important;box-shadow:none!important}
 }
 @media((max-width:900px) or ((max-width:1366px) and (hover:none) and (pointer:coarse))){
+  body:not(.auth-locked) #inventoryModal .inventory-panel{background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
   body:not(.auth-locked) :is(#lovysCollectionModal,#progressionModal,#pveModal){background:#090b17!important;backdrop-filter:none!important}
   body:not(.auth-locked) :is(#shopModal,#lovysCollectionModal>.lovys-collection-panel,#progressionModal>.game-panel,#pveModal>.game-panel,#desktopLobbyPage){background-color:#090b17!important;background-image:var(--game-page-art)!important;background-size:var(--game-page-art-size)!important;background-repeat:no-repeat!important;background-attachment:local!important}
   /* Classement : le décor reste sur la fenêtre, les résultats défilent devant. */
