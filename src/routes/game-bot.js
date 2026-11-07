@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import {playerCommands} from '../game-bot-player-commands.js';
 import {chatCommandName,validateChatCommand,initChatCommands,enqueueChatCommand,deliverChatCommands} from '../game-bot-commands.js';
 import {validOAuthCallback} from '../middleware/security.js';
+import {grantSharedWatchStreak,initWatchStreakRewards} from '../watch-streak-rewards.js';
 
 export function isGameBotCallback(query,session){
   return typeof query.state==='string'&&typeof session.gameBotOauthState==='string'&&session.gameBotOauthState.length>0&&query.state===session.gameBotOauthState;
@@ -37,6 +38,8 @@ export async function initGameBot(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_message_templates (key TEXT PRIMARY KEY,label TEXT NOT NULL,text TEXT NOT NULL,updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_messages (id BIGSERIAL PRIMARY KEY,kind TEXT NOT NULL,message TEXT NOT NULL,status TEXT NOT NULL,error TEXT,created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query('ALTER TABLE game_bot_auth ADD COLUMN IF NOT EXISTS alert_cursor BIGINT NOT NULL DEFAULT 0');
+  await pool.query('ALTER TABLE game_bot_auth ADD COLUMN IF NOT EXISTS streak_subscription_id TEXT');
+  await initWatchStreakRewards(pool);
   await initChatCommands(pool);
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_drops (
     id BIGSERIAL PRIMARY KEY,reward_key TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',
@@ -50,7 +53,7 @@ export async function initGameBot(pool){
   await pool.query(`CREATE TABLE IF NOT EXISTS game_bot_event_ids (
     id TEXT PRIMARY KEY,received_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
 }
-export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decrypt,saveSession,logAdminAction}){
+export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decrypt,saveSession,logAdminAction,pushLiveUpdate}){
   const router=express.Router();
   const channelId=String(process.env.TWITCH_BROADCASTER_ID||'');
   const clientId=String(process.env.TWITCH_CLIENT_ID||'');
@@ -105,17 +108,26 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const appResponse=await fetch('https://id.twitch.tv/oauth2/token',{method:'POST',body:new URLSearchParams({client_id:clientId,client_secret:clientSecret,grant_type:'client_credentials'})});
     if(!appResponse.ok)throw new Error('Jeton application Twitch indisponible.');
     const appToken=(await appResponse.json()).access_token;
-    const response=await fetch('https://api.twitch.tv/helix/eventsub/subscriptions',{method:'POST',headers:{Authorization:`Bearer ${appToken}`,'Client-Id':clientId,'Content-Type':'application/json'},body:JSON.stringify({type:'channel.chat.message',version:'1',condition:{broadcaster_user_id:channelId,user_id:bot.twitch_user_id},transport:{method:'webhook',callback:webhookUrl,secret:bot.webhook_secret}})});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok&&response.status!==409)throw new Error(`Abonnement au chat refusé (${response.status}) : ${data.message||'vérifie que le bot est modérateur.'}`);
-    if(response.status===409){
-      const listResponse=await fetch('https://api.twitch.tv/helix/eventsub/subscriptions?type=channel.chat.message',{headers:{Authorization:`Bearer ${appToken}`,'Client-Id':clientId}});
-      const list=await listResponse.json();
-      data.data=(list.data||[]).filter(item=>item.condition?.user_id===bot.twitch_user_id&&item.condition?.broadcaster_user_id===channelId&&item.transport?.callback===webhookUrl&&['enabled','webhook_callback_verification_pending'].includes(item.status));
+    const subscriptions={};
+    for(const type of ['channel.chat.message','channel.chat.notification']){
+      const response=await fetch('https://api.twitch.tv/helix/eventsub/subscriptions',{method:'POST',headers:{Authorization:`Bearer ${appToken}`,'Client-Id':clientId,'Content-Type':'application/json'},body:JSON.stringify({type,version:'1',condition:{broadcaster_user_id:channelId,user_id:bot.twitch_user_id},transport:{method:'webhook',callback:webhookUrl,secret:bot.webhook_secret}})});
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok&&response.status!==409)throw new Error(`Abonnement ${type} refusé (${response.status}) : ${data.message||'vérifie les autorisations du bot.'}`);
+      if(response.status===409){
+        const listResponse=await fetch(`https://api.twitch.tv/helix/eventsub/subscriptions?type=${type}`,{headers:{Authorization:`Bearer ${appToken}`,'Client-Id':clientId}});
+        if(!listResponse.ok)throw new Error(`Lecture des abonnements ${type} impossible (${listResponse.status}).`);
+        const list=await listResponse.json();
+        data.data=(list.data||[]).filter(item=>item.condition?.user_id===bot.twitch_user_id&&item.condition?.broadcaster_user_id===channelId&&item.transport?.callback===webhookUrl&&['enabled','webhook_callback_verification_pending'].includes(item.status));
+      }
+      if(!data.data?.[0]?.id)throw new Error(`Abonnement ${type} introuvable : reconnecte le bot.`);
+      subscriptions[type]=data.data[0].id;
+      await pool.query(`UPDATE game_bot_auth SET ${type==='channel.chat.message'?'subscription_id':'streak_subscription_id'}=$1,last_error=NULL WHERE id=1`,[subscriptions[type]]);
     }
-    if(!data.data?.[0]?.id)throw new Error('Abonnement au chat introuvable : reconnecte le bot.');
-    await pool.query('UPDATE game_bot_auth SET subscription_id=$1,last_error=NULL WHERE id=1',[data.data[0].id]);
-    return data;
+    return subscriptions;
+  }
+  async function ensureStreakSubscription(){
+    const bot=await botRow();
+    if(bot?.enabled&&!bot.streak_subscription_id)await subscribe();
   }
   // Source navigateur OBS : informations publiques, sans données de joueur.
   router.get('/game-bot/drop-alert',async(req,res)=>{
@@ -145,7 +157,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
       if(!bot||bot.id===channelId)throw new Error('Connecte un compte Twitch distinct de celui de la chaîne.');
       const previous=await botRow();
       await pool.query(`INSERT INTO game_bot_auth(id,twitch_user_id,login,access_token_enc,refresh_token_enc,expires_at,webhook_secret,enabled)
-        VALUES(1,$1,$2,$3,$4,$5,$6,FALSE) ON CONFLICT(id) DO UPDATE SET twitch_user_id=$1,login=$2,access_token_enc=$3,refresh_token_enc=$4,expires_at=$5,webhook_secret=$6,subscription_id=NULL,enabled=FALSE,last_error=NULL,updated_at=CURRENT_TIMESTAMP`,
+        VALUES(1,$1,$2,$3,$4,$5,$6,FALSE) ON CONFLICT(id) DO UPDATE SET twitch_user_id=$1,login=$2,access_token_enc=$3,refresh_token_enc=$4,expires_at=$5,webhook_secret=$6,subscription_id=NULL,streak_subscription_id=NULL,enabled=FALSE,last_error=NULL,updated_at=CURRENT_TIMESTAMP`,
         [bot.id,bot.login,encrypt(tokens.access_token),encrypt(tokens.refresh_token),new Date(Date.now()+tokens.expires_in*1000),previous?.twitch_user_id===bot.id?previous.webhook_secret:crypto.randomBytes(32).toString('hex')]);
       await pool.query('UPDATE game_bot_drop_schedule SET next_at=NULL WHERE id=1');
       try{await subscribe();}catch(error){await pool.query('UPDATE game_bot_auth SET last_error=$1 WHERE id=1',[error.message]);}
@@ -160,7 +172,24 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
       const event=req.body,type=req.headers['twitch-eventsub-message-type'];
       if(type==='webhook_callback_verification')return res.type('text/plain').send(event.challenge);
       if(type==='revocation'){
-        await pool.query("UPDATE game_bot_auth SET subscription_id=NULL,enabled=FALSE,last_error='Abonnement Twitch révoqué : reconnecte le bot.' WHERE id=1 AND subscription_id=$1",[event.subscription?.id]);
+        await pool.query("UPDATE game_bot_auth SET subscription_id=CASE WHEN subscription_id=$1 THEN NULL ELSE subscription_id END,streak_subscription_id=CASE WHEN streak_subscription_id=$1 THEN NULL ELSE streak_subscription_id END,enabled=CASE WHEN subscription_id=$1 THEN FALSE ELSE enabled END,last_error='Abonnement Twitch révoqué : reconnecte le bot.' WHERE id=1 AND (subscription_id=$1 OR streak_subscription_id=$1)",[event.subscription?.id]);
+        return res.sendStatus(204);
+      }
+      if(type==='notification'&&event.subscription?.type==='channel.chat.notification'){
+        const notice=event.event;
+        if(notice?.broadcaster_user_id!==channelId||notice?.notice_type!=='watch_streak'||event.subscription.id!==row.streak_subscription_id)return res.sendStatus(204);
+        const client=await pool.connect();
+        try{
+          await client.query('BEGIN');
+          const id=String(req.headers['twitch-eventsub-message-id']);
+          const seen=await client.query('INSERT INTO game_bot_event_ids(id) VALUES($1) ON CONFLICT DO NOTHING RETURNING id',[id]);
+          const granted=seen.rowCount&&await grantSharedWatchStreak(client,{twitchId:notice.chatter_user_id,count:notice.watch_streak?.streak_count,messageId:id});
+          await client.query('COMMIT');
+          if(granted){
+            pushLiveUpdate?.('watch-streak-reward',{twitchId:notice.chatter_user_id,count:Number(notice.watch_streak.streak_count)});
+            console.info(`Série Twitch partagée : palier ${notice.watch_streak.streak_count} attribué.`);
+          }
+        }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
         return res.sendStatus(204);
       }
       if(type!=='notification'||event.subscription?.type!=='channel.chat.message')return res.sendStatus(204);
@@ -181,7 +210,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
         await client.query('COMMIT');
       }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
       res.sendStatus(204);
-    }catch{res.sendStatus(503);}
+    }catch(error){console.error('Notification bot Twitch :',error);res.sendStatus(503);}
   });
   async function settle(client,round){
     const entries=(await client.query(`SELECT e.* FROM game_bot_entries e JOIN accounts a ON a.id=e.account_id AND a.twitch_id=e.twitch_id
@@ -256,7 +285,7 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     const templates=Object.entries(botMessageTemplates).map(([key,value])=>({key,...value,text:saved.find(row=>row.key===key)?.text||value.text,custom:false})).concat(saved.filter(row=>!Object.hasOwn(botMessageTemplates,row.key)).map(row=>({...row,variables:[],custom:true})));
     const commands=(await pool.query("SELECT id,name,text,enabled,cooldown_seconds,kind FROM game_bot_commands ORDER BY kind='custom',name")).rows.map(c=>({...c,label:playerCommands[c.kind]?.label,variables:playerCommands[c.kind]?.variables||['joueur']}));
     const messages=(await pool.query('SELECT id,kind,message,status,error,created_at FROM game_bot_messages ORDER BY id DESC LIMIT 50')).rows;
-    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,error:bot?.last_error,round,messages,templates,commands,schedule,live,serverTime:new Date().toISOString()});
+    res.set('Cache-Control','no-store').json({connected:!!bot,enabled:!!bot?.enabled,login:bot?.login,subscriptionId:bot?.subscription_id,streakSubscriptionId:bot?.streak_subscription_id,error:bot?.last_error,round,messages,templates,commands,schedule,live,serverTime:new Date().toISOString()});
   }catch{res.status(500).json({error:'Bot indisponible.'});}});
   router.post('/admin/game-bot/commands',async(req,res)=>{
     try{
@@ -322,5 +351,5 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     await logAdminAction(admin.id,null,'game_bot_drop',`Drop ${reward.label} préparé`,{roundId:round.id},pool);
     tick();res.json({ok:true,message:`Drop ${reward.label} préparé. Le bot va l’annoncer dans le chat.`});
   }catch(error){res.status(error.code==='23505'?409:500).json({error:error.code==='23505'?'Un drop est déjà en cours.':'Impossible de préparer le drop.'});}});
-  return {router,tick,send,subscribe,handleCallback};
+  return {router,tick,send,subscribe,ensureStreakSubscription,handleCallback};
 }

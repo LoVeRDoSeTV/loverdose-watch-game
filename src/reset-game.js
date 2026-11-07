@@ -7,7 +7,7 @@ export const GLOBAL_PROGRESS_TABLES = [
   'user_game_watch','user_reward_wheel_spins','user_reward_wheels','user_active_boosts',
   'user_pve_battles','user_pve_progress','user_lovys_pve_progress','user_combat_reports','user_incubator_eggs',
   'user_lovys','trade_wishes','trade_notifications','user_achievement_progress',
-  'user_subscription_badge_state','user_achievement_event_watch','shop_inventory'
+  'user_subscription_badge_state','user_achievement_event_watch','user_watch_streak_rewards','shop_inventory'
 ];
 
 export async function resetAllGameProgress(client) {

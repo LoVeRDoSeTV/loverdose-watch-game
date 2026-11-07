@@ -23,6 +23,7 @@ import { createTwitchPanelRouter } from './src/routes/twitch-panel.js';
 import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
+import { WATCH_STREAK_REWARDS, STREAK_COSMETICS, watchStreakRewardForCount } from './src/watch-streak-rewards.js';
 import { createTwitchRewards, initTwitchRewards, hasTwitchRewardAuthorization } from './src/routes/twitch-rewards.js';
 import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
@@ -773,6 +774,7 @@ const SHOP_ITEMS = [
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:120, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:200, icon:'🥚', description:'Un œuf supplémentaire à placer dans un emplacement libre de l’incubateur.', consumable:true }
 ];
+SHOP_ITEMS.push(...STREAK_COSMETICS);
 
 const MASTER_TITLE = { key:'title_master_game', category:'title', subcategory:'gold', name:'Maître du jeu', price:0, color:'#f3c85b', description:'Titre exclusif réservé au diffuseur.', exclusive:true };
 const TITLE_NONE_KEY = '__none__';
@@ -4799,7 +4801,10 @@ app.get('/api/progression', async (req,res)=>{
     u.global_xp=Number(xpState.global_xp??u.global_xp??0);
     const gp=globalProgressionFromXp(u.global_xp), cp=progressionFromXp(xpState.xp);
     const reports=await pool.query(`SELECT fight_key,result,reward_creature_xp,reward_global_xp,reward_fragments,created_at FROM user_combat_reports WHERE user_id=$1 ORDER BY id DESC LIMIT 8`,[u.id]);
-    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLevelXpRewards:GLOBAL_LEVEL_XP_REWARDS,globalLevelCashRewards:GLOBAL_LEVEL_CASH_REWARDS,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows});
+    const sharedStreaks=await pool.query('SELECT milestone,claimed_at FROM user_watch_streak_rewards WHERE user_id=$1 ORDER BY milestone',[u.id]);
+    const claimed=new Map(sharedStreaks.rows.map(row=>[Number(row.milestone),row.claimed_at]));
+    const allStreakRewards=[...WATCH_STREAK_REWARDS,...sharedStreaks.rows.filter(row=>!WATCH_STREAK_REWARDS.some(reward=>reward.count===Number(row.milestone))).map(row=>watchStreakRewardForCount(row.milestone)).filter(Boolean)].sort((a,b)=>a.count-b.count);
+    res.json({ok:true,globalXp:Number(u.global_xp||0),prestige:Number(u.prestige||0),eggFragments:Number(u.egg_fragments||0),globalProgression:gp,grade:globalGradeForLevel(gp.level),grades:GLOBAL_LEVEL_GRADES,globalLevelXpRewards:GLOBAL_LEVEL_XP_REWARDS,globalLevelCashRewards:GLOBAL_LEVEL_CASH_REWARDS,globalLovysXpRewards:GLOBAL_LOVYS_XP_REWARDS,creatureXp:Number(xpState.xp||0),pendingCreatureXp:Number(xpState.pending_xp||0),creatureProgression:cp,creatureMilestones:CREATURE_MILESTONES,recentReports:reports.rows,watchStreakRewards:allStreakRewards.map(({count,description})=>({count,description,claimedAt:claimed.get(count)||null}))});
   }catch(e){console.error(e);res.status(500).json({error:'Impossible de charger la progression.'});}
 });
 
@@ -5919,7 +5924,7 @@ app.post('/api/badges/leaderboard/unequip', async (req, res) => {
 app.use('/api', createFeedbackRouter({pool,getBroadcasterAccount}));
 const wizebotAlerts=createWizebotAlerts({pool,getBroadcasterAccount,logAdminAction,baseUrl:BASE_URL,eggHatchSeconds:STARTER_EGG_HATCH_SECONDS});
 app.use('/api',wizebotAlerts.router);
-const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction});
+const gameBot=createGameBot({pool,baseUrl:BASE_URL,getBroadcasterAccount,encrypt:encryptTrackerSecret,decrypt:decryptTrackerSecret,saveSession,logAdminAction,pushLiveUpdate});
 app.use('/api',gameBot.router);
 const twitchRewards=createTwitchRewards({pool,baseUrl:BASE_URL,getTrackerAuthRow,trackerTwitchFetch,getBroadcasterAccount,pushLiveUpdate});
 app.use('/api',twitchRewards.router);
@@ -7548,6 +7553,8 @@ async function start() {
 
     setTimeout(syncTwitchRewards,1500);
     setInterval(syncTwitchRewards,10*60*1000);
+    setTimeout(()=>gameBot.ensureStreakSubscription().catch(error=>console.error('Abonnement série Twitch :',error)),8000);
+    setInterval(()=>gameBot.ensureStreakSubscription().catch(error=>console.error('Abonnement série Twitch :',error)),10*60*1000);
 
     setInterval(() => {
       runTrackerTick().catch(error => console.error('Tracker Twitch :', error));

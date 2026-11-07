@@ -4617,3 +4617,18 @@ body:has(#pveModal:not(.hidden)){
 @media(max-width:600px){.reward-wheel-win-popup{padding:16px}.reward-wheel-win-card{padding:24px 18px 18px;border-radius:22px}.reward-wheel-win-title{font-size:26px}.reward-wheel-win-icon{width:92px;height:92px;font-size:48px}.reward-wheel-win-reward{font-size:19px}}
 @media(prefers-reduced-motion:reduce){.reward-wheel-win-popup,.reward-wheel-win-card,.reward-wheel-win-icon{animation:none!important;transition:none!important}}
 
+/* Cadeaux déclenchés par le partage d'une série Twitch, visibles dans Progression. */
+.watch-streak-progress{margin:24px 0;padding:22px;border:1px solid rgba(163,112,255,.32);border-radius:20px;background:linear-gradient(145deg,rgba(54,32,92,.38),rgba(16,20,39,.96))}
+.watch-streak-progress-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}
+.watch-streak-progress-head h3{margin:0 0 8px;color:#f2e7ff;font-size:1.24rem}
+.watch-streak-progress-head p,.watch-streak-progress-note{margin:0;color:#bcb6d1;line-height:1.5}
+.watch-streak-progress-head>span{white-space:nowrap;color:#d4afff;font-weight:700}
+.watch-streak-progress-note{margin:12px 0 18px;font-size:.9rem}
+.watch-streak-rewards{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;max-height:480px;overflow:auto;overscroll-behavior:contain}
+.watch-streak-reward{display:grid;gap:7px;align-content:start;min-width:0;padding:14px;border:1px solid #34304c;border-radius:13px;background:#111527}
+.watch-streak-reward.unlocked{border-color:#8560bd;background:#241b3d}
+.watch-streak-reward strong{overflow-wrap:anywhere;color:#f6f2ff;line-height:1.35}
+.watch-streak-count{color:#c8a0ff;font-weight:800}
+.watch-streak-status{font-size:.85rem;color:#aaaac1}
+.watch-streak-reward.unlocked .watch-streak-status{color:#9ee2b4}
+@media(max-width:650px){.watch-streak-progress{padding:16px}.watch-streak-progress-head{display:block}.watch-streak-progress-head>span{display:block;margin-top:10px}.watch-streak-rewards{grid-template-columns:1fr;max-height:none}}
