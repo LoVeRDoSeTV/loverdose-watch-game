@@ -9118,16 +9118,7 @@ function tradeCreatureImageUrl(l){
   return aliases[id]||aliases[name]||String(l.image||'');
 }
 function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
-function tradeCreatureMenuMarkup(row) {
-  const offered = isDesktopGameUi() && row?.classList.contains('trade-asset-row');
-  const requested = isDesktopGameUi() && row?.hasAttribute('data-trade-option-row');
-  const choices = (tradeInventory.lovys || []).filter(item => !offered || Number(item.fragments) > 0);
-  return `<div class="trade-creature-menu">${choices.map(item => `<button type="button" data-trade-creature-choice="${escapeHtml(item.creatureId)}"><img src="${escapeHtml(tradeCreatureImageUrl(item))}" alt=""><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.rarity || '')} · ${requested ? 'Fragments à recevoir' : `${Number(item.fragments || 0)} fragments disponibles`}</small></span></button>`).join('')}</div>`;
-}
-
-function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false){if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span><b class="trade-select-chevron">⌄</b>`;}
-function setupTradeVisualSelector(row){const type=(row.querySelector('[data-trade-type]')||row.querySelector('#tradeOfferType'))?.value||'fragment',select=row.querySelector('[data-trade-creature]'),preview=row.querySelector('[data-trade-preview]');if(!preview||!select)return;preview.classList.toggle('is-selectable',type==='fragment');preview.dataset.tradeVisualSelector=type==='fragment'?'1':'0';if(isDesktopGameUi()){if(type==='fragment'){preview.tabIndex=0;preview.setAttribute('role','button');preview.setAttribute('aria-label','Choisir un Lovys');}else{preview.removeAttribute('tabindex');preview.removeAttribute('role');preview.removeAttribute('aria-label');}}}
-
+function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false){if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
 function syncTradeAssetRow(row) {
   const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
   const creature = row.querySelector('[data-trade-creature]'), preview = row.querySelector('[data-trade-preview]');
@@ -9145,7 +9136,6 @@ function syncTradeAssetRow(row) {
     row.dataset.quantityType = type;
     setupDesktopTradeQuantity(quantity);
   }
-  setupTradeVisualSelector(row);
 }
 function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
@@ -9154,7 +9144,6 @@ function syncTradeOfferFields() {
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   const preview = $('tradeOfferPreview');
   if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle');
-  setupTradeVisualSelector($('tradeOfferType')?.closest('.trade-asset-row') || document);
   const balance = tradeBalanceFor({ type, creatureId: creature?.value });
   const input = $('tradeOfferQuantity');
   input.max = String(Math.max(1, Math.min(999, balance)));
@@ -9301,29 +9290,9 @@ $('tradeComposer')?.addEventListener('input',()=>{updateTradeComposerRecap();hid
 $('tradeOptionsList')?.addEventListener('change',e=>{const row=e.target.closest('[data-trade-option-row]');if(row)syncTradeAssetRow(row);});
 $('tradeOptionsList')?.addEventListener('click',e=>{if(!e.target.closest('[data-trade-remove]')||tradeOptionCount<=1)return;const rows=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')],idx=rows.indexOf(e.target.closest('[data-trade-option-row]'));if(idx>=0){rows[idx].remove();tradeOptionCount--;[...$('tradeOptionsList').querySelectorAll('.trade-option-number')].forEach((n,i)=>n.textContent=String(i+1));$('tradeOptionAdd').disabled=false;if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}}});
 
-document.addEventListener('click',e=>{
-  const choice=e.target.closest('[data-trade-creature-choice]');
-  if(choice){
-    const preview=choice.closest('[data-trade-preview]'),row=preview?.closest('.trade-asset-row,[data-trade-option-row]'),select=row?.querySelector('[data-trade-creature]');
-    if(select){select.value=choice.dataset.tradeCreatureChoice||select.value;select.dispatchEvent(new Event('change',{bubbles:true}));}
-    document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());e.stopPropagation();return;
-  }
-  const preview=e.target.closest('[data-trade-preview][data-trade-visual-selector="1"]');
-  if(preview){
-    const wasOpen=!!preview.querySelector('.trade-creature-menu');document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
-    if(!wasOpen)preview.insertAdjacentHTML('beforeend',tradeCreatureMenuMarkup(preview.closest('.trade-asset-row,[data-trade-option-row]')));e.stopPropagation();return;
-  }
-  document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
-});
 document.addEventListener('keydown', event => {
   if (!isDesktopGameUi() || $('tradeComposer')?.classList.contains('hidden')) return;
-  if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-trade-preview][data-trade-visual-selector="1"]')) {
-    event.preventDefault();event.target.click();
-  }
-  if (event.key === 'Escape' && $('tradePublishConfirm')?.classList.contains('hidden')) {
-    const menus = document.querySelectorAll('.trade-creature-menu');
-    if (menus.length) menus.forEach(menu => menu.remove()); else closeTradeComposer();
-  }
+  if (event.key === 'Escape' && $('tradePublishConfirm')?.classList.contains('hidden')) closeTradeComposer();
 });
 window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
   if (!event.matches) {
