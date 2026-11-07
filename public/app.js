@@ -6718,7 +6718,7 @@ function showDesktopBoostAccepted(itemKey, data) {
   const acceleration = data.acceleration;
   const title = itemKey === 'boost_xp_x2' ? '⚡ Double XP activé !'
     : itemKey === 'boost_cash_x2' ? '💰 Double LoVeR’Cash activé !' : '⏱️ Œuf accéléré !';
-  const copy = itemKey === 'boost_xp_x2' ? 'Ton Lovys gagne deux fois plus d’XP pendant tes heures de présence en live.'
+  const copy = itemKey === 'boost_xp_x2' ? 'Ton Lovy actif gagne deux fois plus d’XP pendant 2 h de présence comptabilisée sur le live. Hors live, le compteur ne diminue pas.'
     : itemKey === 'boost_cash_x2' ? 'Tu gagnes deux fois plus de LoVeR’Cash pendant tes heures de présence en live.'
     : data.message || 'Le temps d’incubation a été réduit.';
   const until = Date.parse(data.boostExpiresAt);
@@ -6869,7 +6869,7 @@ function confirmDesktopObjectUse(itemKey) {
   const stock = Math.max(0,Number(item?.quantity || 0));
   const max = Math.min(100,stock);
   const name = item?.name || 'cet objet';
-  const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 2 heures de présence en live. Le temps se met en pause hors live.'
+  const effect = itemKey === 'boost_xp_x2' ? 'XP du Lovy actif ×2 pendant 2 h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live.'
     : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
     : item?.description || '';
   if (!max) return Promise.resolve(0);
@@ -9009,7 +9009,7 @@ function tradeAcceptBlockReason(offer,option){
   return '';
 }
 function tradeCanAcceptOption(offer,option){return Number(offer.creatorUserId)!==Number((tradeOffers._selfUserId||0))&&tradeCanReceive(offer.offer)&&tradeBalanceFor(option)>=Number(option.quantity||0);}
-function tradeAssetMarkup(asset){const art=asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
+function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
 function tradeStatusLabel(status){return {open:'Active',completed:'Acceptée',cancelled:'Annulée',expired:'Expirée'}[status]||status;}
 function formatTradeRemaining(value){const ms=new Date(value).getTime()-Date.now();if(ms<=0)return 'expirée';const m=Math.ceil(ms/60000);if(m<60)return `expire dans ${m} min`;const h=Math.ceil(m/60);if(h<48)return `expire dans ${h} h`;return `expire dans ${Math.ceil(h/24)} j`;}
 function tradeOfferMarkup(offer,mine=false){
@@ -9353,7 +9353,7 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
 });
 let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
-  return assets.map(asset=>`<div class="trade-exchange-item">${asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`).join('');
+  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
 }
 async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedNotice=false}){
   if(activeTradeExchange)return false;

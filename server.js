@@ -768,7 +768,7 @@ const SHOP_ITEMS = [
   {"key":"title_ami_sous_bois","category":"title","subcategory":"green","name":"Ami du sous-bois","price":180,"color":"#a4d5ae","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   {"key":"title_etincelle_nocturne","category":"title","subcategory":"violet","name":"Étincelle nocturne","price":200,"color":"#c1b7f2","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   { key:'xp_bottle_100', category:'object', name:'Bouteille d’XP · 100 XP', price:120, icon:'🧪', description:'Ajoute 100 XP Lovys à ta réserve. Utilise la bouteille dans ton inventaire, puis choisis le Lovys qui recevra cette XP.', consumable:true, xpAmount:100 },
-  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP Lovys pendant 2 heures de présence créditée en live. Le temps se met en pause hors live.', consumable:true },
+  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP du Lovy actif pendant 2 h de présence comptabilisée sur le live. Le temps restant ne diminue pas hors live.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:0, icon:'💰', description:"Récompense de la roue bonus : double le LoVeR'Cash gagné pendant 1 heure de live.", consumable:true, rewardOnly:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:120, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:200, icon:'🥚', description:'Un œuf supplémentaire à placer dans un emplacement libre de l’incubateur.', consumable:true }
@@ -6805,7 +6805,7 @@ app.post('/api/shop/use', async (req, res) => {
         [user.id,key,requestedQuantity]
       );
       xpBoostRemainingSeconds=Number(boostResult.rows[0]?.remaining_live_seconds||0);
-      message=`Booster XP x2 : ${requestedQuantity*2} heures de présence en live ajoutées. Le temps se met en pause hors live.`;
+      message=`Booster XP x2 : ${requestedQuantity*2} h de présence comptabilisée sur le live ajoutées. Le compteur ne diminue pas hors live.`;
     } else if (key === 'boost_cash_x2') {
       const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id, boost_key, expires_at, starts_at)
@@ -6878,8 +6878,10 @@ function tradeCreatureName(creatureId) {
   return creatures.find(creature => creature.id === creatureId)?.name || creatureId || 'Lovys';
 }
 function tradeCreatureImage(creatureId){
-  const files={plant:'Mossy.webp',water:'Nymea.webp',lightning:'Voltis.webp',mist:'Brumee.webp',fire:'Flamby.webp',crystal:'Crysal.webp',forge:'Ferox.webp',dark:'Nocty.webp',solar:'Solka.webp',dream:'Mimo.webp'};
-  return '/'+(files[String(creatureId||'').toLowerCase()]||'');
+  const files={plant:'Mossy.webp',water:'Nymea.webp',voltis:'Voltis.webp',brumee:'Brumee.webp',fire:'Flamby.webp',crysal:'Crysal.webp',ferox:'Ferox.webp',dark:'Nocty.webp',solka:'Solka.webp',dream:'Mimo.webp',
+    lightning:'Voltis.webp',mist:'Brumee.webp',crystal:'Crysal.webp',forge:'Ferox.webp',solar:'Solka.webp'};
+  const file=files[String(creatureId||'').toLowerCase()];
+  return file?'/'+file:null;
 }
 
 function normalizeTradeAsset(raw = {}) {
@@ -6979,7 +6981,7 @@ async function restoreExpiredTrades(client=pool) {
 
 function tradeAssetJson(type, creatureId, quantity) {
   const creature=creatures.find(c=>c.id===creatureId);
-  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='xp_bottle'?'Fiole de 100 XP':type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='xp_bottle'?'🧪':type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?`/${creature.name}.webp`:null};
+  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='xp_bottle'?'Fiole de 100 XP':type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='xp_bottle'?'🧪':type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?tradeCreatureImage(creatureId):null};
 }
 
 function normalizePlayerTradeBundle(raw) {
