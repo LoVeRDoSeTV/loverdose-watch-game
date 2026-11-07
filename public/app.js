@@ -4484,7 +4484,7 @@ async function startMobilePveFight(fightKey,button=null){
 function configurePveZoneResult(result){
   const modal=$('pveBattleResult');
   const info=pveFightInfoByKey(pveBattleState.fight?.key);
-  const completed=Boolean(result.victory&&result.firstWin&&info&&info.zone.fights.every(f=>f.key===info.fight.key||f.won));
+  const completed=Boolean(result.victory&&info&&!info.fight.won&&info.zone.fights.every(f=>f.key===info.fight.key||f.won));
   modal.classList.toggle('zone-complete',completed);
   modal.querySelector('.pve-zone-confetti')?.remove();
   modal.querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());
@@ -4636,6 +4636,9 @@ $('pveContent')?.addEventListener('change',event=>{
 function renderPveAdventureMap(data,zoneIndex=null){
   if(PVE_SIMPLE_UI){renderMobilePveAdventure(data,zoneIndex);return;}
   const box=$('pveContent');if(!box)return;
+  if(data?.activeLovysId&&pveMapState.data?.activeLovysId&&data.activeLovysId!==pveMapState.data.activeLovysId){
+    pveMapState.selectedFight=null;pveMapState.selectedZone=null;zoneIndex=null;
+  }
   pveMapState.data=data;
   pveMapState.view='map';
   const zones=data.zones||[];
