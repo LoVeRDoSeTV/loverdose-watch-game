@@ -4753,3 +4753,10 @@ body[data-desktop-view="admin"] :is(.desktop-admin-modal,.admin-players-modal,.e
 @media(max-width:620px){.twitch-reward-celebration .twitch-reward-card{padding:26px 20px}.twitch-reward-visual .shop-item-preview{height:125px;min-height:125px}}
 @media(max-width:520px){.twitch-reward-items.multiple{grid-template-columns:1fr}.twitch-reward-entry .twitch-reward-visual,.twitch-reward-entry .shop-item-preview{min-height:88px;height:88px}}
 .shop-actions a.shop-action,#shopItemPreviewActions a.shop-action{display:inline-flex;align-items:center;justify-content:center;text-align:center;text-decoration:none}
+
+/* Cosmétiques des joueurs dans la Communauté. */
+.trade-owner>span.trade-owner-avatar.cosmetic-avatar-decoration{overflow:visible;isolation:isolate}
+.trade-owner .trade-owner-title{display:block;margin-top:3px;font-size:11px;font-weight:800;line-height:1.3;overflow-wrap:anywhere}
+.lobby-player-title{margin-top:3px;font-size:11px;font-weight:800;line-height:1.3;overflow-wrap:anywhere}
+.lobby-player-avatar .lobby-presence-dot{z-index:3}
+@media(max-width:900px){body.mobile-community-open .trade-owner .trade-owner-title,body.mobile-community-open .lobby-player-title{font-size:12px}}
