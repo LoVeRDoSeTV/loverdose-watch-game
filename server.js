@@ -144,7 +144,7 @@ const DAILY_WHEEL_REWARDS = Object.freeze([
   { key:'cash_10',       icon:'💰', label:"+10 LoVeR'Cash",             chance:12, type:'cash',       amount:10 },
   { key:'global_xp_20',  icon:'⭐', label:'+20 XP globale',              chance:7,  type:'global_xp',  amount:20 },
   { key:'lovys_xp_25',   icon:'🐉', label:'+25 XP Lovys en réserve',     chance:6,  type:'lovys_xp',   amount:25 },
-  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 1 h',   chance:5,  type:'inventory',  itemKey:'boost_xp_x2', amount:1 }
+  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 2 h de live',   chance:5,  type:'inventory',  itemKey:'boost_xp_x2', amount:1 }
 ]);
 
 const WEEKLY_WHEEL_REWARDS = Object.freeze([
@@ -152,7 +152,7 @@ const WEEKLY_WHEEL_REWARDS = Object.freeze([
   { key:'global_xp_50',  icon:'⭐', label:'+50 XP globale',              chance:18, type:'global_xp',  amount:50 },
   { key:'lovys_xp_75',   icon:'🐉', label:'+75 XP Lovys en réserve',     chance:17, type:'lovys_xp',   amount:75 },
   { key:'fragment_3',    icon:'🥚', label:"+3 Fragments d'œuf",         chance:15, type:'fragments',  amount:3 },
-  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 1 h',   chance:10, type:'inventory',  itemKey:'boost_xp_x2', amount:1 },
+  { key:'boost_xp_1h',   icon:'⚡', label:'Booster XP Lovys ×2 · 2 h de live',   chance:10, type:'inventory',  itemKey:'boost_xp_x2', amount:1 },
   { key:'boost_cash_1h', icon:'💰', label:"Booster LoVeR'Cash ×2 · 1 h",chance:8,  type:'inventory',  itemKey:'boost_cash_x2', amount:1 },
   { key:'cash_50',       icon:'💎', label:"+50 LoVeR'Cash",             chance:7,  type:'cash',       amount:50 },
   { key:'mystery_egg',   icon:'🥚', label:'1 Œuf mystère',               chance:5,  type:'inventory',  itemKey:'mystery_egg', amount:1 }
@@ -311,8 +311,10 @@ pool.on('error', error => {
 function estimateLovysLiveSeconds(remainingXp, baseXpPerHour, boosts, now = Date.now()) {
   let remaining = Math.max(0, Number(remainingXp));
   if (!Number.isFinite(remaining) || !(baseXpPerHour > 0)) return null;
-  const active = boosts.filter(b => b.multiplier > 1 && new Date(b.expiresAt).getTime() > now)
-    .map(b => ({multiplier:b.multiplier, seconds:(new Date(b.expiresAt).getTime()-now)/1000}));
+  const active = boosts.filter(b => b.multiplier > 1)
+    .map(b => ({multiplier:b.multiplier, seconds:b.remainingSeconds == null
+      ? (new Date(b.expiresAt).getTime()-now)/1000 : Number(b.remainingSeconds)}))
+    .filter(b => b.seconds > 0);
   const stops = [...new Set(active.map(b => b.seconds))].sort((a,b)=>a-b);
   let elapsed = 0;
   for (const stop of [...stops, Infinity]) {
@@ -766,7 +768,7 @@ const SHOP_ITEMS = [
   {"key":"title_ami_sous_bois","category":"title","subcategory":"green","name":"Ami du sous-bois","price":180,"color":"#a4d5ae","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   {"key":"title_etincelle_nocturne","category":"title","subcategory":"violet","name":"Étincelle nocturne","price":200,"color":"#c1b7f2","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   { key:'xp_bottle_100', category:'object', name:'Bouteille d’XP · 100 XP', price:120, icon:'🧪', description:'Ajoute 100 XP Lovys à ta réserve. Utilise la bouteille dans ton inventaire, puis choisis le Lovys qui recevra cette XP.', consumable:true, xpAmount:100 },
-  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP de visionnage pendant 1 heure.', consumable:true },
+  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP Lovys pendant 2 heures de présence créditée en live. Le temps se met en pause hors live.', consumable:true },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:0, icon:'💰', description:"Récompense de la roue bonus : double le LoVeR'Cash gagné pendant 1 heure de live.", consumable:true, rewardOnly:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:120, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:200, icon:'🥚', description:'Un œuf supplémentaire à placer dans un emplacement libre de l’incubateur.', consumable:true }
@@ -1118,6 +1120,15 @@ async function initDatabase() {
   `);
 
   await pool.query(`ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP`);
+  // Le temps restant des boosts XP existants devient du temps de présence en live.
+  await pool.query(`ALTER TABLE user_active_boosts ADD COLUMN IF NOT EXISTS remaining_live_seconds DOUBLE PRECISION`);
+  await pool.query(`ALTER TABLE user_active_boosts ALTER COLUMN expires_at DROP NOT NULL`);
+  await pool.query(`
+    UPDATE user_active_boosts
+    SET remaining_live_seconds=GREATEST(0,EXTRACT(EPOCH FROM expires_at-CURRENT_TIMESTAMP)),
+        expires_at=NULL
+    WHERE boost_key='boost_xp_x2' AND remaining_live_seconds IS NULL
+  `);
 
   await pool.query(`
     CREATE UNIQUE INDEX IF NOT EXISTS accounts_discord_user_id_unique
@@ -2158,8 +2169,21 @@ async function runTrackerTick() {
         const normalGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_PER_HOUR * adminLiveBoosts.globalXp;
         const subGlobalXp = deltaSeconds / 3600 * GLOBAL_XP_SUB_PER_HOUR * adminLiveBoosts.globalXp;
 
+        // L'activation d'un objet verrouille aussi cette ligne utilisateur.
+        await trackerClient.query('SELECT id FROM users WHERE twitch_id=ANY($1::text[]) ORDER BY id FOR UPDATE',[chatterIds]);
         const result = await trackerClient.query(LIVE_TICK_SQL,
           [normalXp,subXp,normalLoverCash,subLoverCash,deltaSeconds,chatterIds,normalGlobalXp,subGlobalXp,LOVYS_MAX_XP,new Date(now)]);
+        const consumedXpBoosts = result.rows
+          .filter(row => Number(row.xp_boost_seconds) > 0)
+          .map(row => ({user_id:Number(row.id),seconds:Number(row.xp_boost_seconds)}));
+        if (consumedXpBoosts.length) {
+          await trackerClient.query(`
+            UPDATE user_active_boosts b
+            SET remaining_live_seconds=GREATEST(0,b.remaining_live_seconds-used.seconds)
+            FROM jsonb_to_recordset($1::jsonb) AS used(user_id integer,seconds double precision)
+            WHERE b.user_id=used.user_id AND b.boost_key='boost_xp_x2'
+          `,[JSON.stringify(consumedXpBoosts)]);
+        }
 
         matched = result.rowCount || 0;
 
@@ -6413,10 +6437,10 @@ app.get('/api/lovys', async (req,res)=>{
     if(!user) return res.status(404).json({error:'Joueur introuvable.'});
     const rows=(await pool.query(`SELECT id,creature_id,xp,is_active,origin,hatched_at,rank,fragments FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at ASC,id ASC`,[user.id])).rows;
     const [personalBoostResult, adminBoost] = await Promise.all([
-      pool.query(`SELECT expires_at FROM user_active_boosts WHERE user_id=$1 AND boost_key='boost_xp_x2' AND expires_at > CURRENT_TIMESTAMP`, [user.id]),
+      pool.query(`SELECT remaining_live_seconds FROM user_active_boosts WHERE user_id=$1 AND boost_key='boost_xp_x2' AND remaining_live_seconds > 0`, [user.id]),
       getActiveAdminLiveBoosts()
     ]);
-    const liveXpBoosts = [{multiplier:2,expiresAt:personalBoostResult.rows[0]?.expires_at}, {multiplier:adminBoost.xp,expiresAt:adminBoost.expiresAt}];
+    const liveXpBoosts = [{multiplier:2,remainingSeconds:personalBoostResult.rows[0]?.remaining_live_seconds||0}, {multiplier:adminBoost.xp,expiresAt:adminBoost.expiresAt}];
     const baseXpPerHour = user.is_sub ? 120 : 100;
     const lovys=rows.map(row=>{const c=creatures.find(x=>x.id===row.creature_id)||{};const prog=progressionFromXp(Number(row.xp||0));const stats=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank:Number(row.rank||1)});const cost=nextRankCost(Number(row.rank||1));const universal=Number(user.universal_lovys_fragments||0);const specific=Number(row.fragments||0);const universalCap=cost?Math.floor(cost/2):0;const missing=cost?Math.max(0,cost-specific):0;const canRank=Boolean(cost&&(specific>=cost||(missing<=universalCap&&missing<=universal)));const rankPreviews=Array.from({length:LOVYS_MAX_RANK},(_,i)=>{const rank=i+1;const preview=creatureBattleStats({creature_id:row.creature_id,xp:Number(row.xp||0),rank});return {rank,cost:rank===1?0:LOVYS_RANK_COSTS?.[rank]||nextRankCost(rank-1)||0,stats:{hp:preview.hp,attack:preview.attack,defense:preview.defense,speed:preview.speed},talent:{...preview.talent,description:publicTalentDescription(preview.talent)}};});const nextPreview=cost&&Number(row.rank||1)<LOVYS_MAX_RANK?rankPreviews.find(x=>x.rank===Number(row.rank||1)+1)||null:null;return {id:Number(row.id),creatureId:row.creature_id,name:c.name||'Lovys',type:c.type||'Neutre',rarity:c.rarity||'Commun',xp:Number(row.xp||0),level:prog.level,liveSecondsToNextLevel:prog.maxLevel?null:estimateLovysLiveSeconds(Math.max(0,prog.nextThreshold-Number(row.xp||0)),baseXpPerHour,liveXpBoosts),progression:{currentThreshold:prog.currentThreshold,nextThreshold:prog.nextThreshold,maxLevel:Boolean(prog.maxLevel)},evolution:prog.evolution,evolutionName:prog.evolutionName,evolutionBonusPercent:prog.evolutionBonusPercent,nextEvolutionLevel:prog.nextEvolutionLevel,rankBonusPercent:stats.rankBonusPercent,maxLevel:Boolean(prog.maxLevel),isActive:Boolean(row.is_active),origin:row.origin,hatchedAt:row.hatched_at,rank:Number(row.rank||1),fragments:Number(row.fragments||0),nextRankCost:cost,canRankUp:canRank,universalFragments:universal,stats:{hp:stats.hp,attack:stats.attack,defense:stats.defense,speed:stats.speed},power:stats.attack,hp:stats.hp,talent:{...stats.talent,description:publicTalentDescription(stats.talent)},skills:stats.skills,rankPreviews,nextRankPreview:nextPreview};});
     res.json({ok:true,lovys,maxXp:LOVYS_MAX_XP,pendingXp:Number(user.pending_xp||0),universalFragments:Number(user.universal_lovys_fragments||0)});
@@ -6515,10 +6539,13 @@ app.get('/api/shop', async (req, res) => {
     const inventory = new Map(inventoryResult.rows.map(row => [row.item_key, Number(row.quantity || 0)]));
 
     const boostsResult = await pool.query(
-      `SELECT boost_key, expires_at FROM user_active_boosts WHERE user_id = $1 AND expires_at > CURRENT_TIMESTAMP`,
+      `SELECT boost_key,expires_at,remaining_live_seconds FROM user_active_boosts
+       WHERE user_id=$1 AND ((boost_key='boost_xp_x2' AND remaining_live_seconds>0)
+         OR (boost_key<>'boost_xp_x2' AND expires_at>CURRENT_TIMESTAMP))`,
       [user.id]
     );
-    const activeBoosts = Object.fromEntries(boostsResult.rows.map(row => [row.boost_key, row.expires_at]));
+    const activeBoosts = Object.fromEntries(boostsResult.rows.filter(row => row.boost_key!=='boost_xp_x2').map(row => [row.boost_key,row.expires_at]));
+    const xpBoostRemainingSeconds = Number(boostsResult.rows.find(row => row.boost_key==='boost_xp_x2')?.remaining_live_seconds||0);
 
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
     const isBroadcaster = broadcasterId && String(account.twitch_id || '') === broadcasterId;
@@ -6553,6 +6580,7 @@ app.get('/api/shop', async (req, res) => {
       twitchRewardsError:isBroadcaster ? twitchRewardsReady.last_error || null : null,
       catalog,
       activeBoosts,
+      xpBoostRemainingSeconds,
       equipped:{
         title: account.equipped_title_key === TITLE_NONE_KEY ? null : (account.equipped_title_key || (isBroadcaster ? MASTER_TITLE.key : null)),
         background: account.equipped_background_key || null,
@@ -6754,26 +6782,39 @@ app.post('/api/shop/use', async (req, res) => {
     }
     let message = '';
     let acceleration = null;
-    let boostExpiresAt = null;
+    let boostExpiresAt = null,xpBoostRemainingSeconds=0;
     let xpGranted=0,pendingXp=null;
     if(key==='xp_bottle_100'){
       xpGranted=item.xpAmount*requestedQuantity;
       const result=await client.query('UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING pending_xp',[user.id,xpGranted]);
       pendingXp=Number(result.rows[0].pending_xp);
       message=`+${xpGranted} XP Lovys ajoutées à ta réserve. Choisis ensuite le Lovys qui les recevra.`;
-    } else if (key === 'boost_xp_x2' || key === 'boost_cash_x2') {
-      if (key === 'boost_xp_x2' && !user.creature_id) {
+    } else if (key === 'boost_xp_x2') {
+      if (!user.creature_id) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
       }
       const boostResult = await client.query(
+        `INSERT INTO user_active_boosts (user_id,boost_key,expires_at,starts_at,remaining_live_seconds)
+         VALUES ($1,$2,NULL,CURRENT_TIMESTAMP,$3::double precision*7200)
+         ON CONFLICT (user_id,boost_key) DO UPDATE SET
+           starts_at=CASE WHEN COALESCE(user_active_boosts.remaining_live_seconds,0)>0 THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END,
+           remaining_live_seconds=GREATEST(0,COALESCE(user_active_boosts.remaining_live_seconds,0))+$3::double precision*7200,
+           expires_at=NULL
+         RETURNING remaining_live_seconds`,
+        [user.id,key,requestedQuantity]
+      );
+      xpBoostRemainingSeconds=Number(boostResult.rows[0]?.remaining_live_seconds||0);
+      message=`Booster XP x2 : ${requestedQuantity*2} heures de présence en live ajoutées. Le temps se met en pause hors live.`;
+    } else if (key === 'boost_cash_x2') {
+      const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id, boost_key, expires_at, starts_at)
          VALUES ($1,$2,CURRENT_TIMESTAMP + $3 * INTERVAL '1 hour',CURRENT_TIMESTAMP)
          ON CONFLICT (user_id,boost_key) DO UPDATE SET starts_at=CASE WHEN user_active_boosts.expires_at>CURRENT_TIMESTAMP THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END, expires_at = GREATEST(user_active_boosts.expires_at, CURRENT_TIMESTAMP) + $3 * INTERVAL '1 hour' RETURNING expires_at`,
-        [user.id, key, requestedQuantity]
+        [user.id,key,requestedQuantity]
       );
-      boostExpiresAt = boostResult.rows[0]?.expires_at || null;
-      message = `${key === 'boost_xp_x2' ? 'Booster XP x2' : "Booster LoVeR'Cash x2"} : ${requestedQuantity} heure${requestedQuantity>1?'s':''} ajoutée${requestedQuantity>1?'s':''}.`;
+      boostExpiresAt=boostResult.rows[0]?.expires_at||null;
+      message=`Booster LoVeR'Cash x2 : ${requestedQuantity} heure${requestedQuantity>1?'s':''} ajoutée${requestedQuantity>1?'s':''}.`;
     } else if (key === 'incubator_skip_30') {
       const requestedSlot = req.body?.slot;
       const slot = requestedSlot == null && !user.creature_id ? 1 : Number(requestedSlot);
@@ -6809,13 +6850,13 @@ app.post('/api/shop/use', async (req, res) => {
     }
 
     await client.query(`UPDATE shop_inventory SET quantity = quantity - $3 WHERE account_id=$1 AND item_key=$2`, [req.session.account.id, key, requestedQuantity]);
-    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:key,itemName:item.name,quantity:requestedQuantity,details:{message,acceleration,boostExpiresAt,xpGranted,pendingXp}});
+    await recordPlayerHistory(client,{accountId:req.session.account.id,kind:'use',itemKey:key,itemName:item.name,quantity:requestedQuantity,details:{message,acceleration,boostExpiresAt,xpBoostRemainingSeconds,xpGranted,pendingXp}});
     await client.query('COMMIT');
     // Une notification échouée ne remet pas en cause l’objet déjà consommé.
     await wizebotAlerts.collect().catch(error=>console.warn('Notification objet indisponible :',error.message));
     pushLiveUpdate('shop-update', { twitchId:req.session.user.twitchId });
     if(xpGranted)pushLiveUpdate('game-update',{userId:Number(user.id),at:Date.now()});
-    res.json({ ok:true, message, acceleration, boostExpiresAt, xpGranted, pendingXp, quantity:requestedQuantity });
+    res.json({ ok:true, message, acceleration, boostExpiresAt, xpBoostRemainingSeconds, xpGranted, pendingXp, quantity:requestedQuantity });
   } catch (error) {
     try { await client.query('ROLLBACK'); } catch {}
     console.error('Erreur utilisation objet :', error);

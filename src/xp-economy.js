@@ -77,21 +77,26 @@ export function splitLovysXp(currentXp, earnedXp) {
   return { xp, applied: Math.max(0, xp - Math.min(current, LOVYS_MAX_XP)), overflow: Math.max(0, current + earned - LOVYS_MAX_XP) };
 }
 
-// Potion overlap is measured on the credited interval, including a potion that
-// expires between two polls. Raw watch time is never multiplied.
+// Personal XP boost time is consumed only for credited live presence.
+// The first tick counts only the part after activation; raw watch time is never multiplied.
 export const LIVE_TICK_SQL = `WITH rates AS (
   SELECT u.id,
-    (CASE WHEN u.is_sub THEN $2 ELSE $1 END)::double precision * (1+COALESCE((
-      SELECT GREATEST(0,EXTRACT(EPOCH FROM LEAST(b.expires_at,$10::timestamptz)-GREATEST(b.starts_at,$10::timestamptz-$5::double precision*INTERVAL '1 second')))/$5
-      FROM user_active_boosts b WHERE b.user_id=u.id AND b.boost_key='boost_xp_x2'
-    ),0)) AS lovys_gain,
+    (CASE WHEN u.is_sub THEN $2 ELSE $1 END)::double precision * (1+COALESCE(xp_boost.seconds,0)/$5) AS lovys_gain,
+    COALESCE(xp_boost.seconds,0) AS xp_boost_seconds,
     (CASE WHEN u.is_sub THEN $4 ELSE $3 END)::double precision * (1+COALESCE((
       SELECT GREATEST(0,EXTRACT(EPOCH FROM LEAST(b.expires_at,$10::timestamptz)-GREATEST(b.starts_at,$10::timestamptz-$5::double precision*INTERVAL '1 second')))/$5
       FROM user_active_boosts b WHERE b.user_id=u.id AND b.boost_key='boost_cash_x2'
     ),0)) AS cash_gain,
     (CASE WHEN u.is_sub THEN $8 ELSE $7 END)::double precision AS global_gain,
     NOT EXISTS(SELECT 1 FROM user_game_tabs t WHERE t.user_id=u.id AND t.last_seen_at>CURRENT_TIMESTAMP-INTERVAL '90 seconds') AS away
-  FROM users u WHERE u.twitch_id=ANY($6::text[]) ORDER BY u.id FOR UPDATE OF u
+  FROM users u
+  LEFT JOIN LATERAL (
+    SELECT LEAST(b.remaining_live_seconds,$5::double precision,
+      GREATEST(0,EXTRACT(EPOCH FROM $10::timestamptz-GREATEST(b.starts_at,$10::timestamptz-$5::double precision*INTERVAL '1 second')))) AS seconds
+    FROM user_active_boosts b
+    WHERE b.user_id=u.id AND b.boost_key='boost_xp_x2' AND b.remaining_live_seconds>0
+  ) xp_boost ON TRUE
+  WHERE u.twitch_id=ANY($6::text[]) ORDER BY u.id FOR UPDATE OF u
 ) UPDATE users u SET
   xp=CASE WHEN u.creature_id IS NULL THEN 0 ELSE LEAST($9,u.xp+r.lovys_gain) END,
   pending_xp=u.pending_xp+CASE WHEN u.creature_id IS NULL THEN r.lovys_gain ELSE GREATEST(0,u.xp+r.lovys_gain-$9) END,
@@ -102,7 +107,7 @@ export const LIVE_TICK_SQL = `WITH rates AS (
   away_lovercash=u.away_lovercash+CASE WHEN r.away THEN r.cash_gain ELSE 0 END,
   away_watch_seconds=u.away_watch_seconds+CASE WHEN r.away THEN $5::bigint ELSE 0 END,
   last_live_seen_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
-FROM rates r WHERE u.id=r.id RETURNING u.id,r.cash_gain,r.global_gain`;
+FROM rates r WHERE u.id=r.id RETURNING u.id,r.cash_gain,r.global_gain,r.xp_boost_seconds`;
 
 export async function syncActiveLovysXp(client, userIds) {
   await client.query(`UPDATE user_lovys l SET xp=u.xp,updated_at=CURRENT_TIMESTAMP

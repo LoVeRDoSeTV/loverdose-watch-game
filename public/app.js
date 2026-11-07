@@ -527,7 +527,7 @@ function showSuccess(title, message, buttonText, callback) {
   
 function showAuthHome() {
   setDesktopAdminAccess(false);
-  desktopActiveBoosts={};desktopBoostNotice=null;renderDesktopBoostStatus();
+  desktopActiveBoosts={};desktopXpBoostRemainingSeconds=0;desktopBoostNotice=null;renderDesktopBoostStatus();
   authOverlay.classList.remove('hidden');
   authHome.style.display = 'flex';
   
@@ -6089,6 +6089,7 @@ function setCommerceTab(tab) {
 function syncDesktopBoostData() {
   if (!isDesktopGameUi()) return;
   desktopActiveBoosts = shopData?.activeBoosts || {};
+   desktopXpBoostRemainingSeconds = Number(shopData?.xpBoostRemainingSeconds || 0);
   renderDesktopBoostStatus();
 }
 
@@ -6306,7 +6307,10 @@ function renderShop() {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
-    const activeText = isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
+    const xpBoostSeconds = item.key === 'boost_xp_x2' ? Number(shopData.xpBoostRemainingSeconds || 0) : 0;
+    const activeText = isMobileGameUi() && xpBoostSeconds > 0
+      ? `<div class="shop-owned">XP ×2 · encore ${formatBoostRemainingTime(xpBoostSeconds*1000)} de présence en live</div>`
+      : isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
     const ownedText = item.category === 'object'
       ? (Number(item.quantity || 0) > 0 ? `<span class="shop-qty">Possédé : ${Number(item.quantity)}</span>` : '')
       : (item.owned || item.exclusive ? '<span class="shop-owned">Possédé</span>' : '');
@@ -6657,6 +6661,7 @@ async function confirmShopPurchase() {
 let desktopObjectUseBusy = false;
 let mobileIncubatorBoostBusy = false;
 let desktopActiveBoosts = {};
+let desktopXpBoostRemainingSeconds = 0;
 let desktopBoostNotice = null;
 let desktopBoostNoticeTimer = null;
 
@@ -6668,10 +6673,12 @@ function formatBoostRemainingTime(milliseconds) {
 function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
-  const active = Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
-    const label = key === 'boost_xp_x2' ? '⚡ XP Lovys ×2' : '💰 LoVeR’Cash ×2';
+  const active = [];
+  if (desktopXpBoostRemainingSeconds > 0) active.push(`<span class="desktop-boost-chip"><strong>⚡ XP Lovys ×2</strong> · encore ${formatBoostRemainingTime(desktopXpBoostRemainingSeconds*1000)} de présence en live</span>`);
+  active.push(...Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
+    const label = key === 'boost_cash_x2' ? '💰 LoVeR’Cash ×2' : '⚡ XP Lovys ×2';
     return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${formatBoostRemainingTime(Date.parse(until)-Date.now())}</span>`;
-  });
+  }));
   if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
   const nextHtml = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
   if(box.innerHTML !== nextHtml)box.innerHTML = nextHtml;
@@ -6692,6 +6699,7 @@ async function refreshDesktopBoostStatus() {
     if (!response.ok) return;
     const data = await response.json();
     desktopActiveBoosts = data.activeBoosts || {};
+    desktopXpBoostRemainingSeconds = Number(data.xpBoostRemainingSeconds || 0);
     renderDesktopBoostStatus();
   } catch {} finally {
     desktopBoostRefreshPending = false;
@@ -6716,6 +6724,7 @@ function showDesktopBoostAccepted(itemKey, data) {
   const until = Date.parse(data.boostExpiresAt);
   const hours = Number(data.quantity || 1);
   const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
+    : itemKey === 'boost_xp_x2' ? `${hours*2} heures de live ajoutées · encore ${formatBoostRemainingTime(Number(data.xpBoostRemainingSeconds||0)*1000)} de présence créditée`
     : Number.isFinite(until) ? `${hours} heure${hours>1?'s':''} ajoutée${hours>1?'s':''} · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : `Durée ajoutée : ${hours} heure${hours>1?'s':''}`;
   const previousFocus = document.activeElement;
   const overlay = document.createElement('div');
@@ -6860,7 +6869,7 @@ function confirmDesktopObjectUse(itemKey) {
   const stock = Math.max(0,Number(item?.quantity || 0));
   const max = Math.min(100,stock);
   const name = item?.name || 'cet objet';
-  const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 1 heure.'
+  const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 2 heures de présence en live. Le temps se met en pause hors live.'
     : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
     : item?.description || '';
   if (!max) return Promise.resolve(0);
@@ -6873,7 +6882,7 @@ function confirmDesktopObjectUse(itemKey) {
     overlay.setAttribute('aria-labelledby','objectUseConfirmTitle');
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>${escapeHtml(name)} · ${stock} disponible${stock>1?'s':''}.</p><p>${escapeHtml(effect)}</p><label for="objectUseQuantity">Nombre de boosts à activer</label><div class="egg-boost-quantity"><div><button type="button" data-use-minus aria-label="Diminuer">−</button><input id="objectUseQuantity" type="number" min="1" max="${max}" step="1" value="1" inputmode="numeric"><button type="button" data-use-plus aria-label="Augmenter">＋</button></div></div><button class="shop-action secondary" type="button" data-use-max>Tout utiliser${stock>100?' (100 maximum)':''}</button><p data-use-duration aria-live="polite"></p><p>Les objets sont consommés uniquement si l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Activer</button></div></div>`;
     const input=overlay.querySelector('#objectUseQuantity'),confirm=overlay.querySelector('[data-object-use-yes]');
-    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n} heure${n>1?'s':''} ajoutée${n>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
+    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n*(itemKey==='boost_xp_x2'?2:1)} heure${n*(itemKey==='boost_xp_x2'?2:1)>1?'s':''} de ${itemKey==='boost_xp_x2'?'présence en live':'bonus'} ajoutée${n*(itemKey==='boost_xp_x2'?2:1)>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
     let finished = false;
     const finish = value => {
       if (finished) return;
