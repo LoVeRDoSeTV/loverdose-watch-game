@@ -4372,11 +4372,26 @@ function pveZoneArtStyle(zone){
 }
 function pveAtlasMarkup(data){
   const zones=data?.zones||[];
-  return `<details class="pve-world-atlas"><summary>🗺️ Les ${zones.length} zones de l’aventure</summary><div class="pve-world-atlas-grid">${zones.map((z,i)=>{
+  const cards=zones.map((z,i)=>{
     const unlocked=pveZoneAccessible(z),f=z.fights||[],previous=zones[i-1]?.fights?.slice(-1)[0];
     const lo=z.minLevel||f[0]?.level||1,hi=z.maxLevel||f.slice(-1)[0]?.level||lo;
     return `<article class="pve-atlas-zone ${unlocked?'available':'locked'}"><strong>${z.icon||'🗺️'} ${escapeHtml(z.name)}</strong><small>Niveaux conseillés ${lo}–${hi} · ${f.length} combats</small>${z.lore?`<p>${escapeHtml(z.lore)}</p>`:''}<span>${pveZoneComplete(z)?'✓ Zone terminée':unlocked?'⚔️ Zone accessible':`🔒 Vaincre ${escapeHtml(previous?.name||'le boss précédent')}`}</span></article>`;
-  }).join('')}</div></details>`;
+  }).join('');
+  const title=`🗺️ Les ${zones.length} zones de l’aventure`;
+  if(isDesktopGameUi())return `<button type="button" class="pve-atlas-open" data-pve-atlas-open aria-haspopup="dialog" aria-controls="pveAtlasDialog">${title}</button><dialog id="pveAtlasDialog" class="pve-atlas-dialog" aria-labelledby="pveAtlasTitle"><header class="pve-atlas-dialog-head"><h2 id="pveAtlasTitle">${title}</h2><button type="button" data-pve-atlas-close aria-label="Fermer les zones">×</button></header><div class="pve-world-atlas-grid">${cards}</div></dialog>`;
+  return `<details class="pve-world-atlas"><summary>${title}</summary><div class="pve-world-atlas-grid">${cards}</div></details>`;
+}
+function handlePveAtlasClick(event){
+  if(event.target.closest('[data-pve-atlas-open]')){
+    const dialog=$('pveAtlasDialog');
+    if(dialog&&!dialog.open)dialog.showModal();
+    return true;
+  }
+  if(event.target.closest('[data-pve-atlas-close]')||event.target.matches?.('.pve-atlas-dialog')){
+    $('pveAtlasDialog')?.close();
+    return true;
+  }
+  return false;
 }
 function pveWorldSceneryMarkup(zone){
   const key=String(zone?.key||'forest');
@@ -5014,6 +5029,7 @@ document.addEventListener('keydown',event=>{
 $('pveBattleAbandon')?.addEventListener('click',async()=>{if(PVE_SIMPLE_UI){await abandonMobilePveBattle();return;}if(!pveBattleState.battle)return;stopPveAutoLoop();if(!confirm('Abandonner ce combat ? Aucune récompense ne sera donnée.'))return;await fetch('/api/pve/abandon',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const overlay=$('pveBattleOverlay');overlay?.classList.remove('active');if(!PVE_SIMPLE_UI){overlay?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}else setTimeout(()=>overlay?.classList.add('hidden'),180);pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};if(!PVE_SIMPLE_UI)await loadPve();});
 $('openProgression')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='progression';document.body.dataset.desktopView='progression';setDesktopNavActive?.('progression');}$('progressionModal')?.classList.remove('hidden');loadProgression();syncMobileNavState?.();});$('progressionClose')?.addEventListener('click',()=>{$('progressionModal')?.classList.add('hidden');syncMobileNavState?.();});$('openPve')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='pve';document.body.dataset.desktopView='pve';setDesktopNavActive?.('pve');}$('pveModal')?.classList.remove('hidden');loadPve();syncMobileNavState?.();});$('pveClose')?.addEventListener('click',()=>{$('pveModal')?.classList.add('hidden');syncMobileNavState?.();});
 $('pveContent')?.addEventListener('click',async e=>{
+  if(handlePveAtlasClick(e))return;
   if(PVE_SIMPLE_UI){
     const select=e.target.closest('[data-mobile-pve-select]');
     if(select){if(select.disabled)return;pveMapState.selectedFight=select.dataset.mobilePveSelect;renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
@@ -10309,11 +10325,3 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia(MOBILE_GAME_MEDIA).addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
-
-
-
-
-
-
-
-
