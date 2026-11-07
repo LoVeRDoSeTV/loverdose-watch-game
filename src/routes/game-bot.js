@@ -5,7 +5,7 @@ import crypto from 'node:crypto';
 import {playerCommands} from '../game-bot-player-commands.js';
 import {chatCommandName,validateChatCommand,initChatCommands,enqueueChatCommand,deliverChatCommands} from '../game-bot-commands.js';
 import {validOAuthCallback} from '../middleware/security.js';
-import {grantSharedWatchStreak,initWatchStreakRewards} from '../watch-streak-rewards.js';
+import {grantSharedWatchStreak,initWatchStreakRewards,watchStreakRewardForCount} from '../watch-streak-rewards.js';
 
 export function isGameBotCallback(query,session){
   return typeof query.state==='string'&&typeof session.gameBotOauthState==='string'&&session.gameBotOauthState.length>0&&query.state===session.gameBotOauthState;
@@ -165,6 +165,30 @@ export function createGameBot({pool,baseUrl,getBroadcasterAccount,encrypt,decryp
     }catch(error){res.status(500).send(`Connexion du bot impossible : ${error.message}`);}
   }
   router.get('/game-bot/callback',handleCallback);
+  router.get('/watch-streak/notifications/pending',async(req,res)=>{
+    if(!req.session?.account)return res.sendStatus(401);
+    try{
+      const rows=(await pool.query(`SELECT r.milestone FROM user_watch_streak_rewards r
+        JOIN users u ON u.id=r.user_id JOIN accounts a ON a.twitch_id=u.twitch_id
+        WHERE a.id=$1 AND r.announced_at IS NULL ORDER BY r.claimed_at,r.milestone LIMIT 50`,[req.session.account.id])).rows;
+      res.set('Cache-Control','no-store').json({rewards:rows.map(row=>{
+        const reward=watchStreakRewardForCount(row.milestone);
+        return {count:reward.count,description:reward.description};
+      })});
+    }catch(error){console.error('Notification de série Twitch :',error);res.sendStatus(500);}
+  });
+  router.post('/watch-streak/notifications/acknowledge',async(req,res)=>{
+    if(!req.session?.account)return res.sendStatus(401);
+    const count=Number(req.body?.count);
+    if(!Number.isSafeInteger(count)||count<1||count>350)return res.sendStatus(400);
+    try{
+      const result=await pool.query(`UPDATE user_watch_streak_rewards SET announced_at=CURRENT_TIMESTAMP
+        WHERE milestone=$1 AND announced_at IS NULL AND user_id IN
+          (SELECT u.id FROM users u JOIN accounts a ON a.twitch_id=u.twitch_id WHERE a.id=$2)`,
+      [count,req.session.account.id]);
+      res.json({acknowledged:result.rowCount});
+    }catch(error){console.error('Confirmation de série Twitch :',error);res.sendStatus(500);}
+  });
   router.post('/game-bot/eventsub',async(req,res)=>{
     try{
       const row=await botRow(),raw=req.rawEventSubBody;

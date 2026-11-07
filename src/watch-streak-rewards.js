@@ -64,8 +64,10 @@ export async function initWatchStreakRewards(pool){
     milestone INTEGER NOT NULL,
     twitch_message_id TEXT NOT NULL,
     claimed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    announced_at TIMESTAMPTZ,
     PRIMARY KEY(user_id,milestone)
   )`);
+  await pool.query('ALTER TABLE user_watch_streak_rewards ADD COLUMN IF NOT EXISTS announced_at TIMESTAMPTZ');
 }
 
 // Appelé uniquement pour une notification Twitch signée, jamais pour un message texte libre.

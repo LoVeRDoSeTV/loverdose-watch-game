@@ -1125,6 +1125,7 @@ async function loadGameOnce() {
     renderGame();
     await showPendingHeartGift();
     scheduleTwitchRewardCheck(1400);
+    scheduleWatchStreakRewardCheck(1700);
     // Restaurer les pages mobiles uniquement au premier chargement authentifié,
     // après l'affichage de l'application ; jamais lors des rafraîchissements.
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
@@ -3598,8 +3599,12 @@ async function loadProgression(){
     const reports=(d.recentReports||[]).map(x=>`<div class="report-row">${x.result==='victory'?'✅ Victoire':'❌ Défaite'} · ${escapeHtml(x.fight_key)} · +${Math.floor(Number(x.reward_creature_xp||0))} XP Lovys · +${Math.floor(Number(x.reward_global_xp||0))} XP globale · +${Number(x.reward_fragments||0)} ${fragmentIconMarkup()}</div>`).join('')||'<div class="hub-sub">Aucun combat pour le moment.</div>';
     const streakRewards=Array.isArray(d.watchStreakRewards)?d.watchStreakRewards:[];
     const claimedStreakRewards=streakRewards.filter(item=>item.claimedAt).length;
-    const streakRows=streakRewards.map(item=>`<div class="watch-streak-reward ${item.claimedAt?'unlocked':''}"><span class="watch-streak-count">🔥 ${Number(item.count)} lives</span><strong>${escapeHtml(item.description||'Récompense')}</strong><span class="watch-streak-status">${item.claimedAt?'✓ Reçu':'À partager sur Twitch'}</span></div>`).join('');
-    const streakHtml=`<section class="watch-streak-progress" aria-label="Récompenses de série Twitch"><div class="watch-streak-progress-head"><div><h3>🔥 Série de visionnage Twitch</h3><p>Partage ta série dans le chat de LoVeRDoSeTV pour recevoir le cadeau correspondant. Ton compte Twitch doit être lié au jeu.</p></div><span>${claimedStreakRewards} / ${streakRewards.length} reçus</span></div><p class="watch-streak-progress-note">Twitch choisit les nombres partageables. Si un autre palier apparaît avant 350, son partage donne aussi 25 XP Lovys et 5 LoVeR’Cash. Chaque nombre partagé est récompensé une seule fois.</p><div class="watch-streak-rewards">${streakRows}</div></section>`;
+    const streakPageSize=8;
+    const streakPageCount=Math.max(1,Math.ceil(streakRewards.length/streakPageSize));
+    const firstUpcoming=streakRewards.findIndex(item=>!item.claimedAt);
+    const initialStreakPage=Math.floor((firstUpcoming<0?Math.max(0,streakRewards.length-1):firstUpcoming)/streakPageSize);
+    const streakRows=streakRewards.map((item,index)=>`<div class="watch-streak-reward ${item.claimedAt?'unlocked':''} ${index===firstUpcoming?'next':''}" data-streak-page="${Math.floor(index/streakPageSize)}" ${Math.floor(index/streakPageSize)===initialStreakPage?'':'hidden'}><span class="watch-streak-count"><span class="watch-streak-flame" aria-hidden="true">🔥</span> ${Number(item.count)} lives</span><strong>${escapeHtml(item.description||'Récompense')}</strong><span class="watch-streak-status">${item.claimedAt?'✓ Reçu':index===firstUpcoming?'Prochain palier':'À partager sur Twitch'}</span></div>`).join('');
+    const streakHtml=`<section class="watch-streak-progress" aria-label="Récompenses de série Twitch"><div class="watch-streak-progress-head"><div><span class="watch-streak-eyebrow">TES RÉCOMPENSES DE PRÉSENCE</span><h3>🔥 Série de visionnage Twitch</h3><p>Partage ta série dans le chat de LoVeRDoSeTV : chaque palier partagé débloque son cadeau.</p></div><span class="watch-streak-total"><strong>${claimedStreakRewards}</strong> / ${streakRewards.length}<small>récompenses reçues</small></span></div><div class="watch-streak-rewards" id="watchStreakRewards">${streakRows}</div><div class="watch-streak-footer"><span>Compte Twitch lié requis · chaque palier est récompensé une fois.</span><div class="watch-streak-pagination"><button type="button" id="streakPrevPage" aria-label="Paliers précédents">←</button><span id="streakPageLabel">${initialStreakPage+1} / ${streakPageCount}</span><button type="button" id="streakNextPage" aria-label="Paliers suivants">→</button></div></div><details class="watch-streak-details"><summary>Comment fonctionnent les paliers ?</summary><p>Twitch choisit les nombres que tu peux partager. Si un autre palier apparaît avant 350, son partage donne 25 XP Lovys et 5 LoVeR’Cash.</p></details></section>`;
     const xpNow=Math.floor(Number(g.xpIntoLevel||0)),xpNeed=Math.max(1,Math.floor(Number(g.xpForNextLevel||0)));
     const lovysLevel=Math.max(1,Number(cp.level||1));
     const lovysTotalXp=Math.max(0,Math.floor(Number(d.creatureXp||0)));
@@ -3614,7 +3619,18 @@ async function loadProgression(){
     const lovysProgressHtml=d.hasCreature
       ? `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">🐉 Progression du Lovys</div><span class="lovys-progress-level">Niv. ${lovysLevel}</span></div><div class="lovys-progress-meta"><span>${lovysInto.toLocaleString('fr-FR')} XP</span><span>${cp.maxLevel?'Niveau max':lovysNeed.toLocaleString('fr-FR')+' XP'}</span></div><div class="lovys-xp-bar"><span style="width:${lovysPercent}%"></span></div><div class="lovys-progress-note">XP totale du Lovys : ${lovysTotalXp.toLocaleString('fr-FR')} XP${cp.maxLevel?' · Les prochains gains vont en réserve.':''}</div>${transferHtml}</div>`
       : `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">${eggIconMarkup('egg-inline-icon title-inline-icon')}XP du futur Lovys</div><span class="lovys-progress-level">Réserve</span></div><div class="lovys-progress-meta"><span>XP en attente</span><span>${pendingLovysXp.toLocaleString('fr-FR')} XP</span></div><div class="lovys-progress-note">Cette XP reste en réserve. Après l’éclosion, tu pourras choisir de la transférer à ton Lovys avec confirmation.</div></div>`;
-    box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Ta progression · niveau ${currentLevel} sur 55</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.icon||'◆')}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="progression-road-heading"><div><span class="progression-road-eyebrow">PARCOURS DES NIVEAUX</span><h3>Découvre tes récompenses</h3></div><div class="progression-road-nav"><button type="button" id="progressionPrev" aria-label="Niveaux précédents">←</button><button type="button" id="progressionNext" aria-label="Niveaux suivants">→</button></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Les bonus d’XP Lovys des niveaux globaux vont en réserve. Tu choisis ensuite le Lovys qui les reçoit.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>${streakHtml}`;
+    box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Ta progression · niveau ${currentLevel} sur 55</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.icon||'◆')}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="progression-road-heading"><div><span class="progression-road-eyebrow">PARCOURS DES NIVEAUX</span><h3>Découvre tes récompenses</h3></div><div class="progression-road-nav"><button type="button" id="progressionPrev" aria-label="Niveaux précédents">←</button><button type="button" id="progressionNext" aria-label="Niveaux suivants">→</button></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}${streakHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Les bonus d’XP Lovys des niveaux globaux vont en réserve. Tu choisis ensuite le Lovys qui les reçoit.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>`;
+    let streakPage=initialStreakPage;
+    const showStreakPage=page=>{
+      streakPage=Math.max(0,Math.min(streakPageCount-1,page));
+      $('watchStreakRewards')?.querySelectorAll('[data-streak-page]').forEach(card=>{card.hidden=Number(card.dataset.streakPage)!==streakPage;});
+      if($('streakPageLabel'))$('streakPageLabel').textContent=`${streakPage+1} / ${streakPageCount}`;
+      if($('streakPrevPage'))$('streakPrevPage').disabled=streakPage===0;
+      if($('streakNextPage'))$('streakNextPage').disabled=streakPage===streakPageCount-1;
+    };
+    $('streakPrevPage')?.addEventListener('click',()=>showStreakPage(streakPage-1));
+    $('streakNextPage')?.addEventListener('click',()=>showStreakPage(streakPage+1));
+    showStreakPage(streakPage);
     requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionPrev')?.addEventListener('click',()=>roadEl.scrollBy({left:-roadEl.clientWidth*.72,behavior:'smooth'}));$('progressionNext')?.addEventListener('click',()=>roadEl.scrollBy({left:roadEl.clientWidth*.72,behavior:'smooth'}));$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){bindProgressionDrag(roadEl);}}});
     $('prestigeInfoBtn')?.addEventListener('click',()=>{
       let modal=$('prestigeInfoModal');
@@ -5273,7 +5289,7 @@ async function toggleMobilePanel(panel){
   }
   // Une réponse ancienne ne peut pas réactiver une page quittée entre-temps.
   if(revision===mobileNavigationRevision&&isMobileGameUi())syncMobileNavState();
-  if(panel!=='combat')scheduleTwitchRewardCheck();
+  if(panel!=='combat'){scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck();}
 }
 async function hatchExtraIncubatorEgg(slot){
   const message=$('incubatorAddMessage');
@@ -5647,6 +5663,13 @@ let shopCategory = 'title';
 let twitchRewardChecking = false;
 let twitchRewardCelebrationActive = false;
 let twitchRewardCheckTimer = null;
+let watchStreakRewardChecking = false;
+let watchStreakCelebrationActive = false;
+let watchStreakCheckTimer = null;
+function scheduleWatchStreakRewardCheck(delay=1100){
+  clearTimeout(watchStreakCheckTimer);
+  watchStreakCheckTimer=setTimeout(()=>void showPendingWatchStreakReward(),delay);
+}
 function scheduleTwitchRewardCheck(delay=900){
   clearTimeout(twitchRewardCheckTimer);
   twitchRewardCheckTimer=setTimeout(()=>void showPendingTwitchRewards(),delay);
@@ -5864,6 +5887,55 @@ function shopPreview(item) {
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
 }
 
+async function showPendingWatchStreakReward(){
+  if(watchStreakRewardChecking||watchStreakCelebrationActive||!me?.user||document.hidden||twitchRewardBlockedByPve())return;
+  if(twitchRewardChecking||twitchRewardCelebrationActive||badgeCelebrationActive||document.getElementById('heartGiftCelebration')||
+      window.LovysEvolutionCelebration?.isActive()||rewardWheelSpinning||
+      !$('shopPurchaseSuccessModal')?.classList.contains('hidden')||!$('rewardWheelWinPopup')?.classList.contains('hidden')||
+      document.getElementById('returnSummaryOverlay')){scheduleWatchStreakRewardCheck(1100);return;}
+  watchStreakRewardChecking=true;
+  const accountKey=String(me.user.id||me.user.twitch_id||'');
+  try{
+    const response=await fetch('/api/watch-streak/notifications/pending',{cache:'no-store'});
+    if(!response.ok)return;
+    const {rewards}=await response.json();
+    const reward=Array.isArray(rewards)?rewards[0]:null;
+    if(!reward||accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    const count=Number(reward.count);
+    const items=String(reward.description||'').replace('Fiole Double XP · ','Fiole Double XP — ').split(' · ').filter(Boolean);
+    watchStreakCelebrationActive=true;
+    const modal=document.createElement('div');
+    modal.id='watchStreakCelebration';
+    modal.className='badge-unlock-celebration twitch-reward-celebration watch-streak-celebration';
+    modal.innerHTML=`<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:38},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#9147ff','#d5aaff','#fff','#65ddff'][i%4]}"></i>`).join('')}</div><div class="badge-unlock-card twitch-reward-card" role="dialog" aria-modal="true" aria-labelledby="watchStreakRewardTitle" aria-describedby="watchStreakRewardCopy">
+      <img class="twitch-reward-glyph" src="/assets/twitch-glyph.svg" alt="">
+      <div class="badge-unlock-kicker">Série de visionnage Twitch</div>
+      <h2 class="badge-unlock-title" id="watchStreakRewardTitle">Félicitations pour ta fidélité !</h2>
+      <p class="twitch-reward-copy" id="watchStreakRewardCopy">Tu as partagé une série de <strong>${count} lives consécutifs</strong> sur Twitch. Tu as débloqué :</p>
+      <div class="twitch-reward-items ${items.length>1?'multiple':''}">${items.map(item=>`<div class="twitch-reward-entry"><div class="watch-streak-gift-icon" aria-hidden="true">${item.includes('XP')?'✨':item.includes('Cash')?'💰':item.includes('œuf')?'🥚':item.includes('fragments')?'🧩':'🎁'}</div><div class="twitch-reward-entry-name"><strong>${escapeHtml(item)}</strong></div></div>`).join('')}</div>
+      <div class="badge-unlock-condition">Retrouve tes objets dans l’inventaire. L’XP et le LoVeR’Cash ont été crédités directement.</div>
+      <button class="badge-unlock-ok" type="button">Super, merci !</button>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('button')?.addEventListener('click',async()=>{
+      modal.querySelector('button').disabled=true;
+      try{
+        const ack=await fetch('/api/watch-streak/notifications/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({count})});
+        if(!ack.ok)throw new Error('Confirmation indisponible.');
+      }catch(error){console.error('Confirmation de série Twitch :',error);}
+      modal.classList.remove('show');
+      setTimeout(()=>modal.remove(),300);
+      watchStreakCelebrationActive=false;
+      scheduleWatchStreakRewardCheck(500);
+      scheduleTwitchRewardCheck(600);
+      setTimeout(showNextBadgeCelebration,350);
+    },{once:true});
+    requestAnimationFrame(()=>modal.classList.add('show'));
+    setTimeout(()=>modal.querySelector('button')?.focus(),260);
+  }catch(error){console.error('Récompense de série Twitch en attente :',error);}
+  finally{watchStreakRewardChecking=false;}
+}
+
 function renderTwitchRewardSummary(modal,rewards,catalog){
   modal.rewardIds=rewards.map(reward=>reward.id);
   const copy=modal.querySelector('#twitchRewardCopy');
@@ -5883,7 +5955,7 @@ function renderTwitchRewardSummary(modal,rewards,catalog){
 async function showPendingTwitchRewards(){
   if(twitchRewardChecking || !me?.user || document.hidden || twitchRewardBlockedByPve())return;
   const accountKey=String(me.user.id||me.user.twitch_id||'');
-  if(!twitchRewardCelebrationActive && (badgeCelebrationActive || document.getElementById('heartGiftCelebration') ||
+  if(!twitchRewardCelebrationActive && (watchStreakRewardChecking || watchStreakCelebrationActive || badgeCelebrationActive || document.getElementById('heartGiftCelebration') ||
       window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning ||
       !$('shopPurchaseSuccessModal')?.classList.contains('hidden') || !$('rewardWheelWinPopup')?.classList.contains('hidden') ||
       document.getElementById('returnSummaryOverlay'))){scheduleTwitchRewardCheck(900);return;}
@@ -5929,6 +6001,7 @@ async function showPendingTwitchRewards(){
       finally{
         setTimeout(()=>modal.remove(),300);
         twitchRewardCelebrationActive=false;
+        scheduleWatchStreakRewardCheck(500);
         setTimeout(showNextBadgeCelebration,350);
       }
     };
@@ -8919,7 +8992,7 @@ async function openDesktopView(view='home'){
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
-  if(view!=='pve')scheduleTwitchRewardCheck();
+  if(view!=='pve'){scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck();}
   const leaderboardBoard=document.querySelector('.global-leaderboard');
   if(view!=='leaderboard'){
     leaderboardBoard?.style.setProperty('display','none','important');
@@ -9497,6 +9570,7 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('connected', () => {
     if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
     scheduleTwitchRewardCheck(1400);
+    scheduleWatchStreakRewardCheck(1700);
   });
   liveUpdates.addEventListener('live-boost-update', () => window.refreshLiveXpBoost?.());
   liveUpdates.addEventListener('connected', () => window.refreshLiveXpBoost?.());
@@ -9514,6 +9588,7 @@ function startLiveUpdates() {
       void refreshLiveGameState();
       if((isDesktopGameUi()&&desktopView==='progression')||!$('progressionModal')?.classList.contains('hidden'))void loadProgression();
       if(!$('inventoryModal')?.classList.contains('hidden'))void loadShop();
+      scheduleWatchStreakRewardCheck(900);
     }catch(error){console.warn('Récompense de série Twitch :',error);}
   });
   liveUpdates.addEventListener('twitch-reward', event => {
@@ -9546,7 +9621,7 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();scheduleTwitchRewardCheck(); }
+  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck(); }
 });
 
 startLiveUpdates();

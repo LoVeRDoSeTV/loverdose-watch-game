@@ -102,3 +102,35 @@ test('le webhook n’accorde un cadeau que pour une notification de série Twitc
     }finally{if(previous===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previous;}
   }finally{await db.close();}
 });
+
+test('la félicitation attend le retour du joueur et ne peut être acquittée que par son compte',async()=>{
+  const db=new PGlite();
+  try{
+    await db.exec(`CREATE TABLE accounts(id integer PRIMARY KEY,twitch_id text UNIQUE);
+      CREATE TABLE users(id integer PRIMARY KEY,twitch_id text UNIQUE,points double precision DEFAULT 0,
+        lifetime_lovercash_earned double precision DEFAULT 0,egg_fragments integer DEFAULT 0,
+        xp double precision DEFAULT 0,pending_xp double precision DEFAULT 0,updated_at timestamptz DEFAULT now());
+      CREATE TABLE user_lovys(id integer PRIMARY KEY,user_id integer,xp double precision DEFAULT 0,
+        is_active boolean DEFAULT false,updated_at timestamptz DEFAULT now());
+      CREATE TABLE shop_inventory(account_id integer,item_key text,quantity integer DEFAULT 1,
+        purchased_at timestamptz DEFAULT now(),PRIMARY KEY(account_id,item_key));
+      INSERT INTO accounts VALUES(1,'viewer'),(2,'other');
+      INSERT INTO users(id,twitch_id) VALUES(1,'viewer'),(2,'other');`);
+    await initWatchStreakRewards(db);
+    await grantSharedWatchStreak(db,{twitchId:'viewer',count:3,messageId:'first-share'});
+    const bot=createGameBot({pool:db,baseUrl:'https://example.com'});
+    const handler=path=>bot.router.stack.find(layer=>layer.route?.path===path).route.stack[0].handle;
+    const response=()=>({set(){return this;},json(value){this.body=value;return this;},sendStatus(code){this.status=code;return this;}});
+    const pending=handler('/watch-streak/notifications/pending');
+    const ack=handler('/watch-streak/notifications/acknowledge');
+    const before=response();await pending({session:{account:{id:1}}},before);
+    assert.deepEqual(before.body.rewards,[{count:3,description:'10 LoVeR’Cash'}]);
+    await ack({session:{account:{id:2}},body:{count:3}},response());
+    const stillPending=response();await pending({session:{account:{id:1}}},stillPending);
+    assert.equal(stillPending.body.rewards.length,1);
+    const confirmed=response();await ack({session:{account:{id:1}},body:{count:3}},confirmed);
+    assert.equal(confirmed.body.acknowledged,1);
+    const after=response();await pending({session:{account:{id:1}}},after);
+    assert.deepEqual(after.body.rewards,[]);
+  }finally{await db.close();}
+});
