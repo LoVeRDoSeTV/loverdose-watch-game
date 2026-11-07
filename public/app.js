@@ -6958,7 +6958,27 @@ async function useXpBottle(){
   finally{xpBottleUseBusy=false;}
 }
 
+let mysteryEggUseBusy = false;
 async function shopAction(url, itemKey, preferredSlot = null) {
+  if (url === '/api/shop/use' && itemKey === 'mystery_egg') {
+    if (mysteryEggUseBusy) return;
+    mysteryEggUseBusy = true;
+    setShopMessage();
+    try {
+      const response = await fetch('/api/incubator/place', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Impossible de placer cet œuf.');
+      await Promise.allSettled([loadIncubatorSlots(), loadShop()]);
+      if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+      if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
+      setShopMessage(`Œuf placé dans l’incubateur ${data.slot} !`, 'ok');
+    } catch (error) {
+      setShopMessage(error.message || 'Impossible de placer cet œuf.', 'error');
+    } finally {
+      mysteryEggUseBusy = false;
+    }
+    return;
+  }
   if(url==='/api/shop/use'&&itemKey==='xp_bottle_100')return useXpBottle();
   if (url === '/api/shop/equip' || url === '/api/shop/unequip') {
     equipCosmeticInstantly(url, itemKey);
@@ -6973,12 +6993,6 @@ async function shopAction(url, itemKey, preferredSlot = null) {
   setShopMessage();
   try {
     let target = {};
-    if(desktopUse && itemKey === 'mystery_egg') {
-      await openDesktopView('incubator');await loadIncubatorSlots();
-      const free = incubatorData?.slots?.find(slot => slot.empty);
-      if(!free)throw new Error('Tous tes emplacements sont occupés. Fais éclore un œuf pour libérer une place.');
-      openIncubatorAddModal(free.slot);return;
-    }
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration(preferredSlot);if(!target)return;}
     else if(url === '/api/shop/use' && ['boost_xp_x2','boost_cash_x2'].includes(itemKey)) {
       await loadShop();

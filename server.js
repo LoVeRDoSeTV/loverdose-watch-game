@@ -6336,8 +6336,8 @@ app.post('/api/incubator/place', async (req, res) => {
   const client = await pool.connect();
   try {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
-    const slot = Number(req.body?.slot);
-    if (![1,2,3].includes(slot)) return res.status(400).json({ error:'Emplacement invalide.' });
+    let slot = req.body?.slot == null ? null : Number(req.body.slot);
+    if (slot !== null && ![1,2,3].includes(slot)) return res.status(400).json({ error:'Emplacement invalide.' });
 
     await client.query('BEGIN');
     const userResult = await client.query(
@@ -6346,6 +6346,13 @@ app.post('/api/incubator/place', async (req, res) => {
     );
     const user = userResult.rows[0];
     if (!user) { await client.query('ROLLBACK'); return res.status(404).json({ error:'Profil introuvable.' }); }
+    if (slot === null) {
+      const occupiedSlots = await client.query(`SELECT slot FROM user_incubator_eggs WHERE user_id=$1`, [user.id]);
+      const taken = new Set(occupiedSlots.rows.map(row => Number(row.slot)));
+      if (!user.creature_id) taken.add(1);
+      slot = [1,2,3].find(candidate => !taken.has(candidate));
+      if (!slot) { await client.query('ROLLBACK'); return res.status(409).json({ error:'Tes 3 incubateurs sont déjà occupés. Attends qu’une place se libère pour utiliser cet œuf.' }); }
+    }
     if (slot === 1 && !user.creature_id) {
       await client.query('ROLLBACK');
       return res.status(400).json({ error:'Le premier emplacement est déjà utilisé par ton œuf de départ.' });
