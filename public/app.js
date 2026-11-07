@@ -9363,12 +9363,12 @@ async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedN
     main.addEventListener('click',async()=>{
       if(state==='working')return;
       if(state!=='confirm'){finish();return;}
-      state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Les objets sont en cours de transfert.';
+      state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Transfert des objets avec '+(partner||'ce joueur')+'…';
       try{
         await submit();committed=true;
         await new Promise(done=>setTimeout(done,1200));
         state='success';card.classList.remove('working');card.classList.add('success');emblem.textContent='✓';
-        overlay.querySelector('#tradeExchangeTitle').textContent=acceptedNotice?'Félicitations !':'Félicitations pour ton échange avec '+(partner||'ce joueur')+' !';
+        overlay.querySelector('#tradeExchangeTitle').textContent='Félicitations pour ton échange avec '+(partner||'ce joueur')+' !';
         status.textContent=acceptedNotice?'Ton offre a été acceptée par '+(partner||'ce joueur')+' ! Les objets ont été transférés.':'Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
         main.textContent='Parfait !';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
         try{await refresh?.();}catch(error){console.warn('Échange confirmé, actualisation différée :',error);}
