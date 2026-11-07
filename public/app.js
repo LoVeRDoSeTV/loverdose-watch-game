@@ -1612,7 +1612,8 @@ function openGameTutorial({ restart = true } = {}) {
 
 function maybeShowGameIntro() {
   if (!shouldShowGameIntro || !me?.user || me.user.creature_id) return;
-  if(isMobileGameUi() && !$('gameIntroModal')?.classList.contains('hidden')) return;
+  const modal = $('gameIntroModal');
+  if (!modal || !modal.classList.contains('hidden')) return;
   openGameTutorial({ restart:true });
 }
 
