@@ -11,6 +11,7 @@
   <path d="M344 424C682 341 828 128 1175 31" stroke="url(#gold)" stroke-opacity=".69" stroke-width="3"/>
   <path d="M560 429C710 324 860 288 1225 273" stroke="#bf89ff" stroke-opacity=".53" stroke-width="3"/>
   <path d="M515 0 860 440M673 0 1020 440" stroke="#d7acf5" stroke-opacity=".1" stroke-width="1"/>
+  <circle cx="916" cy="201" r="139" stroke="#efb85c" stroke-opacity=".68" stroke-width="21" filter="url(#glow)"/>
   <circle cx="916" cy="201" r="139" fill="#180f2d" fill-opacity=".6" stroke="url(#gold)" stroke-width="3"/>
   <circle cx="916" cy="201" r="126" stroke="#e4b76c" stroke-opacity=".32" stroke-width="1"/>
   <path d="M887 116l11 10 18-17 18 17 11-10-7 29h-45z" fill="url(#gold)" opacity=".9"/>

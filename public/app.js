@@ -2115,8 +2115,8 @@ function profileBackgroundValue(key) {
     bg_rose_horizon: 'radial-gradient(circle at 70% 25%,rgba(255,188,236,.22),transparent 26%),linear-gradient(150deg,#482048,#1e1835 58%,#0f162a)',
     bg_sapphire_wave: 'radial-gradient(circle at 26% 74%,rgba(88,179,255,.22),transparent 28%),linear-gradient(150deg,#0b2950,#101f3d 56%,#081223)',
     bg_golden_sunset: 'radial-gradient(circle at 30% 76%,rgba(255,166,76,.32),transparent 28%),radial-gradient(circle at 76% 22%,rgba(255,221,124,.15),transparent 18%),linear-gradient(150deg,#3b1c19,#2e1f39 58%,#141425)',
-    streak_bg_100: 'url("/assets/streak-100.svg?v=628"),linear-gradient(140deg,#261344,#10152c)',
-    streak_bg_250: 'url("/assets/streak-250.svg?v=628"),linear-gradient(135deg,#25142d,#0c1129 62%,#3a2449)',
+    streak_bg_100: 'url("/assets/streak-100.svg?v=630"),linear-gradient(140deg,#261344,#10152c)',
+    streak_bg_250: 'url("/assets/streak-250.svg?v=630"),linear-gradient(135deg,#25142d,#0c1129 62%,#3a2449)',
   };
   return map[key] || 'none';
 }
@@ -2195,10 +2195,27 @@ function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   element.style.boxShadow = frame?.shadow || '';
 }
 
+function streakMotionMarkup(backgroundKey){
+  if(backgroundKey!=='streak_bg_100'&&backgroundKey!=='streak_bg_250')return '';
+  return `<span class="streak-motion-layer" aria-hidden="true">${Array.from({length:5},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span>`;
+}
 function applyProfileCosmetics(element, backgroundKey, frameKey) {
   if (!element) return;
   const twitchBackground = backgroundKey === 'reward_bg_twitch_live';
+  const streakBackground = backgroundKey === 'streak_bg_100' || backgroundKey === 'streak_bg_250';
   element.classList.toggle('twitch-live-background', twitchBackground);
+  element.classList.toggle('streak-100-background',backgroundKey==='streak_bg_100');
+  element.classList.toggle('streak-250-background',backgroundKey==='streak_bg_250');
+  let streakLayer=element.querySelector(':scope > .streak-motion-layer');
+  if(streakBackground&&!streakLayer){
+    streakLayer=document.createElement('span');
+    streakLayer.className='streak-motion-layer';
+    streakLayer.setAttribute('aria-hidden','true');
+    for(let i=0;i<5;i++){
+      const icon=document.createElement('img');icon.src='/assets/twitch-glyph.svg';icon.alt='';streakLayer.append(icon);
+    }
+    element.prepend(streakLayer);
+  }else if(!streakBackground&&streakLayer)streakLayer.remove();
   let logos = element.querySelector(':scope > .twitch-logo-layer');
   if (twitchBackground && !logos) {
     logos = document.createElement('span');
@@ -3503,8 +3520,8 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
     const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};${frame.corner ? `--profile-frame-corner:url("${frame.corner}");` : ''}` : ''}`; };
-    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}${player.cosmetic_background === 'reward_bg_twitch_live' ? ' twitch-live-background' : ''}`;
-    const animatedCardBackground = player => player.cosmetic_background === 'reward_bg_twitch_live' ? `<span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span>` : '';
+    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}${player.cosmetic_background === 'reward_bg_twitch_live' ? ' twitch-live-background' : ''}${player.cosmetic_background === 'streak_bg_100' ? ' streak-100-background' : ''}${player.cosmetic_background === 'streak_bg_250' ? ' streak-250-background' : ''}`;
+    const animatedCardBackground = player => player.cosmetic_background === 'reward_bg_twitch_live' ? `<span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span>` : streakMotionMarkup(player.cosmetic_background);
     const leaderboardBadgesHtml = (player, compact=false) => { const badges = Array.isArray(player.leaderboard_badges) ? player.leaderboard_badges.slice(0, 2) : []; if (!badges.length) return ''; return `<div class="leaderboard-v154-badges${compact ? ' compact' : ''}" aria-label="Badges affichés">${badges.map(badge => { const label = badge.badgeName || 'Badge'; const tooltip = `${label}${badge.badgeChallenge ? ` — ${badge.badgeChallenge}` : ''}`; return `<span class="leaderboard-v154-badge" title="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(label)}">` : '🏅'}</span>`; }).join('')}</div>`; };
     const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card leaderboard-v154-profile-card rank-${rank}${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${players.indexOf(player)}">${animatedCardBackground(player)}<div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-card-content"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${leaderboardBadgesHtml(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></div></button>`; };
     const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row leaderboard-v154-profile-card${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${idx}">${animatedCardBackground(player)}<div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-row-content"><div class="leaderboard-v150-row-rank">${player.excluded_from_ranking ? '🎙️' : rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${player.excluded_from_ranking ? '<div class="leaderboard-v150-title">Rang Streamer · Hors classement</div>' : ''}${playerTitle(player)}${leaderboardBadgesHtml(player, true)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></div></button>`; };
@@ -3643,16 +3660,23 @@ async function loadProgression(){
       if(!reward||!preview)return;
       streakSelectedIndex=index;
       const cosmetic=reward.cosmetic;
-      const nickname=escapeHtml(me?.user?.display_name||me?.user?.username||'Ton pseudo');
-      let visual='<span class="watch-streak-preview-gift" aria-hidden="true">🎁</span>';
-      if(cosmetic?.category==='background')visual=`<div class="watch-streak-preview-profile" style="background-image:${escapeHtml(profileBackgroundValue(cosmetic.key))}"><span class="watch-streak-preview-avatar">${nickname[0]||'L'}</span><strong>${nickname}</strong></div>`;
-      else if(cosmetic?.category==='title')visual=`<div class="watch-streak-preview-profile"><span class="watch-streak-preview-avatar">${nickname[0]||'L'}</span><span><strong>${nickname}</strong><em style="color:${escapeHtml(cosmetic.color||'#d4afff')}">« ${escapeHtml(cosmetic.name)} »</em></span></div>`;
-      else if(cosmetic?.category==='avatar_frame'){
-        const frame=profileAvatarFrameStyle(cosmetic.key);
-        visual=`<div class="watch-streak-preview-frame" style="border-color:${escapeHtml(frame?.border||'#b68aff')};box-shadow:${escapeHtml(frame?.shadow||'none')}">${nickname[0]||'L'}</div>`;
+      let visual='';
+      if(cosmetic){
+        visual=(isDesktopGameUi() ? renderDesktopVisitCardPreview(cosmetic,'watchStreakProfilePreviewCard') : renderShopPreviewVisual(cosmetic).replace('id="shopProfilePreviewCard"','id="watchStreakProfilePreviewCard"'));
+      }else{
+        visual=`<div class="shop-preview-object-stage"><div class="shop-preview-object-large" aria-hidden="true">${reward.description?.includes('œuf')?'🥚':reward.description?.includes('XP')?'✨':reward.description?.includes('fragments')?'🧩':'💰'}</div><div class="shop-preview-object-title">${Number(reward.count)} lives consécutifs</div></div>`;
       }
       const rewards=String(reward.description||'Récompense').replace('Fiole Double XP · ','Fiole Double XP — ').split(' · ');
       preview.innerHTML=`<div class="watch-streak-preview-art">${visual}</div><div class="watch-streak-preview-info"><span class="watch-streak-eyebrow">APERÇU DU PALIER · ${Number(reward.count)} LIVES</span><h4>${cosmetic?escapeHtml(cosmetic.name):'Ta récompense'}</h4><div class="watch-streak-preview-list">${rewards.map(text=>`<span>${escapeHtml(text)}</span>`).join('')}</div><p>${reward.claimedAt?'✓ Déjà reçu':`Partage ta série de ${Number(reward.count)} lives dans le chat Twitch pour la recevoir.`}</p></div>`;
+      const previewCard=preview.querySelector('#watchStreakProfilePreviewCard');
+      if(previewCard&&cosmetic){
+        applyProfileCosmetics(previewCard,cosmetic.category==='background'?cosmetic.key:me?.user?.cosmetic_background,
+          cosmetic.category==='frame'?cosmetic.key:me?.user?.cosmetic_frame);
+        applyAvatarFrameCosmetics(previewCard.querySelector('.shop-profile-preview-avatar'),
+          cosmetic.category==='avatar_frame'?cosmetic.key:me?.user?.cosmetic_avatar_frame);
+        const note=previewCard.querySelector('.shop-profile-preview-note');
+        if(note)note.textContent='Aperçu de la récompense de série Twitch.';
+      }
       $('watchStreakRewards')?.querySelectorAll('[data-streak-index]').forEach(card=>{card.setAttribute('aria-pressed',String(Number(card.dataset.streakIndex)===index));});
     };
     const showStreakPage=page=>{
@@ -5589,7 +5613,7 @@ function openPlayerProfile(playerData) {
   const globalXp = Math.floor(Number(playerData.global_xp || 0));
   const creatureXp = Math.floor(Number(playerData.xp || 0));
 
-  content.innerHTML = `<div id="playerProfileHero" class="player-profile-hero" style="--profile-card-image:${escapeHtml(cardBg)};${cardFrame ? `border-color:${escapeHtml(cardFrame.border)};box-shadow:${escapeHtml(cardFrame.shadow)};` : ''}"><div class="player-profile-hero-inner"><div id="playerProfileAvatar" class="player-profile-avatar">${avatarHtml}</div><div class="player-profile-identity"><div class="player-profile-name">${escapeHtml(playerData.display_name || 'Joueur')}</div>${titleHtml}<div class="player-profile-rank">${playerData.excluded_from_ranking ? 'Hors classement' : `Rang #${Number(playerData.rank) || '—'}`} · ${playerData.is_sub ? '⭐ Abonné Twitch' : 'Viewer'}</div></div></div></div>
+  content.innerHTML = `<div id="playerProfileHero" class="player-profile-hero${playerData.cosmetic_background==='streak_bg_100'?' streak-100-background':playerData.cosmetic_background==='streak_bg_250'?' streak-250-background':''}" style="--profile-card-image:${escapeHtml(cardBg)};${cardFrame ? `border-color:${escapeHtml(cardFrame.border)};box-shadow:${escapeHtml(cardFrame.shadow)};` : ''}">${streakMotionMarkup(playerData.cosmetic_background)}<div class="player-profile-hero-inner"><div id="playerProfileAvatar" class="player-profile-avatar">${avatarHtml}</div><div class="player-profile-identity"><div class="player-profile-name">${escapeHtml(playerData.display_name || 'Joueur')}</div>${titleHtml}<div class="player-profile-rank">${playerData.excluded_from_ranking ? 'Hors classement' : `Rang #${Number(playerData.rank) || '—'}`} · ${playerData.is_sub ? '⭐ Abonné Twitch' : 'Viewer'}</div></div></div></div>
   <div class="player-profile-stats">
     <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau global</div><div class="player-profile-stat-value">${globalLevel}</div></div>
     <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau Lovys</div><div class="player-profile-stat-value">${creatureLevel}</div></div>
@@ -5912,7 +5936,7 @@ function shopSuccessLabel(url, itemKey, fallback) {
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
   if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"><span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span></div>`;
-  if (item.key === 'streak_bg_100' || item.key === 'streak_bg_250') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover;background-position:center"></div>`;
+  if (item.key === 'streak_bg_100' || item.key === 'streak_bg_250') return `<div class="shop-item-preview shop-preview-bg ${item.key==='streak_bg_100'?'streak-100-background':'streak-250-background'}" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover;background-position:center">${streakMotionMarkup(item.key)}</div>`;
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);
