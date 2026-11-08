@@ -170,6 +170,9 @@ test('la hausse des prix Twitch ne remplace pas un prix déjà personnalisé',as
         patches.push({id:new URL('https://twitch.invalid'+_url).searchParams.get('id'),cost:JSON.parse(options.body).cost});return {data:[]};
       },getBroadcasterAccount:async()=>null});
     await rewards.setup();
-    assert.deepEqual(patches,[{id:'twitch_cash_bag',cost:1500},{id:'twitch_egg',cost:3000},{id:'twitch_double_xp',cost:3500}]);
+    assert.deepEqual(patches,[{id:'twitch_cash_bag',cost:1500},{id:'twitch_egg',cost:3000},{id:'twitch_double_xp',cost:1800}]);
+    costs.twitch_double_xp=3500;patches.length=0;
+    await rewards.setup();
+    assert.deepEqual(patches,[{id:'twitch_cash_bag',cost:1500},{id:'twitch_egg',cost:3000},{id:'twitch_double_xp',cost:1800}]);
   }finally{globalThis.fetch=previousFetch;if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
 });
