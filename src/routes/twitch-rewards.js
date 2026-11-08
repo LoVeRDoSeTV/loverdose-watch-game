@@ -11,7 +11,9 @@ const REWARDS = [
   {key:'twitch_cash_suitcase', name:"Valise de LoVeR'Cash · 150", category:'object', icon:'🧳', title:"LoVeR Watch · Valise de LoVeR'Cash", cost:3800, prompt:"150 LoVeR'Cash crédités sur ton compte lié au jeu. Le meilleur rendement des récompenses cash. Rachetable.", repeatable:true, cashAmount:150},
   {key:'twitch_xp_bag', name:'Sac d’XP · 300', category:'object', icon:'🧪', title:'LoVeR Watch · Sac d’XP', cost:2500, legacyCost:1000, prompt:'3 fioles de 100 XP Lovys pour ton compte lié au jeu. Rachetable.', repeatable:true},
   {key:'twitch_egg', name:'Œuf mystère', category:'object', icon:'🥚', title:'LoVeR Watch · Œuf mystère', cost:3000, legacyCost:1500, prompt:'1 œuf mystère pour ton compte lié au jeu. Rachetable.', repeatable:true},
-  {key:'twitch_double_xp', name:'Double XP · 2 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 2 h de live', cost:1800, legacyCost:[2000,3500], prompt:'Booster XP ×2 : 2 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true}
+  {key:'twitch_double_xp', name:'Double XP · 2 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 2 h de live', cost:1800, legacyCost:[2000,3500], prompt:'Booster XP ×2 : 2 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true, inventoryKey:'boost_xp_x2'},
+  {key:'twitch_double_xp_5h', name:'Double XP · 5 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 5 h de live', cost:4000, prompt:'Booster XP ×2 : 5 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true, inventoryKey:'boost_xp_x2_5h'},
+  {key:'twitch_double_xp_10h', name:'Double XP · 10 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 10 h de live', cost:7000, prompt:'Booster XP ×2 : 10 h de présence comptabilisée en live. Meilleur rendement. Temps suspendu hors live. Compte lié. Rachetable.', repeatable:true, inventoryKey:'boost_xp_x2_10h'}
 ];
 export const twitchRewardCount=REWARDS.length;
 
@@ -184,7 +186,7 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
               const credited=await client.query('UPDATE users SET points=points+$2,lifetime_lovercash_earned=lifetime_lovercash_earned+$2,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',[event.user_id,reward.cashAmount]);
               if(!credited.rowCount)decision='refund';
             }else{
-              const itemKey=reward.key==='twitch_xp_bag'?'xp_bottle_100':reward.key==='twitch_egg'?'mystery_egg':reward.key==='twitch_double_xp'?'boost_xp_x2':reward.key;
+              const itemKey=reward.key==='twitch_xp_bag'?'xp_bottle_100':reward.key==='twitch_egg'?'mystery_egg':reward.inventoryKey||reward.key;
               const quantity=reward.key==='twitch_xp_bag'?3:1;
               await client.query('INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$2,$3) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$3,purchased_at=CURRENT_TIMESTAMP',[account.id,itemKey,quantity]);
             }

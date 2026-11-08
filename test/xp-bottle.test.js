@@ -12,7 +12,7 @@ async function quantity(){return Number((await client.query("SELECT quantity FRO
 test.before(async()=>{
  db=new PGlite();client={query:async(sql,args=[])=>{const r=await db.query(sql,args);return {...r,rowCount:r.rows.length||r.affectedRows||0};},release(){}};
  await db.exec(`CREATE TABLE users(id int PRIMARY KEY,twitch_id text,creature_id text,points double precision,lifetime_lovercash_spent double precision DEFAULT 0,pending_xp double precision,xp double precision,global_xp double precision,watch_seconds int,updated_at timestamptz);
- CREATE TABLE shop_inventory(account_id int,item_key text,quantity int,purchased_at timestamptz,PRIMARY KEY(account_id,item_key));CREATE TABLE history(entry jsonb);`);
+ CREATE TABLE shop_inventory(account_id int,item_key text,quantity int,purchased_at timestamptz,PRIMARY KEY(account_id,item_key));CREATE TABLE history(entry jsonb); CREATE TABLE user_active_boosts(user_id int,boost_key text,expires_at timestamptz,starts_at timestamptz,remaining_live_seconds double precision,PRIMARY KEY(user_id,boost_key));`);
  context=vm.createContext({console:{warn(){},error(){}},pool:{connect:async()=>client},economyWriteRateLimit(){},app:{post:(path,...handlers)=>routes.set(path,handlers.at(-1))},pushLiveUpdate(){},
  recordPlayerHistory:async(c,entry)=>{if(historyFails)throw Error('History interrupted');await c.query('INSERT INTO history VALUES($1::jsonb)',[JSON.stringify(entry)]);},
  wizebotAlerts:{collect:async()=>{if(notificationsFail)throw Error('Notification offline');}}});
@@ -24,7 +24,7 @@ test.before(async()=>{
  }
 });
 test.after(async()=>{await db?.close()});
-test.beforeEach(async()=>{historyFails=false;notificationsFail=false;await db.exec(`DELETE FROM users;DELETE FROM shop_inventory;DELETE FROM history;INSERT INTO users VALUES(1,'player','plant',1000,0,7,500,20,1234,NULL);`)});
+test.beforeEach(async()=>{historyFails=false;notificationsFail=false;await db.exec(`DELETE FROM user_active_boosts;DELETE FROM users;DELETE FROM shop_inventory;DELETE FROM history;INSERT INTO users VALUES(1,'player','plant',1000,0,7,500,20,1234,NULL);`)});
 
 test('bottle is a repeatable consumable with a server-controlled price and XP amount',async()=>{
  const item=vm.runInContext("shopItemByKey('xp_bottle_100')",context);assert.equal(item.category,'object');assert.equal(item.price,120);assert.equal(item.xpAmount,100);assert.equal(item.consumable,true);
@@ -72,3 +72,16 @@ test('a 500 XP gourd costs less than five bottles and credits the bank once per 
  const remaining=(await client.query("SELECT quantity FROM shop_inventory WHERE account_id=1 AND item_key='xp_gourd_500'")).rows[0].quantity;
  assert.equal(remaining,0);
 });
+
+ test('XP boosts add live hours to one x2 counter and consume only their own variant',async()=>{
+  await client.query('UPDATE users SET points=5000 WHERE id=1');
+  let seconds=0;
+  for(const [key,hours,price] of [['boost_xp_x2',2,150],['boost_xp_x2_5h',5,330],['boost_xp_x2_10h',10,600]]){
+   const bought=await call('/api/shop/buy',{itemKey:key,quantity:2});assert.equal(bought.statusCode,200);assert.equal(bought.body.totalCost,price*2);
+   const used=await call('/api/shop/use',{itemKey:key,quantity:2,liveHours:999});seconds+=hours*2*3600;
+   assert.equal(used.statusCode,200,JSON.stringify(used.body));assert.equal(used.body.xpBoostRemainingSeconds,seconds);
+   assert.equal((await client.query('SELECT quantity FROM shop_inventory WHERE item_key=$1',[key])).rows[0].quantity,0);
+  }
+  const rows=(await client.query('SELECT * FROM user_active_boosts')).rows;assert.equal(rows.length,1);assert.equal(rows[0].boost_key,'boost_xp_x2');assert.equal(rows[0].expires_at,null);
+  assert.equal((await user()).xp,500);assert.equal((await user()).global_xp,20);assert.equal((await user()).watch_seconds,1234);
+ });

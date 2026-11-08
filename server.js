@@ -770,7 +770,9 @@ const SHOP_ITEMS = [
   {"key":"title_etincelle_nocturne","category":"title","subcategory":"violet","name":"Étincelle nocturne","price":200,"color":"#c1b7f2","collection":"atelier","description":"Un titre cosmétique pour personnaliser ta carte de visite."},
   { key:'xp_bottle_100', category:'object', name:'Bouteille d’XP · 100 XP', price:120, icon:'🧪', description:'Ajoute 100 XP Lovys à ta réserve. Utilise la bouteille dans ton inventaire, puis choisis le Lovys qui recevra cette XP.', consumable:true, xpAmount:100 },
   { key:'xp_gourd_500', category:'object', name:'Gourde d’XP · 500 XP', price:500, icon:'🫙', description:'Ajoute 500 XP Lovys à ta réserve. Économise 100 LoVeR’Cash par rapport à cinq fioles de 100 XP.', consumable:true, xpAmount:500 },
-  { key:'boost_xp_x2', category:'object', name:'Booster XP x2', price:150, icon:'⚡', description:'Double l’XP du Lovy actif pendant 2 h de présence comptabilisée sur le live. Le temps restant ne diminue pas hors live.', consumable:true },
+  { key:'boost_xp_x2', category:'object', name:'Double XP · 2 h de live', price:150, icon:'⚡', description:'Double l’XP du Lovy actif pendant 2 h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live.', consumable:true, liveHours:2 },
+  { key:'boost_xp_x2_5h', category:'object', name:'Double XP · 5 h de live', price:330, icon:'⚡', description:'Double l’XP du Lovy actif pendant 5 h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live. Économise 12 % par heure par rapport au format 2 h.', consumable:true, liveHours:5 },
+  { key:'boost_xp_x2_10h', category:'object', name:'Double XP · 10 h de live', price:600, icon:'⚡', description:'Double l’XP du Lovy actif pendant 10 h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live. Meilleur rendement : économise 20 % par heure par rapport au format 2 h.', consumable:true, liveHours:10 },
   { key:'boost_cash_x2', category:'object', name:"Booster LoVeR'Cash x2", price:0, icon:'💰', description:"Récompense de la roue bonus : double le LoVeR'Cash gagné pendant 1 heure de live.", consumable:true, rewardOnly:true },
   { key:'incubator_skip_30', category:'object', name:'Accélérateur 30 min', price:120, icon:'⏱️', description:'Retire jusqu’à 30 minutes au temps restant de l’œuf de ton choix.', consumable:true },
   { key:'mystery_egg', category:'object', name:'Œuf mystère', price:200, icon:'🥚', description:'Un œuf supplémentaire à placer dans un emplacement libre de l’incubateur.', consumable:true }
@@ -1510,9 +1512,9 @@ async function initDatabase() {
   )`);
   await pool.query(`CREATE INDEX IF NOT EXISTS trade_offer_options_offer_idx ON trade_offer_options(offer_id, position)`);
   await pool.query(`ALTER TABLE trade_offers DROP CONSTRAINT IF EXISTS trade_offers_offer_type_check,
-    ADD CONSTRAINT trade_offers_offer_type_check CHECK (offer_type IN ('fragment','egg','xp_bottle','xp_gourd','xp_boost'))`);
+    ADD CONSTRAINT trade_offers_offer_type_check CHECK (offer_type IN ('fragment','egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'))`);
   await pool.query(`ALTER TABLE trade_offer_options DROP CONSTRAINT IF EXISTS trade_offer_options_receive_type_check,
-    ADD CONSTRAINT trade_offer_options_receive_type_check CHECK (receive_type IN ('fragment','egg','xp_bottle','xp_gourd','xp_boost'))`);
+    ADD CONSTRAINT trade_offer_options_receive_type_check CHECK (receive_type IN ('fragment','egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'))`);
   // Échanges ciblés : tous les éléments des deux lots sont transférés ensemble.
   await pool.query(`CREATE TABLE IF NOT EXISTS player_trade_offers (
     id BIGSERIAL PRIMARY KEY,
@@ -6775,7 +6777,7 @@ app.post('/api/shop/use', async (req, res) => {
     const key = String(req.body?.itemKey || '').trim();
     const item = shopItemByKey(key);
     if (key === 'mystery_egg') return res.status(400).json({ error:'Place cet œuf dans un emplacement libre de l’incubateur.' });
-    if (!item || !['boost_xp_x2','boost_cash_x2','incubator_skip_30','xp_bottle_100','xp_gourd_500'].includes(key) || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
+    if (!item || !['boost_xp_x2','boost_xp_x2_5h','boost_xp_x2_10h','boost_cash_x2','incubator_skip_30','xp_bottle_100','xp_gourd_500'].includes(key) || item.category !== 'object' || item.comingSoon) return res.status(400).json({ error:'Objet non utilisable.' });
 
     await client.query('BEGIN');
     const userResult = await client.query(`SELECT id, creature_id, watch_seconds FROM users WHERE twitch_id=$1 FOR UPDATE`, [req.session.user.twitchId]);
@@ -6802,23 +6804,23 @@ app.post('/api/shop/use', async (req, res) => {
       const result=await client.query('UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1 RETURNING pending_xp',[user.id,xpGranted]);
       pendingXp=Number(result.rows[0].pending_xp);
       message=`+${xpGranted} XP Lovys ajoutées à ta réserve. Choisis ensuite le Lovys qui les recevra.`;
-    } else if (key === 'boost_xp_x2') {
+    } else if (item.liveHours) {
       if (!user.creature_id) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error:'Le booster XP sera utile après l’éclosion de ton œuf.' });
       }
       const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id,boost_key,expires_at,starts_at,remaining_live_seconds)
-         VALUES ($1,$2,NULL,CURRENT_TIMESTAMP,$3::double precision*7200)
+         VALUES ($1,$2,NULL,CURRENT_TIMESTAMP,$3::double precision*3600)
          ON CONFLICT (user_id,boost_key) DO UPDATE SET
            starts_at=CASE WHEN COALESCE(user_active_boosts.remaining_live_seconds,0)>0 THEN user_active_boosts.starts_at ELSE CURRENT_TIMESTAMP END,
-           remaining_live_seconds=GREATEST(0,COALESCE(user_active_boosts.remaining_live_seconds,0))+$3::double precision*7200,
+           remaining_live_seconds=GREATEST(0,COALESCE(user_active_boosts.remaining_live_seconds,0))+$3::double precision*3600,
            expires_at=NULL
          RETURNING remaining_live_seconds`,
-        [user.id,key,requestedQuantity]
+        [user.id,'boost_xp_x2',requestedQuantity*item.liveHours]
       );
       xpBoostRemainingSeconds=Number(boostResult.rows[0]?.remaining_live_seconds||0);
-      message=`Booster XP x2 : ${requestedQuantity*2} h de présence comptabilisée sur le live ajoutées. Le compteur ne diminue pas hors live.`;
+      message=`Booster XP x2 : ${requestedQuantity*item.liveHours} h de présence comptabilisée sur le live ajoutées. Le compteur ne diminue pas hors live.`;
     } else if (key === 'boost_cash_x2') {
       const boostResult = await client.query(
         `INSERT INTO user_active_boosts (user_id, boost_key, expires_at, starts_at)
@@ -6897,11 +6899,13 @@ function tradeCreatureImage(creatureId){
   return file?'/'+file:null;
 }
 
+function tradeBoostHours(type){return ({xp_boost:2,xp_boost_5h:5,xp_boost_10h:10})[type]||0;}
+
 function normalizeTradeAsset(raw = {}) {
   const type = String(raw.type || '').trim().toLowerCase();
   const quantity = raw.quantity;
   if(!Number.isSafeInteger(quantity)||quantity<1||quantity>TRADE_MAX_QUANTITY)return null;
-  if (!['fragment', 'egg', 'xp_bottle','xp_gourd','xp_boost'].includes(type) || quantity < 1) return null;
+  if (!['fragment', 'egg', 'xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(type) || quantity < 1) return null;
   if (type !== 'fragment') return { type, creatureId:null, quantity };
   const creatureId = String(raw.creatureId || '').trim();
   if (!creatures.some(creature => creature.id === creatureId)) return null;
@@ -6925,7 +6929,7 @@ async function tradeContext(client, req) {
 
 async function tradeAssetBalance(client, ctx, asset, lock=false) {
   if (asset.type !== 'fragment') {
-    const itemKey={egg:'mystery_egg',xp_bottle:'xp_bottle_100',xp_gourd:'xp_gourd_500',xp_boost:'boost_xp_x2'}[asset.type];
+    const itemKey={egg:'mystery_egg',xp_bottle:'xp_bottle_100',xp_gourd:'xp_gourd_500',xp_boost:'boost_xp_x2',xp_boost_5h:'boost_xp_x2_5h',xp_boost_10h:'boost_xp_x2_10h'}[asset.type];
     const result = await client.query(
       `SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2${lock?' FOR UPDATE':''}`,
       [ctx.accountId,itemKey]
@@ -6943,7 +6947,7 @@ async function changeTradeAsset(client, ctx, asset, delta) {
   const amount = Math.abs(Number(delta || 0));
   if (!amount) return;
   if (asset.type !== 'fragment') {
-    const itemKey={egg:'mystery_egg',xp_bottle:'xp_bottle_100',xp_gourd:'xp_gourd_500',xp_boost:'boost_xp_x2'}[asset.type];
+    const itemKey={egg:'mystery_egg',xp_bottle:'xp_bottle_100',xp_gourd:'xp_gourd_500',xp_boost:'boost_xp_x2',xp_boost_5h:'boost_xp_x2_5h',xp_boost_10h:'boost_xp_x2_10h'}[asset.type];
     if (delta < 0) {
       const result = await client.query(
         `UPDATE shop_inventory SET quantity=quantity-$2
@@ -6994,7 +6998,7 @@ async function restoreExpiredTrades(client=pool) {
 
 function tradeAssetJson(type, creatureId, quantity) {
   const creature=creatures.find(c=>c.id===creatureId);
-  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='xp_bottle'?'Fiole de 100 XP':type==='xp_gourd'?'Gourde de 500 XP':type==='xp_boost'?'Double XP · 2 h de live':type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='xp_bottle'?'🧪':type==='xp_gourd'?'🫙':type==='xp_boost'?'⚡':type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?tradeCreatureImage(creatureId):null};
+  return {type,creatureId:creatureId||null,quantity:Number(quantity||0),name:type==='xp_bottle'?'Fiole de 100 XP':type==='xp_gourd'?'Gourde de 500 XP':tradeBoostHours(type)?`Double XP · ${tradeBoostHours(type)} h de live`:type==='egg'?'Œuf mystère':`Fragments ${tradeCreatureName(creatureId)}`,icon:type==='xp_bottle'?'🧪':type==='xp_gourd'?'🫙':tradeBoostHours(type)?'⚡':type==='egg'?'🥚':'🧩',rarity:creature?.rarity||null,image:type==='fragment'&&creature?tradeCreatureImage(creatureId):null};
 }
 
 function normalizePlayerTradeBundle(raw) {
@@ -7055,10 +7059,10 @@ app.get('/api/lobby/players/:userId', async (req,res)=>{
       pool.query(`SELECT COUNT(*)::int count FROM user_incubator_eggs WHERE user_id=$1`,[userId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_bottle_100'`,[player.accountId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_gourd_500'`,[player.accountId]),
-      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='boost_xp_x2'`,[player.accountId])
+      pool.query(`SELECT item_key,quantity FROM shop_inventory WHERE account_id=$1 AND item_key IN ('boost_xp_x2','boost_xp_x2_5h','boost_xp_x2_10h')`,[player.accountId])
     ]);
     res.json({ok:true,selfUserId:ctx.userId,player:{userId:player.userId,username:player.username,level:player.level,profileImageUrl:player.profileImageUrl},
-      xpBottles:Number(bottles.rows[0]?.quantity||0),xpGourds:Number(gourds.rows[0]?.quantity||0),xpBoosts:Number(boosts.rows[0]?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),incubatingEggs:Number(incubating.rows[0]?.count||0)+(player.hasStarterEgg?1:0),totalLovys:creatures.length,
+      xpBottles:Number(bottles.rows[0]?.quantity||0),xpGourds:Number(gourds.rows[0]?.quantity||0),xpBoosts:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2')?.quantity||0),xpBoosts5h:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2_5h')?.quantity||0),xpBoosts10h:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2_10h')?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),incubatingEggs:Number(incubating.rows[0]?.count||0)+(player.hasStarterEgg?1:0),totalLovys:creatures.length,
       lovys:owned.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),image:tradeCreatureImage(row.creature_id),
         fragments:Number(row.fragments||0),rank:Number(row.rank||1),level:progressionFromXp(Number(row.xp||0)).level,
         rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null}))});
@@ -7102,7 +7106,7 @@ app.post('/api/player-trades',tradeWriteRateLimit,async(req,res)=>{
       (SELECT COUNT(*) FROM player_trade_offers WHERE creator_user_id=$1 AND status='open'))::int count`,[ctx.userId]);
     if(Number(active.rows[0]?.count||0)>=TRADE_MAX_ACTIVE)throw new Error(`Tu peux avoir au maximum ${TRADE_MAX_ACTIVE} offres actives, publiques ou ciblées.`);
     for(const asset of requested) {
-      if(await tradeAssetBalance(client,target,asset,true)<asset.quantity)throw new Error(`${target.username} ne possède plus assez de ${asset.type==='xp_bottle'?'fioles d’XP':asset.type==='xp_gourd'?'gourdes d’XP':asset.type==='xp_boost'?'boosters XP':asset.type==='egg'?'œufs':`fragments ${tradeCreatureName(asset.creatureId)}`}.`);
+      if(await tradeAssetBalance(client,target,asset,true)<asset.quantity)throw new Error(`${target.username} ne possède plus assez de ${asset.type==='xp_bottle'?'fioles d’XP':asset.type==='xp_gourd'?'gourdes d’XP':tradeBoostHours(asset.type)?'boosters XP':asset.type==='egg'?'œufs':`fragments ${tradeCreatureName(asset.creatureId)}`}.`);
       if(asset.type==='fragment'&&await tradeAssetBalance(client,creator,asset,true)===null)throw new Error(`Tu dois posséder ${tradeCreatureName(asset.creatureId)} pour recevoir ses fragments.`);
     }
     for(const asset of offered) {
@@ -7187,9 +7191,9 @@ app.get('/api/trades/inventory',async(req,res)=>{
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='mystery_egg'`,[ctx.accountId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_bottle_100'`,[ctx.accountId]),
       pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='xp_gourd_500'`,[ctx.accountId]),
-      pool.query(`SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key='boost_xp_x2'`,[ctx.accountId])
+      pool.query(`SELECT item_key,quantity FROM shop_inventory WHERE account_id=$1 AND item_key IN ('boost_xp_x2','boost_xp_x2_5h','boost_xp_x2_10h')`,[ctx.accountId])
     ]);
-    res.json({ok:true,xpBottles:Number(bottles.rows[0]?.quantity||0),xpGourds:Number(gourds.rows[0]?.quantity||0),xpBoosts:Number(boosts.rows[0]?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:tradeCreatureImage(row.creature_id)})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:tradeCreatureImage(c.id)}))});
+    res.json({ok:true,xpBottles:Number(bottles.rows[0]?.quantity||0),xpGourds:Number(gourds.rows[0]?.quantity||0),xpBoosts:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2')?.quantity||0),xpBoosts5h:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2_5h')?.quantity||0),xpBoosts10h:Number(boosts.rows.find(r=>r.item_key==='boost_xp_x2_10h')?.quantity||0),eggs:Number(eggs.rows[0]?.quantity||0),lovys:lovys.rows.map(row=>({creatureId:row.creature_id,name:tradeCreatureName(row.creature_id),fragments:Number(row.fragments||0),rank:Number(row.rank||1),rarity:creatures.find(c=>c.id===row.creature_id)?.rarity||null,image:tradeCreatureImage(row.creature_id)})),catalog:creatures.map(c=>({creatureId:c.id,name:c.name,rarity:c.rarity,image:tradeCreatureImage(c.id)}))});
   }catch(error){console.error('Erreur inventaire échanges :',error);res.status(500).json({error:"Impossible de charger l'inventaire d'échange."});}
 });
 
@@ -7279,7 +7283,7 @@ app.get('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(p
 app.post('/api/trades/wishes',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const id=String(req.body?.creatureId||'');if(!creatures.some(c=>c.id===id))return res.status(400).json({error:'Lovys invalide.'});if(req.body?.wanted)await pool.query(`INSERT INTO trade_wishes(user_id,creature_id) VALUES($1,$2) ON CONFLICT DO NOTHING`,[ctx.userId,id]);else await pool.query(`DELETE FROM trade_wishes WHERE user_id=$1 AND creature_id=$2`,[ctx.userId,id]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de modifier le souhait.'});}});
 
 
-app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='xp_gourd'?'gourde(s) d’XP':x.offer_type==='xp_boost'?'booster(s) double XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='xp_gourd'?'gourde(s) d’XP':x.offer_type==='xp_boost'?'booster(s) double XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
+app.get('/api/trades/activity',async(req,res)=>{try{if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT o.id,o.status,o.created_at,o.accepted_at,COALESCE(a.username,u.display_name,u.login) creator_name,o.offer_type,o.offer_creature_id,o.offer_quantity,COALESCE(aa.username,au.display_name,au.login) accepted_by_name FROM trade_offers o JOIN users u ON u.id=o.creator_user_id LEFT JOIN accounts a ON a.twitch_id=u.twitch_id LEFT JOIN users au ON au.id=o.accepted_by_user_id LEFT JOIN accounts aa ON aa.twitch_id=au.twitch_id WHERE o.created_at>=CURRENT_TIMESTAMP-INTERVAL '7 days' AND (o.status='completed' OR (o.status='open' AND o.expires_at>CURRENT_TIMESTAMP)) ORDER BY COALESCE(o.accepted_at,o.created_at) DESC LIMIT 12`);res.json({ok:true,items:q.rows.map(x=>({id:Number(x.id),status:x.status,at:x.accepted_at||x.created_at,text:x.status==='completed'?`Offre de ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='xp_gourd'?'gourde(s) d’XP':tradeBoostHours(x.offer_type)?'booster(s) double XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`} de ${x.creator_name||'un joueur'} acceptée${x.accepted_by_name?` par ${x.accepted_by_name}`:''}.`:`${x.creator_name||'Un joueur'} propose ${Number(x.offer_quantity)} ${x.offer_type==='xp_bottle'?'fiole(s) d’XP':x.offer_type==='xp_gourd'?'gourde(s) d’XP':tradeBoostHours(x.offer_type)?'booster(s) double XP':x.offer_type==='egg'?'œuf(s)':`fragments de ${tradeCreatureName(x.offer_creature_id)}`}.`}))});}catch(e){res.status(500).json({error:'Activité indisponible.'});}});
 app.get('/api/trades/notifications',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});const q=await pool.query(`SELECT id,message,event_type,created_at,read_at FROM trade_notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT 20`,[ctx.userId]);res.json({ok:true,unread:q.rows.filter(x=>!x.read_at).length,items:q.rows});}catch(e){res.status(500).json({error:'Notifications indisponibles.'});}});
 app.post('/api/trades/notifications/read',async(req,res)=>{try{const ctx=await tradeContext(pool,req);if(!ctx)return res.status(401).json({error:'Connexion requise.'});await pool.query(`UPDATE trade_notifications SET read_at=CURRENT_TIMESTAMP WHERE user_id=$1 AND read_at IS NULL`,[ctx.userId]);res.json({ok:true});}catch(e){res.status(500).json({error:'Impossible de marquer les notifications.'});}});
 

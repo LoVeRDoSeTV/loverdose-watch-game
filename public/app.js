@@ -1,3 +1,5 @@
+function xpBoostLiveHours(key){return ({boost_xp_x2:2,boost_xp_x2_5h:5,boost_xp_x2_10h:10})[key]||0;}
+function tradeBoostHours(type){return ({xp_boost:2,xp_boost_5h:5,xp_boost_10h:10})[type]||0;}
 // Même seuil tactile que les styles : navigation mobile sur téléphone et tablette.
 const TABLET_GAME_MEDIA = '(max-width:1366px) and (hover:none) and (pointer:coarse)';
 const MOBILE_GAME_MEDIA = `(max-width:900px), ${TABLET_GAME_MEDIA}`;
@@ -6458,7 +6460,7 @@ function renderShop() {
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
-    const xpBoostSeconds = item.key === 'boost_xp_x2' ? Number(shopData.xpBoostRemainingSeconds || 0) : 0;
+    const xpBoostSeconds = xpBoostLiveHours(item.key) ? Number(shopData.xpBoostRemainingSeconds || 0) : 0;
     const activeText = isMobileGameUi() && xpBoostSeconds > 0
       ? `<div class="shop-owned">XP ×2 · encore ${formatBoostRemainingTime(xpBoostSeconds*1000)} de présence en live</div>`
       : isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
@@ -6867,15 +6869,15 @@ function showDesktopBoostAccepted(itemKey, data) {
   if (!isDesktopGameUi()) return;
   desktopBoostAcceptedClose?.();
   const acceleration = data.acceleration;
-  const title = itemKey === 'boost_xp_x2' ? '⚡ Double XP activé !'
+  const title = xpBoostLiveHours(itemKey) ? '⚡ Double XP activé !'
     : itemKey === 'boost_cash_x2' ? '💰 Double LoVeR’Cash activé !' : '⏱️ Œuf accéléré !';
-  const copy = itemKey === 'boost_xp_x2' ? 'Ton Lovy actif gagne deux fois plus d’XP pendant 2 h de présence comptabilisée sur le live. Hors live, le compteur ne diminue pas.'
+  const copy = xpBoostLiveHours(itemKey) ? `Ton Lovy actif gagne deux fois plus d’XP pendant ${xpBoostLiveHours(itemKey)} h de présence comptabilisée sur le live. Hors live, le compteur ne diminue pas.`
     : itemKey === 'boost_cash_x2' ? 'Tu gagnes deux fois plus de LoVeR’Cash pendant tes heures de présence en live.'
     : data.message || 'Le temps d’incubation a été réduit.';
   const until = Date.parse(data.boostExpiresAt);
   const hours = Number(data.quantity || 1);
   const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
-    : itemKey === 'boost_xp_x2' ? `${hours*2} heures de live ajoutées · encore ${formatBoostRemainingTime(Number(data.xpBoostRemainingSeconds||0)*1000)} de présence créditée`
+    : xpBoostLiveHours(itemKey) ? `${hours*xpBoostLiveHours(itemKey)} heures de live ajoutées · encore ${formatBoostRemainingTime(Number(data.xpBoostRemainingSeconds||0)*1000)} de présence créditée`
     : Number.isFinite(until) ? `${hours} heure${hours>1?'s':''} ajoutée${hours>1?'s':''} · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : `Durée ajoutée : ${hours} heure${hours>1?'s':''}`;
   const previousFocus = document.activeElement;
   const overlay = document.createElement('div');
@@ -7020,7 +7022,7 @@ function confirmDesktopObjectUse(itemKey) {
   const stock = Math.max(0,Number(item?.quantity || 0));
   const max = Math.min(100,stock);
   const name = item?.name || 'cet objet';
-  const effect = itemKey === 'boost_xp_x2' ? 'XP du Lovy actif ×2 pendant 2 h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live.'
+  const effect = xpBoostLiveHours(itemKey) ? `XP du Lovy actif ×2 pendant ${xpBoostLiveHours(itemKey)} h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live.`
     : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
     : item?.description || '';
   if (!max) return Promise.resolve(0);
@@ -7033,7 +7035,7 @@ function confirmDesktopObjectUse(itemKey) {
     overlay.setAttribute('aria-labelledby','objectUseConfirmTitle');
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>${escapeHtml(name)} · ${stock} disponible${stock>1?'s':''}.</p><p>${escapeHtml(effect)}</p><label for="objectUseQuantity">Nombre de boosts à activer</label><div class="egg-boost-quantity"><div><button type="button" data-use-minus aria-label="Diminuer">−</button><input id="objectUseQuantity" type="number" min="1" max="${max}" step="1" value="1" inputmode="numeric"><button type="button" data-use-plus aria-label="Augmenter">＋</button></div></div><button class="shop-action secondary" type="button" data-use-max>Tout utiliser${stock>100?' (100 maximum)':''}</button><p data-use-duration aria-live="polite"></p><p>Les objets sont consommés uniquement si l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Activer</button></div></div>`;
     const input=overlay.querySelector('#objectUseQuantity'),confirm=overlay.querySelector('[data-object-use-yes]');
-    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n*(itemKey==='boost_xp_x2'?2:1)} heure${n*(itemKey==='boost_xp_x2'?2:1)>1?'s':''} de ${itemKey==='boost_xp_x2'?'présence en live':'bonus'} ajoutée${n*(itemKey==='boost_xp_x2'?2:1)>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
+    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n*(xpBoostLiveHours(itemKey)||1)} heure${n*(xpBoostLiveHours(itemKey)||1)>1?'s':''} de ${xpBoostLiveHours(itemKey)?'présence en live':'bonus'} ajoutée${n*(xpBoostLiveHours(itemKey)||1)>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
     let finished = false;
     const finish = value => {
       if (finished) return;
@@ -7145,7 +7147,7 @@ async function shopAction(url, itemKey, preferredSlot = null) {
   try {
     let target = {};
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration(preferredSlot);if(!target)return;}
-    else if(url === '/api/shop/use' && ['boost_xp_x2','boost_cash_x2'].includes(itemKey)) {
+    else if(url === '/api/shop/use' && ['boost_xp_x2','boost_xp_x2_5h','boost_xp_x2_10h','boost_cash_x2'].includes(itemKey)) {
       await loadShop();
       const quantity=await confirmDesktopObjectUse(itemKey);
       if(!quantity)return;
@@ -9172,18 +9174,18 @@ function renderLobbyPlayers(){const grid=$('lobbyPlayersGrid');if(!grid)return;c
 
 function tradeLovysById(id){return (tradeInventory.lovys||[]).find(l=>l.creatureId===id);}
 function tradeCanReceive(asset){return asset.type!=='fragment'||Boolean(tradeLovysById(asset.creatureId));}
-function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='xp_gourd')return Number(tradeInventory.xpGourds||0);if(asset.type==='xp_boost')return Number(tradeInventory.xpBoosts||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
+function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='xp_gourd')return Number(tradeInventory.xpGourds||0);if(tradeBoostHours(asset.type))return Number(tradeInventory[({xp_boost:'xpBoosts',xp_boost_5h:'xpBoosts5h',xp_boost_10h:'xpBoosts10h'})[asset.type]]||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
 function tradeAcceptBlockReason(offer,option){
   if(Number(offer.creatorUserId)===Number(tradeOffers._selfUserId||0))return 'Tu ne peux pas accepter ta propre offre.';
   if(!tradeCanReceive(offer.offer)){
     const name=String(offer.offer.name||'ce Lovy').replace(/^Fragments\s+/i,'');
     return 'Tu dois déjà posséder '+name+' pour recevoir ses fragments.';
   }
-  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='xp_gourd'?'gourdes disponibles':option.type==='xp_boost'?'boosters disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
+  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='xp_gourd'?'gourdes disponibles':tradeBoostHours(option.type)?'boosters disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
   return '';
 }
 function tradeCanAcceptOption(offer,option){return Number(offer.creatorUserId)!==Number((tradeOffers._selfUserId||0))&&tradeCanReceive(offer.offer)&&tradeBalanceFor(option)>=Number(option.quantity||0);}
-function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
+function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
 function tradeStatusLabel(status){return {open:'Active',completed:'Acceptée',cancelled:'Annulée',expired:'Expirée'}[status]||status;}
 function formatTradeRemaining(value){const ms=new Date(value).getTime()-Date.now();if(ms<=0)return 'expirée';const m=Math.ceil(ms/60000);if(m<60)return `expire dans ${m} min`;const h=Math.ceil(m/60);if(h<48)return `expire dans ${h} h`;return `expire dans ${Math.ceil(h/24)} j`;}
 function tradeOfferMarkup(offer,mine=false){
@@ -9201,7 +9203,7 @@ async function loadTrades(mine=false,silent=false){
 }
 function renderTrades(mine=false){
   const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');if(!grid)return;let offers=mine?myTradeOffers:tradeOffers;
-  if(!mine){const select=$('lobbyTradeCreatureFilter');if(select){const available=[...new Map((tradeOffers||[]).filter(o=>o.offer?.creatureId).map(o=>[o.offer.creatureId,String(o.offer.name||'').replace(/^Fragments\s+/,'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));const keep=tradeCreatureFilter;updateLobbyMarkup(select,'<option value="all">Tous les Lovys</option>'+available.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join(''));select.value=available.some(x=>x[0]===keep)?keep:'all';if(select.value==='all')tradeCreatureFilter='all';}offers=offers.filter(o=>(tradeFilter==='all'||(tradeFilter==='possible'&&(o.options||[]).some(opt=>tradeCanAcceptOption(o,opt)))||o.offer.type===tradeFilter)&&(tradeCreatureFilter==='all'||o.offer.creatureId===tradeCreatureFilter));}
+  if(!mine){const select=$('lobbyTradeCreatureFilter');if(select){const available=[...new Map((tradeOffers||[]).filter(o=>o.offer?.creatureId).map(o=>[o.offer.creatureId,String(o.offer.name||'').replace(/^Fragments\s+/,'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));const keep=tradeCreatureFilter;updateLobbyMarkup(select,'<option value="all">Tous les Lovys</option>'+available.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join(''));select.value=available.some(x=>x[0]===keep)?keep:'all';if(select.value==='all')tradeCreatureFilter='all';}offers=offers.filter(o=>(tradeFilter==='all'||(tradeFilter==='possible'&&(o.options||[]).some(opt=>tradeCanAcceptOption(o,opt)))||(o.offer.type===tradeFilter||(tradeFilter==='xp_boost'&&tradeBoostHours(o.offer.type))))&&(tradeCreatureFilter==='all'||o.offer.creatureId===tradeCreatureFilter));}
   if(isMobileGameUi())offers=mobileTradePageItems(offers,mine);
   const markup=offers.length?offers.map(o=>tradeOfferMarkup(o,mine)).join(''):`<div class="lobby-empty lobby-empty-action"><strong>${mine?'Aucune offre publiée':'Aucune offre pour l’instant'}</strong><span>${mine?'Crée ta première annonce pour commencer à échanger.':'Sois le premier à faire vivre la bourse.'}</span><button class="lobby-primary-btn" type="button" data-empty-create>＋ Créer la première offre</button></div>`;
   updateLobbyMarkup(grid,markup);
@@ -9278,13 +9280,13 @@ function tradeCreatureImageUrl(l){
   return aliases[id]||aliases[name]||String(l.image||'');
 }
 function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
-function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false,gourd=false,boost=false){if(boost)return `<span class="trade-preview-egg">⚡</span><span><strong>Double XP</strong><small>2 h actives sur le live</small></span>`;if(gourd)return `<span class="trade-preview-egg">🫙</span><span><strong>Gourde de 500 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
+function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false,gourd=false,boost=0){if(boost)return `<span class="trade-preview-egg">⚡</span><span><strong>Double XP</strong><small>${boost} h actives sur le live</small></span>`;if(gourd)return `<span class="trade-preview-egg">🫙</span><span><strong>Gourde de 500 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
 function syncTradeAssetRow(row) {
   const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
   const creature = row.querySelector('[data-trade-creature]'), preview = row.querySelector('[data-trade-preview]');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   if (preview) {
-    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',type === 'xp_boost');
+    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',tradeBoostHours(type));
     if (isDesktopGameUi() && type === 'fragment') {
       const detail = preview.querySelector('small');
       if (detail) detail.textContent = `${tradeLovysById(creature?.value)?.rarity || 'Lovys'} · Fragments à recevoir`;
@@ -9297,18 +9299,18 @@ function syncTradeAssetRow(row) {
     setupDesktopTradeQuantity(quantity);
   }
 }
-function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option><option value="xp_gourd">🫙 Gourde de 500 XP</option><option value="xp_boost">⚡ Double XP · 2 h de live</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
+function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option><option value="xp_gourd">🫙 Gourde de 500 XP</option><option value="xp_boost">⚡ Double XP · 2 h de live</option><option value="xp_boost_5h">⚡ Double XP · 5 h de live</option><option value="xp_boost_10h">⚡ Double XP · 10 h de live</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
 function syncTradeOfferFields() {
   const type = $('tradeOfferType')?.value || 'fragment', creature = $('tradeOfferCreature');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   const preview = $('tradeOfferPreview');
-  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',type === 'xp_boost');
+  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',tradeBoostHours(type));
   const balance = tradeBalanceFor({ type, creatureId: creature?.value });
   const input = $('tradeOfferQuantity');
   input.max = String(Math.max(1, Math.min(999, balance)));
   input.value = String(Math.max(1, Math.min(Number(input.value || 1), Number(input.max))));
-  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'xp_gourd' ? `Disponible : ${balance} gourde(s) de 500 XP` : type === 'xp_boost' ? `Disponible : ${balance} booster(s) double XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
+  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'xp_gourd' ? `Disponible : ${balance} gourde(s) de 500 XP` : tradeBoostHours(type) ? `Disponible : ${balance} booster(s) double XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
 }
 let desktopTradeComposerStep = 1;
 
@@ -9325,17 +9327,17 @@ function tradeComposerAssets() {
 function desktopTradeAssetLabel(asset) {
   if (asset.type === 'xp_bottle') return `${asset.quantity} fiole(s) de 100 XP`;
   if (asset.type === 'xp_gourd') return `${asset.quantity} gourde(s) de 500 XP`;
-  if (asset.type === 'xp_boost') return `${asset.quantity} booster(s) double XP`;
+  if (tradeBoostHours(asset.type)) return `${asset.quantity} booster(s) double XP · ${tradeBoostHours(asset.type)} h`;
   if (asset.type === 'egg') return `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère`;
   return `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${tradeLovysById(asset.creatureId)?.name || 'Lovys'}`;
 }
 
 function validateDesktopTradeComposer(includeRequests = false) {
   const { offer, options, durationDays } = tradeComposerAssets();
-  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
+  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
   if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
   const balance = tradeBalanceFor(offer);
-  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : offer.type === 'xp_boost' ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
+  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : tradeBoostHours(offer.type) ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
   if (!includeRequests) return '';
   if (!options.length || options.length > 3 || options.some(asset => !valid(asset))) return 'Choisis de 1 à 3 alternatives avec des quantités entières entre 1 et 999.';
   const key = asset => `${asset.type}:${asset.creatureId || ''}:${asset.quantity}`;
@@ -9347,8 +9349,8 @@ function validateDesktopTradeComposer(includeRequests = false) {
 
 function desktopTradeRecapAsset(asset) {
   const creature = asset.type === 'fragment' ? tradeLovysById(asset.creatureId) : null;
-  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':'🥚'}</span>`;
-  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : asset.type === 'xp_boost' ? '2 h actives sur le live' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':'🥚'}</span>`;
+  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : tradeBoostHours(asset.type) ? `${tradeBoostHours(asset.type)} h actives sur le live` : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function renderDesktopTradeRecap() {
@@ -9401,7 +9403,8 @@ function setupDesktopTradeComposer() {
   $('tradeOfferType').querySelector('[value="xp_bottle"]').disabled=Number(tradeInventory.xpBottles||0)<1;
   $('tradeOfferType').querySelector('[value="xp_gourd"]').disabled=Number(tradeInventory.xpGourds||0)<1;
   $('tradeOfferType').querySelector('[value="xp_boost"]').disabled=Number(tradeInventory.xpBoosts||0)<1;
-  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':'xp_boost';
+  for(const h of [5,10]) $('tradeOfferType').querySelector(`[value="xp_boost_${h}h"]`).disabled=Number(tradeInventory[`xpBoosts${h}h`]||0)<1;
+  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':Number(tradeInventory.xpBoosts||0)>0?'xp_boost':Number(tradeInventory.xpBoosts5h||0)>0?'xp_boost_5h':'xp_boost_10h';
   const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
   $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
   $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
@@ -9443,12 +9446,12 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':'xp_boost';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':Number(tradeInventory.xpBoosts||0)>0?'xp_boost':Number(tradeInventory.xpBoosts5h||0)>0?'xp_boost_5h':'xp_boost_10h';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
 $('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}});
-function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='xp_gourd'?'gourde de 500 XP':type==='xp_boost'?'booster double XP':type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='xp_gourd'?'gourde de 500 XP':t==='xp_boost'?'booster double XP':t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
+function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(type)?`booster double XP · ${tradeBoostHours(type)} h`:type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(t)?`booster double XP · ${tradeBoostHours(t)} h`:t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
 function updateTradeComposerRecap(){const el=$('tradeComposerRecap');if(!el)return;if(isDesktopGameUi())el.innerHTML=renderDesktopTradeRecap();else el.textContent=tradeComposerSummary();}
 $('tradeComposer')?.addEventListener('input',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});$('tradeComposer')?.addEventListener('change',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});
 $('tradeOptionsList')?.addEventListener('change',e=>{const row=e.target.closest('[data-trade-option-row]');if(row)syncTradeAssetRow(row);});
@@ -9500,7 +9503,7 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
 });
 let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
-  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
+  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
 }
 async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedNotice=false}){
   if(activeTradeExchange)return false;
@@ -10055,15 +10058,15 @@ function playerBundleDraft(side) {
   return [...(list?.children || [])].map(row => {
     const value = row.querySelector('[data-bundle-asset]')?.value;
     if (!value) return null;
-    return { type: ['egg','xp_bottle','xp_gourd','xp_boost'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle','xp_gourd','xp_boost'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
+    return { type: ['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
   }).filter(Boolean);
 }
 
 function playerBundleAssetMarkup(asset) {
   const creature = (playerTradeInventory?.catalog || []).find(item => item.creatureId === asset.creatureId) || (playerCollectionData?.lovys || []).find(item => item.creatureId === asset.creatureId);
   const image = creature?.image;
-  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'xp_gourd' ? `${asset.quantity} gourde(s) de 500 XP` : asset.type === 'xp_boost' ? `${asset.quantity} booster(s) double XP` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
-  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'xp_gourd' ? '🫙' : asset.type === 'xp_boost' ? '⚡' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : asset.type === 'xp_boost' ? '2 h actives sur le live' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'xp_gourd' ? `${asset.quantity} gourde(s) de 500 XP` : tradeBoostHours(asset.type) ? `${asset.quantity} booster(s) double XP · ${tradeBoostHours(asset.type)} h` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
+  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'xp_gourd' ? '🫙' : tradeBoostHours(asset.type) ? '⚡' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : tradeBoostHours(asset.type) ? `${tradeBoostHours(asset.type)} h actives sur le live` : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function playerBundleGroupMarkup(assets) {
@@ -10081,7 +10084,7 @@ function syncPlayerBundleRow(row) {
   const choice = playerBundleChoices(row.dataset.bundleSide).find(item => item.value === row.querySelector('[data-bundle-asset]').value);
   const input = row.querySelector('[data-bundle-quantity]');
   input.max = String(Math.min(999, choice?.quantity || 999));
-  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'xp_gourd' ? '🫙' : choice?.value === 'xp_boost' ? '⚡' : choice?.value === 'egg' ? '🥚' : '🧩';
+  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'xp_gourd' ? '🫙' : tradeBoostHours(choice?.value) ? '⚡' : choice?.value === 'egg' ? '🥚' : '🧩';
   const stock = row.querySelector('.player-bundle-stock');
   if (stock) stock.textContent = choice ? `${choice.quantity} disponible${choice.quantity > 1 ? 's' : ''}` : 'Choisis un élément';
 }
@@ -10119,6 +10122,7 @@ function playerBundleChoices(side) {
   if(Number(source.xpBottles)>0)assets.push({value:'xp_bottle',label:'🧪 Fiole de 100 XP · '+Number(source.xpBottles)+' disponibles',quantity:Number(source.xpBottles)});
   if(Number(source.xpGourds)>0)assets.push({value:'xp_gourd',label:'🫙 Gourde de 500 XP · '+Number(source.xpGourds)+' disponibles',quantity:Number(source.xpGourds)});
   if(Number(source.xpBoosts)>0)assets.push({value:'xp_boost',label:'⚡ Double XP · 2 h de live · '+Number(source.xpBoosts)+' disponibles',quantity:Number(source.xpBoosts)});
+  for(const h of [5,10])if(Number(source[`xpBoosts${h}h`])>0)assets.push({value:`xp_boost_${h}h`,label:`⚡ Double XP · ${h} h de live · ${Number(source[`xpBoosts${h}h`])} disponibles`,quantity:Number(source[`xpBoosts${h}h`])});
   if(Number(source.eggs)>0)assets.push({value:'egg',label:'🥚 Œuf mystère · '+Number(source.eggs)+' disponibles',quantity:Number(source.eggs)});
   return assets;
 }
@@ -10160,7 +10164,7 @@ function readPlayerBundle(side) {
     const value=row.querySelector('[data-bundle-asset]').value,quantity=Number(row.querySelector('[data-bundle-quantity]').value),choice=choices.find(c=>c.value===value);
     if(!choice||!Number.isSafeInteger(quantity)||quantity<1||quantity>999||quantity>choice.quantity)throw new Error('Vérifie les éléments et les quantités disponibles de chaque côté.');
     if(seen.has(value))throw new Error('Choisis chaque élément une seule fois et ajuste sa quantité.');seen.add(value);
-    return {type:['egg','xp_bottle','xp_gourd','xp_boost'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle','xp_gourd','xp_boost'].includes(value)?null:value.slice(9),quantity};
+    return {type:['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value)?null:value.slice(9),quantity};
   });
 }
 function showPlayerBundleStage(stage,offered=[]) {
@@ -10183,7 +10187,7 @@ function showPlayerBundleStage(stage,offered=[]) {
 }
 function playerBundleSummary(assets) {
   const catalog=playerTradeInventory?.catalog || [];
-  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='xp_gourd'?'gourde de 500 XP':asset.type==='xp_boost'?'booster double XP':asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
+  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(asset.type)?`booster double XP · ${tradeBoostHours(asset.type)} h`:asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
 }
 $('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy){clearPlayerBundleConfirmation();renderPlayerBundleRecap();}});
 $('lobbyPlayerCollectionBody')?.addEventListener('change',event=>{
