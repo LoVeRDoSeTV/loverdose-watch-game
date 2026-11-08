@@ -24,7 +24,7 @@ import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
 import { WATCH_STREAK_REWARDS, STREAK_COSMETICS, watchStreakRewardForCount } from './src/watch-streak-rewards.js';
-import { createTwitchRewards, initTwitchRewards, hasTwitchRewardAuthorization } from './src/routes/twitch-rewards.js';
+import { createTwitchRewards, initTwitchRewards, hasTwitchRewardAuthorization, twitchRewardCount } from './src/routes/twitch-rewards.js';
 import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
 
@@ -5937,7 +5937,7 @@ async function syncTwitchRewards(){
     if(!hasTwitchRewardAuthorization(tracker,String(process.env.TWITCH_BROADCASTER_ID||'').trim()))return;
     const state=(await pool.query(`SELECT (SELECT COUNT(*)::int FROM twitch_reward_items) AS item_count,
       subscription_id FROM twitch_reward_config WHERE id=1`)).rows[0];
-    if(state?.item_count===2 && state.subscription_id)return;
+    if(state?.item_count===twitchRewardCount && state.subscription_id)return;
     try{
       await twitchRewards.setup();
       await pool.query('UPDATE twitch_reward_config SET last_error=NULL,authorization_required=FALSE WHERE id=1');
@@ -6586,7 +6586,7 @@ app.get('/api/shop', async (req, res) => {
     res.json({
       ok:true,
       balance:Number(user.points || 0),
-      twitchRewardsReady:twitchRewardsReady.item_count===2 && twitchRewardsReady.subscribed===true,
+      twitchRewardsReady:twitchRewardsReady.item_count===twitchRewardCount && twitchRewardsReady.subscribed===true,
       twitchRewardsAdmin:Boolean(isBroadcaster),
       twitchRewardsAuthorizationRequired:Boolean(rewardAuthorizationRequired),
       twitchRewardsError:isBroadcaster ? twitchRewardsReady.last_error || null : null,

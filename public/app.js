@@ -6010,9 +6010,9 @@ function renderTwitchRewardSummary(modal,rewards,catalog){
   list.classList.toggle('multiple',rewards.length>1);
   list.innerHTML=rewards.map(reward=>{
     const item=(catalog||[]).find(entry=>entry.key===reward.itemKey)||{
-      key:reward.itemKey,name:reward.name,category:reward.category,color:'#cba6ff',twitchPoints:1
+      key:reward.itemKey,name:reward.name,category:reward.category,icon:reward.icon||'🎁',color:'#cba6ff',twitchPoints:1
     };
-    const type=item.category==='title'?'Titre':item.category==='background'?'Fond':'Objet';
+    const type=item.category==='title'?'Titre':item.category==='background'?'Fond':item.category==='event'?'Événement':'Objet';
     return `<div class="twitch-reward-entry"><div class="twitch-reward-visual">${shopPreview(item)}</div><div class="twitch-reward-entry-name"><span>${type}</span><strong>« ${escapeHtml(item.name)} »</strong></div></div>`;
   }).join('');
 }
