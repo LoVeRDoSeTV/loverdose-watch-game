@@ -146,3 +146,26 @@ test('les récompenses consommables se cumulent et un second drop est remboursé
     assert.deepEqual(statuses,['FULFILLED','FULFILLED','FULFILLED','FULFILLED','FULFILLED','CANCELED']);
   }finally{server.close();if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
 });
+
+test('la hausse des prix Twitch ne remplace pas un prix déjà personnalisé',async()=>{
+  const previousFetch=globalThis.fetch,previousId=process.env.TWITCH_BROADCASTER_ID;
+  process.env.TWITCH_BROADCASTER_ID='channel';
+  const items=['reward_title_echo_chat','reward_bg_twitch_live','twitch_drop','twitch_cash_bag','twitch_xp_bag','twitch_egg','twitch_double_xp'];
+  const costs={twitch_cash_bag:750,twitch_xp_bag:1800,twitch_egg:1500,twitch_double_xp:2000};
+  const patches=[];
+  const pool={query:async(sql,args=[])=>{
+    if(sql.includes('SELECT reward_id FROM twitch_reward_items'))return {rows:[{reward_id:args[0]}]};
+    if(sql.includes('SELECT * FROM twitch_reward_config'))return {rows:[{subscription_id:'existing'}]};
+    return {rows:[],rowCount:1};
+  }};
+  globalThis.fetch=async()=>({ok:true,json:async()=>({access_token:'app-token'})});
+  try{
+    const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>({twitch_user_id:'channel',scopes:'channel:manage:redemptions'}),
+      trackerTwitchFetch:async(_url,options)=>{
+        if(!options)return {data:items.map(key=>({id:key,title:key,cost:costs[key]}))};
+        patches.push({id:new URL('https://twitch.invalid'+_url).searchParams.get('id'),cost:JSON.parse(options.body).cost});return {data:[]};
+      },getBroadcasterAccount:async()=>null});
+    await rewards.setup();
+    assert.deepEqual(patches,[{id:'twitch_cash_bag',cost:1500},{id:'twitch_egg',cost:3000},{id:'twitch_double_xp',cost:3500}]);
+  }finally{globalThis.fetch=previousFetch;if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
+});

@@ -5936,8 +5936,8 @@ async function syncTwitchRewards(){
     const tracker=await getTrackerAuthRow();
     if(!hasTwitchRewardAuthorization(tracker,String(process.env.TWITCH_BROADCASTER_ID||'').trim()))return;
     const state=(await pool.query(`SELECT (SELECT COUNT(*)::int FROM twitch_reward_items) AS item_count,
-      subscription_id FROM twitch_reward_config WHERE id=1`)).rows[0];
-    if(state?.item_count===twitchRewardCount && state.subscription_id)return;
+      subscription_id,price_revision FROM twitch_reward_config WHERE id=1`)).rows[0];
+    if(state?.item_count===twitchRewardCount && state.subscription_id && Number(state.price_revision)>=2)return;
     try{
       await twitchRewards.setup();
       await pool.query('UPDATE twitch_reward_config SET last_error=NULL,authorization_required=FALSE WHERE id=1');

@@ -6,10 +6,10 @@ const REWARDS = [
   {key:'reward_title_echo_chat', name:'Écho du chat', category:'title', title:'LoVeR Watch · Écho du chat', aliases:['LoVeR Watch / Titre : Écho du chat'], cost:1000},
   {key:'reward_bg_twitch_live', name:'Signal du direct', category:'background', title:'LoVeR Watch · Signal du direct', cost:2000},
   {key:'twitch_drop', name:'Déclenche un Drop !', category:'event', icon:'🎁', title:'LoVeR Watch · Déclenche un Drop !', cost:2500, prompt:'Lance un drop de 60 secondes pour le chat. Compte lié, live et bot actifs, aucune autre partie en cours.', repeatable:true},
-  {key:'twitch_cash_bag', name:"Sac de LoVeR'Cash · 50", category:'object', icon:'💰', title:"LoVeR Watch · Sac de LoVeR'Cash", cost:750, prompt:"50 LoVeR'Cash pour ton compte lié au jeu. Rachetable.", repeatable:true},
-  {key:'twitch_xp_bag', name:'Sac d’XP · 300', category:'object', icon:'🧪', title:'LoVeR Watch · Sac d’XP', cost:1000, prompt:'3 fioles de 100 XP Lovys pour ton compte lié au jeu. Rachetable.', repeatable:true},
-  {key:'twitch_egg', name:'Œuf mystère', category:'object', icon:'🥚', title:'LoVeR Watch · Œuf mystère', cost:1500, prompt:'1 œuf mystère pour ton compte lié au jeu. Rachetable.', repeatable:true},
-  {key:'twitch_double_xp', name:'Double XP · 2 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 2 h de live', cost:2000, prompt:'Booster XP ×2 : 2 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true}
+  {key:'twitch_cash_bag', name:"Sac de LoVeR'Cash · 50", category:'object', icon:'💰', title:"LoVeR Watch · Sac de LoVeR'Cash", cost:1500, legacyCost:750, prompt:"50 LoVeR'Cash pour ton compte lié au jeu. Rachetable.", repeatable:true},
+  {key:'twitch_xp_bag', name:'Sac d’XP · 300', category:'object', icon:'🧪', title:'LoVeR Watch · Sac d’XP', cost:2500, legacyCost:1000, prompt:'3 fioles de 100 XP Lovys pour ton compte lié au jeu. Rachetable.', repeatable:true},
+  {key:'twitch_egg', name:'Œuf mystère', category:'object', icon:'🥚', title:'LoVeR Watch · Œuf mystère', cost:3000, legacyCost:1500, prompt:'1 œuf mystère pour ton compte lié au jeu. Rachetable.', repeatable:true},
+  {key:'twitch_double_xp', name:'Double XP · 2 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 2 h de live', cost:3500, legacyCost:2000, prompt:'Booster XP ×2 : 2 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true}
 ];
 export const twitchRewardCount=REWARDS.length;
 
@@ -22,9 +22,11 @@ export async function initTwitchRewards(pool) {
   await pool.query(`CREATE TABLE IF NOT EXISTS twitch_reward_config (
     id SMALLINT PRIMARY KEY CHECK(id=1), secret TEXT NOT NULL,
     subscription_id TEXT, last_error TEXT, authorization_required BOOLEAN NOT NULL DEFAULT FALSE,
+    price_revision SMALLINT NOT NULL DEFAULT 1,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP)`);
   await pool.query('ALTER TABLE twitch_reward_config ADD COLUMN IF NOT EXISTS last_error TEXT');
   await pool.query('ALTER TABLE twitch_reward_config ADD COLUMN IF NOT EXISTS authorization_required BOOLEAN NOT NULL DEFAULT FALSE');
+  await pool.query('ALTER TABLE twitch_reward_config ADD COLUMN IF NOT EXISTS price_revision SMALLINT NOT NULL DEFAULT 1');
   await pool.query(`INSERT INTO twitch_reward_config(id,secret) VALUES(1,$1) ON CONFLICT(id) DO NOTHING`,[crypto.randomBytes(32).toString('hex')]);
   await pool.query(`CREATE TABLE IF NOT EXISTS twitch_reward_items (
     item_key TEXT PRIMARY KEY,reward_id TEXT UNIQUE NOT NULL)`);
@@ -52,11 +54,25 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
     }
     const list=await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,only_manageable_rewards:'true'}));
     const manageable=new Map((list.data||[]).map(reward=>[reward.title,reward]));
+    const manageableById=new Map((list.data||[]).map(reward=>[reward.id,reward]));
     for(const item of REWARDS) {
       const known=(await pool.query('SELECT reward_id FROM twitch_reward_items WHERE item_key=$1',[item.key])).rows[0];
-      if(known)continue;
+      if(known){
+        const current=manageableById.get(known.reward_id);
+        if(item.legacyCost && Number(current?.cost)===item.legacyCost){
+          await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,id:known.reward_id}),{
+            method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cost:item.cost})
+          });
+        }
+        continue;
+      }
       const existing=[item.title,...(item.aliases||[])].map(title=>manageable.get(title)).find(Boolean);
       if(existing){
+        if(item.legacyCost && Number(existing.cost)===item.legacyCost){
+          await trackerTwitchFetch('/channel_points/custom_rewards?'+new URLSearchParams({broadcaster_id:broadcasterId,id:existing.id}),{
+            method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({cost:item.cost})
+          });
+        }
         await pool.query('INSERT INTO twitch_reward_items(item_key,reward_id) VALUES($1,$2) ON CONFLICT DO NOTHING',[item.key,existing.id]);
         continue;
       }
@@ -80,6 +96,7 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
       if(!response.ok||!result.data?.[0]?.id)throw new Error(`Abonnement Twitch refusé : ${result.message||response.status}`);
       await pool.query('UPDATE twitch_reward_config SET subscription_id=$1,updated_at=CURRENT_TIMESTAMP WHERE id=1',[result.data[0].id]);
     }
+    await pool.query('UPDATE twitch_reward_config SET price_revision=2,updated_at=CURRENT_TIMESTAMP WHERE id=1');
     return true;
   }
 
