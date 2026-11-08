@@ -7072,35 +7072,35 @@ function showXpBottleResult(data,error=false){
   overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('button'))close();});
   document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
 }
-function chooseXpBottleQuantity(stock){
+function chooseXpBottleQuantity(stock, unitXp=100, unitName='fiole'){
   const max=Math.min(100,Math.max(0,Math.floor(Number(stock)||0)));
   if(!max)return Promise.resolve(0);
   return new Promise(resolve=>{
     const previousFocus=document.activeElement,overlay=document.createElement('div');
     overlay.className='desktop-egg-boost-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','xpBottleQuantityTitle');
-    overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="xpBottleQuantityTitle">🧪 Alimenter la banque d’XP</h2><p>${stock} fiole(s) disponibles · 100 XP par fiole.</p><label for="xpBottleAmount">XP à ajouter à la banque</label><input id="xpBottleAmount" class="admin-reset-input" type="number" min="100" max="${max*100}" step="100" value="100" inputmode="numeric"><button type="button" class="shop-action secondary" data-bottle-max>Tout utiliser${stock>100?' (100 fioles max)':''}</button><p data-bottle-total aria-live="polite"></p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-bottle-cancel>Annuler</button><button type="button" class="shop-action" data-bottle-confirm>Confirmer</button></div></div>`;
+    overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="xpBottleQuantityTitle">🧪 Alimenter la banque d’XP</h2><p>${stock} ${unitName}(s) disponibles · ${unitXp} XP par ${unitName}.</p><label for="xpBottleAmount">XP à ajouter à la banque</label><input id="xpBottleAmount" class="admin-reset-input" type="number" min="${unitXp}" max="${max*unitXp}" step="${unitXp}" value="${unitXp}" inputmode="numeric"><button type="button" class="shop-action secondary" data-bottle-max>Tout utiliser${stock>100?' (100 objets max)':''}</button><p data-bottle-total aria-live="polite"></p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-bottle-cancel>Annuler</button><button type="button" class="shop-action" data-bottle-confirm>Confirmer</button></div></div>`;
     const input=overlay.querySelector('input'),button=overlay.querySelector('[data-bottle-confirm]');
-    const update=()=>{const xp=Number(input.value),valid=Number.isSafeInteger(xp)&&xp>=100&&xp<=max*100&&xp%100===0;button.disabled=!valid;overlay.querySelector('[data-bottle-total]').textContent=valid?`${xp/100} fiole(s) consommée(s) → +${xp.toLocaleString('fr-FR')} XP en banque.`:'Choisis un multiple de 100 XP dans la limite de tes fioles.';};
+    const update=()=>{const xp=Number(input.value),valid=Number.isSafeInteger(xp)&&xp>=unitXp&&xp<=max*unitXp&&xp%unitXp===0;button.disabled=!valid;overlay.querySelector('[data-bottle-total]').textContent=valid?`${xp/unitXp} ${unitName}(s) consommée(s) → +${xp.toLocaleString('fr-FR')} XP en banque.`:`Choisis un multiple de ${unitXp} XP dans la limite de tes ${unitName}s.`;};
     let finished=false;const finish=value=>{if(finished)return;finished=true;document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});resolve(value);};
     const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(0);}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
-    overlay.addEventListener('input',update);overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-bottle-cancel]'))finish(0);else if(event.target.closest('[data-bottle-max]')){input.value=String(max*100);update();}else if(event.target.closest('[data-bottle-confirm]')){update();if(!button.disabled)finish(Number(input.value)/100);}});
+    overlay.addEventListener('input',update);overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-bottle-cancel]'))finish(0);else if(event.target.closest('[data-bottle-max]')){input.value=String(max*unitXp);update();}else if(event.target.closest('[data-bottle-confirm]')){update();if(!button.disabled)finish(Number(input.value)/unitXp);}});
     document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);update();input.focus();
   });
 }
 
-async function useXpBottle(){
+async function useXpBottle(itemKey='xp_bottle_100'){
   if(xpBottleUseBusy)return;
   xpBottleUseBusy=true;
   try{
     await loadShop();
-    const quantity=await chooseXpBottleQuantity(getShopItemByKey('xp_bottle_100')?.quantity);
+    const item=getShopItemByKey(itemKey);
+    const quantity=await chooseXpBottleQuantity(item?.quantity,item?.xpAmount||100,itemKey==='xp_gourd_500'?'gourde':'fiole');
     if(!quantity)return;
-    const response=await fetch('/api/shop/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemKey:'xp_bottle_100',quantity})});
+    const response=await fetch('/api/shop/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemKey,quantity})});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Impossible d’utiliser cette bouteille.');
     if(me?.user)me.user.pending_xp=Number(data.pendingXp||0);
     if(lovysCollectionData)lovysCollectionData.pendingXp=Number(data.pendingXp||0);
-    const item=getShopItemByKey('xp_bottle_100');
     if(item){item.quantity=Math.max(0,Number(item.quantity||0)-quantity);item.owned=item.quantity>0;}
     showXpBottleResult(data);
     // Les données d’inventaire et de réserve se mettent à jour sans retarder le résultat.
@@ -7130,7 +7130,7 @@ async function shopAction(url, itemKey, preferredSlot = null) {
     }
     return;
   }
-  if(url==='/api/shop/use'&&itemKey==='xp_bottle_100')return useXpBottle();
+  if(url==='/api/shop/use'&&['xp_bottle_100','xp_gourd_500'].includes(itemKey))return useXpBottle(itemKey);
   if (url === '/api/shop/equip' || url === '/api/shop/unequip') {
     equipCosmeticInstantly(url, itemKey);
     return;
@@ -9172,18 +9172,18 @@ function renderLobbyPlayers(){const grid=$('lobbyPlayersGrid');if(!grid)return;c
 
 function tradeLovysById(id){return (tradeInventory.lovys||[]).find(l=>l.creatureId===id);}
 function tradeCanReceive(asset){return asset.type!=='fragment'||Boolean(tradeLovysById(asset.creatureId));}
-function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
+function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='xp_gourd')return Number(tradeInventory.xpGourds||0);if(asset.type==='xp_boost')return Number(tradeInventory.xpBoosts||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
 function tradeAcceptBlockReason(offer,option){
   if(Number(offer.creatorUserId)===Number(tradeOffers._selfUserId||0))return 'Tu ne peux pas accepter ta propre offre.';
   if(!tradeCanReceive(offer.offer)){
     const name=String(offer.offer.name||'ce Lovy').replace(/^Fragments\s+/i,'');
     return 'Tu dois déjà posséder '+name+' pour recevoir ses fragments.';
   }
-  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
+  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='xp_gourd'?'gourdes disponibles':option.type==='xp_boost'?'boosters disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
   return '';
 }
 function tradeCanAcceptOption(offer,option){return Number(offer.creatorUserId)!==Number((tradeOffers._selfUserId||0))&&tradeCanReceive(offer.offer)&&tradeBalanceFor(option)>=Number(option.quantity||0);}
-function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
+function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
 function tradeStatusLabel(status){return {open:'Active',completed:'Acceptée',cancelled:'Annulée',expired:'Expirée'}[status]||status;}
 function formatTradeRemaining(value){const ms=new Date(value).getTime()-Date.now();if(ms<=0)return 'expirée';const m=Math.ceil(ms/60000);if(m<60)return `expire dans ${m} min`;const h=Math.ceil(m/60);if(h<48)return `expire dans ${h} h`;return `expire dans ${Math.ceil(h/24)} j`;}
 function tradeOfferMarkup(offer,mine=false){
@@ -9278,13 +9278,13 @@ function tradeCreatureImageUrl(l){
   return aliases[id]||aliases[name]||String(l.image||'');
 }
 function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
-function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false){if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
+function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false,gourd=false,boost=false){if(boost)return `<span class="trade-preview-egg">⚡</span><span><strong>Double XP</strong><small>2 h actives sur le live</small></span>`;if(gourd)return `<span class="trade-preview-egg">🫙</span><span><strong>Gourde de 500 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
 function syncTradeAssetRow(row) {
   const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
   const creature = row.querySelector('[data-trade-creature]'), preview = row.querySelector('[data-trade-preview]');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   if (preview) {
-    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle');
+    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',type === 'xp_boost');
     if (isDesktopGameUi() && type === 'fragment') {
       const detail = preview.querySelector('small');
       if (detail) detail.textContent = `${tradeLovysById(creature?.value)?.rarity || 'Lovys'} · Fragments à recevoir`;
@@ -9297,18 +9297,18 @@ function syncTradeAssetRow(row) {
     setupDesktopTradeQuantity(quantity);
   }
 }
-function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
+function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option><option value="xp_gourd">🫙 Gourde de 500 XP</option><option value="xp_boost">⚡ Double XP · 2 h de live</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
 function syncTradeOfferFields() {
   const type = $('tradeOfferType')?.value || 'fragment', creature = $('tradeOfferCreature');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   const preview = $('tradeOfferPreview');
-  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle');
+  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',type === 'xp_boost');
   const balance = tradeBalanceFor({ type, creatureId: creature?.value });
   const input = $('tradeOfferQuantity');
   input.max = String(Math.max(1, Math.min(999, balance)));
   input.value = String(Math.max(1, Math.min(Number(input.value || 1), Number(input.max))));
-  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
+  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'xp_gourd' ? `Disponible : ${balance} gourde(s) de 500 XP` : type === 'xp_boost' ? `Disponible : ${balance} booster(s) double XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
 }
 let desktopTradeComposerStep = 1;
 
@@ -9324,16 +9324,18 @@ function tradeComposerAssets() {
 
 function desktopTradeAssetLabel(asset) {
   if (asset.type === 'xp_bottle') return `${asset.quantity} fiole(s) de 100 XP`;
+  if (asset.type === 'xp_gourd') return `${asset.quantity} gourde(s) de 500 XP`;
+  if (asset.type === 'xp_boost') return `${asset.quantity} booster(s) double XP`;
   if (asset.type === 'egg') return `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère`;
   return `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${tradeLovysById(asset.creatureId)?.name || 'Lovys'}`;
 }
 
 function validateDesktopTradeComposer(includeRequests = false) {
   const { offer, options, durationDays } = tradeComposerAssets();
-  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
+  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
   if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
   const balance = tradeBalanceFor(offer);
-  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
+  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : offer.type === 'xp_boost' ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
   if (!includeRequests) return '';
   if (!options.length || options.length > 3 || options.some(asset => !valid(asset))) return 'Choisis de 1 à 3 alternatives avec des quantités entières entre 1 et 999.';
   const key = asset => `${asset.type}:${asset.creatureId || ''}:${asset.quantity}`;
@@ -9345,8 +9347,8 @@ function validateDesktopTradeComposer(includeRequests = false) {
 
 function desktopTradeRecapAsset(asset) {
   const creature = asset.type === 'fragment' ? tradeLovysById(asset.creatureId) : null;
-  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':'🥚'}</span>`;
-  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':'🥚'}</span>`;
+  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : asset.type === 'xp_boost' ? '2 h actives sur le live' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function renderDesktopTradeRecap() {
@@ -9397,7 +9399,9 @@ function setupDesktopTradeComposer() {
   $('tradeOfferType').querySelector('[value="fragment"]').disabled = !stocked.length;
   $('tradeOfferType').querySelector('[value="egg"]').disabled = Number(tradeInventory.eggs || 0) < 1;
   $('tradeOfferType').querySelector('[value="xp_bottle"]').disabled=Number(tradeInventory.xpBottles||0)<1;
-  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':'xp_bottle';
+  $('tradeOfferType').querySelector('[value="xp_gourd"]').disabled=Number(tradeInventory.xpGourds||0)<1;
+  $('tradeOfferType').querySelector('[value="xp_boost"]').disabled=Number(tradeInventory.xpBoosts||0)<1;
+  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':'xp_boost';
   const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
   $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
   $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
@@ -9439,12 +9443,12 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':'xp_bottle';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':'xp_boost';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
 $('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}});
-function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
+function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='xp_gourd'?'gourde de 500 XP':type==='xp_boost'?'booster double XP':type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='xp_gourd'?'gourde de 500 XP':t==='xp_boost'?'booster double XP':t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
 function updateTradeComposerRecap(){const el=$('tradeComposerRecap');if(!el)return;if(isDesktopGameUi())el.innerHTML=renderDesktopTradeRecap();else el.textContent=tradeComposerSummary();}
 $('tradeComposer')?.addEventListener('input',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});$('tradeComposer')?.addEventListener('change',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});
 $('tradeOptionsList')?.addEventListener('change',e=>{const row=e.target.closest('[data-trade-option-row]');if(row)syncTradeAssetRow(row);});
@@ -9496,7 +9500,7 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
 });
 let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
-  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
+  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':asset.type==='xp_boost'?'⚡':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
 }
 async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedNotice=false}){
   if(activeTradeExchange)return false;
@@ -10051,15 +10055,15 @@ function playerBundleDraft(side) {
   return [...(list?.children || [])].map(row => {
     const value = row.querySelector('[data-bundle-asset]')?.value;
     if (!value) return null;
-    return { type: ['egg','xp_bottle'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
+    return { type: ['egg','xp_bottle','xp_gourd','xp_boost'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle','xp_gourd','xp_boost'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
   }).filter(Boolean);
 }
 
 function playerBundleAssetMarkup(asset) {
   const creature = (playerTradeInventory?.catalog || []).find(item => item.creatureId === asset.creatureId) || (playerCollectionData?.lovys || []).find(item => item.creatureId === asset.creatureId);
   const image = creature?.image;
-  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
-  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'xp_gourd' ? `${asset.quantity} gourde(s) de 500 XP` : asset.type === 'xp_boost' ? `${asset.quantity} booster(s) double XP` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
+  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'xp_gourd' ? '🫙' : asset.type === 'xp_boost' ? '⚡' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : asset.type === 'xp_boost' ? '2 h actives sur le live' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function playerBundleGroupMarkup(assets) {
@@ -10077,7 +10081,7 @@ function syncPlayerBundleRow(row) {
   const choice = playerBundleChoices(row.dataset.bundleSide).find(item => item.value === row.querySelector('[data-bundle-asset]').value);
   const input = row.querySelector('[data-bundle-quantity]');
   input.max = String(Math.min(999, choice?.quantity || 999));
-  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'egg' ? '🥚' : '🧩';
+  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'xp_gourd' ? '🫙' : choice?.value === 'xp_boost' ? '⚡' : choice?.value === 'egg' ? '🥚' : '🧩';
   const stock = row.querySelector('.player-bundle-stock');
   if (stock) stock.textContent = choice ? `${choice.quantity} disponible${choice.quantity > 1 ? 's' : ''}` : 'Choisis un élément';
 }
@@ -10113,6 +10117,8 @@ function playerBundleChoices(side) {
   const receiverIds=new Set(receiver.lovys.map(l=>l.creatureId));
   const assets=source.lovys.filter(l=>receiverIds.has(l.creatureId) && Number(l.fragments)>0).map(l=>({value:'fragment:'+l.creatureId,label:'🧩 '+l.name+' · '+Number(l.fragments)+' disponibles',quantity:Number(l.fragments),image:l.image}));
   if(Number(source.xpBottles)>0)assets.push({value:'xp_bottle',label:'🧪 Fiole de 100 XP · '+Number(source.xpBottles)+' disponibles',quantity:Number(source.xpBottles)});
+  if(Number(source.xpGourds)>0)assets.push({value:'xp_gourd',label:'🫙 Gourde de 500 XP · '+Number(source.xpGourds)+' disponibles',quantity:Number(source.xpGourds)});
+  if(Number(source.xpBoosts)>0)assets.push({value:'xp_boost',label:'⚡ Double XP · 2 h de live · '+Number(source.xpBoosts)+' disponibles',quantity:Number(source.xpBoosts)});
   if(Number(source.eggs)>0)assets.push({value:'egg',label:'🥚 Œuf mystère · '+Number(source.eggs)+' disponibles',quantity:Number(source.eggs)});
   return assets;
 }
@@ -10154,7 +10160,7 @@ function readPlayerBundle(side) {
     const value=row.querySelector('[data-bundle-asset]').value,quantity=Number(row.querySelector('[data-bundle-quantity]').value),choice=choices.find(c=>c.value===value);
     if(!choice||!Number.isSafeInteger(quantity)||quantity<1||quantity>999||quantity>choice.quantity)throw new Error('Vérifie les éléments et les quantités disponibles de chaque côté.');
     if(seen.has(value))throw new Error('Choisis chaque élément une seule fois et ajuste sa quantité.');seen.add(value);
-    return {type:['egg','xp_bottle'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle'].includes(value)?null:value.slice(9),quantity};
+    return {type:['egg','xp_bottle','xp_gourd','xp_boost'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle','xp_gourd','xp_boost'].includes(value)?null:value.slice(9),quantity};
   });
 }
 function showPlayerBundleStage(stage,offered=[]) {
@@ -10177,7 +10183,7 @@ function showPlayerBundleStage(stage,offered=[]) {
 }
 function playerBundleSummary(assets) {
   const catalog=playerTradeInventory?.catalog || [];
-  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
+  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='xp_gourd'?'gourde de 500 XP':asset.type==='xp_boost'?'booster double XP':asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
 }
 $('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy){clearPlayerBundleConfirmation();renderPlayerBundleRecap();}});
 $('lobbyPlayerCollectionBody')?.addEventListener('change',event=>{

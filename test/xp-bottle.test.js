@@ -62,3 +62,13 @@ test('multiple bottles credit the bank once and log the exact quantity',async()=
  for(const invalid of [0,-1,1.5,'2',101])assert.equal((await call('/api/shop/use',{itemKey:'xp_bottle_100',quantity:invalid})).statusCode,400);
  assert.equal(await quantity(),2);assert.equal((await user()).pending_xp,307);
 });
+test('a 500 XP gourd costs less than five bottles and credits the bank once per use',async()=>{
+ const item=vm.runInContext("shopItemByKey('xp_gourd_500')",context);
+ assert.equal(item.price,500);assert.equal(item.xpAmount,500);assert.ok(item.price<5*120);
+ const bought=await call('/api/shop/buy',{itemKey:item.key,quantity:2,xpAmount:99999});
+ assert.equal(bought.statusCode,200);assert.equal(bought.body.totalCost,1000);
+ const used=await call('/api/shop/use',{itemKey:item.key,quantity:2,xpAmount:99999});
+ assert.equal(used.statusCode,200);assert.equal(used.body.xpGranted,1000);assert.equal(used.body.pendingXp,1007);
+ const remaining=(await client.query("SELECT quantity FROM shop_inventory WHERE account_id=1 AND item_key='xp_gourd_500'")).rows[0].quantity;
+ assert.equal(remaining,0);
+});
