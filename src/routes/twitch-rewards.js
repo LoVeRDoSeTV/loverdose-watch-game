@@ -6,7 +6,9 @@ const REWARDS = [
   {key:'reward_title_echo_chat', name:'Écho du chat', category:'title', title:'LoVeR Watch · Écho du chat', aliases:['LoVeR Watch / Titre : Écho du chat'], cost:1000},
   {key:'reward_bg_twitch_live', name:'Signal du direct', category:'background', title:'LoVeR Watch · Signal du direct', cost:2000},
   {key:'twitch_drop', name:'Déclenche un Drop !', category:'event', icon:'🎁', title:'LoVeR Watch · Déclenche un Drop !', cost:2500, prompt:'Lance un drop de 60 secondes pour le chat. Compte lié, live et bot actifs, aucune autre partie en cours.', repeatable:true},
-  {key:'twitch_cash_bag', name:"Sac de LoVeR'Cash · 50", category:'object', icon:'💰', title:"LoVeR Watch · Sac de LoVeR'Cash", cost:1500, legacyCost:750, prompt:"50 LoVeR'Cash pour ton compte lié au jeu. Rachetable.", repeatable:true},
+  {key:'twitch_cash_case', name:"Mallette de LoVeR'Cash · 25", category:'object', icon:'💼', title:"LoVeR Watch · Mallette de LoVeR'Cash", cost:900, prompt:"25 LoVeR'Cash crédités sur ton compte lié au jeu. Rachetable.", repeatable:true, cashAmount:25},
+  {key:'twitch_cash_bag', name:"Sac de LoVeR'Cash · 50", category:'object', icon:'💰', title:"LoVeR Watch · Sac de LoVeR'Cash", cost:1500, legacyCost:750, prompt:"50 LoVeR'Cash crédités sur ton compte lié au jeu. Rachetable.", repeatable:true, cashAmount:50},
+  {key:'twitch_cash_suitcase', name:"Valise de LoVeR'Cash · 150", category:'object', icon:'🧳', title:"LoVeR Watch · Valise de LoVeR'Cash", cost:3800, prompt:"150 LoVeR'Cash crédités sur ton compte lié au jeu. Le meilleur rendement des récompenses cash. Rachetable.", repeatable:true, cashAmount:150},
   {key:'twitch_xp_bag', name:'Sac d’XP · 300', category:'object', icon:'🧪', title:'LoVeR Watch · Sac d’XP', cost:2500, legacyCost:1000, prompt:'3 fioles de 100 XP Lovys pour ton compte lié au jeu. Rachetable.', repeatable:true},
   {key:'twitch_egg', name:'Œuf mystère', category:'object', icon:'🥚', title:'LoVeR Watch · Œuf mystère', cost:3000, legacyCost:1500, prompt:'1 œuf mystère pour ton compte lié au jeu. Rachetable.', repeatable:true},
   {key:'twitch_double_xp', name:'Double XP · 2 h de live', category:'object', icon:'⚡', title:'LoVeR Watch · Double XP · 2 h de live', cost:3500, legacyCost:2000, prompt:'Booster XP ×2 : 2 h de présence comptabilisée en live, temps suspendu hors live. Compte lié. Rachetable.', repeatable:true}
@@ -178,8 +180,9 @@ export function createTwitchRewards({pool,baseUrl,getTrackerAuthRow,trackerTwitc
               const selected=keys[crypto.randomInt(keys.length)];
               const inserted=await client.query('INSERT INTO game_bot_drops(reward_key) VALUES($1) ON CONFLICT DO NOTHING RETURNING id',[selected]);
               if(!inserted.rowCount)decision='refund';
-            }else if(reward.key==='twitch_cash_bag'){
-              await client.query('UPDATE users SET points=points+50,lifetime_lovercash_earned=lifetime_lovercash_earned+50,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',[event.user_id]);
+            }else if(reward.cashAmount){
+              const credited=await client.query('UPDATE users SET points=points+$2,lifetime_lovercash_earned=lifetime_lovercash_earned+$2,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',[event.user_id,reward.cashAmount]);
+              if(!credited.rowCount)decision='refund';
             }else{
               const itemKey=reward.key==='twitch_xp_bag'?'xp_bottle_100':reward.key==='twitch_egg'?'mystery_egg':reward.key==='twitch_double_xp'?'boost_xp_x2':reward.key;
               const quantity=reward.key==='twitch_xp_bag'?3:1;

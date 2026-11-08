@@ -84,7 +84,7 @@ test('plusieurs récompenses Twitch sont récapitulées ensemble pour le seul jo
 test('une activation interrompue récupère le titre existant et crée seulement le fond manquant',async()=>{
   const previousFetch=globalThis.fetch,previousId=process.env.TWITCH_BROADCASTER_ID;
   process.env.TWITCH_BROADCASTER_ID='channel';
-  const items=new Map(),created=[];
+  const items=new Map(),created=[],createdCosts=new Map();
   const pool={query:async(sql,args=[])=>{
     if(sql.includes('SELECT reward_id FROM twitch_reward_items'))return {rows:items.has(args[0])?[{reward_id:items.get(args[0])}]:[]};
     if(sql.includes('INSERT INTO twitch_reward_items')){items.set(args[0],args[1]);return {rowCount:1};}
@@ -96,12 +96,15 @@ test('une activation interrompue récupère le titre existant et crée seulement
     const rewards=createTwitchRewards({pool,baseUrl:'https://example.com',getTrackerAuthRow:async()=>({twitch_user_id:'channel',scopes:'channel:manage:redemptions'}),
       trackerTwitchFetch:async(_url,options)=>{
         if(!options)return {data:[{id:'title-existing',title:'LoVeR Watch / Titre : Écho du chat',cost:1000}]};
-        const body=JSON.parse(options.body);created.push(body.title);
+        const body=JSON.parse(options.body);created.push(body.title);createdCosts.set(body.title,body.cost);
         return {data:[{id:'background-new'}]};
       },getBroadcasterAccount:async()=>null});
     await rewards.setup();
-    assert.deepEqual(created,['LoVeR Watch · Signal du direct','LoVeR Watch · Déclenche un Drop !',"LoVeR Watch · Sac de LoVeR'Cash",'LoVeR Watch · Sac d’XP','LoVeR Watch · Œuf mystère','LoVeR Watch · Double XP · 2 h de live']);
-    assert.deepEqual([...items].map(([key])=>key),['reward_title_echo_chat','reward_bg_twitch_live','twitch_drop','twitch_cash_bag','twitch_xp_bag','twitch_egg','twitch_double_xp']);
+    assert.deepEqual(created,['LoVeR Watch · Signal du direct','LoVeR Watch · Déclenche un Drop !',"LoVeR Watch · Mallette de LoVeR'Cash","LoVeR Watch · Sac de LoVeR'Cash","LoVeR Watch · Valise de LoVeR'Cash",'LoVeR Watch · Sac d’XP','LoVeR Watch · Œuf mystère','LoVeR Watch · Double XP · 2 h de live']);
+    assert.deepEqual([...items].map(([key])=>key),['reward_title_echo_chat','reward_bg_twitch_live','twitch_drop','twitch_cash_case','twitch_cash_bag','twitch_cash_suitcase','twitch_xp_bag','twitch_egg','twitch_double_xp']);
+    assert.equal(createdCosts.get("LoVeR Watch · Mallette de LoVeR'Cash"),900);
+    assert.equal(createdCosts.get("LoVeR Watch · Sac de LoVeR'Cash"),1500);
+    assert.equal(createdCosts.get("LoVeR Watch · Valise de LoVeR'Cash"),3800);
   }finally{globalThis.fetch=previousFetch;if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
 });
 
@@ -119,7 +122,7 @@ test('les récompenses consommables se cumulent et un second drop est remboursé
     if(sql.includes('INSERT INTO twitch_reward_redemptions')){redemptions.set(args[0],{decision:args[4],settled:false});return {rowCount:1};}
     if(sql.includes('INSERT INTO game_bot_drops')){if(drops.length)return {rowCount:0,rows:[]};drops.push(args[0]);return {rowCount:1,rows:[{id:1}]};}
     if(sql.includes("SET decision='refund'")){redemptions.get(args[0]).decision='refund';return {rowCount:1};}
-    if(sql.includes('UPDATE users SET points=points+50')){cash+=50;return {rowCount:1};}
+    if(sql.includes('UPDATE users SET points=points+$2')){cash+=args[1];return {rowCount:1};}
     if(sql.includes('INSERT INTO shop_inventory')){const key=args[1];inventory.set(key,(inventory.get(key)||0)+args[2]);return {rowCount:1};}
     if(sql.includes('UPDATE twitch_reward_redemptions')){redemptions.get(args[0]).settled=true;return {rowCount:1};}
     return {rows:[],rowCount:0};
@@ -137,20 +140,21 @@ test('les récompenses consommables se cumulent et un second drop est remboursé
       assert.equal(response.status,204);
     }
     await redeem('egg-1','twitch_egg');await redeem('egg-2','twitch_egg');
-    await redeem('xp-1','twitch_xp_bag');await redeem('cash-1','twitch_cash_bag');
+    await redeem('xp-1','twitch_xp_bag');await redeem('cash-small','twitch_cash_case');await redeem('cash-1','twitch_cash_bag');await redeem('cash-large','twitch_cash_suitcase');
     await redeem('drop-1','twitch_drop');await redeem('drop-2','twitch_drop');
+    await redeem('cash-large','twitch_cash_suitcase');
     assert.equal(inventory.get('mystery_egg'),2);
     assert.equal(inventory.get('xp_bottle_100'),3);
-    assert.equal(cash,50);
+    assert.equal(cash,225);
     assert.equal(drops.length,1);
-    assert.deepEqual(statuses,['FULFILLED','FULFILLED','FULFILLED','FULFILLED','FULFILLED','CANCELED']);
+    assert.deepEqual(statuses,['FULFILLED','FULFILLED','FULFILLED','FULFILLED','FULFILLED','FULFILLED','FULFILLED','CANCELED']);
   }finally{server.close();if(previousId===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previousId;}
 });
 
 test('la hausse des prix Twitch ne remplace pas un prix déjà personnalisé',async()=>{
   const previousFetch=globalThis.fetch,previousId=process.env.TWITCH_BROADCASTER_ID;
   process.env.TWITCH_BROADCASTER_ID='channel';
-  const items=['reward_title_echo_chat','reward_bg_twitch_live','twitch_drop','twitch_cash_bag','twitch_xp_bag','twitch_egg','twitch_double_xp'];
+  const items=['reward_title_echo_chat','reward_bg_twitch_live','twitch_drop','twitch_cash_case','twitch_cash_bag','twitch_cash_suitcase','twitch_xp_bag','twitch_egg','twitch_double_xp'];
   const costs={twitch_cash_bag:750,twitch_xp_bag:1800,twitch_egg:1500,twitch_double_xp:2000};
   const patches=[];
   const pool={query:async(sql,args=[])=>{
