@@ -714,13 +714,13 @@ function renderDailyChallenges() {
     const rewards = `${Number(challenge.rewardCash || 0) > 0 ? `<span class="daily-reward-pill cash">💰 +${Number(challenge.rewardCash)} LoVeR'Cash</span>` : ''}${Number(challenge.rewardGlobalXp || 0) > 0 ? `<span class="daily-reward-pill">⭐ +${Number(challenge.rewardGlobalXp)} XP globale</span>` : ''}${Number(challenge.rewardLovysXp || 0) > 0 ? `<span class="daily-reward-pill">🐉 +${Number(challenge.rewardLovysXp)} XP Lovys</span>` : ''}`;
 
     let actions = '';
-    if (challenge.claimed) {
-      actions = `<span class="daily-challenge-status">✓ Récompense récupérée</span>`;
-    } else if (challenge.completed) {
-      actions = `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>`;
-    } else {
-      actions = `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
+    if (!challenge.claimed) {
+      actions = challenge.completed
+        ? `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>`
+        : `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
     }
+    const status = challenge.claimed ? '<span class="daily-challenge-status">✓ Récompense réclamée</span>'
+      : `<span>${challenge.completed ? 'Terminé' : 'En cours'}</span>`;
 
     const visualClass = ({
       watch_30:'daily-challenge-watch-30',
@@ -737,8 +737,8 @@ function renderDailyChallenges() {
       </div>
       <div class="daily-challenge-rewards">${rewards}</div>
       <div class="daily-challenge-progress"><span style="width:${pct}%"></span></div>
-      <div class="daily-challenge-progress-text"><span>${escapeHtml(formatDailyChallengeProgress(challenge))}</span><span>${challenge.completed ? 'Terminé' : 'En cours'}</span></div>
-      <div class="daily-challenge-actions">${actions}</div>
+      <div class="daily-challenge-progress-text"><span>${escapeHtml(formatDailyChallengeProgress(challenge))}</span>${status}</div>
+      ${actions ? `<div class="daily-challenge-actions">${actions}</div>` : ''}
     </article>`;
   }).join('');
   applyDailyCarouselState();
