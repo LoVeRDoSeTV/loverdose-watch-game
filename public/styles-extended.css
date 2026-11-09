@@ -452,6 +452,23 @@
 .mobile-shop-category,.mobile-shop-summary,.mobile-shop-pagination{display:none}
 .shop-object-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
 .shop-object-filters.hidden{display:none}
+.shop-object-section{grid-column:1/-1;min-width:0}
+.shop-object-section + .shop-object-section{margin-top:16px}
+.shop-object-section-title{
+  display:flex;align-items:center;gap:10px;margin:0 0 14px;
+  color:#eee6ff;font-size:17px;font-weight:850;
+}
+.shop-object-section-title span{
+  display:grid;place-items:center;width:32px;height:32px;border-radius:9px;
+  border:1px solid rgba(164,112,245,.24);background:rgba(131,81,209,.14);
+}
+.shop-object-section-title::after{
+  content:"";flex:1;height:1px;margin-left:4px;
+  background:linear-gradient(90deg,rgba(171,119,255,.42),rgba(171,119,255,.06));
+}
+.shop-object-section-items{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,200px),1fr));gap:16px;
+}
 .badge-mobile-next{display:none}
 
 body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}

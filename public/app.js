@@ -6400,12 +6400,20 @@ function closeShopItemPreview() {
   $('shopItemPreviewModal')?.classList.add('hidden');
 }
 
+const SHOP_OBJECT_SECTIONS = [
+  {key:'xp', label:'XP', icon:'🧪'},
+  {key:'boost', label:'Boosts', icon:'⚡'},
+  {key:'egg', label:'Œufs', icon:'🥚'},
+  {key:'incubation', label:'Incubation', icon:'⏱️'},
+  {key:'other', label:'Autres objets', icon:'🎁'}
+];
+
 function shopObjectGroup(item) {
   if (item.key === 'mystery_egg' || item.key === 'fragment_mystery_egg') return 'egg';
   if (item.key === 'incubator_skip_30') return 'incubation';
   if (item.xpAmount > 0) return 'xp';
   if (item.liveHours > 0) return 'boost';
-  return null;
+  return 'other';
 }
 
 function mobileShopPageItems(items){
@@ -6466,9 +6474,12 @@ function renderShop() {
   } else if (!isMobileGameUi() && shopCategory === 'avatar_frame' && shopAvatarFrameFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
+  const showObjectSections = shopCategory === 'object' && shopObjectFilter === 'all';
   if (shopCategory === 'object') {
     items = [{key:'fragment_mystery_egg'}, ...items];
-    if (shopObjectFilter !== 'all') items = items.filter(item => shopObjectGroup(item) === shopObjectFilter);
+    items = showObjectSections
+      ? SHOP_OBJECT_SECTIONS.flatMap(({key}) => items.filter(item => shopObjectGroup(item) === key))
+      : items.filter(item => shopObjectGroup(item) === shopObjectFilter);
   }
   if(isMobileGameUi())items=mobileShopPageItems(items);
   const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
@@ -6476,7 +6487,7 @@ function renderShop() {
         ? 'Autorisation de la chaîne requise pour les récompenses. <a href="/auth/twitch/tracker">Autoriser les points de chaîne ↗</a>'
         : 'Les récompenses se configurent automatiquement avec la liaison Twitch enregistrée.'}${shopData.twitchRewardsError
         ? `<p role="alert">${escapeHtml(shopData.twitchRewardsError)}</p>` : ''}</div>` : '';
-  $('shopGrid').innerHTML = twitchSetup + (items.map(item => {
+  const renderItem = item => {
     if (item.key === 'fragment_mystery_egg') {
       return `<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`;
     }
@@ -6498,7 +6509,16 @@ function renderShop() {
       ${activeText}
       <div class="shop-actions">${actions}</div>
     </article>`;
-  }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>');
+  };
+  const cards = showObjectSections ? SHOP_OBJECT_SECTIONS.map(({key, label, icon}) => {
+    const sectionItems = items.filter(item => shopObjectGroup(item) === key);
+    if (!sectionItems.length) return '';
+    return `<section class="shop-object-section" aria-labelledby="shop-object-${key}">
+      <h3 class="shop-object-section-title" id="shop-object-${key}"><span aria-hidden="true">${icon}</span>${label}</h3>
+      <div class="shop-object-section-items">${sectionItems.map(renderItem).join('')}</div>
+    </section>`;
+  }).join('') : items.map(renderItem).join('');
+  $('shopGrid').innerHTML = twitchSetup + (cards || '<div class="muted">Aucun article dans cette catégorie.</div>');
 
   const shopCounts = Object.create(null);
   shopCounts.object = 1; // Œuf disponible contre des fragments.
@@ -6634,7 +6654,10 @@ async function loadShop() {
 function focusShopItem(itemKey) {
   shopFocusItemKey = itemKey || null;
   const item = getShopItemByKey(itemKey);
-  if (shopCategory === 'object' && item) shopObjectFilter = shopObjectGroup(item) || 'all';
+  if (shopCategory === 'object' && item) {
+    const group = shopObjectGroup(item);
+    shopObjectFilter = group === 'other' ? 'all' : group;
+  }
   renderShop();
   if (!itemKey) return;
   requestAnimationFrame(() => {
