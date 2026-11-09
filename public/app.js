@@ -5751,6 +5751,7 @@ let shopTitleFilter = 'all';
 let shopBackgroundFilter = 'all';
 let shopFrameFilter = 'all';
 let shopAvatarFrameFilter = 'all';
+let shopObjectFilter = 'all';
 let shopPreviewCurrentKey = null;
 let shopFocusItemKey = null;
 let inventoryCategory = 'title';
@@ -5770,12 +5771,13 @@ function saveNavMemory(patch) {
 }
 function saveCommerceMemory() {
   saveNavMemory({commerceTab, shopCategory, inventoryCategory, inventoryTitleFilter,
-    shopTitleFilter, shopBackgroundFilter, shopFrameFilter, shopAvatarFrameFilter});
+    shopTitleFilter, shopBackgroundFilter, shopFrameFilter, shopAvatarFrameFilter, shopObjectFilter});
 }
 function restoreCommerceMemory() {
   const saved = readNavMemory();
   const allowed = ['title','background','frame','avatar_frame','object','twitch'];
   if (allowed.includes(saved.shopCategory)) shopCategory = saved.shopCategory;
+  if (['all','xp','boost','egg','incubation'].includes(saved.shopObjectFilter)) shopObjectFilter = saved.shopObjectFilter;
   if (allowed.includes(saved.inventoryCategory)) inventoryCategory = saved.inventoryCategory;
   if (saved.commerceTab === 'inventory' || saved.commerceTab === 'shop') commerceTab = saved.commerceTab;
   for (const key of ['inventoryTitleFilter','shopTitleFilter','shopBackgroundFilter','shopFrameFilter','shopAvatarFrameFilter']) {
@@ -6398,6 +6400,14 @@ function closeShopItemPreview() {
   $('shopItemPreviewModal')?.classList.add('hidden');
 }
 
+function shopObjectGroup(item) {
+  if (item.key === 'mystery_egg' || item.key === 'fragment_mystery_egg') return 'egg';
+  if (item.key === 'incubator_skip_30') return 'incubation';
+  if (item.xpAmount > 0) return 'xp';
+  if (item.liveHours > 0) return 'boost';
+  return null;
+}
+
 function mobileShopPageItems(items){
   if(mobileShopPageCategory!==shopCategory){mobileShopPage=0;mobileShopPageCategory=shopCategory;}
   const pageCount=Math.max(1,Math.ceil(items.length/MOBILE_SHOP_PAGE_SIZE));
@@ -6417,6 +6427,13 @@ function mobileShopPageItems(items){
 function renderShop() {
   if (!shopData) return;
   $('shopBalance').textContent = Math.floor(Number(shopData.balance || 0));
+  const objectFilters = $('shopObjectFilters');
+  objectFilters?.classList.toggle('hidden', shopCategory !== 'object');
+  objectFilters?.querySelectorAll('[data-shop-object-filter]').forEach(button => {
+    const selected = button.dataset.shopObjectFilter === shopObjectFilter;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
   const titleFilterWrap = $('shopTitleFilterWrap');
   const backgroundFilterWrap = $('shopBackgroundFilterWrap');
   const frameFilterWrap = $('shopFrameFilterWrap');
@@ -6449,14 +6466,20 @@ function renderShop() {
   } else if (!isMobileGameUi() && shopCategory === 'avatar_frame' && shopAvatarFrameFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
+  if (shopCategory === 'object') {
+    items = [{key:'fragment_mystery_egg'}, ...items];
+    if (shopObjectFilter !== 'all') items = items.filter(item => shopObjectGroup(item) === shopObjectFilter);
+  }
   if(isMobileGameUi())items=mobileShopPageItems(items);
-  const fragmentEggCard=shopCategory==='object'?`<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`:'';
   const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
     ? `<div class="shop-twitch-setup">${shopData.twitchRewardsAuthorizationRequired
         ? 'Autorisation de la chaîne requise pour les récompenses. <a href="/auth/twitch/tracker">Autoriser les points de chaîne ↗</a>'
         : 'Les récompenses se configurent automatiquement avec la liaison Twitch enregistrée.'}${shopData.twitchRewardsError
         ? `<p role="alert">${escapeHtml(shopData.twitchRewardsError)}</p>` : ''}</div>` : '';
-  $('shopGrid').innerHTML = twitchSetup + fragmentEggCard + (items.map(item => {
+  $('shopGrid').innerHTML = twitchSetup + (items.map(item => {
+    if (item.key === 'fragment_mystery_egg') {
+      return `<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`;
+    }
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
@@ -6478,6 +6501,7 @@ function renderShop() {
   }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>');
 
   const shopCounts = Object.create(null);
+  shopCounts.object = 1; // Œuf disponible contre des fragments.
   for (const item of shopData.catalog || []) {
     if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))) {
       const category = item.twitchPoints ? 'twitch' : item.category;
@@ -6609,6 +6633,8 @@ async function loadShop() {
 
 function focusShopItem(itemKey) {
   shopFocusItemKey = itemKey || null;
+  const item = getShopItemByKey(itemKey);
+  if (shopCategory === 'object' && item) shopObjectFilter = shopObjectGroup(item) || 'all';
   renderShop();
   if (!itemKey) return;
   requestAnimationFrame(() => {
@@ -7214,6 +7240,15 @@ $('shopFrameFilter')?.addEventListener('change', event => {
 });
 $('shopAvatarFrameFilter')?.addEventListener('change', event => {
   shopAvatarFrameFilter = event.target.value || 'all';
+  saveCommerceMemory();
+  renderShop();
+});
+$('shopObjectFilters')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-shop-object-filter]');
+  if (!button) return;
+  shopObjectFilter = button.dataset.shopObjectFilter;
+  mobileShopPage = 0;
+  shopFocusItemKey = null;
   saveCommerceMemory();
   renderShop();
 });

@@ -450,6 +450,8 @@
 }
 
 .mobile-shop-category,.mobile-shop-summary,.mobile-shop-pagination{display:none}
+.shop-object-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.shop-object-filters.hidden{display:none}
 .badge-mobile-next{display:none}
 
 body:has(#badgeCollectionModal:not(.hidden)){overflow:hidden}
