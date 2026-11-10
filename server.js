@@ -6037,6 +6037,18 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
       const label={cash:"LoVeR'Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d'œuf",universal_fragments:'fragments universels'}[action];summary=`${delta>0?'+':''}${delta} ${label} · ${target.username}`;details={...details,delta,field:action};
     }else if(action==='prestige'){
       const value=Math.max(0,Math.min(99,Math.floor(Number(req.body?.amount||0))));await client.query(`UPDATE users SET prestige=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[target.user_id,value]);summary=`Prestige réglé à ${value} · ${target.username}`;details={...details,value};
+    }else if(action==='grant_xp_boost_hours'){
+      const hours=Number(req.body?.boostHours);
+      const quantity=Number(req.body?.amount);
+      if(![2,5,10].includes(hours)||!Number.isSafeInteger(quantity)||quantity<1||quantity>20){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Choisis un Double XP de 2h, 5h ou 10h et une quantité entre 1 et 20.'});
+      }
+      const totalHours=hours*quantity;
+      await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'boost_xp_x2',$2)
+        ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+EXCLUDED.quantity,purchased_at=CURRENT_TIMESTAMP`,
+        [accountId,totalHours]);
+      summary=`+${quantity} Double XP ×2 de ${hours}h (${totalHours}h) · ${target.username}`;
+      details={...details,itemKey:'boost_xp_x2',boostHours:hours,quantity,totalHours};
     }else if(action==='grant_item'){
       const itemKey=String(req.body?.itemKey||'').trim();
       const item=shopItemByKey(itemKey);
