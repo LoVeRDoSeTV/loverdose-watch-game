@@ -1,5 +1,3 @@
-import { LOVYS_MAX_XP } from './xp-economy.js';
-
 // Cadeaux du jeu : Twitch décide seul quels nombres peuvent être partagés.
 // Aucun palier n'est attribué à partir du compteur de présence du jeu.
 const stages = [
@@ -104,15 +102,11 @@ export async function grantSharedWatchStreak(client,{twitchId,count,messageId}){
   if(reward.cash||reward.fragments)await client.query(`UPDATE users SET points=points+$2,
     lifetime_lovercash_earned=lifetime_lovercash_earned+$2,egg_fragments=egg_fragments+$3,
     updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[player.user_id,reward.cash||0,reward.fragments||0]);
-  if(reward.xp){
-    const active=(await client.query(`SELECT id,xp FROM user_lovys WHERE user_id=$1 AND is_active=TRUE FOR UPDATE`,[player.user_id])).rows[0];
-    const direct=active?Math.min(reward.xp,Math.max(0,LOVYS_MAX_XP-Number(active.xp||0))):0;
-    if(direct){
-      await client.query('UPDATE user_lovys SET xp=xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[active.id,direct]);
-      await client.query('UPDATE users SET xp=xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[player.user_id,direct]);
-    }
-    if(reward.xp>direct)await client.query('UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',[player.user_id,reward.xp-direct]);
-  }
+  // L'XP de série Twitch va intégralement en banque, sans modifier le Lovys actif.
+  if(reward.xp)await client.query(
+    'UPDATE users SET pending_xp=pending_xp+$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1',
+    [player.user_id,reward.xp]
+  );
   for(const key of [reward.cosmetic,reward.egg&&'mystery_egg',reward.boost&&'boost_xp_x2'].filter(Boolean)){
     await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$2,1)
       ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+1,purchased_at=CURRENT_TIMESTAMP`,
