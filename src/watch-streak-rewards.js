@@ -28,6 +28,17 @@ const stages = [
   [350,{cosmetic:'streak_avatarframe_350',boost:1}]
 ];
 
+// Tous les cinq lives, un cadeau intermédiaire sans écraser les récompenses spéciales.
+// Les partages Twitch à d'autres nombres restent également récompensés.
+for (let count=5;count<=350;count+=5) {
+  if (stages.some(([milestone])=>milestone===count)) continue;
+  const tier=Math.floor(count/50);
+  stages.push([count, count%10===5
+    ? {xp:50+25*tier,cash:10+5*tier}
+    : {fragments:2+tier,cash:10+5*tier}]);
+}
+stages.sort((a,b)=>a[0]-b[0]);
+
 export const STREAK_COSMETICS = Object.freeze([
   {key:'streak_title_25',category:'title',subcategory:'violet',name:'Fidèle du live',color:'#cba6ff'},
   {key:'streak_avatarframe_50',category:'avatar_frame',subcategory:'special',name:'Série de lives',preview:'streak-50'},
