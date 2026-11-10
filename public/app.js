@@ -3297,6 +3297,7 @@ $('mobileHomeDashboard')?.addEventListener('click',async event=>{
 function renderGame() {
   if (!me?.user) return;
   renderMobileHomeDashboard();
+  renderMobileHomeXpBoost();
 
   if (me.user.creature_id) {
     $('pick').classList.add('hidden');
@@ -5165,6 +5166,7 @@ function setMobileNavActive(id){
     if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');
   });
   if(isMobileGameUi()) document.body.style.overflow=id==='mobileNavHome'?'':'hidden';
+  renderMobileHomeXpBoost();
   if(syncMobileFooterPlacement.ready)syncMobileFooterPlacement();
 }
 // La hauteur mesurée comprend la zone sûre iOS et suit les rotations / zooms.
@@ -6880,12 +6882,20 @@ function renderMobileHomeXpBoost() {
   if (!panel) return;
   const onHome = Boolean(isMobileGameUi() && me?.user && $('mobileNavHome')?.classList.contains('active'));
   const remaining = Math.max(0, Number(mobileHomeXpBoostRemainingSeconds) || 0);
-  panel.hidden = !onHome || remaining <= 0;
+  panel.hidden = !onHome;
   if (panel.hidden) return;
   const seconds = Math.ceil(remaining);
-  const time = [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2,'0')).join(':');
+  const time = remaining > 0
+    ? [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2,'0')).join(':')
+    : 'Aucun boost actif';
   const label = $('mobileHomeXpBoostTime');
   if (label && label.textContent !== time) label.textContent = time;
+  const heading = panel.querySelector('.home-xp-boost-top strong');
+  if (heading) heading.textContent = remaining > 0 ? '⚡ DOUBLE XP ACTIF' : '⚡ DOUBLE XP';
+  const multiplier = panel.querySelector('.home-xp-boost-multiplier');
+  if (multiplier) multiplier.hidden = remaining <= 0;
+  const caption = panel.querySelector('.home-xp-boost-caption');
+  if (caption) caption.textContent = remaining > 0 ? 'Temps de présence en live restant · en pause hors live' : 'Active un Double XP depuis ton inventaire.';
 }
 let mobileHomeXpBoostRemainingSeconds = 0;
 let mobileHomeXpBoostRefreshing = false;
