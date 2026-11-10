@@ -24,6 +24,7 @@ import { createFeedbackRouter } from './src/routes/feedback.js';
 import { createWizebotAlerts, initWizebotAlerts } from './src/routes/wizebot.js';
 import { createGameBot, initGameBot, isGameBotCallback } from './src/routes/game-bot.js';
 import { WATCH_STREAK_REWARDS, STREAK_COSMETICS, watchStreakRewardForCount } from './src/watch-streak-rewards.js';
+import { initBroadcasterStreak, registerBroadcasterLive } from './src/broadcaster-streak.js';
 import { createTwitchRewards, initTwitchRewards, hasTwitchRewardAuthorization, twitchRewardCount } from './src/routes/twitch-rewards.js';
 import { createBotStudioRouter } from './src/routes/bot-studio.js';
 import { buildLovysBattleStats, duplicateFragmentsForRarity, nextRankCost, LOVYS_MAX_RANK, LOVYS_RANK_COSTS, publicTalentDescription } from './src/combat/lovys.js';
@@ -2097,6 +2098,7 @@ async function runTrackerTick() {
     );
     const stream = streamData.data?.[0] || null;
     const isLive = Boolean(stream);
+    if (isLive && stream.started_at) await registerBroadcasterLive(pool,broadcasterId,stream.started_at);
 
     const currentGameId = String(stream?.game_id || 'unknown');
     const currentGameName =
@@ -7536,6 +7538,7 @@ async function start() {
   try {
 
     await initDatabase();
+    await initBroadcasterStreak(pool, process.env.TWITCH_BROADCASTER_ID);
     await achievementService.init();
     // Fige les badges historiques avant que le tracker puisse attribuer les nouveaux.
     // Les comptes sans badge ont une liste vide ; les nouveaux comptes sont initialisés à la liaison Twitch.
