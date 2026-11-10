@@ -1125,6 +1125,7 @@ async function loadGameOnce() {
     renderPlayerSubscriptionStatus();
 
     renderGame();
+    void refreshMobileHomeXpBoost();
     await showPendingHeartGift();
     scheduleTwitchRewardCheck(1400);
     scheduleWatchStreakRewardCheck(1700);
@@ -1366,6 +1367,7 @@ function renderIncubatorSlots() {
   arrangeIncubatorCarousel();
   renderIncubatorOverview();
   renderMobileHomeDashboard();
+  renderMobileHomeXpBoost();
   refreshIncubatorLiveState();
 }
 
@@ -6872,6 +6874,39 @@ function formatBoostRemainingTime(milliseconds) {
   const hours = Math.floor(minutes / 60), rest = minutes % 60;
   return hours ? `${hours} h${rest ? ' '+String(rest).padStart(2,'0') : ''}` : `${minutes} min`;
 }
+function renderMobileHomeXpBoost() {
+  const panel = $('mobileHomeXpBoost');
+  if (!panel) return;
+  const onHome = Boolean(isMobileGameUi() && me?.user && $('mobileNavHome')?.classList.contains('active'));
+  const remaining = Math.max(0, Number(mobileHomeXpBoostRemainingSeconds) || 0);
+  panel.hidden = !onHome || remaining <= 0;
+  if (panel.hidden) return;
+  const seconds = Math.ceil(remaining);
+  const time = [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2,'0')).join(':');
+  const label = $('mobileHomeXpBoostTime');
+  if (label && label.textContent !== time) label.textContent = time;
+}
+let mobileHomeXpBoostRemainingSeconds = 0;
+let mobileHomeXpBoostRefreshing = false;
+async function refreshMobileHomeXpBoost() {
+  if (!isMobileGameUi() || document.hidden || !me?.user || mobileHomeXpBoostRefreshing) return;
+  mobileHomeXpBoostRefreshing = true;
+  try {
+    const response = await fetch('/api/shop', {cache:'no-store'});
+    if (!response.ok) return;
+    const data = await response.json();
+    mobileHomeXpBoostRemainingSeconds = Math.max(0, Number(data.xpBoostRemainingSeconds) || 0);
+    renderMobileHomeXpBoost();
+  } catch {} finally {mobileHomeXpBoostRefreshing = false;}
+}
+setInterval(() => {
+  if (!isMobileGameUi() || document.hidden) return;
+  renderMobileHomeXpBoost();
+  if ($('mobileNavHome')?.classList.contains('active')) void refreshMobileHomeXpBoost();
+}, 30000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void refreshMobileHomeXpBoost();
+});
 function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
