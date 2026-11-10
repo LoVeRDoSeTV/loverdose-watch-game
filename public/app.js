@@ -1368,6 +1368,7 @@ function renderIncubatorSlots() {
   renderIncubatorOverview();
   renderMobileHomeDashboard();
   renderMobileHomeXpBoost();
+  if(isMobileGameUi()) void refreshMobileHomeXpBoost();
   refreshIncubatorLiveState();
 }
 
@@ -6907,6 +6908,7 @@ setInterval(() => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) void refreshMobileHomeXpBoost();
 });
+$('mobileNavHome')?.addEventListener('click', () => { renderMobileHomeXpBoost(); void refreshMobileHomeXpBoost(); });
 function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
