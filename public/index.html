@@ -55,10 +55,25 @@ html:not(.game-styles-ready) #styleLoading{position:fixed;inset:0;z-index:214748
 <script defer src="/style-recovery.js?v=582"></script>
 <script defer src="/live-xp-boost.js?v=521"></script>
 <script defer src="/lovys-evolution.min.js?v=569"></script>
-<script defer src="/app.min.js?v=640"></script>
+<script defer src="/app.min.js?v=641"></script>
 <script defer src="/bot-studio.min.js?v=550"></script>
 <script defer src="/auth-fallback.js?v=575"></script>
-<style>.mobile-home-actions .home-xp-boost-feature{display:block;box-sizing:border-box;padding:16px;border:1px solid rgba(179,119,255,.55);border-radius:16px;background:linear-gradient(135deg,rgba(76,35,119,.55),rgba(22,15,38,.9));color:#f2eaff}.mobile-home-actions .home-xp-boost-top{display:flex;align-items:center;justify-content:space-between;font-weight:750}.mobile-home-actions .home-xp-boost-time{font-size:26px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums}.mobile-home-actions .home-xp-boost-caption{font-size:13px;color:#d1b9e9}</style></head>
+<style>.mobile-home-actions .home-xp-boost-feature{display:block;box-sizing:border-box;padding:16px;border:1px solid rgba(179,119,255,.55);border-radius:16px;background:linear-gradient(135deg,rgba(76,35,119,.55),rgba(22,15,38,.9));color:#f2eaff}.mobile-home-actions .home-xp-boost-top{display:flex;align-items:center;justify-content:space-between;font-weight:750}.mobile-home-actions .home-xp-boost-time{font-size:26px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums}.mobile-home-actions .home-xp-boost-caption{font-size:13px;color:#d1b9e9}</style><style id="watch-streak-compact-styles">
+.watch-streak-compact .watch-streak-heading-actions{display:flex;align-items:center;gap:12px}
+.watch-streak-compact .watch-streak-help-button{width:34px;height:34px;flex:none;border:1px solid #9c7cc4;border-radius:50%;background:#29163e;color:#fff;font-size:20px;font-weight:800;cursor:pointer}
+.watch-streak-compact .watch-streak-help-content{margin:12px 0;padding:14px 16px;border:1px solid #6c4d8d;border-radius:12px;background:#20132f;color:#e8dff3;line-height:1.55}
+.watch-streak-compact .watch-streak-help-content[hidden]{display:none!important}
+.watch-streak-compact .watch-streak-help-content p{margin:8px 0 0}
+.watch-streak-compact .watch-streak-scroll-hint{font-size:12px;color:#c8b6db;margin:12px 0 6px}
+.watch-streak-compact .watch-streak-rewards{display:flex!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;gap:10px;scroll-snap-type:x proximity;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;padding:8px 4px 14px;scrollbar-width:thin}
+.watch-streak-compact .watch-streak-reward{flex:0 0 auto!important;min-width:105px!important;max-width:140px!important;min-height:76px!important;scroll-snap-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px!important;text-align:center}
+.watch-streak-compact .watch-streak-reward .watch-streak-count{font-size:17px;font-weight:800;white-space:nowrap}
+.watch-streak-compact .watch-streak-reward .watch-streak-count small{font-size:12px}
+.watch-streak-compact .watch-streak-reward .watch-streak-status{font-size:11px}
+.watch-streak-compact .watch-streak-preview{margin-top:12px}
+@media(max-width:650px){.watch-streak-compact .watch-streak-progress-head{gap:10px}.watch-streak-compact .watch-streak-reward{min-width:96px!important}}
+</style>
+</head>
 <body class="auth-locked">
   <div id="styleLoading" role="status">Chargement du jeu…<small>Si cela dure, actualise la page.</small></div>
   <div id="authOverlay" class="auth-overlay">
