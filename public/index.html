@@ -55,10 +55,10 @@ html:not(.game-styles-ready) #styleLoading{position:fixed;inset:0;z-index:214748
 <script defer src="/style-recovery.js?v=582"></script>
 <script defer src="/live-xp-boost.js?v=521"></script>
 <script defer src="/lovys-evolution.min.js?v=569"></script>
-<script defer src="/app.min.js?v=639"></script>
+<script defer src="/app.min.js?v=640"></script>
 <script defer src="/bot-studio.min.js?v=550"></script>
 <script defer src="/auth-fallback.js?v=575"></script>
-</head>
+<style>.mobile-home-actions .home-xp-boost-feature{display:block;box-sizing:border-box;padding:16px;border:1px solid rgba(179,119,255,.55);border-radius:16px;background:linear-gradient(135deg,rgba(76,35,119,.55),rgba(22,15,38,.9));color:#f2eaff}.mobile-home-actions .home-xp-boost-top{display:flex;align-items:center;justify-content:space-between;font-weight:750}.mobile-home-actions .home-xp-boost-time{font-size:26px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums}.mobile-home-actions .home-xp-boost-caption{font-size:13px;color:#d1b9e9}</style></head>
 <body class="auth-locked">
   <div id="styleLoading" role="status">Chargement du jeu…<small>Si cela dure, actualise la page.</small></div>
   <div id="authOverlay" class="auth-overlay">
@@ -427,7 +427,7 @@ html:not(.game-styles-ready) #styleLoading{position:fixed;inset:0;z-index:214748
   <button id="nextActionQuick" class="next-action-quick hidden" type="button"></button>
   <button id="nextActionsOpen" class="next-actions-open" type="button">Voir mes actions <span id="nextActionsCount" class="next-actions-count">0</span></button>
 </section>
-<section id="mobileHomeActions" class="mobile-home-actions" aria-labelledby="mobileHomeActionsTitle"><div class="mobile-home-actions-heading"><h2 id="mobileHomeActionsTitle">À faire maintenant</h2><button id="mobileHomeAllActions" type="button">Tout voir ›</button></div><div id="mobileHomeActionsList"></div></section>
+<section id="mobileHomeActions" class="mobile-home-actions" aria-label="Double XP"><div id="mobileHomeXpBoost" class="home-xp-boost-feature" aria-live="polite"><div class="home-xp-boost-top"><strong>⚡ DOUBLE XP</strong><span id="mobileHomeXpMultiplier" class="home-xp-boost-multiplier" hidden>×2</span></div><div id="mobileHomeXpBoostTime" class="home-xp-boost-time">Aucun boost actif</div><div id="mobileHomeXpBoostCaption" class="home-xp-boost-caption">Active un Double XP depuis ton inventaire.</div></div></section>
 <div class="dashboard-head-grid">
   <div class="dashboard-left-stack">
   <section class="player-visit-card" aria-label="Carte de visite du joueur">
