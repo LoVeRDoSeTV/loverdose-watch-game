@@ -6880,9 +6880,9 @@ function formatBoostRemainingTime(milliseconds) {
 function renderMobileHomeXpBoost() {
   const panel = $('mobileHomeXpBoost');
   if (!panel) return;
-  const onHome = Boolean(isMobileGameUi() && me?.user && !document.body.classList.contains('auth-locked') && !$('app')?.classList.contains('hidden') && !document.querySelector('.mobile-game-nav-btn.active:not(#mobileNavHome):not(#mobileNavMore)'));
+  const onHome = Boolean(isMobileGameUi() && me?.user);
   const remaining = Math.max(0, Number(mobileHomeXpBoostRemainingSeconds) || 0);
-  panel.hidden = false;
+  panel.hidden = !onHome;
   if (!onHome) return;
   const seconds = Math.ceil(remaining);
   const time = remaining > 0
@@ -10497,14 +10497,18 @@ function mobileHomeActionItems(actions=[]) {
   useful.push(...actions.filter(action=>!action.priority));
   return useful;
 }
-function renderMobileHomeActions(actions=[], prepared=false) {
-  if(!isMobileGameUi())return;
-  const list=$('mobileHomeActionsList');if(!list)return;
-  const useful=prepared?actions:mobileHomeActionItems(actions);
-  const all=$('mobileHomeAllActions');
-  if(all){all.hidden=useful.length<=3;all.textContent=`Tout voir (${useful.length}) ›`;}
-  list.innerHTML=useful.length ? useful.slice(0,3).map((action,index)=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><small class="next-action-step">${index===0?'MAINTENANT':`ENSUITE · ${index+1}`}</small><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+function renderMobileHomeActions() {
+  if (!isMobileGameUi()) return;
+  const container = document.querySelector('.mobile-home-actions');
+  if (!container) return;
+  // Le cadre Double XP remplace l'ancien bloc « À faire maintenant » sur mobile/tablette.
+  if (!$('mobileHomeXpBoost')) {
+    container.innerHTML = `<section id="mobileHomeXpBoost" class="home-xp-boost-feature mobile-home-xp-boost" aria-live="polite"><div class="home-xp-boost-top"><strong>⚡ DOUBLE XP</strong><span class="home-xp-boost-multiplier" hidden>×2</span></div><div id="mobileHomeXpBoostTime" class="home-xp-boost-time">Aucun boost actif</div><div class="home-xp-boost-caption">Active un Double XP depuis ton inventaire.</div></section>`;
+  }
+  renderMobileHomeXpBoost();
+  void refreshMobileHomeXpBoost();
 }
+
 async function runMobileHomeSpecialAction(button) {
   if(!isMobileGameUi())return false;
   if(button.dataset.nextAction==='mobile-xp'){
