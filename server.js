@@ -5923,7 +5923,7 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
       lovys=results[0].rows.map(l=>{const c=creatures.find(x=>x.id===l.creature_id);return {...l,name:c?.name||l.creature_id,rarity:c?.rarity||'—',type:c?.type||'—',level:progressionFromXp(Number(l.xp||0)).level};});
       incubator=results[1].rows;badges=results[2].rows;pve=results[3].rows;
     }
-    res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),lovys,incubator,badges,pve,inventory}});
+    res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),lovys,incubator,badges,pve,inventory,grantableItems:SHOP_ITEMS.filter(item=>item.category==='object'&&item.consumable&&!item.comingSoon).map(item=>({key:item.key,name:item.name,icon:item.icon||'🎁'}))}});
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
 });
 
@@ -6037,6 +6037,27 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
       const label={cash:"LoVeR'Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:"fragments d'œuf",universal_fragments:'fragments universels'}[action];summary=`${delta>0?'+':''}${delta} ${label} · ${target.username}`;details={...details,delta,field:action};
     }else if(action==='prestige'){
       const value=Math.max(0,Math.min(99,Math.floor(Number(req.body?.amount||0))));await client.query(`UPDATE users SET prestige=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[target.user_id,value]);summary=`Prestige réglé à ${value} · ${target.username}`;details={...details,value};
+    }else if(action==='grant_item'){
+      const itemKey=String(req.body?.itemKey||'').trim();
+      const item=shopItemByKey(itemKey);
+      if(!item||item.category!=='object'||!item.consumable||item.comingSoon){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Objet non autorisé.'});
+      }
+      const amount=Number(req.body?.amount);
+      if(!Number.isSafeInteger(amount)||amount===0||Math.abs(amount)>100){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Quantité entière attendue entre -100 et 100 (hors zéro).'});
+      }
+      if(amount<0){
+        const current=(await client.query('SELECT quantity FROM shop_inventory WHERE account_id=$1 AND item_key=$2 FOR UPDATE',[accountId,itemKey])).rows[0];
+        if(!current||Number(current.quantity)<-amount){
+          await client.query('ROLLBACK');return res.status(400).json({error:"Stock insuffisant pour retirer cet objet."});
+        }
+        await client.query('UPDATE shop_inventory SET quantity=quantity+$3 WHERE account_id=$1 AND item_key=$2',[accountId,itemKey,amount]);
+      }else{
+        await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$2,$3) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+EXCLUDED.quantity,purchased_at=CURRENT_TIMESTAMP`,[accountId,itemKey,amount]);
+      }
+      summary=`${amount>0?'+':''}${amount} × ${item.name} · ${target.username}`;
+      details={...details,itemKey,itemName:item.name,quantity:amount};
     }else if(action==='grant_egg'){
       const quantity=Math.max(1,Math.min(20,Math.floor(Number(req.body?.amount||1))));await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[accountId,quantity]);summary=`+${quantity} œuf(s) mystère · ${target.username}`;details={...details,quantity};
     }else if(action==='lovys_fragments'){
