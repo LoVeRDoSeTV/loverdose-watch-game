@@ -6876,7 +6876,15 @@ function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
   const active = [];
-  if (desktopXpBoostRemainingSeconds > 0) active.push(`<span class="desktop-boost-chip"><strong>⚡ XP Lovys ×2</strong> · encore ${formatBoostRemainingTime(desktopXpBoostRemainingSeconds*1000)} de présence en live</span>`);
+  const remaining = Math.max(0, Number(desktopXpBoostRemainingSeconds) || 0);
+  if (remaining > 0) {
+    const seconds = Math.ceil(remaining);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const time = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    active.push(`<div class="home-xp-boost-feature" role="status"><div class="home-xp-boost-top"><strong>⚡ DOUBLE XP ACTIF</strong><span class="home-xp-boost-multiplier">×2</span></div><div class="home-xp-boost-time" aria-label="Temps de double XP restant">${time}</div><div class="home-xp-boost-caption">Temps de présence en live restant · en pause hors live</div></div>`);
+  }
   active.push(...Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
     const label = key === 'boost_cash_x2' ? '💰 LoVeR’Cash ×2' : '⚡ XP Lovys ×2';
     return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${formatBoostRemainingTime(Date.parse(until)-Date.now())}</span>`;
@@ -6885,6 +6893,7 @@ function renderDesktopBoostStatus() {
   const nextHtml = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
   if(box.innerHTML !== nextHtml)box.innerHTML = nextHtml;
 }
+
 function showDesktopBoostNotice(message, error = false) {
   if (!isDesktopGameUi()) return;
   clearTimeout(desktopBoostNoticeTimer);
