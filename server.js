@@ -6209,11 +6209,12 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
         return res.status(400).json({error:'Choisis une durée de 2, 5 ou 10 heures et une quantité entière entre 1 et 20.'});
       }
       const totalHours=boostHours*quantity;
-      await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'boost_xp_x2',$2)
+      const boostItemKey={2:'boost_xp_x2',5:'boost_xp_x2_5h',10:'boost_xp_x2_10h'}[boostHours];
+      await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,$2,$3)
         ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+EXCLUDED.quantity,purchased_at=CURRENT_TIMESTAMP`,
-        [accountId,totalHours]);
+        [accountId,boostItemKey,quantity]);
       summary=`+${quantity} Double XP x2 de ${boostHours}h (${totalHours}h) · ${target.username}`;
-      details={...details,itemKey:'boost_xp_x2',boostHours,quantity,totalHours};
+      details={...details,itemKey:boostItemKey,boostHours,quantity,totalHours};
     }else if(action==='grant_egg'){
       const quantity=Math.max(1,Math.min(20,Math.floor(Number(req.body?.amount||1))));await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[accountId,quantity]);summary=`+${quantity} œuf(s) mystère · ${target.username}`;details={...details,quantity};
     }else if(action==='lovys_fragments'){
