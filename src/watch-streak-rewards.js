@@ -79,10 +79,17 @@ export async function grantSharedWatchStreak(client,{twitchId,count,messageId}){
   const player=(await client.query(`SELECT u.id user_id,a.id account_id FROM users u
     JOIN accounts a ON a.twitch_id=u.twitch_id WHERE u.twitch_id=$1 FOR UPDATE OF u`,[twitchId])).rows[0];
   if(!player)return false;
-  const recorded=await client.query(`INSERT INTO user_watch_streak_rewards(user_id,milestone,twitch_message_id)
+  let granted=false;
+  // Un partage Twitch signé au palier N valide les paliers de récompense
+  // antérieurs non réclamés, sans remettre les cadeaux à zéro si la série casse.
+  const milestones=[...new Set([...WATCH_STREAK_REWARDS.filter(stage=>stage.count<=reward.count).map(stage=>stage.count),reward.count])].sort((a,b)=>a-b);
+  for(const milestone of milestones){
+    const reward=watchStreakRewardForCount(milestone);
+    const recorded=await client.query(`INSERT INTO user_watch_streak_rewards(user_id,milestone,twitch_message_id)
     VALUES($1,$2,$3) ON CONFLICT(user_id,milestone) DO NOTHING RETURNING milestone`,
-    [player.user_id,reward.count,messageId]);
-  if(!recorded.rowCount)return false;
+    [player.user_id,milestone,messageId]);
+  if(!recorded.rowCount)continue;
+    granted=true;
   if(reward.cash||reward.fragments)await client.query(`UPDATE users SET points=points+$2,
     lifetime_lovercash_earned=lifetime_lovercash_earned+$2,egg_fragments=egg_fragments+$3,
     updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[player.user_id,reward.cash||0,reward.fragments||0]);
@@ -100,5 +107,7 @@ export async function grantSharedWatchStreak(client,{twitchId,count,messageId}){
       ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+1,purchased_at=CURRENT_TIMESTAMP`,
       [player.account_id,key]);
   }
-  return true;
+  }
+
+  return granted;
 }
