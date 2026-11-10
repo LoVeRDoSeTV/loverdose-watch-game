@@ -6880,7 +6880,7 @@ function formatBoostRemainingTime(milliseconds) {
 function renderMobileHomeXpBoost() {
   const panel = $('mobileHomeXpBoost');
   if (!panel) return;
-  const onHome = Boolean(isMobileGameUi() && me?.user && $('mobileNavHome')?.classList.contains('active'));
+  const onHome = Boolean(isMobileGameUi() && me?.user && !document.body.classList.contains('auth-locked') && !$('app')?.classList.contains('hidden') && !document.querySelector('.mobile-game-nav-btn.active:not(#mobileNavHome):not(#mobileNavMore)'));
   const remaining = Math.max(0, Number(mobileHomeXpBoostRemainingSeconds) || 0);
   panel.hidden = !onHome;
   if (panel.hidden) return;
