@@ -6104,6 +6104,7 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
     let lovys=[],incubator=[],badges=[],pve=[];
     const permanentTitles=(await pool.query('SELECT item_key,granted_at FROM account_permanent_rewards WHERE account_id=$1 ORDER BY granted_at',[accountId])).rows.map(item=>({...item,name:shopItemByKey(item.item_key)?.name||item.item_key}));
     const inventory=(await pool.query(`SELECT item_key,quantity,purchased_at FROM shop_inventory WHERE account_id=$1 AND quantity>0 ORDER BY item_key`,[accountId])).rows.map(item=>({...item,name:shopItemByKey(item.item_key)?.name||item.item_key}));
+    const activeXpBoostSeconds=row.user_id?Number((await pool.query(`SELECT remaining_live_seconds FROM user_active_boosts WHERE user_id=$1 AND boost_key='boost_xp_x2'`,[row.user_id])).rows[0]?.remaining_live_seconds||0):0;
     if(row.user_id){
       const results=await Promise.all([
         pool.query(`SELECT id,creature_id,xp,is_active,fragments,rank,hatched_at FROM user_lovys WHERE user_id=$1 ORDER BY is_active DESC,hatched_at`,[row.user_id]),
@@ -6115,7 +6116,7 @@ app.get('/api/admin/players/:accountId/detail',async(req,res)=>{
       incubator=results[1].rows;badges=results[2].rows;pve=results[3].rows;
     }
     res.setHeader('Cache-Control', 'no-store');
-    res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),permanentTitles,lovys,incubator,badges,pve,inventory}});
+    res.json({ok:true,player:{accountId:Number(row.id),username:row.username,email:row.email,createdAt:row.created_at,twitchConnected:Boolean(row.twitch_id),twitchLogin:row.twitch_login||null,twitchDisplayName:row.twitch_display_name||null,profileImageUrl:row.profile_image_url||null,discordConnected:Boolean(row.discord_user_id),discordUsername:row.discord_username||null,discordVerified:Boolean(row.discord_member_verified),isBroadcaster:String(row.twitch_id||'')===String(process.env.TWITCH_BROADCASTER_ID||''),isSub:Boolean(row.is_sub),userId:row.user_id?Number(row.user_id):null,activeCreatureId:row.creature_id||null,xp:Number(row.xp||0),pendingXp:Number(row.pending_xp||0),points:Number(row.points||0),watchSeconds:Number(row.watch_seconds||0),globalXp:Number(row.global_xp||0),globalLevel:globalProgressionFromXp(Number(row.global_xp||0)).level,prestige:Number(row.prestige||0),eggFragments:Number(row.egg_fragments||0),universalFragments:Number(row.universal_lovys_fragments||0),cashEarned:Number(row.lifetime_lovercash_earned||0),cashSpent:Number(row.lifetime_lovercash_spent||0),permanentTitles,lovys,incubator,badges,pve,inventory,activeXpBoostSeconds:Math.max(0,activeXpBoostSeconds)}});
   }catch(error){console.error('Erreur détail joueur admin :',error);res.status(500).json({error:'Impossible de charger ce joueur.'});}
 });
 
@@ -6215,6 +6216,32 @@ app.post('/api/admin/players/:accountId/action',async(req,res)=>{
         [accountId,boostItemKey,quantity]);
       summary=`+${quantity} Double XP x2 de ${boostHours}h (${totalHours}h) · ${target.username}`;
       details={...details,itemKey:boostItemKey,boostHours,quantity,totalHours};
+    }else if(action==='remove_xp_boost_inventory'){
+      const boostHours=Number(req.body?.boostHours);
+      const quantity=Number(req.body?.amount);
+      const boostItemKey={2:'boost_xp_x2',5:'boost_xp_x2_5h',10:'boost_xp_x2_10h'}[boostHours];
+      if(!boostItemKey||!Number.isSafeInteger(quantity)||quantity<1||quantity>20){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Choisis un boost de 2, 5 ou 10h et une quantité entre 1 et 20.'});
+      }
+      const result=await client.query(`UPDATE shop_inventory SET quantity=quantity-$3
+        WHERE account_id=$1 AND item_key=$2 AND quantity >= $3 RETURNING quantity`,
+        [accountId,boostItemKey,quantity]);
+      if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Le joueur ne possède pas assez de boosts de cette durée dans son inventaire.'});}
+      summary=`−${quantity} Double XP x2 de ${boostHours}h retiré(s) de l’inventaire · ${target.username}`;
+      details={...details,itemKey:boostItemKey,boostHours,quantity,remainingQuantity:Number(result.rows[0].quantity)};
+    }else if(action==='remove_active_xp_boost_hours'){
+      const hours=Number(req.body?.amount);
+      if(!Number.isSafeInteger(hours)||hours<1||hours>200){
+        await client.query('ROLLBACK');return res.status(400).json({error:'Choisis un nombre entier d’heures à retirer entre 1 et 200.'});
+      }
+      const result=await client.query(`UPDATE user_active_boosts
+        SET remaining_live_seconds=GREATEST(0,remaining_live_seconds-$2::double precision*3600)
+        WHERE user_id=$1 AND boost_key='boost_xp_x2'
+          AND remaining_live_seconds >= $2::double precision*3600
+        RETURNING remaining_live_seconds`,[target.user_id,hours]);
+      if(!result.rowCount){await client.query('ROLLBACK');return res.status(409).json({error:'Le joueur ne dispose pas d’assez d’heures de Double XP déjà activées.'});}
+      summary=`−${hours}h de Double XP x2 actif · ${target.username}`;
+      details={...details,hours,remainingLiveSeconds:Number(result.rows[0].remaining_live_seconds)};
     }else if(action==='grant_egg'){
       const quantity=Math.max(1,Math.min(20,Math.floor(Number(req.body?.amount||1))));await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES($1,'mystery_egg',$2) ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=shop_inventory.quantity+$2,purchased_at=CURRENT_TIMESTAMP`,[accountId,quantity]);summary=`+${quantity} œuf(s) mystère · ${target.username}`;details={...details,quantity};
     }else if(action==='lovys_fragments'){
