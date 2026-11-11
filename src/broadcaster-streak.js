@@ -36,7 +36,11 @@ export async function registerBroadcasterLive(pool,twitchId,startedAt){
       await client.query('COMMIT');return false;
     }
     const next=Number(state.count)+1;
-    await grantSharedWatchStreak(client,{twitchId:id,count:next,messageId:`broadcaster-live-${started.toISOString()}`});
+    // Le compteur avance à chaque nouveau direct, sans offrir un cadeau à
+    // chaque live : après 10, seulement les multiples de 5 (jusqu'à 350).
+    if(next<=350 && (next<=10 || next%5===0)){
+      await grantSharedWatchStreak(client,{twitchId:id,count:next,messageId:`broadcaster-live-${started.toISOString()}`});
+    }
     await client.query('UPDATE broadcaster_watch_streak SET count=$2,last_stream_started_at=$3,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',[id,next,started]);
     await client.query('COMMIT');return true;
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
