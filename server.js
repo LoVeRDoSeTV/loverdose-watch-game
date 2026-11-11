@@ -7370,6 +7370,63 @@ app.post('/api/trades',tradeWriteRateLimit,async(req,res)=>{
   }catch(error){try{await client.query('ROLLBACK')}catch{};console.error('Erreur création échange :',error);res.status(400).json({error:error.message||"Impossible de publier l'offre."});}finally{client.release();}
 });
 
+// Modifier une annonce publique encore ouverte, sans perdre la réservation d'origine.
+// Même verrou que l'acceptation pour empêcher une modification concurrente.
+// L'expiration d'origine est conservée : éditer ne renouvelle pas gratuitement l'annonce.
+app.post('/api/trades/:offerId/edit',tradeWriteRateLimit,async(req,res)=>{
+  const offerId=Number(req.params.offerId);
+  if(!Number.isSafeInteger(offerId)||offerId<1)return res.status(400).json({error:'Offre invalide.'});
+  if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
+  const offered=normalizeTradeAsset(req.body?.offer);
+  const rawOptions=Array.isArray(req.body?.options)?req.body.options:[];
+  const options=rawOptions.map(normalizeTradeAsset);
+  if(!offered||!options.length||options.length>TRADE_MAX_OPTIONS||options.some(option=>!option))
+    return res.status(400).json({error:'Choisis un objet et une quantité pour chaque proposition.'});
+  const unique=new Set(options.map(asset=>`${asset.type}:${asset.creatureId||''}:${asset.quantity}`));
+  if(unique.size!==options.length)return res.status(400).json({error:'Deux contreparties identiques ne sont pas nécessaires.'});
+  if(options.some(asset=>asset.type===offered.type&&asset.creatureId===offered.creatureId&&asset.quantity===offered.quantity))
+    return res.status(400).json({error:'Tu ne peux pas demander exactement ce que tu proposes.'});
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await restoreExpiredTrades(client);
+    const ctx=await tradeContext(client,req);
+    if(!ctx)throw new Error('Profil introuvable.');
+    const existing=await client.query('SELECT * FROM trade_offers WHERE id=$1 AND creator_user_id=$2 FOR UPDATE',[offerId,ctx.userId]);
+    const row=existing.rows[0];
+    if(!row||row.status!=='open'||new Date(row.expires_at)<=new Date())
+      throw new Error('Cette offre n’est plus modifiable : elle a été acceptée, annulée ou a expiré.');
+    // Le destinataire des fragments doit déjà disposer du Lovys correspondant.
+    for(const option of options){
+      if(option.type==='fragment'&&await tradeAssetBalance(client,ctx,option,true)===null)
+        throw new Error(`Tu dois posséder ${tradeCreatureName(option.creatureId)} pour demander ses fragments.`);
+    }
+    const previous={type:row.offer_type,creatureId:row.offer_creature_id,quantity:Number(row.offer_quantity)};
+    // Si la nouvelle réservation échoue, le ROLLBACK annule aussi la restitution.
+    await changeTradeAsset(client,ctx,previous,previous.quantity);
+    await changeTradeAsset(client,ctx,offered,-offered.quantity);
+    await client.query(`UPDATE trade_offers SET offer_type=$2,offer_creature_id=$3,offer_quantity=$4,
+      updated_at=CURRENT_TIMESTAMP WHERE id=$1 AND status='open'`,
+      [offerId,offered.type,offered.creatureId,offered.quantity]);
+    await client.query('DELETE FROM trade_offer_options WHERE offer_id=$1',[offerId]);
+    for(let i=0;i<options.length;i++){
+      const asset=options[i];
+      await client.query(`INSERT INTO trade_offer_options
+        (offer_id,receive_type,receive_creature_id,receive_quantity,position)
+        VALUES($1,$2,$3,$4,$5)`,
+        [offerId,asset.type,asset.creatureId,asset.quantity,i+1]);
+    }
+    await client.query('COMMIT');
+    pushLiveUpdate('trade-update',{offerId});
+    res.json({ok:true,offerId,expiresAt:row.expires_at,message:'Ton offre a été modifiée.'});
+  }catch(error){
+    try{await client.query('ROLLBACK');}catch{}
+    console.error('Erreur modification échange :',error);
+    res.status(400).json({error:error.message||'Impossible de modifier cette offre.'});
+  }finally{client.release();}
+});
+
 app.post('/api/trades/:offerId/accept',tradeWriteRateLimit,async(req,res)=>{
   const client=await pool.connect();
   try{
