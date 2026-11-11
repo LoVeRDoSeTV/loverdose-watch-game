@@ -72,7 +72,7 @@ test('a concurrent reset is refused before any progress is touched',async()=>{
  const h=harness({locked:false});assert.equal((await h.invoke()).statusCode,409);assert.equal((await db.query('SELECT xp FROM users WHERE id=11')).rows[0].xp,99);assert.equal(h.events.length,0);
 });
 async function betaPlayers(){
- await db.exec("UPDATE users SET login=CASE id WHEN 11 THEN 'LoVeRMiyu' WHEN 22 THEN 'LoVeRKiLLeR__' WHEN 33 THEN 'Lzkll3_' ELSE login END;UPDATE accounts SET twitch_id='three' WHERE id=3");
+ await db.exec("UPDATE users SET login=CASE id WHEN 11 THEN 'LoVeRMiyu' WHEN 22 THEN 'LoVeRKiLLeR' WHEN 33 THEN 'Lzkll3_' ELSE login END;UPDATE accounts SET twitch_id='three' WHERE id=3");
  const client={query:(...args)=>db.query(...args),release(){}};
  const pool={query:(...args)=>db.query(...args),connect:async()=>client};
  return {pool,client};
@@ -91,21 +91,27 @@ test('beta title belongs only to the three resolved Twitch accounts and survives
  assert.equal((await db.query('SELECT COUNT(*)::int n FROM account_permanent_rewards')).rows[0].n,3);
  assert.equal((await db.query('SELECT COUNT(*)::int n FROM shop_inventory WHERE account_id=4')).rows[0].n,0);
 });
-test('ambiguous or missing Twitch recipients never receive a partial or guessed beta grant',async()=>{
- const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Lzkll3_'},{id:4,twitch_id:'4',login:'lzk-other'}];
- assert.deepEqual(resolveBetaTesters(accounts).selected,[]);assert.deepEqual(resolveBetaTesters(accounts).unresolved,['lzk']);
- const {pool}=await betaPlayers();await db.query("UPDATE users SET login='someone' WHERE id=22");
- const result=await initPermanentRewards(pool);assert.equal(result.completed,false);assert.equal((await db.query('SELECT COUNT(*)::int n FROM account_permanent_rewards')).rows[0].n,0);
+test('only verified exact Twitch recipients receive beta title, even if other accounts are missing',async()=>{
+  const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Lzkll3_'},{id:4,twitch_id:'4',login:'lzk-other'}];
+  assert.deepEqual(resolveBetaTesters(accounts).selected.map(a=>a.id),[1,3]);
+  assert.deepEqual(resolveBetaTesters(accounts).unresolved,['loverkiller']);
+  const {pool}=await betaPlayers();
+  await db.query("UPDATE users SET login='someone' WHERE id=22");
+  const result=await initPermanentRewards(pool);
+  assert.equal(result.completed,false);
+  assert.deepEqual((await db.query('SELECT account_id FROM account_permanent_rewards ORDER BY account_id')).rows.map(r=>r.account_id),[1,3]);
 });
-test('the three existing players resolve an abbreviated third login only with a verified owner and two exact logins',()=>{
- const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Izkll3_'},{id:4,twitch_id:'owner',login:'loverdosetv'}];
- assert.deepEqual(resolveBetaTesters(accounts,'owner').selected.map(a=>a.id),[1,2,3]);
- assert.equal(resolveBetaTesters(accounts).selected.length,0);
- assert.equal(resolveBetaTesters(accounts.filter(a=>a.id!==4),'owner').selected.length,0);
- assert.equal(resolveBetaTesters([...accounts,{id:5,twitch_id:'5',login:'another'}],'owner').selected.length,0);
- assert.equal(resolveBetaTesters(accounts.map(a=>a.id===2?{...a,login:'someone'}:a),'owner').selected.length,0);
+test('abbreviations and lookalikes cannot receive the exclusive beta title',()=>{
+  const accounts=[{id:1,twitch_id:'1',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Izkll3_'},{id:4,twitch_id:'owner',login:'loverdosetv'}];
+  const resolved=resolveBetaTesters(accounts,'owner');
+  assert.deepEqual(resolved.selected.map(a=>a.id),[1]);
+  assert.deepEqual(resolved.unresolved,['loverkiller','lzkll3_']);
+  const exact=accounts.map(a=>a.id===2?{...a,login:'LoVeRKiLLeR'}:a.id===3?{...a,login:'lzkll3_'}:a);
+  assert.deepEqual(resolveBetaTesters(exact,'owner').selected.map(a=>a.id),[1,2,3]);
+  assert.deepEqual(resolveBetaTesters([...exact,{id:5,twitch_id:'5',login:'lzkll3_fake'}],'owner').selected.map(a=>a.id),[1,2,3]);
 });
-test('the broadcaster cannot receive the beta title through a matching login',()=>{
- const accounts=[{id:1,twitch_id:'owner',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR__'},{id:3,twitch_id:'3',login:'Lzkll3_'}];
- assert.deepEqual(resolveBetaTesters(accounts,'owner').selected,[]);
+test('the broadcaster is excluded even if their Twitch login matches a beta recipient',()=>{
+  const accounts=[{id:1,twitch_id:'owner',login:'LoVeRMiyu'},{id:2,twitch_id:'2',login:'LoVeRKiLLeR'},{id:3,twitch_id:'3',login:'Lzkll3_'}];
+  assert.deepEqual(resolveBetaTesters(accounts,'owner').selected.map(a=>a.id),[2,3]);
+  assert.deepEqual(resolveBetaTesters(accounts,'owner').unresolved,['lovermiyu']);
 });
