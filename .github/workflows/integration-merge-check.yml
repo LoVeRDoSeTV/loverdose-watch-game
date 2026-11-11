@@ -7,7 +7,7 @@ on:
     branches:
       - main
 permissions:
-  contents: read
+  contents: write
 jobs:
   inspect-merge:
     runs-on: ubuntu-latest
@@ -105,5 +105,20 @@ jobs:
           node --check src/routes/pve.js
       - name: Installer pour les tests
         run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Regénérer et contrôler les fichiers compressés
+        run: |
+          npm run build:css
+          npm run build:js
+          npm run check:css
+          npm run check:js
+          npm run check:deploy
       - name: Tester la version fusionnée
         run: npm test
+      - name: Enregistrer uniquement la branche de travail si les vérifications réussissent
+        if: github.event_name == 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Intégrer les fonctionnalités et les corrections validées dans une branche de travail"
+          git push origin HEAD:refs/heads/integration/main-unification-20261111
