@@ -9120,6 +9120,7 @@ let myTradeOffers=[];
 let tradeInventory={eggs:0,lovys:[]};
 let tradeFilter='all';
 let tradeOptionCount=1;
+let editingTradeOffer=null;
 
 function isDesktopGameUi(){return window.matchMedia(DESKTOP_GAME_MEDIA).matches;}
 function setDesktopNavActive(view){document.querySelectorAll('.desktop-game-nav-btn').forEach(btn=>btn.classList.toggle('active',btn.dataset.desktopView===view));}
@@ -9352,7 +9353,7 @@ function formatTradeRemaining(value){const ms=new Date(value).getTime()-Date.now
 function tradeOfferMarkup(offer,mine=false){
   const options=(offer.options||[]).map(option=>{const possible=tradeCanAcceptOption(offer,option);return `<div class="trade-option ${possible?'possible':''}">${tradeAssetMarkup(option)}${!mine&&offer.status==='open'?`<button type="button" data-trade-accept="${Number(offer.id)}" data-trade-option="${Number(option.id)}" ${possible?'':'disabled'}>${possible?'Accepter':'Indisponible'}</button>${possible?'':`<small class="trade-unavailable-reason">ⓘ ${escapeHtml(tradeAcceptBlockReason(offer,option))}</small>`}`:''}</div>`;}).join('');
   const accepted=offer.status==='completed'?`<div class="trade-completed-note">✓ Échange terminé${offer.acceptedByName?` avec ${escapeHtml(offer.acceptedByName)}`:''}</div>`:'';
-  return `<article class="trade-offer-card status-${escapeHtml(offer.status)}" data-community-card-frame="${escapeHtml(offer.creatorFrame||'')}"><div class="trade-offer-head"><div class="trade-owner"><span class="trade-owner-avatar" data-community-avatar-frame="${escapeHtml(offer.creatorAvatarFrame||'')}">${offer.creatorAvatar?`<img loading="lazy" decoding="async" src="${escapeHtml(offer.creatorAvatar)}" alt="">`:'👤'}</span><div><strong>${escapeHtml(offer.creatorName)}</strong>${offer.creatorTitle?`<span class="trade-owner-title" style="color:${escapeHtml(offer.creatorTitleColor||'#d9c8ff')}">&quot;${escapeHtml(offer.creatorTitle)}&quot;</span>`:''}<small>${tradeStatusLabel(offer.status)} · ${offer.status==='open'?formatTradeRemaining(offer.expiresAt):formatTradeDate(offer.acceptedAt||offer.expiresAt)}</small></div></div>${mine&&offer.status==='open'?`<button class="trade-cancel-btn" type="button" data-trade-cancel="${Number(offer.id)}">Annuler</button>`:''}</div><div class="trade-exchange-side trade-exchange-give"><div class="trade-label">${escapeHtml(offer.creatorName)} PROPOSE</div><div class="trade-give">${tradeAssetMarkup(offer.offer)}</div></div><div class="trade-exchange-side trade-exchange-want"><div class="trade-label">CONTRE</div><div class="trade-options">${options}</div></div>${accepted}</article>`;
+  return `<article class="trade-offer-card status-${escapeHtml(offer.status)}" data-community-card-frame="${escapeHtml(offer.creatorFrame||'')}"><div class="trade-offer-head"><div class="trade-owner"><span class="trade-owner-avatar" data-community-avatar-frame="${escapeHtml(offer.creatorAvatarFrame||'')}">${offer.creatorAvatar?`<img loading="lazy" decoding="async" src="${escapeHtml(offer.creatorAvatar)}" alt="">`:'👤'}</span><div><strong>${escapeHtml(offer.creatorName)}</strong>${offer.creatorTitle?`<span class="trade-owner-title" style="color:${escapeHtml(offer.creatorTitleColor||'#d9c8ff')}">&quot;${escapeHtml(offer.creatorTitle)}&quot;</span>`:''}<small>${tradeStatusLabel(offer.status)} · ${offer.status==='open'?formatTradeRemaining(offer.expiresAt):formatTradeDate(offer.acceptedAt||offer.expiresAt)}</small></div></div>${mine&&offer.status==='open'?`<div class="trade-offer-actions"><button class="trade-edit-btn" type="button" data-trade-edit="${Number(offer.id)}">✏️ Modifier</button><button class="trade-cancel-btn" type="button" data-trade-cancel="${Number(offer.id)}">Annuler</button></div>`:''}</div><div class="trade-exchange-side trade-exchange-give"><div class="trade-label">${escapeHtml(offer.creatorName)} PROPOSE</div><div class="trade-give">${tradeAssetMarkup(offer.offer)}</div></div><div class="trade-exchange-side trade-exchange-want"><div class="trade-label">CONTRE</div><div class="trade-options">${options}</div></div>${accepted}</article>`;
 }
 function formatTradeDate(value){try{return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}catch{return '—';}}
 async function loadTradeInventory(){const r=await fetch('/api/trades/inventory',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||"Impossible de charger l'inventaire.");tradeInventory=d;return d;}
@@ -9440,15 +9441,20 @@ function tradeCreatureImageUrl(l){
   const aliases={mossy:'/Mossy.webp',plant:'/Mossy.webp',nymea:'/Nymea.webp',water:'/Nymea.webp',voltis:'/Voltis.webp',lightning:'/Voltis.webp',brumee:'/Brumee.webp',mist:'/Brumee.webp',flamby:'/Flamby.webp',fire:'/Flamby.webp',crysal:'/Crysal.webp',crystal:'/Crysal.webp',ferox:'/Ferox.webp',forge:'/Ferox.webp',nocty:'/Nocty.webp',dark:'/Nocty.webp',solka:'/Solka.webp',solar:'/Solka.webp',mimo:'/Mimo.webp',dream:'/Mimo.webp'};
   return aliases[id]||aliases[name]||String(l.image||'');
 }
-function tradeCreatureOptions(selected='',ownedOnly=false){return (tradeInventory.lovys||[]).filter(l=>!ownedOnly||Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeCreatureOptions(selected='',ownedOnly=false){return (tradeInventory.lovys||[]).filter(l=>!ownedOnly||Number(l.fragments||0)>0||(editingTradeOffer?.offer?.type==='fragment'&&editingTradeOffer.offer.creatureId===l.creatureId)).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeComposerAvailableBalance(asset){
+  const previous=editingTradeOffer?.offer;
+  const reserved=previous&&previous.type===asset.type&&String(previous.creatureId||'')===String(asset.creatureId||'')?Number(previous.quantity||0):0;
+  return tradeBalanceFor(asset)+reserved;
+}
 function tradeOwnedOfferTypes(inventory=tradeInventory){
   // Only stock already available in the player's inventory, excluding reserved offers.
-  const stockedFragments=(inventory.lovys||[]).some(l=>Number(l.fragments||0)>0);
+  const stockedFragments=(inventory.lovys||[]).some(l=>Number(l.fragments||0)>0)||editingTradeOffer?.offer?.type==='fragment';
   return [
-    ['fragment',stockedFragments],['egg',Number(inventory.eggs||0)>0],
-    ['xp_bottle',Number(inventory.xpBottles||0)>0],['xp_gourd',Number(inventory.xpGourds||0)>0],
-    ['xp_boost',Number(inventory.xpBoosts||0)>0],['xp_boost_5h',Number(inventory.xpBoosts5h||0)>0],
-    ['xp_boost_10h',Number(inventory.xpBoosts10h||0)>0]
+    ['fragment',stockedFragments],['egg',Number(inventory.eggs||0)>0||editingTradeOffer?.offer?.type==='egg'],
+    ['xp_bottle',Number(inventory.xpBottles||0)>0||editingTradeOffer?.offer?.type==='xp_bottle'],['xp_gourd',Number(inventory.xpGourds||0)>0||editingTradeOffer?.offer?.type==='xp_gourd'],
+    ['xp_boost',Number(inventory.xpBoosts||0)>0||editingTradeOffer?.offer?.type==='xp_boost'],['xp_boost_5h',Number(inventory.xpBoosts5h||0)>0||editingTradeOffer?.offer?.type==='xp_boost_5h'],
+    ['xp_boost_10h',Number(inventory.xpBoosts10h||0)>0||editingTradeOffer?.offer?.type==='xp_boost_10h']
   ].filter(([,owned])=>owned).map(([type])=>type);
 }
 const allTradeOfferTypes=[...$('tradeOfferType').options].map(option=>({value:option.value,label:option.textContent}));
@@ -9543,7 +9549,7 @@ function syncTradeOfferFields(){
   if(creature){creature.classList.toggle('hidden',type!=='fragment');creature.disabled=type!=='fragment';}
   const preview=$('tradeOfferPreview');
   if(preview)preview.innerHTML=tradeCreaturePreviewMarkup(creature?.value,type==='egg',type==='xp_bottle',type==='xp_gourd',tradeBoostHours(type));
-  const balance=Math.max(0,Math.floor(tradeBalanceFor({type,creatureId:creature?.value})));
+  const balance=Math.max(0,Math.floor(tradeComposerAvailableBalance({type,creatureId:creature?.value})));
   const key=type+':'+(type==='fragment'?creature?.value||'':'');
   const changed=select?.dataset.quantityKey!==key;
   if(select)select.dataset.quantityKey=key;
@@ -9575,7 +9581,7 @@ function validateDesktopTradeComposer(includeRequests = false) {
   const { offer, options, durationDays } = tradeComposerAssets();
   const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
   if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
-  const balance = tradeBalanceFor(offer);
+  const balance = tradeComposerAvailableBalance(offer);
   if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : tradeBoostHours(offer.type) ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
   if (!includeRequests) return '';
   if (!options.length || options.length > 3 || options.some(asset => !valid(asset))) return 'Choisis de 1 à 3 alternatives avec des quantités entières entre 1 et 999.';
@@ -9721,7 +9727,7 @@ function hideTradePublishConfirmation(){const box=$('tradePublishConfirm'),norma
 $('tradePublish')?.addEventListener('click',()=>{
   const offerType=$('tradeOfferType').value;
   const stockOffer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};
-  if(!tradeOwnedOfferTypes().includes(offerType)||!Number.isSafeInteger(stockOffer.quantity)||stockOffer.quantity<1||stockOffer.quantity>999||tradeBalanceFor(stockOffer)<stockOffer.quantity){
+  if(!tradeOwnedOfferTypes().includes(offerType)||!Number.isSafeInteger(stockOffer.quantity)||stockOffer.quantity<1||stockOffer.quantity>999||tradeComposerAvailableBalance(stockOffer)<stockOffer.quantity){
     $('tradeComposerMessage').textContent='Tu peux proposer uniquement les objets et quantités disponibles dans ton inventaire.';
     $('tradeComposerMessage').classList.add('error');
     return;
