@@ -151,22 +151,22 @@
     line-height:1.4;
   }
 
-  /* Pour les cartes, retour au vrai SVG panoramique, voir règles plus bas. */
+  /* Le fond panoramique doit couvrir la hauteur mobile sans bande rectangulaire. */
   .player-profile-hero:is(.streak-100-background,.streak-250-background) {
-    background-size:100% auto,cover,cover,cover!important;
-    background-position:center top,center,center,center!important;
+    background-size:cover,cover,cover,cover!important;
+    background-position:82% center,center,center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
   .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before {
-    background-size:100% auto,cover!important;
-    background-position:center top,center!important;
+    background-size:cover,cover!important;
+    background-position:82% center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
   .shop-item-preview:is(.streak-100-background,.streak-250-background) {
-    background-size:100% auto,cover!important;
-    background-position:center top,center!important;
+    background-size:cover,cover!important;
+    background-position:82% center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
@@ -204,16 +204,17 @@
   display:none!important;
 }
 
-/* Fonds 100/250 lives : SVG ORIGINAL (1200 x 440). On agrandit la carte
-   plutôt que zoomer ou redessiner le cercle. Même cadrage sur la vraie
-   carte et dans la collection de badges ; prévisualisation boutique intacte. */
+/* Fonds 100/250 lives : SVG original panoramique, rendu plein cadre.
+   Le cover et le cadrage à 82% gardent le cercle entier à droite : pas
+   de jointure rectangulaire entre le SVG et le dégradé sous-jacent.
+   Règles isolées pour la carte réelle et les prévisualisations badges. */
 @media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
   body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background),
   body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
   body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
   body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) {
-    background-size:100% auto,cover,cover,cover!important;
-    background-position:center bottom 28px,center,center,center!important;
+    background-size:cover,cover,cover,cover!important;
+    background-position:82% center,center,center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
