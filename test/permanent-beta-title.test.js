@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PGlite } from '@electric-sql/pglite';
-import { BETA_TESTER_TITLE, resolveBetaTesters, initPermanentRewards } from '../src/permanent-rewards.js';
+import { BETA_TESTER_TITLE, resolveBetaTesters, initPermanentRewards, hasBetaTesterEntitlement } from '../src/permanent-rewards.js';
 
 const KEY=BETA_TESTER_TITLE.key;
 const people=[
@@ -90,5 +90,22 @@ test('permanent Twitch account entitlement survives renaming; name reuse cannot 
     await db.query('INSERT INTO users(id,twitch_id,login) VALUES(7,$1,$2)',['someone-new','lzkll3_']);
     await initPermanentRewards(pool,{broadcasterId:'broadcaster'});
     assert.deepEqual((await db.query('SELECT account_id FROM account_permanent_rewards WHERE item_key=$1 ORDER BY account_id',[KEY])).rows.map(x=>x.account_id),[1,2,3]);
+  }finally{await db.close();}
+});
+
+test('the title cannot be equipped using inventory stock without an exact permanent Twitch entitlement',async()=>{
+  const {db,pool}=await fixture();
+  try{
+    await initPermanentRewards(pool,{broadcasterId:'broadcaster'});
+    assert.equal(await hasBetaTesterEntitlement(pool,1,'twitch-miyu'),true);
+    assert.equal(await hasBetaTesterEntitlement(pool,2,'twitch-killer'),true);
+    assert.equal(await hasBetaTesterEntitlement(pool,3,'twitch-lzk'),true);
+    assert.equal(await hasBetaTesterEntitlement(pool,4,'twitch-similar'),false);
+    assert.equal(await hasBetaTesterEntitlement(pool,1,'someone-else'),false);
+    assert.equal(await hasBetaTesterEntitlement(pool,0,'twitch-miyu'),false);
+    const {readFileSync}=await import('node:fs');
+    const server=readFileSync(new URL('../server.js',import.meta.url),'utf8');
+    assert.match(server,/betaTitleEligible = inventory\.get\(BETA_TESTER_TITLE\.key\)>0/);
+    assert.equal((server.match(/hasBetaTesterEntitlement\(/g)||[]).length,3);
   }finally{await db.close();}
 });
