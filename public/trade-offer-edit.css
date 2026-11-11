@@ -1,0 +1,16 @@
+/* Modifier une annonce depuis Communauté > Mes offres. */
+.trade-offer-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.trade-edit-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:36px;padding:8px 13px;border:1px solid rgba(167,117,255,.48);
+  border-radius:10px;background:rgba(112,66,190,.2);color:#eddcff;
+  font:inherit;font-weight:800;font-size:12px;cursor:pointer;
+}
+.trade-edit-btn:hover{background:rgba(145,71,255,.3)}
+.trade-edit-btn:focus-visible{outline:2px solid #d0aeff;outline-offset:3px}
+#tradeComposer[data-editing="true"] .trade-composer-footer>label{display:none!important}
+@media(max-width:700px){
+  .trade-offer-actions{width:100%;justify-content:flex-start}
+  .trade-edit-btn{min-height:42px;flex:1}
+  .trade-offer-actions .trade-cancel-btn{min-height:42px;flex:1}
+}
