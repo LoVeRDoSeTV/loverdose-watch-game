@@ -43,7 +43,7 @@ test('100 and 250 use the SAME full-bleed vector asset on mobile player and shop
     const art=readFileSync(new URL('../public/assets/'+name,import.meta.url),'utf8');
     const original=readFileSync(new URL('../public/assets/streak-'+milestone+'.svg',import.meta.url),'utf8');
     assert.match(art,/viewBox="0 0 700 470"/);
-    assert.match(art,/<rect width="700" height="470" fill="url\\(#base\\)"\\/>/);
+    assert.ok(art.includes('<rect width="700" height="470" fill="url(#base)"/>'));
     assert.equal((art.match(/<rect /g)||[]).length,1,'Only full-bleed background rectangle allowed');
     const ring=milestone===100?'cx="919" cy="195" r="127"':'cx="916" cy="201" r="139"';
     assert.ok(art.includes(ring)&&original.includes(ring),'Original medal ring must stay intact');
