@@ -20,7 +20,7 @@ test.before(async()=>{
  away_global_xp double precision DEFAULT 0,away_lovercash double precision DEFAULT 0,away_watch_seconds bigint DEFAULT 0,last_live_seen_at timestamptz,updated_at timestamptz,
  total_lovys_hatched int DEFAULT 0,progress_reset_at timestamptz);
  CREATE TABLE user_lovys(id int PRIMARY KEY,user_id int REFERENCES users(id),creature_id text,xp double precision DEFAULT 0,is_active boolean DEFAULT FALSE,rank int DEFAULT 1,fragments int DEFAULT 0,updated_at timestamptz);
- CREATE TABLE user_active_boosts(user_id int,boost_key text,starts_at timestamptz,expires_at timestamptz,PRIMARY KEY(user_id,boost_key));
+ CREATE TABLE user_active_boosts(user_id int,boost_key text,starts_at timestamptz,expires_at timestamptz,remaining_live_seconds double precision,PRIMARY KEY(user_id,boost_key));
  CREATE TABLE user_daily_activity(user_id int,activity_date date,watch_seconds bigint,global_xp_earned double precision,lovercash_earned double precision,updated_at timestamptz,PRIMARY KEY(user_id,activity_date));
  CREATE TABLE user_game_tabs(user_id int,last_seen_at timestamptz);
  CREATE TABLE user_pve_progress(user_id int,fight_key text,wins int DEFAULT 0,attempts int DEFAULT 0,first_won_at timestamptz,last_fought_at timestamptz,PRIMARY KEY(user_id,fight_key));
@@ -58,7 +58,10 @@ test('PvE checkmarks follow the active Lovys while unlocks and first rewards fol
  await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,otherId]);
  const second=await read();assert.equal(second.activeLovysId,otherId);assert.equal(second.zones[0].fights.filter(f=>f.won).length,0);
  for(const f of second.zones[0].fights.slice(0,2)){assert.equal(f.accountWon,true);assert.equal(f.replayRewardAvailable,true);}
- assert.deepEqual(second.zones.map(z=>z.fights.map(f=>f.unlocked)),first.zones.map(z=>z.fights.map(f=>f.unlocked)));
+ // Chaque Lovys doit débloquer son propre combat suivant ; les victoires du compte restent consultables.
+ assert.equal(first.zones[0].fights[1].unlocked,true);
+ assert.equal(second.zones[0].fights[0].unlocked,true);
+ assert.equal(second.zones[0].fights[1].unlocked,false);
  await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,keys[0]]);
  const partial=await read();assert.equal(partial.zones[0].fights[0].won,true);assert.equal(partial.zones[0].fights[1].won,false);assert.equal(partial.zones[0].fights[0].replayRewardAvailable,false);
  await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,id]);
