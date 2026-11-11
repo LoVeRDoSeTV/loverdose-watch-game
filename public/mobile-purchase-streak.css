@@ -204,6 +204,16 @@
   display:none!important;
 }
 
+/* Miniatures de fond : l'original est corrigé dans le SVG source.
+   La version URL évite le cache iPhone de l'ancien filtre carré.
+   Les dimensions/cadrages de la vignette restent strictement identiques. */
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-100-background {
+  background-image:url("/assets/streak-100.svg?v=631"),linear-gradient(140deg,#261344,#10152c)!important;
+}
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-250-background {
+  background-image:url("/assets/streak-250.svg?v=631"),linear-gradient(135deg,#25142d,#0c1129 62%,#3a2449)!important;
+}
+
 /* Les fonds mobiles 100/250 sont des SVG 700x470 PLEINE CARTE :
    aucun raccord rectangulaire, anneaux vectoriels d'origine conservés.
    Aucun zoom de l'ancien fond panoramique ni agrandissement du bloc joueur. */
