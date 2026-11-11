@@ -1,31 +1,22 @@
-export const BETA_TESTER_TITLE={key:'reward_title_beta_tester',category:'title',subcategory:'violet',name:'Bêta testeur',price:0,color:'#c7a1ff',description:'Titre permanent des trois bêta-testeurs. Conservé après les réinitialisations du jeu.',rewardOnly:true,exclusive:true,permanent:true};
-const campaign='beta-testers-v1';
-const normalize=value=>String(value||'').toLowerCase().replace(/_/g,'');
+// Exclusive title: ownership is tied to the three original Twitch accounts.
+// Never infer a recipient from a similar nickname or the number of players.
+export const BETA_TESTER_TITLE={key:'reward_title_beta_tester',category:'title',subcategory:'violet',name:'Bêta testeur',price:0,color:'#c7a1ff',description:'Titre permanent réservé à LoVeRMiyu, LoVeRKiLLeR et lzkll3_. Conservé après les réinitialisations du jeu.',rewardOnly:true,exclusive:true,permanent:true};
+const campaign='beta-testers-v2-exact';
+const BETA_TWITCH_LOGINS=Object.freeze(['lovermiyu','loverkiller','lzkll3_']);
+const normalize=value=>String(value||'').trim().toLowerCase();
 
-// Resolve only authenticated Twitch logins; never trust a freely chosen game name.
+// Resolve Twitch-linked accounts exclusively by exact authenticated Twitch login.
+// Missing accounts may be granted later; never guess using similar names.
 export function resolveBetaTesters(accounts,broadcasterId=''){
   const players=accounts.filter(a=>a.twitch_id&&String(a.twitch_id)!==String(broadcasterId));
-  const definitions=[
-    {name:'LoVeRMiyu',matches:login=>['lovermiyu','lovermyiu'].includes(login)},
-    {name:'LoVeRKiLLeR',matches:login=>login==='loverkiller'},
-    {name:'lzk',matches:login=>login.startsWith('lzk')}
-  ];
   const selected=[],unresolved=[];
-  for(const definition of definitions){
-    const found=players.filter(a=>definition.matches(normalize(a.login)));
-    if(found.length!==1)unresolved.push(definition.name);
+  for(const login of BETA_TWITCH_LOGINS){
+    const found=players.filter(a=>normalize(a.login)===login);
+    if(found.length!==1)unresolved.push(login);
     else selected.push(found[0]);
   }
-  // The owner explicitly named the three existing players. If the two full
-  // logins match and only one other player exists, resolve the abbreviated lzk
-  // by that unique existing account, even if its first letter was transcribed I/l.
-  if(broadcasterId&&accounts.some(a=>String(a.twitch_id)===String(broadcasterId))&&players.length===3
-    &&unresolved.length===1&&unresolved[0]==='lzk'&&selected.length===2){
-    const third=players.filter(a=>!selected.some(s=>s.id===a.id));
-    if(third.length===1)return {selected:[...selected,third[0]],unresolved:[]};
-  }
-  if(new Set(selected.map(a=>a.id)).size!==3&&unresolved.length===0)unresolved.push('Comptes distincts requis');
-  return {selected:unresolved.length?[]:selected,unresolved};
+  if(new Set(selected.map(a=>a.id)).size!==selected.length)throw new Error('Plusieurs pseudos Bêta testeur correspondent au même compte.');
+  return {selected,unresolved};
 }
 
 export async function initPermanentRewards(pool,{broadcasterId=process.env.TWITCH_BROADCASTER_ID||''}={}){
@@ -42,19 +33,42 @@ export async function initPermanentRewards(pool,{broadcasterId=process.env.TWITC
     const state=(await client.query('SELECT completed FROM permanent_reward_campaigns WHERE key=$1 FOR UPDATE',[campaign])).rows[0];
     let unresolved=[];
     if(!state.completed){
-      const rows=(await client.query(`SELECT a.id,a.twitch_id,u.login FROM accounts a JOIN users u ON u.twitch_id=a.twitch_id ORDER BY a.id FOR UPDATE OF a`)).rows;
-      const result=resolveBetaTesters(rows,broadcasterId);unresolved=result.unresolved;
-      if(!unresolved.length){
-        for(const account of result.selected)await client.query(`INSERT INTO account_permanent_rewards(account_id,item_key,source,twitch_id)
-          VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING`,[account.id,BETA_TESTER_TITLE.key,campaign,account.twitch_id]);
+      const rows=(await client.query(`SELECT a.id,a.twitch_id,u.login FROM accounts a
+        JOIN users u ON u.twitch_id=a.twitch_id ORDER BY a.id FOR UPDATE OF a`)).rows;
+      const result=resolveBetaTesters(rows,broadcasterId);
+      unresolved=result.unresolved;
+      for(const account of result.selected){
+        await client.query(`INSERT INTO account_permanent_rewards(account_id,item_key,source,twitch_id)
+          VALUES($1,$2,$3,$4)
+          ON CONFLICT(account_id,item_key) DO UPDATE
+          SET source=EXCLUDED.source,twitch_id=EXCLUDED.twitch_id`,
+        [account.id,BETA_TESTER_TITLE.key,campaign,account.twitch_id]);
+      }
+      const entitled=(await client.query('SELECT COUNT(*)::int total FROM account_permanent_rewards WHERE item_key=$1 AND source=$2',
+        [BETA_TESTER_TITLE.key,campaign])).rows[0];
+      if(Number(entitled?.total||0)===BETA_TWITCH_LOGINS.length){
         await client.query('UPDATE permanent_reward_campaigns SET completed=TRUE,completed_at=CURRENT_TIMESTAMP WHERE key=$1',[campaign]);
       }
     }
+
+    // Reconcile the older permissive beta-test campaign: wrongly matched
+    // accounts must not retain this exclusive title (even if equipped).
+    // The exact grant remains attached to its original Twitch account after renames.
+    const authorized=(await client.query('SELECT account_id FROM account_permanent_rewards WHERE item_key=$1 AND source=$2',
+      [BETA_TESTER_TITLE.key,campaign])).rows.map(row=>Number(row.account_id));
+    await client.query('UPDATE accounts SET equipped_title_key=NULL WHERE equipped_title_key=$1 AND NOT(id=ANY($2::int[]))',
+      [BETA_TESTER_TITLE.key,authorized]);
+    await client.query('DELETE FROM shop_inventory WHERE item_key=$1 AND NOT(account_id=ANY($2::int[]))',
+      [BETA_TESTER_TITLE.key,authorized]);
+    await client.query('DELETE FROM account_permanent_rewards WHERE item_key=$1 AND NOT(account_id=ANY($2::int[]))',
+      [BETA_TESTER_TITLE.key,authorized]);
+
+    // Restore permanent ownership after a player or global reset.
     await client.query(`INSERT INTO shop_inventory(account_id,item_key,quantity)
       SELECT account_id,item_key,1 FROM account_permanent_rewards
       ON CONFLICT(account_id,item_key) DO UPDATE SET quantity=GREATEST(shop_inventory.quantity,1)`);
     await client.query('COMMIT');
-    if(unresolved.length)console.warn('Titre Bêta testeur non attribué : compte absent ou ambigu pour '+unresolved.join(', '));
-    return {completed:state.completed||!unresolved.length,unresolved};
+    if(unresolved.length)console.warn('Titre Bêta testeur : comptes Twitch exacts non encore liés : '+unresolved.join(', '));
+    return {completed:unresolved.length===0,unresolved};
   }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
 }
