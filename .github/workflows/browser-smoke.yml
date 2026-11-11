@@ -1,7 +1,7 @@
 name: Contrôle visuel navigateur
 on:
   pull_request:
-    branches: [main]
+    branches: [main, performance-safe-modules-20261029]
 permissions:
   contents: read
 jobs:
