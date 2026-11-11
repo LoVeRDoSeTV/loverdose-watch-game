@@ -2,6 +2,7 @@
 
 Le panel est une extension Twitch de consultation : Lovys actif, niveau et rang,
 trois emplacements d’incubation, XP en réserve et jusqu’à quatre types d’objets.
+Le premier œuf demande 4 h de présence cumulée en live ; chaque œuf suivant demande 5 h.
 Il redirige vers le site pour jouer. Aucune action d’incubation, de combat,
 d’achat ou d’utilisation d’objet n’est exposée par son API.
 

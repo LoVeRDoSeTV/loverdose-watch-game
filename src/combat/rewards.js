@@ -27,6 +27,13 @@ export async function initPveRewards(pool) {
       SELECT r.user_id,l.id,r.fight_key,MIN(r.created_at) FROM user_combat_reports r
       JOIN user_lovys l ON l.user_id=r.user_id AND l.creature_id=r.report_json->>'creatureId'
       WHERE r.result='victory' GROUP BY r.user_id,l.id,r.fight_key ON CONFLICT DO NOTHING`);
+    await client.query(`CREATE TABLE IF NOT EXISTS user_lovys_pve_progress (
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    lovys_id INTEGER NOT NULL REFERENCES user_lovys(id) ON DELETE CASCADE,
+    fight_key TEXT NOT NULL, first_won_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id,lovys_id,fight_key))`);
+    await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
+      SELECT user_id,lovys_id,fight_key FROM user_pve_lovys_wins ON CONFLICT DO NOTHING`);
     await client.query('COMMIT');
   } catch(error) {await client.query('ROLLBACK');throw error;} finally {client.release();}
 }

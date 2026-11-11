@@ -1,11 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
-import {chooseDropReward,chooseWinnerCount,verifyEventSub} from '../src/routes/game-bot.js';
+import {chooseDropReward,chooseWinnerCount,chooseCashDropAmount,verifyEventSub} from '../src/routes/game-bot.js';
 
 test('répartition des lots 50/25/20/5',()=>{
   const counts={};for(let i=0;i<100;i++){const key=chooseDropReward(()=>i).key;counts[key]=(counts[key]||0)+1;}
   assert.deepEqual(counts,{cash:50,fragments:25,xp:20,egg:5});
+});
+test('montant LoVeR’Cash compris entre 3 et 25',()=>{
+  assert.equal(chooseCashDropAmount((min,max)=>min),3);
+  assert.equal(chooseCashDropAmount((min,max)=>max-1),25);
+  assert.equal(chooseDropReward(()=>0).label,'3 à 25 LoVeR’Cash');
 });
 test('un à trois gagnants selon les probabilités 70/25/5',()=>{
   const counts=[0,0,0,0];for(let i=0;i<100;i++)counts[chooseWinnerCount(()=>i)]++;

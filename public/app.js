@@ -1,3 +1,5 @@
+function xpBoostLiveHours(key){return ({boost_xp_x2:2,boost_xp_x2_5h:5,boost_xp_x2_10h:10})[key]||0;}
+function tradeBoostHours(type){return ({xp_boost:2,xp_boost_5h:5,xp_boost_10h:10})[type]||0;}
 // Même seuil tactile que les styles : navigation mobile sur téléphone et tablette.
 const TABLET_GAME_MEDIA = '(max-width:1366px) and (hover:none) and (pointer:coarse)';
 const MOBILE_GAME_MEDIA = `(max-width:900px), ${TABLET_GAME_MEDIA}`;
@@ -9,11 +11,9 @@ let desktopAdminAuthorized = false;
 let desktopAdminOrigin = null;
 let desktopAdminPreviousOverflow = '';
 const desktopAdminLayoutOrigins = new Map();
-let desktopTrackerButtonMarkup = null;
 const DESKTOP_ADMIN_PAGES = {
   adminDashboardButton:'adminDashboardModal', adminPlayersButton:'adminPlayersModal',
-  adminEconomyButton:'adminEconomyModal', adminTrackerButton:'adminTrackerModal', adminBotButton:'adminBotModal',
-  trackerDetectedButton:'trackerDetectedModal', adminHistoryButton:'adminHistoryModal',
+  adminBotButton:'adminBotModal',
   eventsButton:'eventsModal'
 };
 let desktopAdminConfirmationCancel = null;
@@ -367,7 +367,7 @@ function renderDesktopLovysHub(pveData = null) {
       <div class="lovys-home-statusline">Ton prochain Lovys se prépare</div>
       <div class="lovys-home-meta">
         <span class="lovys-pill is-accent">Incubation</span>
-        <span class="lovys-pill">${formatEggTime(egg.watchedSeconds || 0)} / 6 h 00</span>
+        <span class="lovys-pill">${formatEggTime(egg.watchedSeconds || 0)} / ${formatEggTime(egg.hatchSeconds || 14400)}</span>
         <span class="lovys-pill">⚡ ${pendingXp.toLocaleString('fr-FR')} XP en attente</span>
       </div>
       <div class="lovys-home-desc">Fais éclore ton œuf pour obtenir ton premier Lovys, puis débloquer les combats PvE et les récompenses liées à l’aventure.</div>
@@ -387,7 +387,7 @@ function renderDesktopLovysHub(pveData = null) {
     <div class="lovys-pve-kicker"><span class="egg-inline-icon" aria-hidden="true"></span> Aventure verrouillée</div>
     <div class="lovys-pve-name">Débloque ton premier Lovys</div>
     <div class="lovys-home-empty-note">Le mode PvE s’ouvrira automatiquement après l’éclosion.</div>
-    <div class="lovys-home-empty-helper">Continue à regarder les lives pour compléter les 6 heures d’incubation. Les XP gagnés via les défis seront conservés et ajoutés à ton Lovys au moment de l’éclosion.</div>
+    <div class="lovys-home-empty-helper">Continue à regarder les lives pour compléter les 4 heures d’incubation. Les XP gagnés via les défis seront conservés et ajoutés à ton Lovys au moment de l’éclosion.</div>
     <div class="lovys-home-empty-tag">⚡ ${pendingXp.toLocaleString('fr-FR')} XP en attente</div>
     <div class="lovys-pve-stats">
       <div class="lovys-pve-stat"><div class="lovys-pve-stat-label">Temps restant</div><div class="lovys-pve-stat-value">${egg.ready ? '0 h 00' : escapeHtml(formatEggTime(egg.remainingSeconds || 0))}</div><div class="lovys-pve-stat-sub">avant l’éclosion</div></div>
@@ -415,20 +415,30 @@ async function syncDesktopLovysHub() {
   }
 }
 
+function lovysEvolutionForLevel(level){return Number(level)>=50?3:Number(level)>=25?2:0;}
+function lovysImageUrl(id,evolution=0){
+  const key=String(id||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const names={plant:'Mossy',mossy:'Mossy',water:'Nymea',nymea:'Nymea',voltis:'Voltis',lightning:'Voltis',brumee:'Brumee',mist:'Brumee',fire:'Flamby',flamby:'Flamby',crysal:'Crysal',crystal:'Crysal',ferox:'Ferox',forge:'Ferox',dark:'Nocty',nocty:'Nocty',solka:'Solka',solar:'Solka',dream:'Mimo',mimo:'Mimo'};
+  const name=names[key];if(!name)return '';
+  return `/${name}${Number(evolution)>=3?'-evolution-50':Number(evolution)>=2?'-evolution-25':''}.webp`;
+}
+function lovysEvolutionMarkup(l){
+  const stage=lovysEvolutionForLevel(l?.level||1),bonus=stage===3?30:stage===2?15:0;
+  const name=stage===3?'Évolution maximale':stage===2?'Forme évoluée':'Forme de départ';
+  return `<div class="lovys-evolution-summary"><strong>✨ ${name}</strong><span>${bonus?`+${bonus} % PV, ATQ, DEF et VIT`:'Évolution au niveau 25'}</span><small>Évolution : niveau et apparence · Rang ⭐ : fragments et talent</small></div>`;
+}
+function observeLovysEvolutions(lovys){
+  window.LovysEvolutionCelebration?.observe({
+    accountId:me?.user?.id,progressResetAt:me?.user?.progress_reset_at,lovys,imageFor:lovysImageUrl,
+    isBlocked:()=>Boolean(badgeCelebrationActive||returnSummaryBusy||returnSummaryPending||rewardWheelSpinning||activeTradeExchange
+      ||document.querySelector('#pveBattleOverlay:not(.hidden),.lovys-xp-transfer-modal,.lovys-xp-success,.desktop-egg-boost-overlay,.desktop-boost-accepted-overlay,.hatch-cinematic.active,#returnSummaryOverlay,#rewardWheelWinPopup:not(.hidden)'))
+  });
+}
+function observeActiveLovysEvolution(){
+  if(!me?.user?.creature_id)return;
+  observeLovysEvolutions([{creatureId:me.user.creature_id,name:me.creatures?.find(c=>c.id===me.user.creature_id)?.name,level:me.user.progression?.level}]);
+}
 function art(type, evo = 0, small = false) {
-  const monsterImages = {
-    fire: '/Flamby.webp',
-    water: '/Nymea.webp',
-    plant: '/Mossy.webp',
-    dark: '/Nocty.webp',
-    dream: '/Mimo.webp',
-    voltis: '/Voltis.webp',
-    crysal: '/Crysal.webp',
-    brumee: '/Brumee.webp',
-    solka: '/Solka.webp',
-    ferox: '/Ferox.webp'
-  };
-
   const monsterNames = {
     fire: 'Flamby',
     water: 'Nyméa',
@@ -442,17 +452,18 @@ function art(type, evo = 0, small = false) {
     ferox: 'Ferox'
   };
 
-  const image = monsterImages[type];
+  const image = lovysImageUrl(type,evo);
   if (!image) return '';
+  const name=monsterNames[type]||image.split('/').pop().replace(/(?:-evolution-(?:25|50))?\.webp$/,'');
 
   return `
     <img loading="lazy" decoding="async"
       src="${image}"
-      alt="${monsterNames[type]}"
+      alt="${name}"
       class="${small ? 'monster-image-small' : 'monster-image'}"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"
     >
-    <div class="monster-placeholder">Image de ${monsterNames[type]}<br>à ajouter</div>
+    <div class="monster-placeholder">Image de ${name}<br>à ajouter</div>
   `;
 }
   
@@ -518,7 +529,7 @@ function showSuccess(title, message, buttonText, callback) {
   
 function showAuthHome() {
   setDesktopAdminAccess(false);
-  desktopActiveBoosts={};desktopBoostNotice=null;renderDesktopBoostStatus();
+  desktopActiveBoosts={};desktopXpBoostRemainingSeconds=0;desktopBoostNotice=null;renderDesktopBoostStatus();
   authOverlay.classList.remove('hidden');
   authHome.style.display = 'flex';
   
@@ -703,13 +714,13 @@ function renderDailyChallenges() {
     const rewards = `${Number(challenge.rewardCash || 0) > 0 ? `<span class="daily-reward-pill cash">💰 +${Number(challenge.rewardCash)} LoVeR'Cash</span>` : ''}${Number(challenge.rewardGlobalXp || 0) > 0 ? `<span class="daily-reward-pill">⭐ +${Number(challenge.rewardGlobalXp)} XP globale</span>` : ''}${Number(challenge.rewardLovysXp || 0) > 0 ? `<span class="daily-reward-pill">🐉 +${Number(challenge.rewardLovysXp)} XP Lovys</span>` : ''}`;
 
     let actions = '';
-    if (challenge.claimed) {
-      actions = `<span class="daily-challenge-status">✓ Récompense récupérée</span>`;
-    } else if (challenge.completed) {
-      actions = `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>`;
-    } else {
-      actions = `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
+    if (!challenge.claimed) {
+      actions = challenge.completed
+        ? `<button class="daily-challenge-button" type="button" data-daily-claim="${escapeHtml(challenge.key)}" ${dailyChallengeClaims.has(challenge.key)?'disabled':''}>${dailyChallengeClaims.has(challenge.key)?'Récupération…':'🎁 Réclamer'}</button>`
+        : `<button class="daily-challenge-button" type="button" disabled>En cours</button>`;
     }
+    const status = challenge.claimed ? '<span class="daily-challenge-status">✓ Récompense réclamée</span>'
+      : `<span>${challenge.completed ? 'Terminé' : 'En cours'}</span>`;
 
     const visualClass = ({
       watch_30:'daily-challenge-watch-30',
@@ -726,8 +737,8 @@ function renderDailyChallenges() {
       </div>
       <div class="daily-challenge-rewards">${rewards}</div>
       <div class="daily-challenge-progress"><span style="width:${pct}%"></span></div>
-      <div class="daily-challenge-progress-text"><span>${escapeHtml(formatDailyChallengeProgress(challenge))}</span><span>${challenge.completed ? 'Terminé' : 'En cours'}</span></div>
-      <div class="daily-challenge-actions">${actions}</div>
+      <div class="daily-challenge-progress-text"><span>${escapeHtml(formatDailyChallengeProgress(challenge))}</span>${status}</div>
+      ${actions ? `<div class="daily-challenge-actions">${actions}</div>` : ''}
     </article>`;
   }).join('');
   applyDailyCarouselState();
@@ -1041,6 +1052,49 @@ function createTrailingRefresh(task){
 }
 const queuedGameRefresh=createTrailingRefresh(loadGameOnce);
 async function loadGame(){return queuedGameRefresh();}
+let heartGiftCheckedAccount = null;
+async function showPendingHeartGift() {
+  const accountKey = String(me?.user?.id || me?.user?.username || '');
+  if (!accountKey || heartGiftCheckedAccount === accountKey) return;
+  heartGiftCheckedAccount = accountKey;
+  try {
+    const response = await fetch('/api/gifts/pending', { cache: 'no-store' });
+    if (!response.ok) throw new Error('Cadeau indisponible');
+    const { gift } = await response.json();
+    if (!gift || gift.item_key !== 'bg_tiny_hearts' || accountKey !== String(me?.user?.id || me?.user?.username || '')) return;
+    const modal = document.createElement('div');
+    modal.id = 'heartGiftCelebration';
+    modal.className = 'badge-unlock-celebration';
+    modal.setAttribute('aria-hidden', 'false');
+    modal.innerHTML = `<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:48},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#ff8bc7','#b78aff','#ffd76b'][i%3]}"></i>`).join('')}</div><div class="badge-unlock-card" role="dialog" aria-modal="true" aria-labelledby="heartGiftTitle">
+      <div class="badge-unlock-glow"></div>
+      <div class="badge-unlock-kicker">✦ Un cadeau pour toi</div>
+      <div class="badge-unlock-title" id="heartGiftTitle">Surprise ! 💖</div>
+      <div class="badge-unlock-stage">Offert par ${escapeHtml(gift.sender_name)}</div>
+      <div class="badge-unlock-logo-wrap"><div class="badge-unlock-ring"></div><div class="badge-unlock-logo-fallback">💗</div></div>
+      <div class="badge-unlock-name">Fond Cœurs pastel</div>
+      <div class="badge-unlock-condition">Une petite attention pour toi. Retrouve ton nouveau fond dans Inventaire → Fonds.</div>
+      <button class="badge-unlock-ok" type="button">Merci !</button>
+    </div>`;
+    document.body.appendChild(modal);
+    const close = async () => {
+      modal.classList.remove('show');
+      modal.setAttribute('aria-hidden', 'true');
+      setTimeout(() => modal.remove(), 300);
+      try {
+        await fetch('/api/gifts/' + encodeURIComponent(gift.id) + '/acknowledge', { method: 'POST' });
+      } catch (error) { console.error('Confirmation du cadeau :', error); }
+      setTimeout(showNextBadgeCelebration, 320);
+    };
+    modal.querySelector('button')?.addEventListener('click', close, { once: true });
+    requestAnimationFrame(() => modal.classList.add('show'));
+    setTimeout(() => modal.querySelector('button')?.focus(), 260);
+  } catch (error) {
+    heartGiftCheckedAccount = null;
+    console.error('Chargement du cadeau :', error);
+  }
+}
+
 async function loadGameOnce() {
   const cosmeticLoadRevision = cosmeticRevision;
   try {
@@ -1048,6 +1102,7 @@ async function loadGameOnce() {
     const data = await response.json();
 
     if (!response.ok || !data.authenticated) {
+      window.LovysEvolutionCelebration?.reset();
       $('app').classList.add('hidden');
       return;
     }
@@ -1058,6 +1113,7 @@ async function loadGameOnce() {
       }
     }
     me = data;
+    if(window.LovysEvolutionCelebration)observeActiveLovysEvolution();
     lastGameRefreshAt=Date.now();
     void refreshReturnSummary();
     reapplyPendingCosmetics();
@@ -1069,6 +1125,10 @@ async function loadGameOnce() {
     renderPlayerSubscriptionStatus();
 
     renderGame();
+    void refreshMobileHomeXpBoost();
+    await showPendingHeartGift();
+    scheduleTwitchRewardCheck(1400);
+    scheduleWatchStreakRewardCheck(1700);
     // Restaurer les pages mobiles uniquement au premier chargement authentifié,
     // après l'affichage de l'application ; jamais lors des rafraîchissements.
     if (isMobileGameUi() && !window.__loverMobileNavRestored) {
@@ -1080,6 +1140,7 @@ async function loadGameOnce() {
     }
     await loadIncubatorSlots();
     await Promise.allSettled([syncDesktopLovysHub(),loadBadges(),loadDailyChallenges(),loadRewardWheels()]);
+    if(window.LovysEvolutionCelebration)observeActiveLovysEvolution();
     renderNextActions();
     updatePwaInstallUi();
     setupTopDashboardSync();
@@ -1147,7 +1208,7 @@ function renderIncubatorSlot(slotData) {
   el.classList.add(isStarter ? 'active' : 'extra-egg');
   if (slotData.ready) el.classList.add('ready');
   const title = slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation';
-  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
+  const remaining = Math.max(0, incubatorSlotHatchSeconds(slotData) - Number(slotData.watchedSeconds || 0));
   const status = slotData.ready ? '✨ Prêt à éclore !' : `Éclosion dans <strong class="incubator-remaining-time">${formatEggTime(remaining)}</strong>`;
   const pending = isStarter ? `<div class="incubator-pending">⚡ XP en attente : <strong>${Math.max(0, Number(slotData.pendingXp || 0)).toLocaleString('fr-FR')} XP</strong></div>` : '';
   const action = slotData.ready ? '<button class="incubator-card-action hatch" type="button">✨ Faire éclore</button>' : '<button class="incubator-card-action chances" type="button">🎲 Chances</button><button class="incubator-card-action accelerate" type="button">⚡ Accélérer</button>';
@@ -1159,9 +1220,9 @@ function renderIncubatorOverview() {
   const box = $('incubatorOverview');
   if (!box || !incubatorData?.slots) return;
   const active = incubatorData.slots.filter(slot => slot && !slot.empty);
-  const next = active.filter(slot => !slot.ready).sort((a,b)=>Number(b.watchedSeconds||0)-Number(a.watchedSeconds||0))[0];
+  const next = active.filter(slot => !slot.ready).sort((a,b)=>(incubatorSlotHatchSeconds(a,incubatorData)-Number(a.watchedSeconds||0))-(incubatorSlotHatchSeconds(b,incubatorData)-Number(b.watchedSeconds||0)))[0];
   const ready = active.find(slot => slot.ready);
-  const remaining = next ? Math.max(0, Number(incubatorData?.hatchSeconds || 21600)-Number(next.watchedSeconds||0)) : 0;
+  const remaining = next ? Math.max(0, incubatorSlotHatchSeconds(next)-Number(next.watchedSeconds||0)) : 0;
   const available = Math.max(0, Number(incubatorData?.availableEggs || 0));
   box.innerHTML = `<div class="incubator-overview-head"><div><span class="incubator-overview-kicker">INCUBATION</span><h3>${ready ? '✨ Un œuf est prêt à éclore' : next ? `Prochaine éclosion dans ${formatEggTime(remaining)}` : 'Aucune incubation en cours'}</h3><p>${active.length ? 'Tes œufs progressent avec ta présence pendant les lives.' : 'Place un œuf pour commencer une incubation.'}</p></div><div class="incubator-stock">🥚 <strong>${available}</strong> œuf${available>1?'s':''} disponible${available>1?'s':''}</div></div><div class="incubator-info-grid"><div class="incubator-info-card"><strong>🎲 Chances d’obtention</strong><div class="incubator-rarity-line"><span>Commun <b>70 %</b></span><span>Rare <b>22 %</b></span><span>Épique <b>7 %</b></span><span>Mythique <b>1 %</b></span></div><small>Clique sur un œuf en incubation pour voir les Lovys possibles avec leurs pourcentages d’obtention.</small></div><div class="incubator-info-card"><strong>📺 Progression liée au live</strong><p>Le temps d’incubation avance quand ta présence est comptabilisée pendant le live.</p><div id="incubatorGlobalLiveState" class="incubator-global-live">Vérification du statut du live…</div></div></div>`;
   if(isMobileGameUi()){
@@ -1306,6 +1367,8 @@ function renderIncubatorSlots() {
   arrangeIncubatorCarousel();
   renderIncubatorOverview();
   renderMobileHomeDashboard();
+  renderMobileHomeXpBoost();
+  if(isMobileGameUi()) void refreshMobileHomeXpBoost();
   refreshIncubatorLiveState();
 }
 
@@ -1428,12 +1491,13 @@ function openExtraEggInfo(slotData) {
   if (!content) return;
   selectedIncubatorSlot = Number(slotData.slot);
   $('incubatorAddSubtitle').textContent = `Emplacement ${selectedIncubatorSlot} · œuf en cours d’incubation.`;
-  const remaining = Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(slotData.watchedSeconds || 0));
-  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé ses 6 heures d’incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / 6 h 00</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}</div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
+  const remaining = Math.max(0, incubatorSlotHatchSeconds(slotData) - Number(slotData.watchedSeconds || 0));
+  content.innerHTML = `<div class="incubator-add-card"><div class="incubator-add-egg"><div class="incubator-add-egg-visual">${incubatorEggMarkup()}</div><div class="incubator-add-info"><div class="incubator-add-title">${slotData.ready ? 'Œuf prêt à éclore' : 'Œuf en incubation'}</div><div class="incubator-add-copy">${slotData.ready ? 'Cet œuf a terminé son incubation. Fais-le éclore pour ajouter un nouveau Lovys à ta collection.' : `Il reste ${formatEggTime(remaining)} avant que cet œuf soit prêt.`}</div><div class="incubator-add-count">⏱️ ${formatEggTime(slotData.watchedSeconds || 0)} / ${formatEggTime(incubatorSlotHatchSeconds(slotData))}</div></div></div><div class="incubator-add-actions">${slotData.ready ? `<button id="incubatorHatchExtraEgg" class="hub-btn lovys-hatch-ready" type="button">✨ Faire éclore</button>` : ''}</div>${incubatorLovysDropsMarkup()}<div id="incubatorAddMessage" class="incubator-add-message"></div></div>`;
   $('incubatorHatchExtraEgg')?.addEventListener('click',()=>hatchExtraIncubatorEgg(slotData.slot));
   $('incubatorAddModal')?.classList.remove('hidden');
 }
 
+function incubatorSlotHatchSeconds(slot, data=incubatorData) { return Math.max(1, Number(slot?.hatchSeconds || (slot?.source === 'starter' ? 14400 : data?.hatchSeconds) || 18000)); }
 function formatEggTime(seconds) {
   const total = Math.max(0, Math.floor(Number(seconds) || 0));
   const hours = Math.floor(total / 3600);
@@ -1449,9 +1513,9 @@ function updateEgg(egg) {
 
   const eggProgress = Math.max(0, Math.min(100, egg.progress || 0));
   $('eggProgressBar').style.width = `${eggProgress}%`;
-  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  $('eggTime').textContent = `${formatEggTime(egg.watchedSeconds)} / ${formatEggTime(egg.hatchSeconds || 14400)}`;
   if ($('topIncubatorProgressBar')) $('topIncubatorProgressBar').style.width = `${eggProgress}%`;
-  if ($('topIncubatorTime')) $('topIncubatorTime').textContent = `${formatEggTime(egg.watchedSeconds)} / 6 h 00`;
+  if ($('topIncubatorTime')) $('topIncubatorTime').textContent = `${formatEggTime(egg.watchedSeconds)} / ${formatEggTime(egg.hatchSeconds || 14400)}`;
   if ($('topIncubatorPendingXp')) $('topIncubatorPendingXp').textContent = pendingXp + ' XP';
   $('topIncubatorEgg')?.classList.remove('hidden');
   $('topIncubatorEggArt')?.classList.remove('hidden');
@@ -1490,7 +1554,7 @@ const tutorialSteps = [
   },
   {
     icon:'🥚', title:'Œufs et incubateur', target:'.incubator-topbar',
-    text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 6 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
+    text:'Les incubateurs servent à faire éclore tes œufs pour découvrir de nouveaux Lovys. Place un œuf dans un emplacement libre : il faut 5 heures de présence comptabilisée pendant les lives Twitch pour le rendre prêt à éclore.',
     tip:'Le temps se cumule sur plusieurs lives et se met en pause hors ligne. Quand l’œuf est prêt, clique sur « Faire éclore ». Tu peux faire progresser jusqu’à 3 œufs en même temps.'
   },
   {
@@ -1686,7 +1750,7 @@ function buildNextActions() {
 
   if (!me.user.creature_id && !readySlot) {
     const starter = slots.find(slot => slot.source === 'starter');
-    if (starter && !starter.ready) actions.push({ id:'incubator-view', icon:'⏱️', title:'Continue l’incubation', desc:`Il reste ${formatEggTime(Math.max(0, Number(incubatorData?.hatchSeconds || 21600) - Number(starter.watchedSeconds || 0)))} avant ton premier Lovys.`, button:'Voir' });
+    if (starter && !starter.ready) actions.push({ id:'incubator-view', icon:'⏱️', title:'Continue l’incubation', desc:`Il reste ${formatEggTime(Math.max(0, incubatorSlotHatchSeconds(starter) - Number(starter.watchedSeconds || 0)))} avant ton premier Lovys.`, button:'Voir' });
   }
 
   const pendingXp = Math.max(0, Number(me.user.pending_xp || 0));
@@ -1833,6 +1897,7 @@ function badgeCelebrationDescriptor(challenge) {
     signature: badgeCelebrationSignature(challenge),
     badgeName: String(challenge.badgeName || 'Nouveau badge'),
     badgeImage: String(challenge.badgeImage || ''),
+    badgeChallenge: String(challenge.badgeChallenge || '').trim(),
     stageName: String(progressive ? (challenge.celebrationStageName || challenge.evolutionName || '') : ''),
     lovysXp,
     globalXp,
@@ -1852,6 +1917,7 @@ function badgeCelebrationDescriptors(challenge) {
     ...challenge,
     badgeName: challenge.missionType === 'achievement' ? stage.name : challenge.badgeName,
     badgeImage: stage.image || challenge.badgeImage,
+    badgeChallenge: stage.badgeChallenge || challenge.badgeChallenge,
     celebrationStageId: stage.goal,
     celebrationStageName: stage.name,
     celebrationRewardLovysXp: stage.rewards?.lovysXp || 0,
@@ -1876,6 +1942,7 @@ function ensureBadgeCelebrationModal() {
     <div class="badge-unlock-stage" id="badgeUnlockStage"></div>
     <div class="badge-unlock-logo-wrap"><div class="badge-unlock-ring"></div><div id="badgeUnlockLogo"></div></div>
     <div class="badge-unlock-name" id="badgeUnlockName"></div>
+    <div class="badge-unlock-condition" id="badgeUnlockCondition"></div>
     <div class="badge-unlock-reward-title">Récompenses obtenues</div>
     <div class="badge-unlock-rewards" id="badgeUnlockRewards"></div>
     <div class="badge-unlock-reserve" id="badgeUnlockReserve"></div>
@@ -1889,9 +1956,9 @@ function ensureBadgeCelebrationModal() {
 
 function showNextBadgeCelebration() {
   clearTimeout(badgeCelebrationRetry);
-  if (badgeCelebrationActive || !badgeCelebrationQueue.length) return;
+  if (badgeCelebrationActive || document.getElementById('heartGiftCelebration') || document.getElementById('twitchRewardCelebration') || !badgeCelebrationQueue.length) return;
   const wheelPopup = $('rewardWheelWinPopup');
-  if (document.hidden || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
+  if (document.hidden || window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning || (wheelPopup && !wheelPopup.classList.contains('hidden'))
       || pveBattleState.running || activeTradeExchange) {
     badgeCelebrationRetry = setTimeout(showNextBadgeCelebration, 400);
     return;
@@ -1908,6 +1975,8 @@ function showNextBadgeCelebration() {
   const reserve = modal.querySelector('#badgeUnlockReserve');
   if (stage) stage.textContent = item.stageName ? `Nouvelle évolution · ${item.stageName}` : 'Un nouveau badge rejoint ta collection';
   if (name) name.textContent = item.badgeName;
+  const condition = modal.querySelector('#badgeUnlockCondition');
+  if (condition) { condition.textContent = item.badgeChallenge ? `Obtenu en : ${item.badgeChallenge}` : ''; condition.hidden = !item.badgeChallenge; }
   if (logo) logo.innerHTML = item.badgeImage
     ? `<img loading="lazy" decoding="async" class="badge-unlock-logo" src="${escapeHtml(badgeAssetUrl(item.badgeImage))}" alt="${escapeHtml(item.badgeName)}">`
     : '<div class="badge-unlock-logo-fallback">🏆</div>';
@@ -1966,7 +2035,7 @@ async function syncBadgeUnlockCelebrations(challenges = []) {
   }
 }
 
-function badgeAssetUrl(value){return typeof value==='string'&&value.startsWith('/badges/')?value.split('?')[0]+'?v=520':value;}
+function badgeAssetUrl(value){if(typeof value!=='string'||!value.startsWith('/badges/'))return value;const path=value.split('?')[0];return path+'?v='+(/^\/badges\/watch-mw4-[1-5]\.webp$/.test(path)?'573':'531');}
 function badgeVisual(badge, className = 'badge-art') {
   if (badge?.badgeImage) {
     return `<img loading="lazy" decoding="async" class="${className}" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(badge.badgeName || 'Badge')}">`;
@@ -2035,6 +2104,7 @@ function profileBackgroundValue(key) {
 
     bg_camo_kawaii: 'linear-gradient(110deg,rgba(36,20,43,.76),rgba(36,20,43,.43)),url("/assets/profile-camo-kawaii.webp")',
     bg_nebula: 'radial-gradient(circle at 15% 15%,rgba(155,85,255,.42),transparent 38%),linear-gradient(150deg,rgba(36,20,68,.96),rgba(12,16,32,.98))',
+    reward_bg_twitch_live: 'url("/assets/profile-twitch-live.webp?v=600")',
     bg_starry: 'radial-gradient(circle at 18% 22%,rgba(255,255,255,.82) 0 1px,transparent 2px),radial-gradient(circle at 72% 25%,rgba(204,190,255,.8) 0 1px,transparent 2px),radial-gradient(circle at 84% 72%,rgba(255,255,255,.8) 0 1px,transparent 2px),linear-gradient(150deg,#080c1c,#161a35)',
     bg_ember: 'radial-gradient(circle at 22% 90%,rgba(255,102,40,.42),transparent 34%),linear-gradient(150deg,rgba(55,18,16,.96),rgba(18,15,29,.98))',
     bg_dawn_violet: 'radial-gradient(circle at 72% 22%,rgba(228,190,255,.28),transparent 28%),linear-gradient(150deg,rgba(85,42,116,.96),rgba(34,22,58,.98) 56%,rgba(14,20,38,.99))',
@@ -2050,6 +2120,8 @@ function profileBackgroundValue(key) {
     bg_rose_horizon: 'radial-gradient(circle at 70% 25%,rgba(255,188,236,.22),transparent 26%),linear-gradient(150deg,#482048,#1e1835 58%,#0f162a)',
     bg_sapphire_wave: 'radial-gradient(circle at 26% 74%,rgba(88,179,255,.22),transparent 28%),linear-gradient(150deg,#0b2950,#101f3d 56%,#081223)',
     bg_golden_sunset: 'radial-gradient(circle at 30% 76%,rgba(255,166,76,.32),transparent 28%),radial-gradient(circle at 76% 22%,rgba(255,221,124,.15),transparent 18%),linear-gradient(150deg,#3b1c19,#2e1f39 58%,#141425)',
+    streak_bg_100: 'url("/assets/streak-100.svg?v=630"),linear-gradient(140deg,#261344,#10152c)',
+    streak_bg_250: 'url("/assets/streak-250.svg?v=630"),linear-gradient(135deg,#25142d,#0c1129 62%,#3a2449)',
   };
   return map[key] || 'none';
 }
@@ -2102,7 +2174,10 @@ function profileAvatarFrameStyle(key) {
     avatarframe_amethyst: { border:'#b96cff', shadow:'0 0 16px rgba(185,108,255,.32)' },
     avatarframe_ruby: { border:'#ff4d79', shadow:'0 0 16px rgba(255,77,121,.32)' },
     avatarframe_ice: { border:'#9fe8ff', shadow:'0 0 16px rgba(159,232,255,.32)' },
-    avatarframe_pearl: { border:'#f5efe8', shadow:'0 0 16px rgba(245,239,232,.28)' }
+    avatarframe_pearl: { border:'#f5efe8', shadow:'0 0 16px rgba(245,239,232,.28)' },
+    streak_avatarframe_50: { border:'#ba85ff', shadow:'0 0 0 2px rgba(186,133,255,.28),0 0 18px rgba(186,133,255,.42)' },
+    streak_avatarframe_200: { border:'#f6c875', shadow:'0 0 0 2px rgba(246,200,117,.34),0 0 20px rgba(246,200,117,.45)' },
+    streak_avatarframe_350: { border:'#e5bcff', shadow:'0 0 0 3px rgba(168,98,255,.52),0 0 24px rgba(213,160,255,.65)' }
   };
   return map[key] || null;
 }
@@ -2125,8 +2200,40 @@ function applyAvatarFrameCosmetics(element, avatarFrameKey) {
   element.style.boxShadow = frame?.shadow || '';
 }
 
+function streakMotionMarkup(backgroundKey){
+  if(backgroundKey!=='streak_bg_100'&&backgroundKey!=='streak_bg_250')return '';
+  return `<span class="streak-motion-layer" aria-hidden="true">${Array.from({length:5},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span>`;
+}
 function applyProfileCosmetics(element, backgroundKey, frameKey) {
   if (!element) return;
+  const twitchBackground = backgroundKey === 'reward_bg_twitch_live';
+  const streakBackground = backgroundKey === 'streak_bg_100' || backgroundKey === 'streak_bg_250';
+  element.classList.toggle('twitch-live-background', twitchBackground);
+  element.classList.toggle('streak-100-background',backgroundKey==='streak_bg_100');
+  element.classList.toggle('streak-250-background',backgroundKey==='streak_bg_250');
+  let streakLayer=element.querySelector(':scope > .streak-motion-layer');
+  if(streakBackground&&!streakLayer){
+    streakLayer=document.createElement('span');
+    streakLayer.className='streak-motion-layer';
+    streakLayer.setAttribute('aria-hidden','true');
+    for(let i=0;i<5;i++){
+      const icon=document.createElement('img');icon.src='/assets/twitch-glyph.svg';icon.alt='';streakLayer.append(icon);
+    }
+    element.prepend(streakLayer);
+  }else if(!streakBackground&&streakLayer)streakLayer.remove();
+  let logos = element.querySelector(':scope > .twitch-logo-layer');
+  if (twitchBackground && !logos) {
+    logos = document.createElement('span');
+    logos.className = 'twitch-logo-layer';
+    logos.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 10; i++) {
+      const icon = document.createElement('img');
+      icon.src = '/assets/twitch-glyph.svg';
+      icon.alt = '';
+      logos.append(icon);
+    }
+    element.prepend(logos);
+  } else if (!twitchBackground && logos) logos.remove();
   element.style.setProperty('--profile-card-image', profileBackgroundValue(backgroundKey));
   const frame = profileFrameStyle(frameKey);
   element.classList.toggle('cosmetic-card-decoration', Boolean(frame?.corner));
@@ -2212,6 +2319,7 @@ function applyBadgeRewardSummary(summary){
     if(summary[source]!==undefined)me.user[target]=Number(summary[source]||0);
   }
   if(summary.creatureProgression)me.user.progression=summary.creatureProgression;
+  if(globalThis.LovysEvolutionCelebration)observeActiveLovysEvolution();
   if(summary.globalProgression)me.user.global_progression=summary.globalProgression;
   if(summary.globalGrade)me.user.global_grade=summary.globalGrade;
   syncLoverCashDisplays(me.user);
@@ -2288,14 +2396,46 @@ function badgeCategoryOf(challenge) {
   return 'watch';
 }
 
+// Presentation families preserve each original badge key and its independent rewards.
+function badgeCollectionFamilies(challenges) {
+  const discoveryKeys = ['achievement:rare', 'achievement:epic', 'achievement:mimo'];
+  const members = discoveryKeys.map(key => challenges.find(item => item.badgeKey === key)).filter(Boolean);
+  if (members.length < 2) return challenges;
+  const earned = members.filter(item => item.unlocked);
+  const current = earned.at(-1) || members[0];
+  const next = members.find(item => !item.unlocked) || current;
+  const family = {
+    ...current, badgeName: 'Découverte de Lovys', badgeChallenge: next.badgeChallenge,
+    familyMemberKeys: members.map(item => item.badgeKey),
+    unlocked: earned.length > 0, maxed: earned.length === members.length,
+    evolutionLevel: earned.length, maxEvolutionLevel: members.length,
+    progressValue: earned.length, progressTarget: members.length, progressUnit: 'découvertes',
+    rewardLovysXp: next.rewardLovysXp, rewardGlobalXp: next.rewardGlobalXp, rewardCash: next.rewardCash,
+    stages: members.map((item, index) => ({
+      goal: index + 1, name: item.badgeName, image: item.badgeImage,
+      badgeChallenge: item.badgeChallenge, condition: item.badgeChallenge,
+      unlocked: Boolean(item.unlocked), sourceBadgeKey: item.badgeKey,
+      progressValue: item.progressValue, progressTarget: item.progressTarget, progressUnit: item.progressUnit,
+      rewards: { lovysXp: item.rewardLovysXp || item.rewardXp || 0, globalXp: item.rewardGlobalXp || 0, cash: item.rewardCash || 0 }
+    }))
+  };
+  let inserted = false;
+  return challenges.flatMap(item => {
+    if (!discoveryKeys.includes(item.badgeKey)) return [item];
+    if (inserted) return [];
+    inserted = true;
+    return [family];
+  });
+}
+
 function badgeStagesMarkup(challenge,expanded=false,selectedGoal=null){
-  if(!challenge?.stages?.length)return '';
+  if(!challenge?.stages?.length || (challenge.stages.length === 1 && !expanded))return '';
   const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h');
   const nextIndex=challenge.stages.findIndex(stage=>!stage.unlocked);
   return '<details class="badge-stage-list"'+(expanded?' open':'')+'><summary>Les '+challenge.stages.length+' paliers du badge</summary><ol>'+
     challenge.stages.map((stage,index)=>'<li class="'+(stage.unlocked?'obtained':index===nextIndex?'next-stage':'locked-stage')+'">'+
       '<button type="button" class="badge-stage-button" data-badge-stage="'+Number(stage.goal)+'" data-badge-stage-key="'+escapeHtml(challenge.badgeKey)+'" aria-pressed="'+(Number(selectedGoal)===Number(stage.goal))+'">'+badgeVisual({badgeImage:stage.image,badgeName:stage.name,badgeIcon:challenge.badgeIcon})+
-      '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+Number(stage.goal)+' '+escapeHtml(unit)+'</strong><small>'+
+      '<span class="badge-stage-copy"><b>'+escapeHtml(stage.name)+'</b><strong>'+escapeHtml(stage.condition || Number(stage.goal)+' '+unit)+'</strong><small>'+
       (stage.unlocked?'✓ Obtenu':index===nextIndex?'Prochain badge':'À débloquer')+'</small></span></button></li>').join('')+
     '</ol></details>';
 }
@@ -2341,7 +2481,7 @@ function readPendingBadgeSocialVisit(){
   const storageKey=badgeCelebrationStorageKey()+':social-return';
   try{
     const saved=JSON.parse(sessionStorage.getItem(storageKey)||'null');
-    if(saved?.challenge&&['instagram','tiktok'].includes(saved.challenge.socialNetwork))return {...saved,storageKey};
+    if(saved?.challenge&&['instagram','instagram_lorenzo','tiktok'].includes(saved.challenge.socialNetwork))return {...saved,storageKey};
   }catch{}
   return pendingBadgeSocialVisit?.storageKey===storageKey?pendingBadgeSocialVisit:null;
 }
@@ -2434,14 +2574,16 @@ function closeMobileBadgeDetail() {
 }
 
 function openMobileBadgeDetail(key,stageGoal=null) {
-  let challenge = (badgeData.challenges || []).find(item => item.badgeKey === key);
+  let challenge = badgeCollectionFamilies(badgeData.challenges || []).find(item => item.badgeKey === key || item.familyMemberKeys?.includes(key));
   const selectedStage=stageGoal===null?null:challenge?.stages?.find(stage=>Number(stage.goal)===Number(stageGoal));
   if(selectedStage){
     const unit=challenge.progressUnit||(challenge.missionType==='live-attendance'?'lives':'h de visionnage');
     const rewards=selectedStage.rewards||{};
     challenge={...challenge,badgeName:selectedStage.name,badgeImage:selectedStage.image,
       badgeChallenge:selectedStage.badgeChallenge||selectedStage.goal+' '+unit,unlocked:Boolean(selectedStage.unlocked),maxed:false,
-      progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
+      progressValue:selectedStage.sourceBadgeKey?selectedStage.progressValue:challenge.progressValue,
+      progressUnit:selectedStage.sourceBadgeKey?selectedStage.progressUnit:challenge.progressUnit,
+      progressTarget:selectedStage.sourceBadgeKey?selectedStage.progressTarget:selectedStage.goal,targetHours:selectedStage.goal,targetCount:selectedStage.goal,
       rewardLovysXp:rewards.lovysXp||0,rewardXp:rewards.lovysXp||0,
       rewardGlobalXp:rewards.globalXp||0,rewardCash:rewards.cash||0,rewardTitle:selectedStage.rewardTitle||null};
   }
@@ -2469,7 +2611,7 @@ function openMobileBadgeDetail(key,stageGoal=null) {
     ${rewards.length ? `<div class="badge-mobile-detail-section"><h4>${selectedStage?.unlocked?'Récompense déjà obtenue':selectedStage?'Récompense de ce palier':'Prochaine récompense'}</h4><div class="badge-mobile-rewards">${rewards.map(reward => `<span>${escapeHtml(reward)}</span>`).join('')}</div>${challenge.lovysXpToReserve && Number(challenge.rewardLovysXp || 0) > 0 ? '<small>L’XP Lovys est ajoutée à ta réserve.</small>' : ''}</div>` : ''}
     ${challenge?.progressHint?`<p class="muted">${escapeHtml(challenge.progressHint)}</p>`:''}
     ${badgeStagesMarkup(challenge,true,selectedStage?.goal??null)}
-    ${(!unlocked || ['instagram','tiktok'].includes(challenge.socialNetwork)) && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
+    ${(!unlocked || ['instagram','instagram_lorenzo','tiktok'].includes(challenge.socialNetwork)) && category === 'social' && challenge.socialActionUrl ? `<button type="button" class="badge-mobile-social-button" data-mobile-social-mission="${escapeHtml(key)}">${challenge.socialNetwork === 'discord' ? 'Rejoindre / vérifier Discord' : `Ouvrir ${escapeHtml(challenge.gameName || 'le réseau social')}`}</button>` : ''}
   `;
   $('badgeCollectionContent')?.classList.add('hidden');
   $('badgeMobileDetail')?.classList.remove('hidden');
@@ -2483,9 +2625,10 @@ function renderBadgeCollection() {
   const container = $('badgeCollectionContent');
   if (!container) return;
 
-  const challenges = badgeData.challenges || [];
+  const rawChallenges = badgeData.challenges || [];
+  const challenges = badgeCollectionFamilies(rawChallenges);
   const badges = badgeData.badges || [];
-  const challengeKeys = new Set(challenges.map(challenge => challenge.badgeKey));
+  const challengeKeys = new Set(rawChallenges.map(challenge => challenge.badgeKey));
   const extraBadges = badges.filter(badge => !challengeKeys.has(badge.badgeKey));
 
   const categoryOf = badgeCategoryOf;
@@ -2542,6 +2685,8 @@ function renderBadgeCollection() {
           ? 'Rejoins la communauté sur Discord'
           : challenge.socialNetwork === 'instagram'
             ? 'Retrouve LoVeRDoSeTV sur Instagram'
+            : challenge.socialNetwork === 'instagram_lorenzo'
+              ? 'Découvre @lorenzo_dessin_27 sur Instagram'
             : challenge.socialNetwork === 'tiktok'
               ? 'Retrouve LoVeRDoSeTV sur TikTok'
               : `Réseaux sociaux · ${challenge.gameName}`)
@@ -2633,6 +2778,7 @@ function renderBadgeCollection() {
         
         ${actions}
         <button type="button" class="badge-mobile-detail-button" data-mobile-badge-detail="${escapeHtml(challenge.badgeKey)}">Voir le détail →</button>
+        ${badgeStagesMarkup(challenge)}
       </div>`;
   }
 
@@ -3125,14 +3271,14 @@ function renderMobileHomeDashboard(){
   if(creature){
     const current=Number(progress.currentThreshold||0),next=Number(progress.nextThreshold||current),earned=Math.max(0,Math.floor(Number(user.xp||0)-current)),needed=Math.max(0,Math.ceil(next-current));
     const pct=progress.maxLevel?100:Math.max(0,Math.min(100,needed?earned/needed*100:0));
-    $('mobileDashboardLovy').innerHTML=`<div class="mobile-dashboard-lovy-head"><div class="mobile-dashboard-lovy-art">${art(creature.id,progress.evolution||0)}</div><div><span class="mobile-dashboard-kicker">TON LOVY ACTIF</span><h3>${escapeHtml(creature.name)} · Niveau ${Number(progress.level||1)}</h3>${user.is_sub?'<small class="mobile-dashboard-sub">⭐ SUB : +20 % XP et LoVeR’Cash</small>':''}</div></div><div class="mobile-dashboard-xp-bar" role="progressbar" aria-label="Progression du Lovy" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><span style="width:${pct}%"></span></div><p>${progress.maxLevel?'Niveau maximum atteint':`${earned.toLocaleString('fr-FR')} / ${needed.toLocaleString('fr-FR')} XP pour le niveau suivant`}</p><button type="button" data-mobile-dashboard="lovy">Voir mon Lovy</button>`;
+    $('mobileDashboardLovy').innerHTML=`<div class="mobile-dashboard-lovy-head"><div class="mobile-dashboard-lovy-art">${art(creature.id,progress.evolution||0)}</div><div><span class="mobile-dashboard-kicker">TON LOVYS ACTIF</span><h3>${escapeHtml(creature.name)} · Niveau ${Number(progress.level||1)}</h3>${user.is_sub?'<small class="mobile-dashboard-sub">⭐ SUB : +20 % XP et LoVeR’Cash</small>':''}</div></div><div class="mobile-dashboard-xp-bar" role="progressbar" aria-label="Progression du Lovys" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(pct)}"><span style="width:${pct}%"></span></div><p>${progress.maxLevel?'Niveau maximum atteint':`${earned.toLocaleString('fr-FR')} / ${needed.toLocaleString('fr-FR')} XP pour le niveau suivant`}</p><button type="button" data-mobile-dashboard="lovy">Voir mon Lovys</button>`;
   }else{
-    $('mobileDashboardLovy').innerHTML='<span class="mobile-dashboard-kicker">TON PREMIER LOVY</span><h3>Un œuf, un nouveau compagnon</h3><p>Fais éclore ton premier œuf pour découvrir ton Lovy. L’XP en réserve est conservée pendant son incubation.</p><button type="button" data-mobile-dashboard="incubator">Voir mon œuf</button>';
+    $('mobileDashboardLovy').innerHTML='<span class="mobile-dashboard-kicker">TON PREMIER LOVYS</span><h3>Un œuf, un nouveau compagnon</h3><p>Fais éclore ton premier œuf pour découvrir ton Lovys. L’XP en réserve est conservée pendant son incubation.</p><button type="button" data-mobile-dashboard="incubator">Voir mon œuf</button>';
   }
   const slots=(incubatorData?.slots||[]).filter(slot=>slot&&!slot.empty),ready=slots.find(slot=>slot.ready),running=slots.filter(slot=>!slot.ready);
-  const hatch=Number(incubatorData?.hatchSeconds||21600),remaining=running.length?Math.min(...running.map(slot=>Math.max(0,hatch-Number(slot.watchedSeconds||0)))):0;
+  const hatch=Number(incubatorData?.hatchSeconds||18000),remaining=running.length?Math.min(...running.map(slot=>Math.max(0,incubatorSlotHatchSeconds(slot)-Number(slot.watchedSeconds||0)))):0;
   const summary=ready?'Un œuf est prêt à éclore !':running.length?`${running.length} œuf${running.length>1?'s':''} en incubation`:'Aucune incubation en cours';
-  $('mobileDashboardIncubator').innerHTML=`<div><h3>🥚 ${summary}</h3><p>${ready?'Découvre ton nouveau Lovy.':running.length?`Prochaine éclosion dans ${formatEggTime(remaining)} de présence en live.`:'Place un œuf dans un emplacement libre.'}</p></div><button type="button" data-mobile-dashboard="${ready?'hatch':'incubator'}">${ready?'Faire éclore':'Voir mes œufs'}</button>`;
+  $('mobileDashboardIncubator').innerHTML=`<div><h3>🥚 ${summary}</h3><p>${ready?'Découvre ton nouveau Lovys.':running.length?`Prochaine éclosion dans ${formatEggTime(remaining)} de présence en live.`:'Place un œuf dans un emplacement libre.'}</p></div><button type="button" data-mobile-dashboard="${ready?'hatch':'incubator'}">${ready?'Faire éclore':'Voir mes œufs'}</button>`;
 }
 $('mobileHomeDashboard')?.addEventListener('click',async event=>{
   if(!isMobileGameUi())return;
@@ -3151,6 +3297,7 @@ $('mobileHomeDashboard')?.addEventListener('click',async event=>{
 function renderGame() {
   if (!me?.user) return;
   renderMobileHomeDashboard();
+  renderMobileHomeXpBoost();
 
   if (me.user.creature_id) {
     $('pick').classList.add('hidden');
@@ -3368,7 +3515,7 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const self = selfIndex >= 0 ? players[selfIndex] : null;
     const previous = selfIndex > 0 ? players[selfIndex - 1] : null;
     const creatureMeta = player => player.creature_id ? resolveLovysEntry(player.creature_id) : null;
-    const leaderboardLovysImage = player => { const id = String(player.creature_id || '').toLowerCase(); const images = {water:'/Nymea.webp',plant:'/Mossy.webp',lightning:'/Voltis.webp',mist:'/Brumee.webp',fire:'/Flamby.webp',crystal:'/Crysal.webp',forge:'/Ferox.webp',dark:'/Nocty.webp',solar:'/Solka.webp',dream:'/Mimo.webp',nyméa:'/Nymea.webp',nymea:'/Nymea.webp',mossy:'/Mossy.webp',voltis:'/Voltis.webp',brumee:'/Brumee.webp',flamby:'/Flamby.webp',crysal:'/Crysal.webp',ferox:'/Ferox.webp',nocty:'/Nocty.webp',solka:'/Solka.webp',mimo:'/Mimo.webp'}; return images[id] || creatureMeta(player)?.image || ''; };
+    const leaderboardLovysImage = player => lovysImageUrl(player.creature_id,player.progression?.evolution??lovysEvolutionForLevel(player.progression?.level||1)) || creatureMeta(player)?.image || '';
     const playerTitle = player => player.cosmetic_title ? `<div class="leaderboard-v150-title" style="color:${escapeHtml(player.cosmetic_title_color || '#d9c8ff')}">&quot;${escapeHtml(player.cosmetic_title)}&quot;</div>` : '<div class="leaderboard-v150-title muted">Aucun titre équipé</div>';
     const avatarHtml = (player, cls='') => {
       const frame = profileAvatarFrameStyle(player.cosmetic_avatar_frame);
@@ -3379,13 +3526,16 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
     const lovysHtml = (player, large=false) => { const creature = creatureMeta(player); if (!creature) return `<div class="leaderboard-v150-lovys empty">🥚 Aucun Lovys actif</div>`; const level = Number(player.progression?.level || 1); return `<div class="leaderboard-v150-lovys${large ? ' large' : ''}"><img src="${escapeHtml(leaderboardLovysImage(player))}" alt=""><span><strong>${escapeHtml(creature.name)}</strong><small>Niv. ${level}</small></span></div>`; };
     const rankLabel = rank => rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
     const cardCosmeticStyle = player => { const frame = profileFrameStyle(player.cosmetic_frame); const bg = profileBackgroundValue(player.cosmetic_background); return `${bg && bg !== 'none' ? `background-image:${bg};--leaderboard-card-bg:${bg};` : ''}${frame ? `border-color:${frame.border};box-shadow:${frame.shadow};--leaderboard-card-border:${frame.border};--leaderboard-card-shadow:${frame.shadow};${frame.corner ? `--profile-frame-corner:url("${frame.corner}");` : ''}` : ''}`; };
-    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}`;
+    const cardCosmeticClass = player => `${player.cosmetic_background ? ' has-cosmetic-background' : ''}${player.cosmetic_frame ? ' has-cosmetic-frame' : ''}${profileFrameStyle(player.cosmetic_frame)?.corner ? ' cosmetic-card-decoration' : ''}${player.cosmetic_background === 'reward_bg_twitch_live' ? ' twitch-live-background' : ''}${player.cosmetic_background === 'streak_bg_100' ? ' streak-100-background' : ''}${player.cosmetic_background === 'streak_bg_250' ? ' streak-250-background' : ''}`;
+    const animatedCardBackground = player => player.cosmetic_background === 'reward_bg_twitch_live' ? `<span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span>` : streakMotionMarkup(player.cosmetic_background);
     const leaderboardBadgesHtml = (player, compact=false) => { const badges = Array.isArray(player.leaderboard_badges) ? player.leaderboard_badges.slice(0, 2) : []; if (!badges.length) return ''; return `<div class="leaderboard-v154-badges${compact ? ' compact' : ''}" aria-label="Badges affichés">${badges.map(badge => { const label = badge.badgeName || 'Badge'; const tooltip = `${label}${badge.badgeChallenge ? ` — ${badge.badgeChallenge}` : ''}`; return `<span class="leaderboard-v154-badge" title="${escapeHtml(tooltip)}">${badge.badgeImage ? `<img loading="lazy" decoding="async" src="${escapeHtml(badgeAssetUrl(badge.badgeImage))}" alt="${escapeHtml(label)}">` : '🏅'}</span>`; }).join('')}</div>`; };
-    const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card leaderboard-v154-profile-card rank-${rank}${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${players.indexOf(player)}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-card-content"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${leaderboardBadgesHtml(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></div></button>`; };
-    const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row leaderboard-v154-profile-card${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${idx}"><div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-row-content"><div class="leaderboard-v150-row-rank">${player.excluded_from_ranking ? '—' : rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${player.excluded_from_ranking ? '<div class="leaderboard-v150-title muted">Hors classement</div>' : ''}${playerTitle(player)}${leaderboardBadgesHtml(player, true)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></div></button>`; };
+    const podiumCard = player => { const rank = Number(player.rank || 0), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-podium-card leaderboard-v154-profile-card rank-${rank}${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${players.indexOf(player)}">${animatedCardBackground(player)}<div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-card-content"><div class="leaderboard-v150-medal">${rankLabel(rank)}</div>${avatarHtml(player, 'podium-avatar')}<div class="leaderboard-v150-name">${escapeHtml(player.display_name)}</div>${playerTitle(player)}${leaderboardBadgesHtml(player)}${lovysHtml(player, true)}<div class="leaderboard-v150-global">Niveau global ${globalLevel}</div><div class="leaderboard-v150-score">${meta.icon} ${escapeHtml(leaderboardScoreText(player, activeMetric))}</div></div></button>`; };
+    const listRow = player => { const idx = players.indexOf(player), rank = Number(player.rank || idx + 1), globalLevel = Number(player.global_progression?.level || 1), isSelf = String(player.twitch_id || '') === selfTwitchId; return `<button type="button" class="leaderboard-v150-row leaderboard-v154-profile-card${isSelf ? ' is-self' : ''}${cardCosmeticClass(player)}" style="${escapeHtml(cardCosmeticStyle(player))}" data-player-index="${idx}">${animatedCardBackground(player)}<div class="leaderboard-v154-card-shade"></div><div class="leaderboard-v154-row-content"><div class="leaderboard-v150-row-rank">${player.excluded_from_ranking ? '🎙️' : rankLabel(rank)}</div>${avatarHtml(player)}<div class="leaderboard-v150-row-main"><strong>${escapeHtml(player.display_name)}</strong>${player.excluded_from_ranking ? '<div class="leaderboard-v150-title">Rang Streamer · Hors classement</div>' : ''}${playerTitle(player)}${leaderboardBadgesHtml(player, true)}</div><div class="leaderboard-v150-row-level">Niv. global <strong>${globalLevel}</strong></div>${lovysHtml(player)}<div class="leaderboard-v150-row-score"><small>${escapeHtml(meta.label)}</small><strong>${escapeHtml(leaderboardScoreText(player, activeMetric))}</strong></div></div></button>`; };
     const tabs = `<div class="leaderboard-v151-tabs">${Object.entries(LEADERBOARD_METRICS).map(([key,item])=>`<button type="button" class="${key===activeMetric?'active':''}" data-leaderboard-metric="${key}">${item.icon} ${escapeHtml(item.label)}</button>`).join('')}</div>`;
     let myPositionHtml = '';
-    if (self) myPositionHtml = `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position · ${escapeHtml(meta.label)}</span><strong>#${Number(self.rank)} · ${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>${leaderboardGapText(self, previous, activeMetric)}</p></div>`;
+    if (self) myPositionHtml = self.excluded_from_ranking
+      ? `<div class="leaderboard-v150-my-position"><div><span>🎙️ Rang Streamer · ${escapeHtml(meta.label)}</span><strong>${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>Visible par les joueurs, hors classement.</p></div>`
+      : `<div class="leaderboard-v150-my-position"><div><span>📍 Ma position · ${escapeHtml(meta.label)}</span><strong>#${Number(self.rank)} · ${escapeHtml(leaderboardScoreText(self, activeMetric))}</strong></div><p>${leaderboardGapText(self, previous, activeMetric)}</p></div>`;
     if (query) {
       document.body.classList.add('leaderboard-search-active');
       container.innerHTML = `<div class="leaderboard-search-results"><div class="leaderboard-search-summary"><strong>${players.length} joueur${players.length > 1 ? 's' : ''} trouvé${players.length > 1 ? 's' : ''}</strong><span>Recherche : ${escapeHtml(query)}</span></div><div class="leaderboard-v150-list">${players.map(listRow).join('')}</div></div>`;
@@ -3393,8 +3543,8 @@ async function loadLeaderboard(searchTerm = null, metric = null) {
       return;
     }
     document.body.classList.remove('leaderboard-search-active');
-    const top3 = players.filter(p => Number(p.rank) <= 3), orderedPodium = (isMobileGameUi() ? [1,2,3] : [2,1,3]).map(rank=>top3.find(p=>Number(p.rank)===rank)).filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
-    container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
+    const streamer = players.find(p => p.excluded_from_ranking), top3 = players.filter(p => Number(p.rank) >= 1 && Number(p.rank) <= 3), orderedPodium = (isMobileGameUi() ? [1,2,3] : [2,1,3]).map(rank=>top3.find(p=>Number(p.rank)===rank)).filter(Boolean), rest = players.filter(p => Number(p.rank) >= 4);
+    container.innerHTML = `${tabs}<div class="leaderboard-v150-head"><div><strong>${meta.icon} ${escapeHtml(meta.heading)}</strong><span>${escapeHtml(meta.description)}</span></div></div>${myPositionHtml}${streamer ? `<div class="leaderboard-v150-list-title">🎙️ Rang Streamer · Hors classement</div><div class="leaderboard-v150-list">${listRow(streamer)}</div>` : ''}<section class="leaderboard-v150-podium" aria-label="Podium du classement">${orderedPodium.map(podiumCard).join('')}</section>${rest.length ? `<div class="leaderboard-v150-list-title">Classement général</div><div class="leaderboard-v150-list">${rest.map(listRow).join('')}</div>` : ''}`;
     applyLeaderboardCanonicalLayout(false);
   } catch (error) { if(requestId!==leaderboardRequestId)return;console.error('Erreur classement :', error); container.innerHTML = '<p class="muted">Impossible de charger le classement.</p>'; }
 }
@@ -3411,6 +3561,22 @@ function bindProgressionDrag(roadEl){
   progressionDragCleanup=()=>{stop();roadEl.removeEventListener('mousedown',down);roadEl.removeEventListener('mouseleave',leave);window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',stop);window.removeEventListener('blur',stop);};
 }
 function progressionPct(current,total){return Math.max(0,Math.min(100,total>0?(current/total)*100:0));}
+const MILITARY_PROGRESS_RANKS=['Recrue','Soldat','Caporal','Sergent','Sergent-chef','Adjudant','Major','Lieutenant','Capitaine','Commandant','Colonel'];
+function militaryProgressRank(level){
+  const index=Math.max(0,Math.min(10,Math.floor((Number(level||1)-1)/5)));
+  return {index,name:MILITARY_PROGRESS_RANKS[index]};
+}
+function militaryProgressInsignia(level){
+  const {index}=militaryProgressRank(level);
+  const chevron=(y)=>`<path d="M11 ${y} 24 ${y+7} 37 ${y}"/>`;
+  let marks='';
+  if(index===0)marks='<circle cx="24" cy="21" r="4" fill="currentColor" stroke="none"/>';
+  else if(index===1)marks='<path d="M15 21h18"/>';
+  else if(index<6)marks=Array.from({length:Math.min(3,index-1)},(_,i)=>chevron(16+i*7)).join('')+(index===5?'<path d="M24 8l4 4-4 4-4-4z"/>':'');
+  else if(index===6)marks='<path d="M24 10l7 8-7 8-7-8z M15 31h18"/>';
+  else marks=`<text x="24" y="27" text-anchor="middle" fill="currentColor" stroke="none" font-size="${index===10?14:18}" font-weight="900">${index===7?'★':index===8?'★★':index===9?'★★★':'★◆★'}</text>`;
+  return `<svg class="military-rank-insignia" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M24 3 41 9v14c0 11-7 18-17 22C14 41 7 34 7 23V9z" stroke-width="1.5"/>${marks}</svg>`;
+}
 async function loadProgression(){
   const box=$('progressionContent');
   if(!box)return;
@@ -3456,20 +3622,28 @@ async function loadProgression(){
       if(xpReward){ details.push(`Ajoute +${Number(xpReward.xp||0)} XP à ton Lovys.`); if(!titleReward&&!globalXpReward&&!cashReward){ title=`Bonus Lovys +${Number(xpReward.xp||0)} XP`; majorIcon='🐉'; } }
       if(lvl===55){ details.push('Débloque le fond « Ascension » et l’accès au Prestige une fois la barre remplie.'); title='Palier Prestige'; majorIcon='🏆'; }
       if(!details.length){ details.push('Pas de récompense directe sur ce niveau, mais il te rapproche du prochain palier important.'); }
-      const rangeText = gradeAtLevel?.min && gradeAtLevel?.max ? `Grade ${gradeAtLevel.name} · niveaux ${gradeAtLevel.min} à ${gradeAtLevel.max}` : (gradeAtLevel?.name ? `Grade ${gradeAtLevel.name}` : 'Progression globale');
+      const rangeText = `Rang ${militaryProgressRank(lvl).name} · ${gradeAtLevel?.name||'Progression globale'}`;
       return { level:lvl, tag:`NIV. ${lvl}`, icon:majorIcon, color:gradeAtLevel?.color||'#c7b4ee', title, sub:`${rangeText} · ${details.join(' ')}`, previewTitle: titleReward ? { name:titleReward.name, color:gradeAtLevel?.color||'#c7b4ee' } : null };
     };
     const road=Array.from({length:55},(_,i)=>{
       const level=i+1,reward=rewardForLevel(level),done=level<currentLevel,current=level===currentLevel,final=level===55;
       const state=[done?'done':'',current?'current':'',reward?'reward':'',final?'final':''].filter(Boolean).join(' ');
       const levelGrade=gradeList.find(x=>level>=Number(x.min)&&level<=Number(x.max))||grade;
-      const rankColor=escapeHtml(levelGrade?.color||'#8d97b5'),rankIcon=escapeHtml(levelGrade?.icon||'◆');
-      return `<div class="level-step ${state}" data-progress-level="${level}" style="--rank-color:${rankColor}"><div class="level-node"><span class="level-node-icon">${done?'✓':rankIcon}</span><span class="level-node-number">${level}</span></div><div class="level-label" style="color:${rankColor}">NIV. ${level}</div><div class="level-reward">${reward?reward.icon:''}</div><div class="level-reward-name">${reward?escapeHtml(reward.name):'&nbsp;'}</div></div>`;
+      const rankColor=escapeHtml(levelGrade?.color||'#8d97b5'),militaryRank=militaryProgressRank(level);
+      return `<button type="button" class="level-step ${state}" data-progress-level="${level}" style="--rank-color:${rankColor}" aria-label="Niveau ${level}${reward?', '+escapeHtml(reward.name):''}"><span class="level-node"><span class="level-node-icon">${militaryProgressInsignia(level)}</span><span class="level-node-number">${level}</span></span><span class="level-label">${current?'Ton niveau':done?'Obtenu':'Niveau '+level} · ${escapeHtml(militaryRank.name)}</span><span class="level-reward">${reward?reward.icon:'◆'}</span><span class="level-reward-name">${reward?escapeHtml(reward.name):'Prochain palier'}</span></button>`;
     }).join('');
-    const grades=gradeList.map(x=>`<div class="grade-item ${currentLevel>=x.min?'unlocked':''}"><strong style="color:${escapeHtml(x.color)}">${escapeHtml(x.icon)} ${escapeHtml(x.name)}</strong><div class="hub-sub">Niv. ${x.min}–${x.max} · titre ${currentLevel>=x.min?'débloqué':'à débloquer'}</div></div>`).join('');
+    const grades=gradeList.map(x=>`<div class="grade-item ${currentLevel>=x.min?'unlocked':''}"><strong style="color:${escapeHtml(x.color)}">${militaryProgressInsignia(x.min)} ${escapeHtml(militaryProgressRank(x.min).name)}</strong><div class="hub-sub">Titre ${escapeHtml(x.name)} · Niv. ${x.min}–${x.max} · titre ${currentLevel>=x.min?'débloqué':'à débloquer'}</div></div>`).join('');
     const lovysGlobalRewardList=lovysXpRewards.map(x=>`<div class="milestone-item ${currentLevel>=Number(x.level)?'unlocked':''}"><strong>Niv. ${Number(x.level)}</strong><div class="hub-sub">🐉 +${Number(x.xp||0)} XP Lovys ${currentLevel>=Number(x.level)?'✓':'à débloquer'}</div></div>`).join('');
-    const milestones=(d.creatureMilestones||[]).map(x=>`<div class="milestone-item ${(cp.level||1)>=x.level?'unlocked':''}"><strong>Niv. ${x.level}</strong><div class="hub-sub">${escapeHtml(x.label)} · +${Number(x.power||0)} puissance ${(cp.level||1)>=x.level?'✓':''}</div></div>`).join('');
+    const milestones=(d.creatureMilestones||[]).map(x=>`<div class="milestone-item ${(cp.level||1)>=x.level?'unlocked':''}"><strong>Niv. ${x.level}</strong><div class="hub-sub">${escapeHtml(x.label)} · +${Number(x.power||0)} % de statistiques (bonus total) ${(cp.level||1)>=x.level?'✓':''}</div></div>`).join('');
     const reports=(d.recentReports||[]).map(x=>`<div class="report-row">${x.result==='victory'?'✅ Victoire':'❌ Défaite'} · ${escapeHtml(x.fight_key)} · +${Math.floor(Number(x.reward_creature_xp||0))} XP Lovys · +${Math.floor(Number(x.reward_global_xp||0))} XP globale · +${Number(x.reward_fragments||0)} ${fragmentIconMarkup()}</div>`).join('')||'<div class="hub-sub">Aucun combat pour le moment.</div>';
+    const streakRewards=Array.isArray(d.watchStreakRewards)?d.watchStreakRewards:[];
+    const claimedStreakRewards=streakRewards.filter(item=>item.claimedAt).length;
+    const streakPageSize=8;
+    const streakPageCount=Math.max(1,Math.ceil(streakRewards.length/streakPageSize));
+    const firstUpcoming=streakRewards.findIndex(item=>!item.claimedAt);
+    const initialStreakPage=Math.floor((firstUpcoming<0?Math.max(0,streakRewards.length-1):firstUpcoming)/streakPageSize);
+    const streakRows=streakRewards.map((item,index)=>`<button type="button" class="watch-streak-reward ${item.claimedAt?'unlocked':''} ${index===firstUpcoming?'next':''}" data-streak-index="${index}" data-streak-page="${Math.floor(index/streakPageSize)}" aria-pressed="${index===(firstUpcoming<0?streakRewards.length-1:firstUpcoming)}" ${Math.floor(index/streakPageSize)===initialStreakPage?'':'hidden'}><span class="watch-streak-count"><span class="watch-streak-flame" aria-hidden="true">🔥</span> ${Number(item.count)} lives</span><strong>${escapeHtml(item.description||'Récompense')}</strong><span class="watch-streak-status">${item.claimedAt?'✓ Reçu':index===firstUpcoming?'Prochain palier':'À partager sur Twitch'}</span></button>`).join('');
+    const streakHtml=`<section class="watch-streak-progress" aria-label="Récompenses de série Twitch"><div class="watch-streak-progress-head"><div><span class="watch-streak-eyebrow">TES RÉCOMPENSES DE PRÉSENCE</span><h3>🔥 Série de visionnage Twitch</h3><p>Partage ta série dans le chat de LoVeRDoSeTV : chaque palier partagé débloque son cadeau.</p></div><span class="watch-streak-total"><strong>${claimedStreakRewards}</strong> / ${streakRewards.length}<small>récompenses reçues</small></span></div><div class="watch-streak-preview" id="watchStreakPreview" aria-live="polite"></div><div class="watch-streak-rewards" id="watchStreakRewards">${streakRows}</div><div class="watch-streak-footer"><span>Compte Twitch lié requis · chaque palier est récompensé une fois.</span><div class="watch-streak-pagination"><button type="button" id="streakPrevPage" aria-label="Paliers précédents">←</button><span id="streakPageLabel">${initialStreakPage+1} / ${streakPageCount}</span><button type="button" id="streakNextPage" aria-label="Paliers suivants">→</button></div></div><details class="watch-streak-details"><summary>Comment fonctionnent les paliers ?</summary><p>Twitch choisit les nombres que tu peux partager. Si un autre palier apparaît avant 350, son partage donne 25 XP Lovys et 5 LoVeR’Cash.</p></details></section>`;
     const xpNow=Math.floor(Number(g.xpIntoLevel||0)),xpNeed=Math.max(1,Math.floor(Number(g.xpForNextLevel||0)));
     const lovysLevel=Math.max(1,Number(cp.level||1));
     const lovysTotalXp=Math.max(0,Math.floor(Number(d.creatureXp||0)));
@@ -3484,8 +3658,50 @@ async function loadProgression(){
     const lovysProgressHtml=d.hasCreature
       ? `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">🐉 Progression du Lovys</div><span class="lovys-progress-level">Niv. ${lovysLevel}</span></div><div class="lovys-progress-meta"><span>${lovysInto.toLocaleString('fr-FR')} XP</span><span>${cp.maxLevel?'Niveau max':lovysNeed.toLocaleString('fr-FR')+' XP'}</span></div><div class="lovys-xp-bar"><span style="width:${lovysPercent}%"></span></div><div class="lovys-progress-note">XP totale du Lovys : ${lovysTotalXp.toLocaleString('fr-FR')} XP${cp.maxLevel?' · Les prochains gains vont en réserve.':''}</div>${transferHtml}</div>`
       : `<div class="lovys-progress-card"><div class="lovys-progress-head"><div class="lovys-progress-title">${eggIconMarkup('egg-inline-icon title-inline-icon')}XP du futur Lovys</div><span class="lovys-progress-level">Réserve</span></div><div class="lovys-progress-meta"><span>XP en attente</span><span>${pendingLovysXp.toLocaleString('fr-FR')} XP</span></div><div class="lovys-progress-note">Cette XP reste en réserve. Après l’éclosion, tu pourras choisir de la transférer à ton Lovys avec confirmation.</div></div>`;
-    box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Rapport de progression</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.icon||'◆')}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Les bonus d’XP Lovys des niveaux globaux vont en réserve. Tu choisis ensuite le Lovys qui les reçoit.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>`;
-    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${escapeHtml(info.icon)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){bindProgressionDrag(roadEl);}}});
+    box.innerHTML=`<section class="progression-report"><div class="progression-report-hero"><div class="progression-report-kicker">Ta progression · niveau ${currentLevel} sur 55</div><div class="progression-report-main"><div class="progression-rank-emblem" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${militaryProgressInsignia(currentLevel)}</div><div><div class="progression-report-level">Niveau ${currentLevel}</div><div class="progression-report-grade" style="color:${escapeHtml(grade.color||'#c7b4ee')}">${escapeHtml(militaryProgressRank(currentLevel).name)} · Titre ${escapeHtml(grade.name||'Recrue')}</div></div><button class="progression-report-prestige" id="prestigeInfoBtn" type="button" aria-label="En savoir plus sur le Prestige"><strong>${Number(d.prestige||0)}</strong><span>Prestige ⓘ</span></button></div><div class="progression-xp-row"><div class="progression-xp-values"><span>${xpNow.toLocaleString('fr-FR')} / ${xpNeed.toLocaleString('fr-FR')} XP</span><span>${Math.max(0,xpNeed-xpNow).toLocaleString('fr-FR')} XP restants</span></div><div class="progression-xp-bar"><span style="width:${percent}%"></span></div></div><div id="progressionLevelPreview" class="progression-preview-card"></div></div><div class="progression-road-heading"><div><span class="progression-road-eyebrow">PARCOURS DES NIVEAUX</span><h3>Découvre tes récompenses</h3></div><div class="progression-road-nav"><button type="button" id="progressionPrev" aria-label="Niveaux précédents">←</button><button type="button" id="progressionNext" aria-label="Niveaux suivants">→</button></div></div><div class="level-road-wrap"><div id="globalLevelRoad" class="level-road">${road}</div></div><div class="level-road-legend"><span class="level-road-hint">↔ Fais défiler la progression du niveau 1 au 55</span><div class="progression-road-actions"><button id="progressionBackCurrent" class="progression-go55 hidden" type="button">← Revenir à mon niveau</button><button id="progressionGo55" class="progression-go55" type="button">Aller au niveau 55 →</button><span class="level-road-goal">🏆 Niv. 55 → Prestige</span></div></div></section>${lovysProgressHtml}${streakHtml}<div class="progression-prestige-info"><div><strong>🏆 Prestige : niveau ${currentLevel} sur 55</strong><span>Disponible après le niveau 55.</span></div><div class="progression-prestige-rules"><span><b>Tu recommences</b> la progression globale.</span><span><b>Tu gardes</b> ta collection et tes récompenses permanentes.</span><span><b>Tu gagnes</b> un niveau de Prestige affiché sur ton profil et tu repars pour une nouvelle ascension.</span></div></div>${g.prestigeReady?'<div class="hub-actions"><button id="doPrestige" class="hub-btn">🏆 Passer Prestige</button></div>':''}<div class="progression-section-title">🏅 Grades et titres</div><div class="grade-grid">${grades}</div><div class="progression-section-title">🎁 XP Lovys débloquée par niveau global</div><div class="hub-sub">Les bonus d’XP Lovys des niveaux globaux vont en réserve. Tu choisis ensuite le Lovys qui les reçoit.</div><div class="milestone-grid">${lovysGlobalRewardList}</div><div class="progression-section-title">🐉 Futures récompenses du Lovys</div><div class="hub-sub">Ces paliers augmentent directement sa puissance en combat.</div><div class="milestone-grid">${milestones}</div><div class="progression-section-title">📜 Rapports de combat</div><div class="report-list">${reports}</div>`;
+    let streakPage=initialStreakPage;
+    let streakSelectedIndex=firstUpcoming<0?Math.max(0,streakRewards.length-1):firstUpcoming;
+    const showStreakPreview=index=>{
+      const reward=streakRewards[index],preview=$('watchStreakPreview');
+      if(!reward||!preview)return;
+      streakSelectedIndex=index;
+      const cosmetic=reward.cosmetic;
+      let visual='';
+      if(cosmetic){
+        visual=(isDesktopGameUi() ? renderDesktopVisitCardPreview(cosmetic,'watchStreakProfilePreviewCard') : renderShopPreviewVisual(cosmetic).replace('id="shopProfilePreviewCard"','id="watchStreakProfilePreviewCard"'));
+      }else{
+        visual=`<div class="shop-preview-object-stage"><div class="shop-preview-object-large" aria-hidden="true">${reward.description?.includes('œuf')?'🥚':reward.description?.includes('XP')?'✨':reward.description?.includes('fragments')?'🧩':'💰'}</div><div class="shop-preview-object-title">${Number(reward.count)} lives consécutifs</div></div>`;
+      }
+      const rewards=String(reward.description||'Récompense').replace('Fiole Double XP · ','Fiole Double XP — ').split(' · ');
+      preview.innerHTML=`<div class="watch-streak-preview-art">${visual}</div><div class="watch-streak-preview-info"><span class="watch-streak-eyebrow">APERÇU DU PALIER · ${Number(reward.count)} LIVES</span><h4>${cosmetic?escapeHtml(cosmetic.name):'Ta récompense'}</h4><div class="watch-streak-preview-list">${rewards.map(text=>`<span>${escapeHtml(text)}</span>`).join('')}</div><p>${reward.claimedAt?'✓ Déjà reçu':`Partage ta série de ${Number(reward.count)} lives dans le chat Twitch pour la recevoir.`}</p></div>`;
+      const previewCard=preview.querySelector('#watchStreakProfilePreviewCard');
+      if(previewCard&&cosmetic){
+        applyProfileCosmetics(previewCard,cosmetic.category==='background'?cosmetic.key:me?.user?.cosmetic_background,
+          cosmetic.category==='frame'?cosmetic.key:me?.user?.cosmetic_frame);
+        applyAvatarFrameCosmetics(previewCard.querySelector('.shop-profile-preview-avatar'),
+          cosmetic.category==='avatar_frame'?cosmetic.key:me?.user?.cosmetic_avatar_frame);
+        const note=previewCard.querySelector('.shop-profile-preview-note');
+        if(note)note.textContent='Aperçu de la récompense de série Twitch.';
+      }
+      $('watchStreakRewards')?.querySelectorAll('[data-streak-index]').forEach(card=>{card.setAttribute('aria-pressed',String(Number(card.dataset.streakIndex)===index));});
+    };
+    const showStreakPage=page=>{
+      streakPage=Math.max(0,Math.min(streakPageCount-1,page));
+      $('watchStreakRewards')?.querySelectorAll('[data-streak-page]').forEach(card=>{card.hidden=Number(card.dataset.streakPage)!==streakPage;});
+      if(Math.floor(streakSelectedIndex/streakPageSize)!==streakPage)showStreakPreview(streakPage*streakPageSize);
+      if($('streakPageLabel'))$('streakPageLabel').textContent=`${streakPage+1} / ${streakPageCount}`;
+      if($('streakPrevPage'))$('streakPrevPage').disabled=streakPage===0;
+      if($('streakNextPage'))$('streakNextPage').disabled=streakPage===streakPageCount-1;
+    };
+    $('watchStreakRewards')?.addEventListener('click',event=>{
+      const card=event.target.closest('[data-streak-index]');
+      if(card)showStreakPreview(Number(card.dataset.streakIndex));
+    });
+    $('streakPrevPage')?.addEventListener('click',()=>showStreakPage(streakPage-1));
+    $('streakNextPage')?.addEventListener('click',()=>showStreakPage(streakPage+1));
+    showStreakPage(streakPage);
+    showStreakPreview(streakSelectedIndex);
+    requestAnimationFrame(()=>{const roadEl=$('globalLevelRoad'),currentEl=roadEl?.querySelector('.level-step.current'),previewEl=$('progressionLevelPreview');if(roadEl&&previewEl){const renderPreview=(level)=>{const info=previewForLevel(level);const actionHtml=info.previewTitle?`<div class="progression-preview-actions"><button id="progressionPreviewTitleBtn" class="shop-action secondary progression-preview-action" type="button">👁 Essayer sur ma carte</button></div>`:'';previewEl.innerHTML=`<div class="progression-preview-kicker">Prévisualisation du palier</div><div class="progression-preview-main"><div class="progression-preview-left"><div class="progression-preview-icon" style="color:${escapeHtml(info.color)}">${militaryProgressInsignia(info.level)}</div><div class="progression-preview-text"><div class="progression-preview-title" style="color:${escapeHtml(info.color)}">${escapeHtml(info.title)}</div><div class="progression-preview-sub">${escapeHtml(info.sub)}</div></div></div><div class="progression-preview-right"><div class="progression-preview-tag">${escapeHtml(info.tag)}</div>${actionHtml}</div></div>`;roadEl.querySelectorAll('.level-step').forEach(step=>step.classList.toggle('previewing',Number(step.dataset.progressLevel)===Number(info.level)));const previewBtn=$('progressionPreviewTitleBtn');if(previewBtn&&info.previewTitle){previewBtn.addEventListener('click',()=>openProgressionTitlePreview(info));}};renderPreview(Math.min(55,currentLevel+1));roadEl.querySelectorAll('.level-step').forEach(step=>{step.addEventListener('click',()=>renderPreview(Number(step.dataset.progressLevel||currentLevel)));});const scrollToProgressLevel=(level,preview=true)=>{const target=roadEl.querySelector(`[data-progress-level="${Number(level)}"]`);if(!target)return;roadEl.scrollTo({left:Math.max(0,target.offsetLeft-roadEl.clientWidth/2+target.clientWidth/2),behavior:'smooth'});if(preview)renderPreview(Number(level));};$('progressionPrev')?.addEventListener('click',()=>roadEl.scrollBy({left:-roadEl.clientWidth*.72,behavior:'smooth'}));$('progressionNext')?.addEventListener('click',()=>roadEl.scrollBy({left:roadEl.clientWidth*.72,behavior:'smooth'}));$('progressionGo55')?.addEventListener('click',()=>scrollToProgressLevel(55));$('progressionBackCurrent')?.addEventListener('click',()=>scrollToProgressLevel(currentLevel));const updateBackCurrent=()=>{const back=$('progressionBackCurrent');if(!back||!currentEl)return;const center=currentEl.offsetLeft+currentEl.clientWidth/2;const visibleCenter=roadEl.scrollLeft+roadEl.clientWidth/2;back.classList.toggle('hidden',Math.abs(center-visibleCenter)<roadEl.clientWidth*.42);};roadEl.addEventListener('scroll',updateBackCurrent,{passive:true});setTimeout(updateBackCurrent,80);if(currentEl){roadEl.scrollLeft=Math.max(0,currentEl.offsetLeft-roadEl.clientWidth/2+currentEl.clientWidth/2);}if((isDesktopGameUi() && window.matchMedia('(min-width:801px)').matches)){bindProgressionDrag(roadEl);}}});
     $('prestigeInfoBtn')?.addEventListener('click',()=>{
       let modal=$('prestigeInfoModal');
       if(!modal){
@@ -3677,14 +3893,39 @@ function renderLovysCollectionTabs(){
 const LOVYS_ROLES={plant:'Tank',water:'Soutien',voltis:'Rapide',brumee:'Rapide',fire:'Assassin',crysal:'Tank',ferox:'Tank',dark:'Assassin',solka:'Soutien',dream:'Assassin'};
 const LOVYS_ID_ALIASES={lightning:'voltis',mist:'brumee',crystal:'crysal',forge:'ferox',solar:'solka'};
 const LOVYS_TYPE_BEATS={Verdance:'Abyssal',Abyssal:'Cendre',Cendre:'Verdance',Foudre:'Abyssal',Néant:'Mirage',Mirage:'Néant',Solaire:'Néant',Forge:'Cristal',Cristal:'Foudre'};
+function lovysTypeMultiplier(attacker,defender){if(LOVYS_TYPE_BEATS[attacker]===defender)return 1.25;if(LOVYS_TYPE_BEATS[defender]===attacker)return .8;return 1;}
+function lovysCurrentPveFight(){for(const zone of lovysPveData?.zones||[]){const fight=zone.fights?.find(f=>f.unlocked&&!f.won);if(fight)return {fight,zone};}return null;}
 let lovysPveData=null;
 let lovysIncubatorData=null;
-const LOVYS_MILESTONES=[{level:5,power:5,label:'Éveil'},{level:10,power:5,label:'Instinct'},{level:15,power:5,label:'Affinité'},{level:20,power:5,label:'Maîtrise'},{level:25,power:10,label:'Ascendant'},{level:30,power:10,label:'Harmonie'},{level:40,power:15,label:'Domination'},{level:50,power:20,label:'Apogée'}];
+const LOVYS_MILESTONES=[{level:25,power:15,label:'Forme évoluée'},{level:50,power:30,label:'Évolution maximale'}];
 function lovysCanonicalId(id){return LOVYS_ID_ALIASES[id]||id;}
+function applyLovysHeroTheme(box,lovy){
+  const themes={plant:'87,194,139',water:'78,181,230',voltis:'244,207,82',brumee:'172,195,224',fire:'245,128,73',crysal:'133,211,246',ferox:'221,161,96',dark:'173,111,237',solka:'246,197,109',dream:'212,147,232'};
+  const id=lovysCanonicalId(lovy?.creatureId),theme=themes[id];
+  box.dataset.lovysTheme=theme?id:'';
+  box.style.setProperty('--lovys-scene',theme?`url("/assets/lovys-backgrounds/${id}-v566.webp")`:'none');
+  box.style.setProperty('--lovys-accent',theme||'145,71,255');
+  box.style.setProperty('--lovys-ground',String(({plant:.76,water:.84,voltis:.76,brumee:.79,fire:.76,crysal:.82,ferox:.80,dark:.80,solka:.76,dream:.77})[id]||.76));
+}
+let lovysHeroGroundObserver=null;
+function positionLovysHeroOnGround(){
+  const box=$('lovysActiveHero'),art=box?.querySelector('.lovys-active-art');
+  if(!art||!isDesktopGameUi())return;
+  const hero=box.getBoundingClientRect(),frame=art.getBoundingClientRect();
+  if(!hero.width||!hero.height)return;
+  const scale=Math.max(hero.width/1672,hero.height/941);
+  const ground=Number(box.style.getPropertyValue('--lovys-ground'))||.76;
+  const y=941*scale*ground-(941*scale-hero.height)/2-(frame.top-hero.top);
+  art.style.setProperty('--lovys-ground-y',`${Math.max(210,Math.min(frame.height-16,y))}px`);
+}
+function syncLovysHeroGround(box){
+  if(typeof ResizeObserver!=='undefined'&&!lovysHeroGroundObserver){lovysHeroGroundObserver=new ResizeObserver(positionLovysHeroOnGround);lovysHeroGroundObserver.observe(box);}
+  requestAnimationFrame(positionLovysHeroOnGround);
+}
 function lovysRole(l){return LOVYS_ROLES[lovysCanonicalId(l?.creatureId)]||'Polyvalent';}
 function lovysRarityClass(r='Commun'){return String(r).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
 function lovysNextRankText(l){const n=l?.nextRankPreview;if(!n)return 'Rang maximum atteint';const cur=l.stats||{}, parts=[];if(Number(n.stats?.attack)>Number(cur.attack))parts.push(`ATQ ${cur.attack} → ${n.stats.attack}`);if(Number(n.stats?.hp)>Number(cur.hp))parts.push(`PV ${cur.hp} → ${n.stats.hp}`);if(l.talent?.description!==n.talent?.description)parts.push(`${l.talent?.name||'Talent'} : ${l.talent?.description||''} → ${n.talent?.description||''}`);return parts.slice(0,2).join(' · ')||'Statistiques renforcées au prochain rang';}
-function lovysZoneAdvantage(l){const enemyType=lovysPveData?.fight?.type||lovysPveData?.currentFight?.type||lovysPveData?.zone?.type||'';if(!enemyType)return '';if(LOVYS_TYPE_BEATS[l.type]===enemyType)return `⚔️ Avantage de type contre ${enemyType}`;if(LOVYS_TYPE_BEATS[enemyType]===l.type)return `⚠️ Désavantage de type contre ${enemyType}`;return '';}
+function lovysZoneAdvantage(l){const current=lovysCurrentPveFight();if(!current)return '';const enemyType=current.fight.type,multiplier=lovysTypeMultiplier(l.type,enemyType);return multiplier>1?`⚔️ Avantage de type contre ${enemyType}`:multiplier<1?`⚠️ Désavantage de type contre ${enemyType}`:'';}
 function lovysSkillMarkup(skill,index=1){if(!skill)return '';const cd=Math.max(0,Number(skill.cooldown||0));return `<div class="lovys-skill combat-skill"><div class="lovys-skill-top"><strong><small>COMPÉTENCE ${index}</small>${escapeHtml(skill.icon||'⚔️')} ${escapeHtml(skill.name||'Compétence')}</strong><span class="lovys-cooldown">⏱ Recharge : ${cd} tour${cd>1?'s':''}</span></div><p>${escapeHtml(skill.description||'')}</p></div>`;}
 function lovysRankTimeline(l){
   const previews=l?.rankPreviews||[];
@@ -3710,19 +3951,12 @@ function lovysTalentEvolution(l){
         default:return t?.description||'Talent passif';
       }
     };
-    return `<div class="lovys-talent-evolution mobile-talent-evolution"><span>Évolution du talent</span><p>Le talent se renforce aux rangs 3 et 5. Chaque rang augmente aussi les statistiques.</p><div>${previews.map(r=>{const current=Number(r.rank)===Number(l.rank||1);return `<div class="mobile-talent-rank ${current?'current':''}" ${current?'aria-current="step"':''}><strong>Rang ${Number(r.rank)}${current?' · Actuel':''}</strong><span>${escapeHtml(effect(r.talent))}</span></div>`;}).join('')}</div></div>`;
+    return `<div class="lovys-talent-evolution mobile-talent-evolution"><span>Talent selon le rang</span><p>Le talent se renforce aux rangs 3 et 5. Chaque rang augmente aussi les statistiques.</p><div>${previews.map(r=>{const current=Number(r.rank)===Number(l.rank||1);return `<div class="mobile-talent-rank ${current?'current':''}" ${current?'aria-current="step"':''}><strong>Rang ${Number(r.rank)}${current?' · Actuel':''}</strong><span>${escapeHtml(effect(r.talent))}</span></div>`;}).join('')}</div></div>`;
   }
   const short=d=>{const m=String(d||'').match(/(\d+(?:[,.]\d+)?)\s*%/);return m?`${m[1]} %`:`R${previews.findIndex(x=>x.talent?.description===d)+1}`};
-  return `<div class="lovys-talent-evolution"><span>Évolution du talent</span><div>${previews.map(r=>`<b class="${Number(r.rank)===Number(l.rank||1)?'current':''}">${short(r.talent?.description)}</b>`).join('<i>→</i>')}</div></div>`;
+  return `<div class="lovys-talent-evolution"><span>Talent selon le rang</span><div>${previews.map(r=>`<b class="${Number(r.rank)===Number(l.rank||1)?'current':''}">${short(r.talent?.description)}</b>`).join('<i>→</i>')}</div></div>`;
 }
-function lovysZoneAdvice(active){
-  const enemyType=lovysPveData?.fight?.type||lovysPveData?.currentFight?.type||lovysPveData?.zone?.type||'';
-  if(!enemyType)return '';
-  const zoneName=lovysPveData?.zone?.name||lovysPveData?.currentFight?.zoneName||'la zone en cours';
-  const status=LOVYS_TYPE_BEATS[active.type]===enemyType?'avantagé':LOVYS_TYPE_BEATS[enemyType]===active.type?'désavantagé':'neutre';
-  const better=homeMonsters.find(m=>LOVYS_TYPE_BEATS[m.type]===enemyType && lovysCanonicalId(m.id)!==lovysCanonicalId(active.creatureId));
-  return `${active.name} est ${status} dans ${zoneName}${better?` ; ${better.name} serait avantagé.`:'.'}`;
-}
+function lovysZoneAdvice(active){const current=lovysCurrentPveFight();if(!current)return '';const enemyType=current.fight.type,zoneName=current.zone.name;const multiplier=lovysTypeMultiplier(active.type,enemyType);const status=multiplier>1?'avantagé':multiplier<1?'désavantagé':'neutre';const better=homeMonsters.find(m=>lovysTypeMultiplier(m.type,enemyType)>1&&lovysCanonicalId(m.id)!==lovysCanonicalId(active.creatureId));return `Prochain combat : ${current.fight.name} (${zoneName}, ${enemyType}). ${active.name} est ${status}${better?`; ${better.name} aurait l’avantage de type.`:'.'}`;}
 function lovysDesktopRankAction(active) {
   if (!isDesktopGameUi()) return '';
   const cost = Number(active?.nextRankCost || 0), rank = Number(active?.rank || 1);
@@ -3751,23 +3985,24 @@ function lovysLiveXpExplanation() {
 function renderMobileLovysIncubator(now){
   const slots=lovysIncubatorData?.slots||[];
   const ready=slots.some(slot=>slot?.ready);
-  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||21600);
+  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||18000);
   const incubating=slots.filter(slot=>slot&&!slot.ready&&Number(slot.watchedSeconds||0)>0);
-  const remaining=incubating.length?Math.min(...incubating.map(slot=>Math.max(0,hatchSeconds-Number(slot.watchedSeconds||0)))):0;
+  const remaining=incubating.length?Math.min(...incubating.map(slot=>Math.max(0,incubatorSlotHatchSeconds(slot,lovysIncubatorData)-Number(slot.watchedSeconds||0)))):0;
   const label=ready?'Un œuf est prêt à éclore !':incubating.length?`Éclosion dans ${formatEggTime(remaining)}`:'Ouvrir l’incubateur';
   now.innerHTML=`<button class="mobile-lovys-incubator" type="button" data-lovys-incubator><span aria-hidden="true">🥚</span><strong>${escapeHtml(label)}</strong><span aria-hidden="true">›</span></button>`;
 }
 function renderLovysActiveHero(data){
   const box=$('lovysActiveHero'),now=$('lovysNowStrip');if(!box||!now)return;
   const active=(data?.lovys||[]).find(l=>l.isActive)||(data?.lovys||[])[0];
+  applyLovysHeroTheme(box,active);
   if(!active){box.innerHTML='';now.innerHTML='';if(isMobileGameUi())renderMobileLovysIncubator(now);return;}
   const st=active.stats||{},skills=active.skills||[],frag=lovysFragmentProgress(active),nextRank=Number(active.rank||1)+1,nextPreview=lovysNextRankText(active);
   const prog=active.progression||{},cur=Math.max(0,Number(prog.currentThreshold||0)),next=Math.max(cur,Number(prog.nextThreshold||cur)),total=Math.max(0,Number(active.xp||0)),into=Math.max(0,Math.floor(total-cur)),need=Math.max(0,Math.ceil(next-cur)),xpPct=active.maxLevel?100:Math.max(0,Math.min(100,need?into/need*100:0));
   const milestone=LOVYS_MILESTONES.find(m=>m.level>Number(active.level||1));
-  const typeStrong=LOVYS_TYPE_BEATS[active.type]||'—',typeWeak=Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===active.type)||'—';
+  const typeStrong=Object.keys(LOVYS_TYPE_BEATS).filter(type=>lovysTypeMultiplier(active.type,type)>1).join(', ')||'—',typeWeak=Object.keys(LOVYS_TYPE_BEATS).filter(type=>lovysTypeMultiplier(active.type,type)<1).join(', ')||'—';
   const advice=lovysZoneAdvice(active);
   box.innerHTML=`<div class="lovys-active-art">${artForLovys(active.creatureId,active.evolution||0,true)}<span class="lovys-active-image-badge">✓ Lovys actif</span></div>
-  <div class="lovys-active-main"><div class="lovys-active-kicker">LOVYS ACTIF</div><div class="lovys-active-title"><h3>${escapeHtml(active.name)}</h3><span class="lovys-role">${escapeHtml(lovysRole(active))}</span><span class="lovys-rarity ${lovysRarityClass(active.rarity)}">${escapeHtml(active.rarity)}</span></div><div class="lovys-active-level">Niveau ${Number(active.level||1)} · ${lovysRankStars(active.rank)} <span>Rang ${Number(active.rank||1)}/5</span></div><div class="lovys-active-xp"><span style="width:${xpPct}%"></span></div><div class="lovys-xp-copy"><strong>${active.maxLevel?'Niveau maximum':`${into.toLocaleString('fr-FR')} / ${need.toLocaleString('fr-FR')} XP`}</strong><span>${milestone?`Niv. ${milestone.level} : +${milestone.power} puissance · ${milestone.label}`:'Tous les paliers de puissance atteints'}</span></div>${lovysLiveLevelEstimate(active)}${lovysLiveXpExplanation()}<div class="lovys-stat-grid"><div><span>PV</span><strong>${Number(st.hp||0)}</strong></div><div><span>ATQ</span><strong>${Number(st.attack||0)}</strong></div><div><span>DEF</span><strong>${Number(st.defense||0)}</strong></div><div><span>VIT</span><strong>${Number(st.speed||0)}</strong></div></div><div class="lovys-type-chips"><span>▲ Fort contre <b>${escapeHtml(typeStrong)}</b></span><span>▼ Faible face à <b>${escapeHtml(typeWeak)}</b></span></div>${advice?`<div class="lovys-zone-advice">💡 ${escapeHtml(advice)}</div>`:''}${frag.cost?`<div class="lovys-rank-explainer"><div class="lovys-rank-explainer-title">⭐ AMÉLIORATION DU RANG</div><p>Les doublons de <b>${escapeHtml(active.name)}</b> donnent des fragments. Remplis la jauge pour augmenter son rang et renforcer son talent.</p><div class="lovys-rank-progress-head"><strong>🧩 ${frag.specific}/${frag.cost} fragments</strong><span>→ Rang ${nextRank}</span></div><div class="lovys-rank-progress"><span style="width:${frag.pct}%"></span></div><div class="lovys-rank-reward">✨ Prochaine amélioration : <b>${escapeHtml(nextPreview)}</b></div>${lovysRankTimeline(active)}${frag.specific<frag.cost?`<button class="lovys-trade-fragments-btn" type="button" data-find-lovys-fragments="${active.id}">🤝 Trouver des fragments</button>`:''}</div>`:'<div class="lovys-rank-explainer max"><strong>⭐ Rang maximum atteint</strong>${lovysRankTimeline(active)}</div>'}<div class="lovys-active-actions"><button class="hub-btn primary" type="button" data-lovys-pve>⚔️ Combattre</button><div class="lovys-xp-action"><button class="hub-btn" type="button" data-transfer-lovys="${active.id}" ${Number(data.pendingXp||0)>0&&!active.maxLevel?'':'disabled'}>⚡ Donner de l’XP</button>${Number(data.pendingXp||0)>0?'':`<small>0 XP en réserve</small>`}</div></div></div>
+  <div class="lovys-active-main"><div class="lovys-active-kicker">LOVYS ACTIF</div><div class="lovys-active-title"><h3>${escapeHtml(active.name)}</h3><span class="lovys-role">${escapeHtml(lovysRole(active))}</span><span class="lovys-rarity ${lovysRarityClass(active.rarity)}">${escapeHtml(active.rarity)}</span></div><div class="lovys-active-level">Niveau ${Number(active.level||1)} · ${lovysRankStars(active.rank)} <span>Rang ${Number(active.rank||1)}/5</span></div><div class="lovys-active-xp"><span style="width:${xpPct}%"></span></div><div class="lovys-xp-copy"><strong>${active.maxLevel?'Niveau maximum':`${into.toLocaleString('fr-FR')} / ${need.toLocaleString('fr-FR')} XP`}</strong><span>${milestone?`Niv. ${milestone.level} : ${milestone.label} · bonus total +${milestone.power} %`:'Évolution maximale atteinte'}</span></div>${lovysEvolutionMarkup(active)}${lovysLiveLevelEstimate(active)}${lovysLiveXpExplanation()}<div class="lovys-stat-grid"><div><span>PV</span><strong>${Number(st.hp||0)}</strong></div><div><span>ATQ</span><strong>${Number(st.attack||0)}</strong></div><div><span>DEF</span><strong>${Number(st.defense||0)}</strong></div><div><span>VIT</span><strong>${Number(st.speed||0)}</strong></div></div><div class="lovys-type-chips"><span>▲ Fort contre <b>${escapeHtml(typeStrong)}</b></span><span>▼ Faible face à <b>${escapeHtml(typeWeak)}</b></span></div>${advice?`<div class="lovys-zone-advice">💡 ${escapeHtml(advice)}</div>`:''}${frag.cost?`<div class="lovys-rank-explainer"><div class="lovys-rank-explainer-title">⭐ AMÉLIORATION DU RANG</div><p>Les doublons de <b>${escapeHtml(active.name)}</b> donnent des fragments. Remplis la jauge pour augmenter son rang et renforcer son talent.</p><div class="lovys-rank-progress-head"><strong>🧩 ${frag.specific}/${frag.cost} fragments</strong><span>→ Rang ${nextRank}</span></div><div class="lovys-rank-progress"><span style="width:${frag.pct}%"></span></div><div class="lovys-rank-reward">✨ Prochaine amélioration : <b>${escapeHtml(nextPreview)}</b></div>${lovysRankTimeline(active)}${frag.specific<frag.cost?`<button class="lovys-trade-fragments-btn" type="button" data-find-lovys-fragments="${active.id}">🤝 Trouver des fragments</button>`:''}</div>`:'<div class="lovys-rank-explainer max"><strong>⭐ Rang maximum atteint</strong>${lovysRankTimeline(active)}</div>'}<div class="lovys-active-actions"><button class="hub-btn primary" type="button" data-lovys-pve>⚔️ Combattre</button><div class="lovys-xp-action"><button class="hub-btn" type="button" data-transfer-lovys="${active.id}" ${Number(data.pendingXp||0)>0&&!active.maxLevel?'':'disabled'}>⚡ Donner de l’XP</button>${Number(data.pendingXp||0)>0?'':`<small>0 XP en réserve</small>`}</div></div></div>
   <div class="lovys-active-kit"><div class="lovys-kit-label">TALENT & COMPÉTENCES <button class="lovys-kit-info" type="button" title="Le talent passif est toujours actif. Les compétences sont utilisées en combat puis doivent se recharger." aria-label="Aide sur le talent et les compétences">?</button></div><div class="lovys-skill talent"><div class="lovys-skill-top"><strong><small>✨ TALENT PASSIF · RANG ${Number(active.rank||1)}</small>${escapeHtml(active.talent?.icon||'✨')} ${escapeHtml(active.talent?.name||'Talent')}</strong><span class="lovys-passive-badge">TOUJOURS ACTIF</span></div><p>${escapeHtml(active.talent?.description||'')}</p>${lovysTalentEvolution(active)}</div><div class="lovys-combat-kit-title">⚔️ COMPÉTENCES DE COMBAT</div>${lovysSkillMarkup(skills[0],1)}${lovysSkillMarkup(skills[1],2)}${lovysDesktopRankAction(active)}</div>`;
 
   if(isMobileGameUi()){
@@ -3804,12 +4039,12 @@ function renderLovysActiveHero(data){
   const pending=Math.floor(Number(data.pendingXp||0));
   const readySlot=(lovysIncubatorData?.slots||[]).find(x=>x?.ready);
   const incubating=(lovysIncubatorData?.slots||[]).find(x=>x&&!x.ready&&Number(x.watchedSeconds||0)>0);
-  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||21600);
+  const hatchSeconds=Number(lovysIncubatorData?.hatchSeconds||18000);
   let tipIcon='📺',tipTitle='Regarde le live pour progresser',tipText='Tu gagneras de l’XP et avanceras la progression de ton Lovys.',tipAction='';
   if(readySlot){
     tipIcon='🥚';tipTitle='Ton œuf est prêt à éclore !';tipText='Passe par l’Incubateur pour découvrir ton nouveau Lovys.';tipAction='<button type="button" data-lovys-incubator>Voir l’incubateur</button>';
   }else if(incubating){
-    const left=Math.max(0,hatchSeconds-Number(incubating.watchedSeconds||0));
+    const left=Math.max(0,incubatorSlotHatchSeconds(incubating,lovysIncubatorData)-Number(incubating.watchedSeconds||0));
     tipIcon='🥚';tipTitle=`Éclosion dans ${formatEggTime(left)}`;tipText='Ton œuf progresse pendant le live. Tu peux suivre son avancée dans l’Incubateur.';tipAction='<button type="button" data-lovys-incubator>Voir l’incubateur</button>';
   }else if(pending>0&&!active.maxLevel){
     tipIcon='⚡';tipTitle=`${pending.toLocaleString('fr-FR')} XP à distribuer`;tipText=`Tu as de l’XP en réserve : donne-la à ${escapeHtml(active.name)} pour accélérer sa progression.`;tipAction=`<button type="button" data-transfer-lovys="${active.id}">Distribuer l’XP</button>`;
@@ -3821,6 +4056,7 @@ function renderLovysActiveHero(data){
   }
   if(isMobileGameUi())renderMobileLovysIncubator(now);
   else now.innerHTML=`<div class="lovys-moment-tip"><div class="lovys-moment-tip-icon">${tipIcon}</div><div class="lovys-moment-tip-copy"><span>CONSEIL DU MOMENT</span><strong>${tipTitle}</strong><p>${tipText}</p></div>${tipAction}</div>`;
+  syncLovysHeroGround(box);
 }
 function renderLovysFragmentInventory(data){
   const universalBox=$('lovysUniversalFragments'),grid=$('lovysFragmentsGrid'); if(!grid)return;
@@ -3830,16 +4066,18 @@ function renderLovysFragmentInventory(data){
   if(!owned.length){grid.innerHTML='<div class="lovys-fragments-empty"><div>🧩</div><strong>Aucun Lovys pour le moment</strong></div>';return;}
   grid.innerHTML=owned.map(l=>{const p=lovysFragmentProgress(l),stars=lovysRankStars(l.rank),max=!p.cost;return `<article class="lovys-fragment-card ${l.canRankUp?'ready':''}"><div class="lovys-fragment-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-fragment-body"><div class="lovys-fragment-top"><div><div class="lovys-fragment-name">${escapeHtml(l.name)}</div><div class="lovys-fragment-rarity">${escapeHtml(l.rarity)} · ${escapeHtml(l.type)}</div></div><div class="lovys-fragment-rank">${stars}<span>Rang ${Number(l.rank||1)}/5</span></div></div><div class="lovys-fragment-balance-line"><strong>🧩 ${p.specific.toLocaleString('fr-FR')}</strong><span>${max?'MAX':`/ ${p.cost}`}</span></div>${max?'':`<div class="lovys-fragment-progress"><span style="width:${p.pct}%"></span></div><div class="lovys-fragment-helper">Prochain rang : ${escapeHtml(lovysNextRankText(l))}</div><button class="hub-btn lovys-fragment-rank-btn" type="button" data-rank-lovys="${Number(l.id)}" ${l.canRankUp?'':'disabled'}>⭐ Passer au rang ${Number(l.rank||1)+1}</button>`}</div></article>`}).join('');
 }
-function lovysMissingCards(owned){const ids=new Set(owned.map(l=>lovysCanonicalId(l.creatureId)));return homeMonsters.filter(m=>!ids.has(lovysCanonicalId(m.id))).map(m=>`<article class="lovys-collection-card missing rarity-${lovysRarityClass(m.rarity)}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art silhouette"><img src="${escapeHtml(m.image)}" alt="" loading="lazy"></div><div class="lovys-collection-name">???</div><div class="lovys-collection-meta">${escapeHtml(m.rarity)} · ${escapeHtml(m.type)}</div><div class="lovys-missing-hints"><span>Rôle : ???</span><span>Taux : ${escapeHtml(m.chance)}</span></div></article>`).join('');}
-function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>${isMobileGameUi()?'← Collection':'×'}</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>📈 Paliers</h4><div class="lovys-level-stages"><span>Éveil</span><span>Éclosion</span><span>Ascension</span><span>Apogée</span></div></div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
+function lovysMissingCards(owned){const ids=new Set(owned.map(l=>lovysCanonicalId(l.creatureId)));return homeMonsters.filter(m=>!ids.has(lovysCanonicalId(m.id))).map(m=>`<article class="lovys-collection-card missing rarity-${lovysRarityClass(m.rarity)}" data-lovys-species="${escapeHtml(m.id)}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art silhouette"><img src="${escapeHtml(m.image)}" alt="" loading="lazy"></div><div class="lovys-collection-name">???</div><div class="lovys-collection-meta">${escapeHtml(m.rarity)} · ${escapeHtml(m.type)}</div><div class="lovys-missing-hints"><span>Rôle : ???</span><span>Taux : ${escapeHtml(m.chance)}</span></div></article>`).join('');}
+function renderLovysDetail(l){const panel=$('lovysDetailPanel');if(!panel||!l)return;const previews=l.rankPreviews||[],skills=l.skills||[];panel.classList.remove('hidden');panel.innerHTML=`<div class="lovys-detail-head"><div><span class="lovys-section-kicker">FICHE DÉTAILLÉE</span><h3>${escapeHtml(l.name)} · ${escapeHtml(l.type)}</h3></div><button type="button" data-close-lovys-detail>${isMobileGameUi()?'← Collection':'×'}</button></div><div class="lovys-detail-grid"><div><div class="lovys-detail-art">${artForLovys(l.creatureId,l.evolution||0,true)}</div><div class="lovys-detail-types"><span>Rôle : <b>${escapeHtml(lovysRole(l))}</b></span><span>Fort contre : <b>${escapeHtml(LOVYS_TYPE_BEATS[l.type]||'—')}</b></span><span>Faible contre : <b>${escapeHtml(Object.keys(LOVYS_TYPE_BEATS).find(k=>LOVYS_TYPE_BEATS[k]===l.type)||'—')}</b></span></div></div><div><h4>✨ Talent</h4><div class="lovys-skill talent"><div class="lovys-skill-top"><strong>${escapeHtml(l.talent?.icon||'✨')} ${escapeHtml(l.talent?.name||'Talent')}</strong></div><p>${escapeHtml(l.talent?.description||'')}</p></div><h4>⚔️ Compétences</h4>${lovysSkillMarkup(skills[0])}${lovysSkillMarkup(skills[1])}</div><div><h4>⭐ Rangs</h4><div class="lovys-rank-road">${previews.map(r=>`<div class="${Number(r.rank)<=Number(l.rank)?'done':''}"><strong>Rang ${r.rank}</strong><span>${r.rank===1?'Départ':`${Number(r.cost||0)} fragments`}</span><small>${escapeHtml(r.talent?.description||'Stats renforcées')}</small></div>`).join('')}</div><h4>✨ Évolution par niveau</h4>${lovysEvolutionMarkup(l)}</div></div>`;panel.scrollIntoView({behavior:'smooth',block:'nearest'});}
 function renderLovysCollection(data){
   renderLovysReserve(data);
   const grid=$('lovysCollectionGrid'),lovys=data?.lovys||[]; if($('lovysCollectionCount'))$('lovysCollectionCount').textContent=String(lovys.length);if($('lovysFragmentsCount'))$('lovysFragmentsCount').textContent=String(lovys.filter(l=>Number(l.fragments||0)>0).length);if($('lovysDiscoveredCount'))$('lovysDiscoveredCount').textContent=`${lovys.length}/${homeMonsters.length} découverts`;renderLovysActiveHero(data);if(!grid)return;
-  const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
+  const owned=lovys.map(l=>{const stars=lovysRankStars(l.rank);return `<article class="lovys-collection-card rarity-${lovysRarityClass(l.rarity)} ${l.isActive?'active':''}" data-lovys-card="${l.id}" data-lovys-species="${escapeHtml(l.creatureId)}"><div class="lovys-card-rarity-line"></div><div class="lovys-collection-art">${artForLovys(l.creatureId,l.evolution||0,true)}${l.isActive?'<span class="lovys-card-active-badge">✓ Actif</span>':''}</div><div class="lovys-collection-name-row"><div><div class="lovys-collection-name">${escapeHtml(l.name)}</div><div class="lovys-collection-meta">${escapeHtml(l.type)} · ${escapeHtml(l.rarity)}</div></div><span class="lovys-role">${escapeHtml(lovysRole(l))}</span></div><div class="lovys-rank">${stars} <span>Rang ${Number(l.rank||1)}/5</span></div><div class="lovys-card-level">Niveau ${Number(l.level||1)} · ${escapeHtml(l.evolutionName||'Forme de départ')}</div><div class="lovys-collection-actions">${l.isActive?'':`<button class="hub-btn" type="button" data-activate-lovys="${l.id}">Définir comme actif</button>`}<button class="hub-btn" type="button" data-view-lovys="${l.id}">Voir la fiche</button></div></article>`}).join('');
   const summary=$('lovysCollectionModal')?.querySelector('.lovys-collection-summary>span');
   if(summary)summary.textContent=lovys.length<homeMonsters.length?`${homeMonsters.length-lovys.length} espèce(s) à découvrir · fais éclore des œufs pour compléter ta collection.`:'Collection complète ! Choisis ton Lovys actif et améliore ses rangs.';
   const toolbar=isMobileGameUi()?'':`<div class="lovys-grid-toolbar"><div><strong>Collection</strong><span>Découvre de nouveaux Lovys dans l’incubateur.</span></div><button class="hub-btn" type="button" data-lovys-incubator>🥚 Aller à l’incubateur</button></div>`;
-  grid.innerHTML=toolbar+owned+lovysMissingCards(lovys);renderLovysFragmentInventory(data);renderLovysCollectionTabs();
+  grid.innerHTML=toolbar+owned+lovysMissingCards(lovys);
+  grid.querySelectorAll('[data-lovys-species]').forEach(card=>applyLovysHeroTheme(card,{creatureId:card.dataset.lovysSpecies}));
+  renderLovysFragmentInventory(data);renderLovysCollectionTabs();
 }
 async function loadLovysCollection(){
   const grid=$('lovysCollectionGrid');
@@ -3854,6 +4092,7 @@ async function loadLovysCollection(){
     if(incubatorResponse?.ok){try{lovysIncubatorData=await incubatorResponse.json();}catch{lovysIncubatorData=null;}}
     if(!response.ok) throw new Error(data.error||'Impossible de charger la collection.');
     lovysCollectionData=data;
+    if(window.LovysEvolutionCelebration)observeLovysEvolutions(data.lovys);
     renderLovysReserve(data);
     renderLovysCollection(data);
     return data;
@@ -3974,10 +4213,6 @@ async function activateMobileLovys(lovysId,button){
     lovysCollectionData={...lovysCollectionData,lovys:lovysCollectionData.lovys.map(l=>({...l,isActive:Number(l.id)===lovysId}))};
     renderLovysCollection(lovysCollectionData);
     const inCombatPage=!$('pveModal')?.classList.contains('hidden');
-    if(inCombatPage&&pveMapState.data){
-      pveMapState.data.creature={...chosen.stats,name:chosen.name,type:chosen.type,level:chosen.level,rank:chosen.rank,talent:chosen.talent,skills:chosen.skills};
-      renderMobilePveAdventure(pveMapState.data,pveMapState.selectedZone);
-    }
     lock(true);
     // Do not hold the visible selection behind badges, wheels or incubators.
     await Promise.allSettled([loadGame(),loadLovysCollection(),...(inCombatPage?[loadPve()]:[])]);
@@ -4029,7 +4264,7 @@ function mobileLovysTalentHelpMarkup(active){
   return `<div><b>✨ Le talent fonctionne automatiquement</b><span>${talent?`${escapeHtml(talent.icon||'✨')} ${escapeHtml(talent.name||'Talent')} de ${name} : ${escapeHtml(talent.description||'')}`:'Chaque Lovys possède son propre talent passif.'}</span><span>Tu n’as aucun bouton à activer : le talent agit en combat selon les conditions de sa description. Un pourcentage peut représenter une chance de déclenchement ou un bonus, selon le talent.</span></div>
   <div><b>⭐ Augmente le rang pour renforcer le talent</b><span>Le talent s’améliore au rang 3, puis au rang 5. Les rangs 2 et 4 gardent le même effet de talent que le rang précédent.</span>${evolution}</div>
   <div><b>🧩 Récupère les fragments de ${name}</b><span>Fais éclore un œuf : si tu obtiens un Lovys déjà découvert, le doublon donne des fragments de ce Lovys. Tu peux aussi en obtenir par un échange dans Communauté → Échanges.</span><span>Les fragments universels peuvent compléter jusqu’à 50 % du coût d’un rang.</span></div>
-  <div><b>👆 Passe au rang suivant</b><span>${rank>=5?'Ton Lovys est déjà au rang maximum : son talent a atteint son dernier palier.':`Ouvre Mes Lovys → Fragments, retrouve ${name}, puis appuie sur « Passer au rang ${rank+1} » et confirme.${cost?` Ce passage coûte ${cost} fragments.`:''} Le bouton s’active quand tu as assez de fragments.`}</span><span>Pour atteindre le rang 3 ou 5, passe chaque rang dans l’ordre. Consulte « Évolution du talent » pour voir le résultat.</span></div>
+  <div><b>👆 Passe au rang suivant</b><span>${rank>=5?'Ton Lovys est déjà au rang maximum : son talent a atteint son dernier palier.':`Ouvre Mes Lovys → Fragments, retrouve ${name}, puis appuie sur « Passer au rang ${rank+1} » et confirme.${cost?` Ce passage coûte ${cost} fragments.`:''} Le bouton s’active quand tu as assez de fragments.`}</span><span>Pour atteindre le rang 3 ou 5, passe chaque rang dans l’ordre. Consulte « Talent selon le rang » pour voir le résultat.</span></div>
   <div><b>⚡ L’XP augmente le niveau</b><span>« Donner de l’XP » améliore le niveau et les statistiques. Pour augmenter les pourcentages du talent, utilise les fragments pour monter le rang.</span></div>`;
 }
 function openLovysKitHelp(){
@@ -4180,6 +4415,27 @@ document.addEventListener('keydown',event=>{
 
 let pveMapState={data:null,selectedZone:null,selectedFight:null,view:'map'};
 let pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:0};
+// Keep the player's choice separate from the loop stopped at each battle result.
+const pveAutoPreferences = new Map();
+function pveAutoPreferenceKey() {
+  const userKey = String(me?.user?.twitch_id || me?.user?.id || me?.user?.game_username || 'player');
+  return 'loverwatch:pve-auto:' + userKey;
+}
+function readPveAutoPreference() {
+  const key = pveAutoPreferenceKey();
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored !== null) return stored === '1';
+  } catch {}
+  return pveAutoPreferences.get(key) === true;
+}
+function setPveAutoPreference(enabled) {
+  const key = pveAutoPreferenceKey();
+  pveAutoPreferences.set(key, Boolean(enabled));
+  try { localStorage.setItem(key, enabled ? '1' : '0'); } catch {}
+  pveBattleState.auto = Boolean(enabled);
+}
+
 function pveFightRoleLabel(fight){return fight?.finalBoss?'Boss de zone':fight?.miniBoss?'Mini-boss':fight?.boss?'Boss':'';}
 function pveFightInfoByKey(key){for(const z of (pveMapState.data?.zones||[])){const f=(z.fights||[]).find(x=>x.key===key);if(f)return {fight:f,zone:z,zoneIndex:(pveMapState.data.zones||[]).indexOf(z),fightIndex:(z.fights||[]).indexOf(f)};}return null;}
 function pveZoneAccessible(zone){return Boolean((zone?.fights||[]).some(f=>f.unlocked||f.won));}
@@ -4187,6 +4443,9 @@ function pveZoneComplete(zone){const fights=zone?.fights||[];return fights.lengt
 function pveDefaultZoneIndex(data){const zones=data?.zones||[];const pending=zones.findIndex(z=>(z.fights||[]).some(f=>f.unlocked&&!f.won));if(pending>=0)return pending;const lastAccessible=zones.map((z,i)=>pveZoneAccessible(z)?i:-1).filter(i=>i>=0).pop();return Number.isFinite(lastAccessible)?lastAccessible:0;}
 function pveSelectedFight(zone){if(!zone)return null;const chosen=(zone.fights||[]).find(f=>f.key===pveMapState.selectedFight&&(f.unlocked||f.won));if(chosen)return chosen;return (zone.fights||[]).find(f=>f.unlocked&&!f.won)||(zone.fights||[]).slice().reverse().find(f=>f.won)||(zone.fights||[])[0]||null;}
 function pveTravelerMarkup(step=0){const id=me?.user?.creature_id;const evo=me?.user?.progression?.evolution||0;return `<div class="pve-map-traveler" aria-label="Ton Lovys, position actuelle${step?` étape ${step}`:''}"><span class="pve-map-traveler-beam" aria-hidden="true"></span><span class="pve-map-traveler-ring r1" aria-hidden="true"></span><span class="pve-map-traveler-ring r2" aria-hidden="true"></span><span class="pve-map-traveler-art">${id?art(id,evo,true):'🐉'}</span><span class="pve-map-traveler-tag">Ton Lovys${step?`<span class="pve-map-traveler-step">Étape ${step}</span>`:''}</span></div>`;}
+function pveCashRewardText(f){return (f.boss||f.miniBoss||f.finalBoss)?'10':'3 à 5';}
+function pveAccountWon(f){return Boolean(f?.accountWon??f?.won);}
+function pveReplayRewardsText(f){return f.replayRewardAvailable?`Avec ce Lovys : +${Number(f.rewards?.creatureXp||0)} XP Lovys · +${pveCashRewardText(f)} LoVeR’Cash (une fois)`:'Ce Lovys a déjà gagné ce combat ou le boss de la zone : aucune récompense.';}
 function pveRewardPreview(fight){
   if(!fight)return '';
   if(fight.wonWithLovys)return 'Déjà gagné avec ce Lovys : aucune nouvelle récompense.';
@@ -4208,9 +4467,9 @@ function pveFightDetailMarkup(f){
   const cfg=pveEnemyVisual(f)||{};
   const monster=pveEnemySpriteMarkup(f);
   const rewardFragments=Number(f.rewards?.fragments||0);
-  return `<div class="pve-map-detail-backdrop" data-pve-detail-backdrop><div class="pve-map-detail pve-monster-popup" role="dialog" aria-modal="true" aria-label="${escapeHtml(f.name)}"><button class="pve-map-detail-close pve-monster-popup-close" type="button" data-pve-detail-close aria-label="Fermer">×</button><div class="pve-monster-popup-visual" style="--popup-glow:${escapeHtml(cfg.glow||'#9147ff')}"><div class="pve-monster-popup-halo"></div>${monster}<div class="pve-monster-popup-shadow"></div></div><div class="pve-monster-popup-info"><div class="pve-monster-popup-kicker">${(pveFightRoleLabel(f)||'Créature').toUpperCase()} · ${state.toUpperCase()}</div><div class="pve-map-detail-title">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-map-detail-type">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'Neutre')}</div><div class="pve-map-detail-stats"><div class="pve-map-detail-stat"><b>❤️ ${Number(f.hp||0)}</b><span>PV</span></div><div class="pve-map-detail-stat"><b>⚔️ ${Number((f.attack??f.power)||0)}</b><span>ATQ</span></div><div class="pve-map-detail-stat"><b>🛡️ ${Math.round(Number(f.defense||0))}</b><span>DEF</span></div><div class="pve-map-detail-stat"><b>⚡ ${Math.round(Number(f.speed||0))}</b><span>VIT</span></div></div>${f.mechanic?`<div class="pve-boss-mechanic"><strong>👑 ${escapeHtml(f.mechanic.name||'Mécanique de boss')}</strong><span>${escapeHtml(f.mechanic.description||'')}</span></div>`:''}<div class="pve-map-detail-reward">${pveRewardPreview(f)}</div><div class="pve-map-detail-actions"><button class="hub-btn pve-monster-popup-fight" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'↻ Rejouer':f.unlocked?'⚔️ Combattre':'🔒 Combat verrouillé'}</button></div></div></div></div>`;
+  return `<div class="pve-map-detail-backdrop" data-pve-detail-backdrop><div class="pve-map-detail pve-monster-popup" role="dialog" aria-modal="true" aria-label="${escapeHtml(f.name)}"><button class="pve-map-detail-close pve-monster-popup-close" type="button" data-pve-detail-close aria-label="Fermer">×</button><div class="pve-monster-popup-visual" style="--popup-glow:${escapeHtml(cfg.glow||'#9147ff')}"><div class="pve-monster-popup-halo"></div>${monster}<div class="pve-monster-popup-shadow"></div></div><div class="pve-monster-popup-info"><div class="pve-monster-popup-kicker">${(pveFightRoleLabel(f)||'Créature').toUpperCase()} · ${state.toUpperCase()}</div><div class="pve-map-detail-title">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-map-detail-type">Niv. ${Number(f.level||1)} · ${escapeHtml(f.type||'Neutre')}</div><div class="pve-map-detail-stats"><div class="pve-map-detail-stat"><b>❤️ ${Number(f.hp||0)}</b><span>PV</span></div><div class="pve-map-detail-stat"><b>⚔️ ${Number((f.attack??f.power)||0)}</b><span>ATQ</span></div><div class="pve-map-detail-stat"><b>🛡️ ${Math.round(Number(f.defense||0))}</b><span>DEF</span></div><div class="pve-map-detail-stat"><b>⚡ ${Math.round(Number(f.speed||0))}</b><span>VIT</span></div></div>${f.mechanic?`<div class="pve-boss-mechanic"><strong>👑 ${escapeHtml(f.mechanic.name||'Mécanique de boss')}</strong><span>${escapeHtml(f.mechanic.description||'')}</span></div>`:''}<div class="pve-map-detail-reward">🎁 <strong>1re victoire</strong> · +${Number(f.rewards?.creatureXp||0)} XP Lovys · +${Number(f.rewards?.globalXp||0)} XP globale · +${rewardFragments} Fragment${rewardFragments>1?'s':''} d’œuf · +${pveCashRewardText(f)} LoVeR’Cash</div>${pveAccountWon(f)?`<div class="pve-map-detail-reward">${pveReplayRewardsText(f)}</div>`:''}<div class="pve-map-detail-actions"><button class="hub-btn pve-monster-popup-fight" data-fight="${escapeHtml(f.key)}" ${!f.unlocked?'disabled':''}>${f.won?'↻ Rejouer':f.unlocked?'⚔️ Combattre':'🔒 Combat verrouillé'}</button></div></div></div></div>`;
 }
-function pveFragmentsMarkup(data){let all=0,earned=0;const zones=(data?.zones||[]).map(z=>{let zAll=0,zEarned=0;const rows=(z.fights||[]).map(f=>{const n=Number(f.rewards?.fragments||0);zAll+=n;if(f.won)zEarned+=n;return `<div class="pve-fragment-row ${f.won?'won':(!f.unlocked?'locked':'')}"><div class="pve-fragment-row-main"><div class="pve-fragment-row-name">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-fragment-row-state">${f.won?'Récompense récupérée':f.unlocked?'Première victoire disponible':'Combat verrouillé'}</div></div><div class="pve-fragment-row-reward">${f.won?'✓ ':''}+${n} ${fragmentIconMarkup()}</div></div>`}).join('');all+=zAll;earned+=zEarned;return `<section class="pve-fragment-zone"><div class="pve-fragment-zone-head"><div class="pve-fragment-zone-name">${z.icon||'🗺️'} ${escapeHtml(z.name)}</div><div class="pve-fragment-zone-count">${zEarned} / ${zAll} gagnés</div></div><div class="pve-fragment-fights">${rows}</div></section>`}).join('');return `<div class="pve-fragments-panel"><section class="pve-fragment-hero"><div class="pve-fragment-kicker">Réserve de fragments d’œuf</div><div class="pve-fragment-balance">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')} ${Number(data?.eggFragments||0)} <small>fragment${Number(data?.eggFragments||0)>1?'s':''}</small></div><div class="pve-fragment-explain">Les fragments sont séparés du LoVeR'Cash. Tu les gagnes surtout lors des <strong>premières victoires PvE</strong> et ils restent synchronisés sur ton compte entre PC et mobile.</div><button class="hub-btn" data-open-fragment-shop type="button" style="margin-top:12px">${fragmentIconMarkup()} Ouvrir la boutique de fragments</button></section><div class="pve-fragment-info-grid"><div class="pve-fragment-info"><div class="pve-fragment-info-icon">⚔️</div><div class="pve-fragment-info-title">Comment en gagner ?</div><div class="pve-fragment-info-copy">Remporte un combat pour la première fois. Rejouer un combat déjà gagné ne redonne pas cette récompense.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')}</div><div class="pve-fragment-info-title">Ressource des œufs</div><div class="pve-fragment-info-copy">Ton solde est conservé sur ton compte et sert de ressource dédiée au système d’œufs et d’incubation.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">📊</div><div class="pve-fragment-info-title">Progression</div><div class="pve-fragment-info-copy">${earned} fragment(s) récupéré(s) sur ${all} actuellement proposés par les zones PvE.</div></div></div><div class="pve-fragment-zone-list">${zones}</div><div class="pve-fragment-footer">💡 Cette page te permet de voir immédiatement où récupérer les prochains fragments sans chercher combat par combat.</div></div>`;}
+function pveFragmentsMarkup(data){let all=0,earned=0;const zones=(data?.zones||[]).map(z=>{let zAll=0,zEarned=0;const rows=(z.fights||[]).map(f=>{const n=Number(f.rewards?.fragments||0);zAll+=n;if(pveAccountWon(f))zEarned+=n;return `<div class="pve-fragment-row ${pveAccountWon(f)?'won':(!f.unlocked?'locked':'')}"><div class="pve-fragment-row-main"><div class="pve-fragment-row-name">${f.boss?'👑 ':''}${escapeHtml(f.name)}</div><div class="pve-fragment-row-state">${pveAccountWon(f)?'Récompense récupérée':f.unlocked?'Première victoire disponible':'Combat verrouillé'}</div></div><div class="pve-fragment-row-reward">${pveAccountWon(f)?'✓ ':''}+${n} ${fragmentIconMarkup()}</div></div>`}).join('');all+=zAll;earned+=zEarned;return `<section class="pve-fragment-zone"><div class="pve-fragment-zone-head"><div class="pve-fragment-zone-name">${z.icon||'🗺️'} ${escapeHtml(z.name)}</div><div class="pve-fragment-zone-count">${zEarned} / ${zAll} gagnés</div></div><div class="pve-fragment-fights">${rows}</div></section>`}).join('');return `<div class="pve-fragments-panel"><section class="pve-fragment-hero"><div class="pve-fragment-kicker">Réserve de fragments d’œuf</div><div class="pve-fragment-balance">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')} ${Number(data?.eggFragments||0)} <small>fragment${Number(data?.eggFragments||0)>1?'s':''}</small></div><div class="pve-fragment-explain">Les fragments sont séparés du LoVeR'Cash. Tu les gagnes surtout lors des <strong>premières victoires PvE</strong> et ils restent synchronisés sur ton compte entre PC et mobile.</div><button class="hub-btn" data-open-fragment-shop type="button" style="margin-top:12px">${fragmentIconMarkup()} Ouvrir la boutique de fragments</button></section><div class="pve-fragment-info-grid"><div class="pve-fragment-info"><div class="pve-fragment-info-icon">⚔️</div><div class="pve-fragment-info-title">Comment en gagner ?</div><div class="pve-fragment-info-copy">Remporte un combat pour la première fois. Rejouer un combat déjà gagné ne redonne pas cette récompense.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">${fragmentIconMarkup('fragment-inline-icon fragment-inline-icon-lg')}</div><div class="pve-fragment-info-title">Ressource des œufs</div><div class="pve-fragment-info-copy">Ton solde est conservé sur ton compte et sert de ressource dédiée au système d’œufs et d’incubation.</div></div><div class="pve-fragment-info"><div class="pve-fragment-info-icon">📊</div><div class="pve-fragment-info-title">Progression</div><div class="pve-fragment-info-copy">${earned} fragment(s) récupéré(s) sur ${all} actuellement proposés par les zones PvE.</div></div></div><div class="pve-fragment-zone-list">${zones}</div><div class="pve-fragment-footer">💡 Cette page te permet de voir immédiatement où récupérer les prochains fragments sans chercher combat par combat.</div></div>`;}
 function pveZoneVisualMeta(zone){
   const key=String(zone?.key||'forest');
   const map={
@@ -4225,11 +4484,26 @@ function pveZoneArtStyle(zone){
 }
 function pveAtlasMarkup(data){
   const zones=data?.zones||[];
-  return `<details class="pve-world-atlas"><summary>🗺️ Les ${zones.length} zones de l’aventure</summary><div class="pve-world-atlas-grid">${zones.map((z,i)=>{
+  const cards=zones.map((z,i)=>{
     const unlocked=pveZoneAccessible(z),f=z.fights||[],previous=zones[i-1]?.fights?.slice(-1)[0];
     const lo=z.minLevel||f[0]?.level||1,hi=z.maxLevel||f.slice(-1)[0]?.level||lo;
     return `<article class="pve-atlas-zone ${unlocked?'available':'locked'}"><strong>${z.icon||'🗺️'} ${escapeHtml(z.name)}</strong><small>Niveaux conseillés ${lo}–${hi} · ${f.length} combats</small>${z.lore?`<p>${escapeHtml(z.lore)}</p>`:''}<span>${pveZoneComplete(z)?'✓ Zone terminée':unlocked?'⚔️ Zone accessible':`🔒 Vaincre ${escapeHtml(previous?.name||'le boss précédent')}`}</span></article>`;
-  }).join('')}</div></details>`;
+  }).join('');
+  const title=`🗺️ Les ${zones.length} zones de l’aventure`;
+  if(isDesktopGameUi())return `<button type="button" class="pve-atlas-open" data-pve-atlas-open aria-haspopup="dialog" aria-controls="pveAtlasDialog">${title}</button><dialog id="pveAtlasDialog" class="pve-atlas-dialog" aria-labelledby="pveAtlasTitle"><header class="pve-atlas-dialog-head"><h2 id="pveAtlasTitle">${title}</h2><button type="button" data-pve-atlas-close aria-label="Fermer les zones">×</button></header><div class="pve-world-atlas-grid">${cards}</div></dialog>`;
+  return `<details class="pve-world-atlas"><summary>${title}</summary><div class="pve-world-atlas-grid">${cards}</div></details>`;
+}
+function handlePveAtlasClick(event){
+  if(event.target.closest('[data-pve-atlas-open]')){
+    const dialog=$('pveAtlasDialog');
+    if(dialog&&!dialog.open)dialog.showModal();
+    return true;
+  }
+  if(event.target.closest('[data-pve-atlas-close]')||event.target.matches?.('.pve-atlas-dialog')){
+    $('pveAtlasDialog')?.close();
+    return true;
+  }
+  return false;
 }
 function pveWorldSceneryMarkup(zone){
   const key=String(zone?.key||'forest');
@@ -4259,6 +4533,12 @@ function pveMapEnemyNodeMarkup(f){
   return `<span class="pve-map-node-monster" aria-hidden="true">${visual}</span>${!f.unlocked&&!f.won?'<span class="pve-map-node-lock" aria-hidden="true">🔒</span>':''}`;
 }
 
+// One PvE presentation for PC, tablet and phone; device checks only govern app navigation.
+const PVE_SIMPLE_UI=true;
+async function openPveLovysPage(){
+  if(isDesktopGameUi()){await openDesktopView('lovys');return;}
+  await toggleMobilePanel('creatures');
+}
 let mobilePveStarting=false;
 let mobilePveTransitionBusy=false;
 function mobilePveZoneIndex(data,requested=null){
@@ -4266,15 +4546,22 @@ function mobilePveZoneIndex(data,requested=null){
   const index=requested??pveMapState.selectedZone;
   return Number.isInteger(index)&&zones[index]?index:pveDefaultZoneIndex(data);
 }
-function mobilePveNextFight(data){
-  for(const [zoneIndex,zone] of (data?.zones||[]).entries()){
-    const fight=(zone.fights||[]).find(f=>f.unlocked&&!f.won);
-    if(fight)return {fight,zoneIndex};
+function mobilePveNextFight(data,afterFightKey){
+  const zones=data?.zones||[];
+  for(const [zoneIndex,zone] of zones.entries()){
+    const fights=zone.fights||[],fightIndex=fights.findIndex(f=>f.key===afterFightKey);
+    if(fightIndex<0)continue;
+    const nextZoneIndex=fightIndex+1<fights.length?zoneIndex:zoneIndex+1;
+    const fight=nextZoneIndex===zoneIndex?fights[fightIndex+1]:zones[nextZoneIndex]?.fights?.[0];
+    return fight?.unlocked?{fight,zoneIndex:nextZoneIndex}:null;
   }
   return null;
 }
 function renderMobilePveAdventure(data,zoneIndex=null){
   const box=$('pveContent');if(!box)return;
+  if(data?.activeLovysId&&pveMapState.data?.activeLovysId&&data.activeLovysId!==pveMapState.data.activeLovysId){
+    pveMapState.selectedFight=null;pveMapState.selectedZone=null;zoneIndex=null;
+  }
   pveMapState.data=data;pveMapState.view='map';
   const zones=data?.zones||[];zoneIndex=mobilePveZoneIndex(data,zoneIndex);pveMapState.selectedZone=zoneIndex;
   const zone=zones[zoneIndex];if(!zone){box.innerHTML='<p class="combat-report">Aucune zone disponible.</p>';return;}
@@ -4282,15 +4569,15 @@ function renderMobilePveAdventure(data,zoneIndex=null){
   const selected=pveSelectedFight(zone);pveMapState.selectedFight=selected?.key||null;
   const active=(lovysCollectionData?.lovys||[]).find(l=>l.isActive);
   const creature=data.creature||{};
-  const name=active?.name||creature.name||'Ton Lovy';
+  const name=active?.name||creature.name||'Ton Lovys';
   const image=active?artForLovys(active.creatureId,active.evolution||0,true):(me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉');
   const choices=(lovysCollectionData?.lovys||[]).map(l=>`<button type="button" class="mobile-pve-lovy-choice ${l.isActive?'active':''}" data-pve-lovys="${Number(l.id)}"><span>${artForLovys(l.creatureId,l.evolution||0,true)}</span><span><strong>${escapeHtml(l.name)}</strong><small>Niv. ${Number(l.level||1)} · ${escapeHtml(l.type||'')} ${l.isActive?'· Actif':''}</small></span></button>`).join('');
   const options=zones.map((z,i)=>`<option value="${i}" ${i===zoneIndex?'selected':''}>${escapeHtml(z.name)}${!pveZoneAccessible(z)?' · 🔒 Verrouillée':''}</option>`).join('');
   const selectedIndex=selected?fights.findIndex(f=>f.key===selected.key):0;
   const current=fights.find(f=>f.unlocked&&!f.won);
   const reward=selected?.rewards||{},cfg=selected?pveEnemyVisual(selected):{};
-  const rows=fights.map((f,i)=>`<button type="button" class="mobile-pve-history-row ${f.key===selected?.key?'selected':''}" data-mobile-pve-select="${escapeHtml(f.key)}" ${!f.unlocked&&!f.won?'disabled':''}><span class="mobile-pve-history-number">${i+1}</span><span><strong>${f.boss?'👑 ':''}${escapeHtml(f.name)}</strong><small>${pveFightRoleLabel(f)?pveFightRoleLabel(f)+' · ':''}Niv. ${Number(f.level||1)} · ${f.won?'Gagné':f.unlocked?'Disponible':'Verrouillé'}</small></span><span aria-hidden="true">${f.won?'✓':f.unlocked?'›':'🔒'}</span></button>`).join('');
-  box.innerHTML=`<div class="mobile-pve-adventure theme-${escapeHtml(zone.key||'forest')}"${pveZoneArtStyle(zone)}><section class="mobile-pve-active"><div class="mobile-pve-active-art">${image}</div><div><small>TON LOVY ACTIF</small><strong>${escapeHtml(name)}</strong><span>Niveau ${Number(active?.level||creature.level||me?.user?.progression?.level||1)} · ${lovysRankStars(active?.rank||creature.rank||1)}</span></div></section><details class="mobile-pve-lovy-picker"><summary>Changer de Lovy</summary><div>${choices||'<button type="button" data-mobile-pve-lovys>Ouvrir mes Lovys</button>'}</div></details><div class="mobile-pve-zone-picker"><label for="mobilePveZone">Zone de combat</label><select id="mobilePveZone" data-mobile-pve-zone>${options}</select></div><section class="mobile-pve-progress"><div><strong>${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</strong><span>${won}/${fights.length} gagnés</span></div><progress max="${Math.max(1,fights.length)}" value="${won}" aria-label="Combats gagnés dans la zone"></progress><p>${won===fights.length&&fights.length?'Zone terminée ! Tu peux rejouer les combats ou choisir une autre zone.':!pveZoneAccessible(zone)?`🔒 Termine la zone précédente pour débloquer ${escapeHtml(zone.name)}.`:'Gagne ce combat pour débloquer le suivant.'}</p></section>${selected?`<article class="mobile-pve-opponent" style="--mobile-enemy-glow:${escapeHtml(cfg?.glow||'#9147ff')}"><div class="mobile-pve-opponent-heading"><span>${selected.boss?`👑 ${pveFightRoleLabel(selected)}`:selected.won?'✓ Combat déjà gagné':'PROCHAIN ADVERSAIRE'}</span><strong>Combat ${selectedIndex+1}/${fights.length}</strong></div><div class="mobile-pve-opponent-art">${pveEnemySpriteMarkup(selected)}</div><h3>${escapeHtml(selected.name)}</h3><p class="mobile-pve-opponent-level">Niveau conseillé ${Number(selected.level||1)} · ${escapeHtml(selected.type||'Neutre')}</p><details class="mobile-pve-enemy-details"><summary>Stats et particularités</summary><div>❤️ ${Number(selected.hp||0)} PV · ⚔️ ${Number(selected.attack??selected.power??0)} ATQ · 🛡️ ${Math.round(Number(selected.defense||0))} DEF · ⚡ ${Math.round(Number(selected.speed||0))} VIT</div>${selected.mechanic?`<p><strong>${escapeHtml(selected.mechanic.name||'Mécanique de boss')}</strong> — ${escapeHtml(selected.mechanic.description||'')}</p>`:''}</details><div class="mobile-pve-rewards"><strong>🎁 Récompenses</strong><p>${pveRewardPreview(selected)}</p></div><button class="hub-btn primary mobile-pve-fight" type="button" data-fight="${escapeHtml(selected.key)}" ${!selected.unlocked?'disabled':''}>${selected.won?'↻ Rejouer':selected.unlocked?'⚔️ Combattre':'🔒 Combat verrouillé'}</button>${current&&current.key!==selected.key?'<button type="button" class="mobile-pve-return-next" data-mobile-pve-next>Revenir au prochain adversaire</button>':''}</article>`:'<p>Aucun combat dans cette zone.</p>'}${pveAtlasMarkup(data)}<details class="mobile-pve-history"><summary>Voir les combats de la zone (${fights.length})</summary><div>${rows}</div></details><button class="mobile-pve-fragment-shop" type="button" data-open-fragment-shop>🧩 ${Number(data.eggFragments||0)} fragments d’œuf · Boutique</button></div>`;
+  const rows=fights.map((f,i)=>`<button type="button" class="mobile-pve-history-row ${f.key===selected?.key?'selected':''}" data-mobile-pve-select="${escapeHtml(f.key)}" ${!f.unlocked&&!f.won?'disabled':''}><span class="mobile-pve-history-number">${i+1}</span><span><strong>${f.boss?'👑 ':''}${escapeHtml(f.name)}</strong><small>${pveFightRoleLabel(f)?pveFightRoleLabel(f)+' · ':''}Niv. ${Number(f.level||1)} · ${f.won?'Gagné avec ce Lovys':f.unlocked?'Disponible':'Verrouillé'}</small></span><span aria-hidden="true">${f.won?'✓':f.unlocked?'›':'🔒'}</span></button>`).join('');
+  box.innerHTML=`<div class="mobile-pve-adventure theme-${escapeHtml(zone.key||'forest')}"${pveZoneArtStyle(zone)}><section class="mobile-pve-active"><div class="mobile-pve-active-art">${image}</div><div><small>TON LOVYS ACTIF</small><strong>${escapeHtml(name)}</strong><span>Niveau ${Number(active?.level||creature.level||me?.user?.progression?.level||1)} · ${lovysRankStars(active?.rank||creature.rank||1)}</span></div></section><details class="mobile-pve-lovy-picker"><summary>Changer de Lovys</summary><div>${choices||'<button type="button" data-mobile-pve-lovys>Ouvrir mes Lovys</button>'}</div></details><div class="mobile-pve-zone-picker"><label for="mobilePveZone">Zone de combat</label><select id="mobilePveZone" data-mobile-pve-zone>${options}</select></div><section class="mobile-pve-progress"><div><strong>${zone.icon||'🗺️'} ${escapeHtml(zone.name)}</strong><span>${won}/${fights.length} gagnés avec ce Lovys</span></div><progress max="${Math.max(1,fights.length)}" value="${won}" aria-label="Combats gagnés dans la zone"></progress><p>${won===fights.length&&fights.length?'Zone terminée ! Tu peux rejouer les combats ou choisir une autre zone.':!pveZoneAccessible(zone)?`🔒 Termine la zone précédente pour débloquer ${escapeHtml(zone.name)}.`:'Gagne ce combat pour débloquer le suivant.'}</p></section>${selected?`<article class="mobile-pve-opponent" style="--mobile-enemy-glow:${escapeHtml(cfg?.glow||'#9147ff')}"><div class="mobile-pve-opponent-heading"><span>${selected.boss?`👑 ${pveFightRoleLabel(selected)}`:selected.won?'✓ Combat déjà gagné':'PROCHAIN ADVERSAIRE'}</span><strong>Combat ${selectedIndex+1}/${fights.length}</strong></div><div class="mobile-pve-opponent-art">${pveEnemySpriteMarkup(selected)}</div><h3>${escapeHtml(selected.name)}</h3><p class="mobile-pve-opponent-level">Niveau conseillé ${Number(selected.level||1)} · ${escapeHtml(selected.type||'Neutre')}${Number(zone.recommendedRank)>1?` · Rang ${Number(zone.recommendedRank)} conseillé`:""}</p><details class="mobile-pve-enemy-details"><summary>Stats et particularités</summary><div>❤️ ${Number(selected.hp||0)} PV · ⚔️ ${Number(selected.attack??selected.power??0)} ATQ · 🛡️ ${Math.round(Number(selected.defense||0))} DEF · ⚡ ${Math.round(Number(selected.speed||0))} VIT</div>${selected.mechanic?`<p><strong>${escapeHtml(selected.mechanic.name||'Mécanique de boss')}</strong> — ${escapeHtml(selected.mechanic.description||'')}</p>`:''}</details><div class="mobile-pve-rewards"><strong>${pveAccountWon(selected)?'🎁 Récompenses avec ce Lovys':'🎁 Première victoire'}</strong><p>${pveAccountWon(selected)?pveReplayRewardsText(selected):`+${Number(reward.creatureXp||0)} XP Lovys · +${Number(reward.globalXp||0)} XP globale · +${Number(reward.fragments||0)} fragments d’œuf · +${pveCashRewardText(selected)} LoVeR’Cash`}</p></div><button class="hub-btn primary mobile-pve-fight" type="button" data-fight="${escapeHtml(selected.key)}" ${!selected.unlocked?'disabled':''}>${selected.won?'↻ Rejouer':selected.unlocked?'⚔️ Combattre':'🔒 Combat verrouillé'}</button>${current&&current.key!==selected.key?'<button type="button" class="mobile-pve-return-next" data-mobile-pve-next>Revenir au prochain adversaire</button>':''}</article>`:'<p>Aucun combat dans cette zone.</p>'}${pveAtlasMarkup(data)}<details class="mobile-pve-history"><summary>Voir les combats de la zone (${fights.length})</summary><div>${rows}</div></details><button class="mobile-pve-fragment-shop" type="button" data-open-fragment-shop>🧩 ${Number(data.eggFragments||0)} fragments d’œuf · Boutique</button></div>`;
 }
 async function startMobilePveFight(fightKey,button=null){
   if(mobilePveStarting||pveBattleState.running)return;
@@ -4307,7 +4594,7 @@ async function startMobilePveFight(fightKey,button=null){
 function configurePveZoneResult(result){
   const modal=$('pveBattleResult');
   const info=pveFightInfoByKey(pveBattleState.fight?.key);
-  const completed=Boolean(result.victory&&result.firstWin&&info&&info.zone.fights.every(f=>f.key===info.fight.key||f.won));
+  const completed=Boolean(result.victory&&info&&!info.fight.won&&info.zone.fights.every(f=>f.key===info.fight.key||f.won));
   modal.classList.toggle('zone-complete',completed);
   modal.querySelector('.pve-zone-confetti')?.remove();
   modal.querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());
@@ -4326,17 +4613,17 @@ function configurePveZoneResult(result){
     confetti.innerHTML=Array.from({length:48},(_,i)=>`<i style="--x:${(i*37)%100}%;--drift:${(i%2?-1:1)*(20+(i*11)%80)}px;--delay:${((i%12)*.06).toFixed(2)}s;--turn:${180+(i*79)%540}deg;--color:${['#b78aff','#69ddff','#ffd76b','#ff8bc7','#8af0b4'][i%5]}"></i>`).join('');
     modal.prepend(confetti);
   }
-  if(isMobileGameUi()){
+  if(PVE_SIMPLE_UI){
     $('mobilePveResultPrimary').textContent=next?'Découvrir la zone suivante':'Voir ma progression';
     $('mobilePveResultPrimary').dataset.mobilePveResult=next?'next-zone':'zone';
   }else $('pveBattleContinue').textContent=next?'Découvrir la zone suivante':'Voir ma progression';
 }
 function configureMobilePveResult(result){
-  if(!isMobileGameUi())return;
+  if(!PVE_SIMPLE_UI)return;
   const victory=Boolean(result.victory),info=pveFightInfoByKey(pveBattleState.fight?.key);
   if(!victory){
     const player=result.battle?.player||{},enemy=result.battle?.enemy||{};
-    $('pveBattleResultCopy').textContent=result.battle?.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Essaie une autre affinité ou renforce ton Lovy pour vaincre cet adversaire.':Number(player.level||1)<Number(enemy.level||1)?`${player.name||'Ton Lovy'} est niveau ${Number(player.level||1)} face à un adversaire niveau ${Number(enemy.level||1)}. Donne-lui de l’XP ou choisis un Lovy plus avancé avant de réessayer.`:'Tu peux changer de Lovy pour essayer une autre affinité, améliorer son rang avec des fragments ou lui donner de l’XP.';
+    $('pveBattleResultCopy').textContent=result.battle?.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Essaie une autre affinité ou renforce ton Lovys pour vaincre cet adversaire.':Number(player.level||1)<Number(enemy.level||1)?`${player.name||'Ton Lovys'} est niveau ${Number(player.level||1)} face à un adversaire niveau ${Number(enemy.level||1)}. Donne-lui de l’XP ou choisis un Lovys plus avancé avant de réessayer.`:'Tu peux changer de Lovys pour essayer une autre affinité, améliorer son rang avec des fragments ou lui donner de l’XP.';
   }
   const lastFight=info&&info.fightIndex===(info.zone.fights||[]).length-1;
   if(victory&&lastFight&&result.firstWin)$('pveBattleResultTitle').textContent=info.zoneIndex===(pveMapState.data?.zones||[]).length-1?'Aventure terminée !':'Zone terminée !';
@@ -4371,7 +4658,7 @@ async function closeMobilePveBattle(action='zone'){
     setHubFragmentsButton(Number(data.eggFragments||0));
     renderPveAdventureMap(data,info?.zoneIndex??null);
     refreshed=true;
-    const target=data.hasCreature?(action==='retry'?pveFightInfoByKey(fightKey):action==='next'?mobilePveNextFight(data):null):null;
+    const target=data.hasCreature?(action==='retry'?pveFightInfoByKey(fightKey):action==='next'?mobilePveNextFight(data,fightKey):null):null;
     if(target){
       pveMapState.selectedFight=target.fight.key;
       renderPveAdventureMap(data,target.zoneIndex);
@@ -4379,8 +4666,9 @@ async function closeMobilePveBattle(action='zone'){
       return;
     }
     overlay.classList.remove('active');overlay.classList.add('hidden');
+    $('pveModal')?.classList.remove('desktop-battle-mode');
     pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};
-    if(action==='lovys'){await toggleMobilePanel('creatures');return;}
+    if(action==='lovys'){await openPveLovysPage();return;}
     if(action==='next-zone'){pveMapState.selectedFight=null;renderPveAdventureMap(data,Math.min((info?.zoneIndex??0)+1,data.zones.length-1));}
     if(action==='next'){pveMapState.selectedZone=null;renderPveAdventureMap(data,null);}
     $('pveContent')?.querySelector('[data-mobile-pve-zone]')?.focus({preventScroll:true});
@@ -4447,17 +4735,20 @@ async function abandonMobilePveBattle(){
     }
   }
 }
-$('mobilePveResultPrimary')?.addEventListener('click',event=>{if(isMobileGameUi())closeMobilePveBattle(event.currentTarget.dataset.mobilePveResult||'zone');});
-$('mobilePveResultLovy')?.addEventListener('click',()=>{if(isMobileGameUi())closeMobilePveBattle('lovys');});
+$('mobilePveResultPrimary')?.addEventListener('click',event=>{if(PVE_SIMPLE_UI)closeMobilePveBattle(event.currentTarget.dataset.mobilePveResult||'zone');});
+$('mobilePveResultLovy')?.addEventListener('click',()=>{if(PVE_SIMPLE_UI)closeMobilePveBattle('lovys');});
 $('pveContent')?.addEventListener('change',event=>{
-  if(!isMobileGameUi()||!event.target.matches('[data-mobile-pve-zone]'))return;
+  if(!PVE_SIMPLE_UI||!event.target.matches('[data-mobile-pve-zone]'))return;
   const index=Number(event.target.value);if(!pveMapState.data?.zones?.[index])return;
   pveMapState.selectedFight=null;renderPveAdventureMap(pveMapState.data,index);
 });
 
 function renderPveAdventureMap(data,zoneIndex=null){
-  if(isMobileGameUi()){renderMobilePveAdventure(data,zoneIndex);return;}
+  if(PVE_SIMPLE_UI){renderMobilePveAdventure(data,zoneIndex);return;}
   const box=$('pveContent');if(!box)return;
+  if(data?.activeLovysId&&pveMapState.data?.activeLovysId&&data.activeLovysId!==pveMapState.data.activeLovysId){
+    pveMapState.selectedFight=null;pveMapState.selectedZone=null;zoneIndex=null;
+  }
   pveMapState.data=data;
   pveMapState.view='map';
   const zones=data.zones||[];
@@ -4478,7 +4769,7 @@ function renderPveAdventureMap(data,zoneIndex=null){
   box.innerHTML=(isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches)?`<div class="pve-desktop-layout">${pveLovysSidebarMarkup()}${mainMarkup}</div>`:`<div class="pve-map-shell">${mainMarkup}</div>`;
   if((isDesktopGameUi() && window.matchMedia('(min-width:1024px)').matches))$('pveMapDetail')?.classList.remove('detail-open');
 }
-async function loadPve(){const box=$('pveContent');if(!box)return;const keepMobileContent=isMobileGameUi()&&Boolean(pveMapState.data);if(!keepMobileContent)box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=isMobileGameUi()?'<div class="combat-report"><h3>Ton premier combat t’attend</h3><p>Fais éclore ton premier œuf pour obtenir un Lovy et commencer le PvE.</p><button class="hub-btn" type="button" data-mobile-pve-lovys>🥚 Voir mon œuf</button></div>':`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){if(!keepMobileContent)box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
+async function loadPve(){const box=$('pveContent');if(!box)return;const keepMobileContent=PVE_SIMPLE_UI&&Boolean(pveMapState.data);if(!keepMobileContent)box.innerHTML='<p class="muted">Chargement…</p>';try{const [pveResponse]=await Promise.all([fetch('/api/pve',{cache:'no-store'}),loadLovysCollection()]);const d=await pveResponse.json();if(!pveResponse.ok)throw new Error(d.error||'Erreur');setHubFragmentsButton(Number(d.eggFragments||0));renderDesktopLovysHub(d);if(!d.hasCreature){box.innerHTML=PVE_SIMPLE_UI?'<div class="combat-report"><h3>Ton premier combat t’attend</h3><p>Fais éclore ton premier œuf pour obtenir un Lovys et commencer le PvE.</p><button class="hub-btn" type="button" data-mobile-pve-lovys>🥚 Voir mon œuf</button></div>':`<div class="combat-report">${eggIconMarkup()} Ton œuf doit d’abord éclore avant de pouvoir combattre.</div>`;return;}renderPveAdventureMap(d);}catch(e){if(!keepMobileContent)box.innerHTML=`<p class="muted">${escapeHtml(e.message)}</p>`;}}
 async function refreshPveAfterVictory(zoneIndex=null){
   const [pveResponse]=await Promise.all([
     fetch('/api/pve',{cache:'no-store'}),
@@ -4717,7 +5008,7 @@ function pveEnemySvg(fight){
 }
 function pveEnemySpriteMarkup(fight){const cfg=pveEnemyVisual(fight);const bossClass=cfg.boss?'boss':'';if(cfg.image)return `<div class="pve-enemy-art ${bossClass} real-art" style="--enemy-size:${cfg.size};--enemy-glow:${cfg.glow}"><img loading="lazy" decoding="async" class="pve-enemy-photo" src="${cfg.image}" alt="${escapeHtml(fight?.name||'Monstre PvE')}"></div>`;return `<div class="pve-enemy-art ${bossClass}" style="--enemy-size:${cfg.size};--enemy-glow:${cfg.glow}">${pveEnemySvg(fight)}</div>`;}
 function setPveHp(prefix,hp,maxHp){const pct=Math.max(0,Math.min(100,Number(hp||0)/Math.max(1,Number(maxHp||1))*100));const bar=$(prefix+'Hp'),txt=$(prefix+'HpText');if(bar){bar.style.width=pct+'%';bar.classList.toggle('mid',pct<=55&&pct>25);bar.classList.toggle('low',pct<=25);}if(txt)txt.textContent=`${Math.max(0,Math.round(hp))} / ${Math.max(1,Math.round(maxHp))}`;}
-function pveWait(ms){if(isMobileGameUi())ms=window.matchMedia('(prefers-reduced-motion:reduce)').matches?0:Math.min(ms,pveBattleState.auto?175:470);return new Promise(r=>setTimeout(r,ms));}
+function pveWait(ms){if(PVE_SIMPLE_UI)ms=window.matchMedia('(prefers-reduced-motion:reduce)').matches?0:Math.min(ms,pveBattleState.auto?175:470);return new Promise(r=>setTimeout(r,ms));}
 function pveDamagePop(id,amount,prefix='-'){const el=$(id);if(!el)return;el.textContent=`${prefix}${Math.max(0,Math.round(amount))}`;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');}
 function pveBattleSetDisabled(disabled){
   // L'attaque normale est l'action de secours permanente : elle n'a jamais de cooldown
@@ -4730,11 +5021,11 @@ function pveBattleSetDisabled(disabled){
     btn.disabled=Boolean(disabled)||btn.dataset.cooldown==='1';
   });
 }
-function pveSkillButtonMarkup(skill,cooldown=0){if(!skill)return '';const cd=Math.max(0,Number(cooldown||0));return `<span>${escapeHtml(skill.icon||'✨')}</span><strong>${escapeHtml(skill.name||'Compétence')}</strong><small>${cd?`Recharge : ${cd} tour${cd>1?'s':''}`:(isMobileGameUi()?'Prête':escapeHtml(skill.description||'Prête'))}</small>`;}
+function pveSkillButtonMarkup(skill,cooldown=0){if(!skill)return '';const cd=Math.max(0,Number(cooldown||0));return `<span>${escapeHtml(skill.icon||'✨')}</span><strong>${escapeHtml(skill.name||'Compétence')}</strong><small>${cd?`Recharge : ${cd} tour${cd>1?'s':''}`:(PVE_SIMPLE_UI?'Prête':escapeHtml(skill.description||'Prête'))}</small>`;}
 function renderPveBattleActions(){const battle=pveBattleState.battle;if(!battle)return;const basic=$('pveBasicAttack');if(basic){basic.disabled=false;basic.dataset.cooldown='0';}const skills=battle.player?.skills||[];const cooldowns=battle.player?.cooldowns||{};[$('pveSkill1'),$('pveSkill2')].forEach((btn,i)=>{if(!btn)return;const skill=skills[i];if(!skill){btn.classList.add('hidden');return;}btn.classList.remove('hidden');const cd=Math.max(0,Number(cooldowns[skill.key]||0));const remaining=Math.max(0,cd-1);btn.dataset.battleAction=skill.key;btn.dataset.cooldown=remaining>0?'1':'0';btn.innerHTML=pveSkillButtonMarkup(skill,remaining);btn.disabled=remaining>0;});}
-function renderPveBattleEffects(){const b=pveBattleState.battle;if(!b)return;if(isMobileGameUi()){$('pveBattleEffects').innerHTML='<button class="mobile-pve-info-button" type="button" aria-label="Talents, effets et descriptions des attaques" title="Talents et attaques">ⓘ</button>';return;}const chips=[];if(b.player?.talent)chips.push(`<span class="pve-effect-chip player">${escapeHtml(b.player.talent.icon||'✨')} ${escapeHtml(b.player.talent.name||'Talent')}</span>`);if(b.enemy?.mechanic)chips.push(`<span class="pve-effect-chip boss">👑 ${escapeHtml(b.enemy.mechanic.name||'Mécanique')}</span>`);$('pveBattleEffects').innerHTML=chips.join('');}
+function renderPveBattleEffects(){const b=pveBattleState.battle;if(!b)return;if(PVE_SIMPLE_UI){$('pveBattleEffects').innerHTML='<button class="mobile-pve-info-button" type="button" aria-label="Talents, effets et descriptions des attaques" title="Talents et attaques">ⓘ</button>';return;}const chips=[];if(b.player?.talent)chips.push(`<span class="pve-effect-chip player">${escapeHtml(b.player.talent.icon||'✨')} ${escapeHtml(b.player.talent.name||'Talent')}</span>`);if(b.enemy?.mechanic)chips.push(`<span class="pve-effect-chip boss">👑 ${escapeHtml(b.enemy.mechanic.name||'Mécanique')}</span>`);$('pveBattleEffects').innerHTML=chips.join('');}
 function openMobilePveBattleHelp() {
-  if (!isMobileGameUi() || !pveBattleState.battle || document.querySelector('.mobile-pve-info-modal')) return;
+  if (!PVE_SIMPLE_UI || !pveBattleState.battle || document.querySelector('.mobile-pve-info-modal')) return;
   const battle=pveBattleState.battle,previousFocus=document.activeElement;
   pveBattleState.auto=false;pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();
   const overlay=document.createElement('div');
@@ -4748,23 +5039,33 @@ function openMobilePveBattleHelp() {
   document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
 }
 $('pveBattleEffects')?.addEventListener('click',event=>{if(event.target.closest('.mobile-pve-info-button'))openMobilePveBattleHelp();});
-function syncPveBattleUi(battle){if(!battle)return;pveBattleState.battle=battle;setPveHp('pveBattlePlayer',battle.player.hp,battle.player.maxHp);setPveHp('pveBattleEnemy',battle.enemy.hp,battle.enemy.maxHp);pveBattleState.uiHp={player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)};if(battle.status==='active'&&battle.enemy?.intent)$('pveBattleLog').textContent=battle.enemy.intent;const intent=$('pveEnemyIntent');if(intent){intent.hidden=battle.status!=='active'||!battle.enemy?.intent;intent.textContent=battle.enemy?.intent||'';intent.classList.toggle('danger',/prochaine attaque|décharge|frappe chargée/i.test(battle.enemy?.intent||''));}$('pveBattleRound').textContent=battle.status==='active'?`Tour ${Number(battle.round||1)}`:'Combat terminé';$('pveBattlePlayerStats').textContent=isMobileGameUi()?`Niv. ${battle.player.level||1}`:`Niv. ${battle.player.level||1} · Rang ${battle.player.rank||1} · ⚔️ ${battle.player.attack||0} · 🛡️ ${battle.player.defense||0} · ⚡ ${battle.player.speed||0}`;$('pveBattleEnemyStats').textContent=isMobileGameUi()?`Niv. ${battle.enemy.level||1}`:`Niv. ${battle.enemy.level||1} · ⚔️ ${battle.enemy.attack||0} · 🛡️ ${Math.round(Number(battle.enemy.defense||0))} · ⚡ ${Math.round(Number(battle.enemy.speed||0))}`;renderPveBattleActions();renderPveBattleEffects();}
+function syncPveBattleUi(battle){if(!battle)return;pveBattleState.battle=battle;setPveHp('pveBattlePlayer',battle.player.hp,battle.player.maxHp);setPveHp('pveBattleEnemy',battle.enemy.hp,battle.enemy.maxHp);pveBattleState.uiHp={player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)};if(battle.status==='active'&&battle.enemy?.intent)$('pveBattleLog').textContent=battle.enemy.intent;const intent=$('pveEnemyIntent');if(intent){intent.hidden=battle.status!=='active'||!battle.enemy?.intent;intent.textContent=battle.enemy?.intent||'';intent.classList.toggle('danger',/prochaine attaque|décharge|frappe chargée/i.test(battle.enemy?.intent||''));}$('pveBattleRound').textContent=battle.status==='active'?`Tour ${Number(battle.round||1)}`:'Combat terminé';$('pveBattlePlayerStats').textContent=PVE_SIMPLE_UI?`Niv. ${battle.player.level||1}`:`Niv. ${battle.player.level||1} · Rang ${battle.player.rank||1} · ⚔️ ${battle.player.attack||0} · 🛡️ ${battle.player.defense||0} · ⚡ ${battle.player.speed||0}`;$('pveBattleEnemyStats').textContent=PVE_SIMPLE_UI?`Niv. ${battle.enemy.level||1}`:`Niv. ${battle.enemy.level||1} · ⚔️ ${battle.enemy.attack||0} · 🛡️ ${Math.round(Number(battle.enemy.defense||0))} · ⚡ ${Math.round(Number(battle.enemy.speed||0))}`;renderPveBattleActions();renderPveBattleEffects();}
 function syncPveBattleLayout(){
   const overlay=$('pveBattleOverlay');
   const enemy=$('pveBattleEnemy');
   const health=$('pveBattleEnemyName')?.closest('.pve-combatant-ui');
   const heading=overlay?.querySelector('.pve-battle-head>div');
+  const player=$('pveBattlePlayer');
+  const playerHealth=$('pveBattlePlayerName')?.closest('.pve-combatant-ui');
+  const arena=overlay?.querySelector('.pve-battle-arena');
+  if(player&&playerHealth&&arena){
+    if(isDesktopGameUi()){
+      if(playerHealth.parentElement!==arena)arena.appendChild(playerHealth);
+    }else if(playerHealth.parentElement!==player){
+      player.insertBefore(playerHealth,$('pveBattlePlayerDamage'));
+    }
+  }
   if(!enemy||!health||!heading)return;
-  if(isMobileGameUi()){
+  if(PVE_SIMPLE_UI){
     if(health.parentElement!==heading)heading.appendChild(health);
   }else if(health.parentElement!==enemy){
     enemy.insertBefore(health,$('pveBattleEnemyDamage'));
   }
 }
 window.addEventListener('resize',syncPveBattleLayout);
-function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!isMobileGameUi())$('pveBattleContinue').textContent='Continuer';if(!isMobileGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:false,autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${pveFightRoleLabel(fight)?pveFightRoleLabel(fight)+' · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=me?.user?.creature_id?art(me.user.creature_id,me.user.progression?.evolution||0,true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active','zone-complete');$('pveBattleResult').querySelector('.pve-zone-confetti')?.remove();$('pveBattleResult').querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));}
-async function animatePveBattleEvents(events=[]){for(const event of events){$('pveBattleLog').textContent=event.message||'Combat…';const target=event.target==='player'?'player':event.target==='enemy'?'enemy':null;if(event.type==='damage'&&target){const el=target==='player'?$('pveBattlePlayer'):$('pveBattleEnemy');const attacker=event.source==='enemy'?$('pveBattleEnemy'):$('pveBattlePlayer');attacker?.classList.add('attacking');await pveWait(isMobileGameUi()?300:150);attacker?.classList.remove('attacking');el?.classList.add('hit');const key=target==='player'?'player':'enemy';pveBattleState.uiHp[key]=Math.max(0,pveBattleState.uiHp[key]-Number(event.amount||0));pveDamagePop(target==='player'?'pveBattlePlayerDamage':'pveBattleEnemyDamage',event.amount);const b=pveBattleState.battle;setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(isMobileGameUi()?470:300);el?.classList.remove('hit');}else if(event.type==='heal'&&target){const key=target;pveBattleState.uiHp[key]+=Number(event.amount||0);const b=pveBattleState.battle;pveBattleState.uiHp[key]=Math.min(target==='player'?b.player.maxHp:b.enemy.maxHp,pveBattleState.uiHp[key]);setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(260);}else{await pveWait(event.type==='boss'?500:300);}}}
-function updatePveAutoUi(){const btn=$('pveAutoBattle');if(!btn)return;btn.classList.toggle('active',Boolean(pveBattleState.auto));btn.setAttribute('aria-pressed',pveBattleState.auto?'true':'false');btn.innerHTML=isMobileGameUi()?(pveBattleState.auto?'⏸️ <strong>Pause auto</strong>':'▶️ <strong>Auto</strong>'):(pveBattleState.auto?'⏸️ <strong>Auto activé</strong>':'▶️ <strong>Combat auto</strong>');if(isMobileGameUi()){const hint=btn.parentElement?.querySelector('span');if(hint)hint.textContent=pveBattleState.auto?'Touche une attaque pour reprendre la main.':'Attaque normale toujours disponible.';}}
+function openPveTacticalBattle(fight,battle){const overlay=$('pveBattleOverlay');if(!overlay||!battle)return;overlay.setAttribute('role',isDesktopGameUi()?'region':'dialog');if(isDesktopGameUi())overlay.removeAttribute('aria-modal');else overlay.setAttribute('aria-modal','true');if(isMobileGameUi()&&overlay.parentElement!==document.body)document.body.appendChild(overlay);if(!PVE_SIMPLE_UI)$('pveBattleContinue').textContent='Continuer';if(isDesktopGameUi()){const panel=$('pveModal')?.querySelector('.game-panel');if(panel&&overlay.parentElement!==panel)panel.appendChild(overlay);$('pveModal')?.classList.add('desktop-battle-mode');}stopPveAutoLoop();pveBattleState={running:false,battle,fight,lastResult:null,uiHp:{player:Number(battle.player.hp||0),enemy:Number(battle.enemy.hp||0)},auto:readPveAutoPreference(),autoToken:(pveBattleState.autoToken||0)+1};$('pveBattleTitle').textContent=`⚔️ ${pveFightRoleLabel(fight)?pveFightRoleLabel(fight)+' · ':''}${fight?.name||battle.enemy?.name||'Combat'}`;$('pveBattlePlayerName').textContent=battle.player?.name||'Lovys';$('pveBattlePlayerSprite').innerHTML=(battle.player?.creatureId||me?.user?.creature_id)?art(battle.player?.creatureId||me.user.creature_id,battle.player?.evolution??lovysEvolutionForLevel(battle.player?.level||me.user.progression?.level||1),true):'🐉';$('pveBattleEnemyName').textContent=battle.enemy?.name||fight?.name||'Ennemi';const ev=pveEnemyVisual(fight||{}),stage=overlay.querySelector('.pve-battle-stage');if(stage){for(const cls of [...stage.classList])if(cls.startsWith('zone-'))stage.classList.remove(cls);stage.classList.add(`zone-${ev.zone}`);const visual=pveFightInfoByKey(fight?.key)?.zone?.visual;stage.classList.toggle('has-zone-art',Boolean(visual?.background));for(const prop of ['--mobile-pve-background','--pve-theme-background']){if(visual?.background)stage.style.setProperty(prop,`url('${visual.background}')`);else stage.style.removeProperty(prop);}}$('pveBattleEnemySprite').innerHTML=pveEnemySpriteMarkup(fight||{});syncPveBattleLayout();$('pveBattleResult').classList.remove('active','zone-complete');$('pveBattleResult').querySelector('.pve-zone-confetti')?.remove();$('pveBattleResult').querySelectorAll('.pve-zone-complete-summary').forEach(node=>node.remove());$('pveBattleLog').textContent=`${battle.player?.name||'Ton Lovys'} est prêt. Choisis une action.`;syncPveBattleUi(battle);updatePveAutoUi();overlay.classList.remove('hidden');requestAnimationFrame(()=>overlay.classList.add('active'));if(pveBattleState.auto){$('pveBattleLog').textContent='Combat automatique activé.';schedulePveAuto();}}
+async function animatePveBattleEvents(events=[]){for(const event of events){$('pveBattleLog').textContent=event.message||'Combat…';const target=event.target==='player'?'player':event.target==='enemy'?'enemy':null;if(event.type==='damage'&&target){const el=target==='player'?$('pveBattlePlayer'):$('pveBattleEnemy');const attacker=event.source==='enemy'?$('pveBattleEnemy'):$('pveBattlePlayer');attacker?.classList.add('attacking');await pveWait(PVE_SIMPLE_UI?300:150);attacker?.classList.remove('attacking');el?.classList.add('hit');const key=target==='player'?'player':'enemy';pveBattleState.uiHp[key]=Math.max(0,pveBattleState.uiHp[key]-Number(event.amount||0));pveDamagePop(target==='player'?'pveBattlePlayerDamage':'pveBattleEnemyDamage',event.amount);const b=pveBattleState.battle;setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(PVE_SIMPLE_UI?470:300);el?.classList.remove('hit');}else if(event.type==='heal'&&target){const key=target;pveBattleState.uiHp[key]+=Number(event.amount||0);const b=pveBattleState.battle;pveBattleState.uiHp[key]=Math.min(target==='player'?b.player.maxHp:b.enemy.maxHp,pveBattleState.uiHp[key]);setPveHp(target==='player'?'pveBattlePlayer':'pveBattleEnemy',pveBattleState.uiHp[key],target==='player'?b.player.maxHp:b.enemy.maxHp);await pveWait(260);}else{await pveWait(event.type==='boss'?500:300);}}}
+function updatePveAutoUi(){const btn=$('pveAutoBattle');if(!btn)return;btn.classList.toggle('active',Boolean(pveBattleState.auto));btn.setAttribute('aria-pressed',pveBattleState.auto?'true':'false');btn.innerHTML=PVE_SIMPLE_UI?(pveBattleState.auto?'⏸️ <strong>Pause auto</strong>':'▶️ <strong>Auto</strong>'):(pveBattleState.auto?'⏸️ <strong>Auto activé</strong>':'▶️ <strong>Combat auto</strong>');if(PVE_SIMPLE_UI){const hint=btn.parentElement?.querySelector('span');if(hint)hint.textContent=pveBattleState.auto?'Touche une attaque pour reprendre la main.':'Attaque normale toujours disponible.';}}
 function choosePveAutoAction(){const b=pveBattleState.battle;if(!b||b.status!=='active')return null;const skills=b.player?.skills||[],cd=b.player?.cooldowns||{};for(let i=skills.length-1;i>=0;i--){const sk=skills[i];if(sk&&Number(cd[sk.key]||0)<=1)return sk.key;}return 'basic';} // Le serveur diminue les recharges au début du tour.
 let pveAutoLoopTimer=null;
 function ensurePveAutoLoop(){
@@ -4773,7 +5074,7 @@ function ensurePveAutoLoop(){
     if(!pveBattleState.auto||pveBattleState.running||!pveBattleState.battle||pveBattleState.battle.status!=='active')return;
     const action=choosePveAutoAction();
     if(action)submitPveBattleAction(action);
-  },isMobileGameUi()?360:900);
+  },PVE_SIMPLE_UI?360:900);
 }
 function stopPveAutoLoop(){if(pveAutoLoopTimer){clearInterval(pveAutoLoopTimer);pveAutoLoopTimer=null;}}
 function schedulePveAuto(){if(pveBattleState.auto)ensurePveAutoLoop();else stopPveAutoLoop();}
@@ -4791,8 +5092,8 @@ async function submitPveBattleAction(action){
     syncPveBattleUi(d.battle);pveBattleState.lastResult=d;actionSucceeded=true;
     if(d.finished){
       pveBattleState.auto=false;pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();
-      const victory=Boolean(d.victory);$('pveBattleResultIcon').textContent=victory?'🏆':'💥';$('pveBattleResultTitle').textContent=victory?'Victoire !':'Défaite';$('pveBattleResultCopy').textContent=victory?`${d.battle.player.name} remporte le combat en ${Number(d.rounds||d.battle.round||1)} tour(s).`:(d.battle.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Renforce ton Lovy ou essaie une autre affinité.':`${d.battle.player.name} a été vaincu. Essaie un autre Lovys, améliore son rang ou fais-le progresser.`);const rw=d.reward||{};$('pveBattleResultReward').textContent=pveResultRewardText(d);configureMobilePveResult(d);configurePveZoneResult(d);$('pveBattleResult').classList.add('active');
-      (isMobileGameUi()?$('mobilePveResultPrimary'):$('pveBattleContinue'))?.focus({preventScroll:true});
+      const victory=Boolean(d.victory);$('pveBattleResultIcon').textContent=victory?'🏆':'💥';$('pveBattleResultTitle').textContent=victory?'Victoire !':'Défaite';$('pveBattleResultCopy').textContent=victory?`${d.battle.player.name} remporte le combat en ${Number(d.rounds||d.battle.round||1)} tour(s).`:(d.battle.endReason==='turn_limit'?'La limite de 30 tours est atteinte. Renforce ton Lovys ou essaie une autre affinité.':`${d.battle.player.name} a été vaincu. Essaie un autre Lovys, améliore son rang ou fais-le progresser.`);const rw=d.reward||{};$('pveBattleResultReward').textContent=victory&&d.firstWin?`Première victoire : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.globalXp||0)} XP globale · +${Number(rw.fragments||0)} fragment(s) d’œuf · +${Number(rw.cash||0)} LoVeR’Cash`:victory&&d.replayReward?`Combat rejoué : +${Number(rw.creatureXp||0)} XP Lovys · +${Number(rw.cash||0)} LoVeR’Cash`:victory?'Combat rejoué : aucune récompense pour ce Lovys.':'';configureMobilePveResult(d);configurePveZoneResult(d);$('pveBattleResult').classList.add('active');
+      (PVE_SIMPLE_UI?$('mobilePveResultPrimary'):$('pveBattleContinue'))?.focus({preventScroll:true});
     }else if(!(d.events||[]).length) $('pveBattleLog').textContent='Choisis ta prochaine action.';
   }catch(error){
     // Ne jamais laisser le combat verrouillé si une requête réseau reste suspendue.
@@ -4802,7 +5103,7 @@ async function submitPveBattleAction(action){
     clearTimeout(requestTimeout);
     pveBattleState.running=false;
     if(pveBattleState.battle?.status==='active'&&!pveBattleState.lastResult?.finished){renderPveBattleActions();pveBattleSetDisabled(false);if(pveBattleState.auto)ensurePveAutoLoop();}
-    if(isMobileGameUi()){
+    if(PVE_SIMPLE_UI){
       const queued=actionSucceeded&&pveBattleState.battle?.status==='active'?pveBattleState.queuedAction:null;
       pveBattleState.queuedAction=null;
       $('pveBasicAttack')?.classList.remove('queued');
@@ -4812,7 +5113,7 @@ async function submitPveBattleAction(action){
 }
 let pveDesktopClosing=false;
 async function closePveBattleAnimation(){
-  if(isMobileGameUi())return closeMobilePveBattle();
+  if(PVE_SIMPLE_UI)return closeMobilePveBattle();
   if(pveDesktopClosing)return;
   pveDesktopClosing=true;
   const button=$('pveBattleContinue'),label=button.textContent;
@@ -4831,8 +5132,8 @@ async function closePveBattleAnimation(){
   finally{button.disabled=false;button.textContent=label;pveDesktopClosing=false;}
 }
 
-$('pveAutoBattle')?.addEventListener('click',()=>{if(!pveBattleState.battle||pveBattleState.battle.status!=='active')return;pveBattleState.auto=!pveBattleState.auto;pveBattleState.autoToken++;updatePveAutoUi();if(pveBattleState.auto){$('pveBattleLog').textContent='Combat automatique activé.';schedulePveAuto();}else{stopPveAutoLoop();$('pveBattleLog').textContent='Combat automatique désactivé. Choisis une action.';}});
-$('pveBattleActions')?.addEventListener('click',e=>{const btn=e.target.closest('[data-battle-action]');if(!btn||btn.disabled)return;if(isMobileGameUi()&&pveBattleState.auto){pveBattleState.auto=false;pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();if(pveBattleState.running){pveBattleState.queuedAction=btn.dataset.battleAction;btn.classList.add('queued');$('pveBattleLog').textContent='Attaque choisie : elle part dès la fin du tour.';return;}}submitPveBattleAction(btn.dataset.battleAction);});
+$('pveAutoBattle')?.addEventListener('click',()=>{if(!pveBattleState.battle||pveBattleState.battle.status!=='active')return;setPveAutoPreference(!pveBattleState.auto);pveBattleState.autoToken++;updatePveAutoUi();if(pveBattleState.auto){$('pveBattleLog').textContent='Combat automatique activé.';schedulePveAuto();}else{stopPveAutoLoop();$('pveBattleLog').textContent='Combat automatique désactivé. Choisis une action.';}});
+$('pveBattleActions')?.addEventListener('click',e=>{const btn=e.target.closest('[data-battle-action]');if(!btn||btn.disabled)return;if(PVE_SIMPLE_UI&&pveBattleState.auto){setPveAutoPreference(false);pveBattleState.autoToken++;stopPveAutoLoop();updatePveAutoUi();if(pveBattleState.running){pveBattleState.queuedAction=btn.dataset.battleAction;btn.classList.add('queued');$('pveBattleLog').textContent='Attaque choisie : elle part dès la fin du tour.';return;}}submitPveBattleAction(btn.dataset.battleAction);});
 $('pveBattleContinue')?.addEventListener('click',closePveBattleAnimation);
 document.addEventListener('keydown',event=>{
   const result=$('pveBattleResult');
@@ -4840,14 +5141,15 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Tab'){event.stopImmediatePropagation();trapDesktopAdminFocus(event,result);}
   if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();void closePveBattleAnimation();}
 },true);
-$('pveBattleAbandon')?.addEventListener('click',async()=>{if(isMobileGameUi()){await abandonMobilePveBattle();return;}if(!pveBattleState.battle)return;stopPveAutoLoop();if(!confirm('Abandonner ce combat ? Aucune récompense ne sera donnée.'))return;await fetch('/api/pve/abandon',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const overlay=$('pveBattleOverlay');overlay?.classList.remove('active');if(!isMobileGameUi()){overlay?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}else setTimeout(()=>overlay?.classList.add('hidden'),180);pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};if(!isMobileGameUi())await loadPve();});
+$('pveBattleAbandon')?.addEventListener('click',async()=>{if(PVE_SIMPLE_UI){await abandonMobilePveBattle();return;}if(!pveBattleState.battle)return;stopPveAutoLoop();if(!confirm('Abandonner ce combat ? Aucune récompense ne sera donnée.'))return;await fetch('/api/pve/abandon',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});const overlay=$('pveBattleOverlay');overlay?.classList.remove('active');if(!PVE_SIMPLE_UI){overlay?.classList.add('hidden');$('pveModal')?.classList.remove('desktop-battle-mode');}else setTimeout(()=>overlay?.classList.add('hidden'),180);pveBattleState={running:false,battle:null,fight:null,lastResult:null,uiHp:{player:0,enemy:0},auto:false,autoToken:(pveBattleState.autoToken||0)+1};if(!PVE_SIMPLE_UI)await loadPve();});
 $('openProgression')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='progression';document.body.dataset.desktopView='progression';setDesktopNavActive?.('progression');}$('progressionModal')?.classList.remove('hidden');loadProgression();syncMobileNavState?.();});$('progressionClose')?.addEventListener('click',()=>{$('progressionModal')?.classList.add('hidden');syncMobileNavState?.();});$('openPve')?.addEventListener('click',()=>{if(!isMobileGameUi()){desktopView='pve';document.body.dataset.desktopView='pve';setDesktopNavActive?.('pve');}$('pveModal')?.classList.remove('hidden');loadPve();syncMobileNavState?.();});$('pveClose')?.addEventListener('click',()=>{$('pveModal')?.classList.add('hidden');syncMobileNavState?.();});
 $('pveContent')?.addEventListener('click',async e=>{
-  if(isMobileGameUi()){
+  if(handlePveAtlasClick(e))return;
+  if(PVE_SIMPLE_UI){
     const select=e.target.closest('[data-mobile-pve-select]');
     if(select){if(select.disabled)return;pveMapState.selectedFight=select.dataset.mobilePveSelect;renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
     if(e.target.closest('[data-mobile-pve-next]')){pveMapState.selectedFight=null;renderPveAdventureMap(pveMapState.data,pveMapState.selectedZone);return;}
-    if(e.target.closest('[data-mobile-pve-lovys]')){await toggleMobilePanel('creatures');return;}
+    if(e.target.closest('[data-mobile-pve-lovys]')){await openPveLovysPage();return;}
     const fightButton=e.target.closest('[data-fight]');if(fightButton){if(!fightButton.disabled)await startMobilePveFight(fightButton.dataset.fight,fightButton);return;}
   }
   const lovysBtn=e.target.closest('[data-pve-lovys]');
@@ -4879,6 +5181,7 @@ function setMobileNavActive(id){
     if(active)btn.setAttribute('aria-current','page');else btn.removeAttribute('aria-current');
   });
   if(isMobileGameUi()) document.body.style.overflow=id==='mobileNavHome'?'':'hidden';
+  renderMobileHomeXpBoost();
   if(syncMobileFooterPlacement.ready)syncMobileFooterPlacement();
 }
 // La hauteur mesurée comprend la zone sûre iOS et suit les rotations / zooms.
@@ -4985,7 +5288,17 @@ function restoreMobilePageScroll(id){
 }
 function closeAllMobilePanels(except=''){
   if(!isMobileGameUi()) return;
+  if(!$('desktopAdminModal')?.classList.contains('hidden')){
+    closeAdminPlayersModal();
+    for(const id of ['adminDashboardModal','adminBotModal','eventsModal'])$(id)?.classList.add('hidden');
+    $('adminFeedbackSection')?.classList.add('hidden');
+    $('adminFeedbackOpen')?.classList.remove('hidden');
+    $('desktopAdminContent')?.classList.remove('hidden');
+    closeDesktopAdmin();
+  }
   mobileNavigationRevision++;
+  closeMobileBadgeDetail();
+  $('badgeCollectionModal')?.classList.add('hidden');
   if(except!=='more')$('mobileMorePage')?.classList.add('hidden');
   mobilePageIds.forEach(id=>{const el=$(id);if(el && !el.classList.contains('hidden')) mobilePageScroll.set(id,el.scrollTop);});
   const board=document.querySelector('.global-leaderboard');
@@ -5062,6 +5375,7 @@ async function toggleMobilePanel(panel){
   }
   // Une réponse ancienne ne peut pas réactiver une page quittée entre-temps.
   if(revision===mobileNavigationRevision&&isMobileGameUi())syncMobileNavState();
+  if(panel!=='combat'){scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck();}
 }
 async function hatchExtraIncubatorEgg(slot){
   const message=$('incubatorAddMessage');
@@ -5093,30 +5407,25 @@ function arrangeIncubatorCarousel(){
   const mobile = isMobileGameUi();
   const slots = new Map(incubatorData.slots.map(slot=>[Number(slot.slot),slot]));
   const cards = [...track.querySelectorAll('[data-incubator-slot]')];
+  const remaining = slot => slot.ready ? 0 : Math.max(0, incubatorSlotHatchSeconds(slot,incubatorData)-Number(slot.watchedSeconds||0));
   cards.sort((a,b)=>{
     const aSlot = Number(a.dataset.incubatorSlot), bSlot = Number(b.dataset.incubatorSlot);
-    if(mobile){
-      const aOccupied = slots.has(aSlot) && !slots.get(aSlot).empty;
-      const bOccupied = slots.has(bSlot) && !slots.get(bSlot).empty;
-      if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
-      if(aOccupied && bOccupied){
-        const hatchSeconds = Number(incubatorData.hatchSeconds || 21600);
-        const remaining = slot => slot.ready ? 0 : Math.max(0,hatchSeconds - Number(slot.watchedSeconds || 0));
-        const timeDifference = remaining(slots.get(aSlot)) - remaining(slots.get(bSlot));
-        if(timeDifference) return timeDifference;
-      }
-    }
-    return aSlot - bSlot;
+    const aData = slots.get(aSlot), bData = slots.get(bSlot);
+    const aOccupied = Boolean(aData && !aData.empty), bOccupied = Boolean(bData && !bData.empty);
+    if(aOccupied !== bOccupied) return aOccupied ? -1 : 1;
+    if(aOccupied && bOccupied) return remaining(aData)-remaining(bData) || aSlot-bSlot;
+    return aSlot-bSlot;
   });
   const order = (mobile ? 'mobile:' : 'pc:') + cards.map(card=>card.dataset.incubatorSlot).join(',');
-  if(order === incubatorCarouselOrder) return;
-  incubatorCarouselOrder = order;
-  // Seul l'ordre visuel change : les identifiants et actions gardent le vrai numéro du slot.
-  cards.forEach(card=>track.appendChild(card));
-  incubatorCarouselIndex = 0;
-  if(mobile){
-    track.scrollTo({left:0,behavior:'instant'});
-    updateIncubatorCarousel();
+  if(order !== incubatorCarouselOrder){
+    incubatorCarouselOrder = order;
+    // Les cartes changent de place, mais chaque action garde son vrai numéro de slot.
+    cards.forEach(card=>track.appendChild(card));
+    incubatorCarouselIndex = 0;
+    if(mobile){
+      track.scrollTo({left:0,behavior:'instant'});
+      updateIncubatorCarousel();
+    }
   }
 }
 window.matchMedia(MOBILE_GAME_MEDIA).addEventListener?.('change',arrangeIncubatorCarousel);
@@ -5169,7 +5478,7 @@ function awaitStarterHatchFromCard() {
   const button = $('hatchEgg');
   if (!button) return;
   // Les données des emplacements font foi pour ce clic ; le serveur vérifie
-  // de nouveau les 6 heures avant d'accorder le Lovys.
+  // de nouveau le temps requis avant d'accorder le Lovys.
   button.disabled = false;
   hatchEgg();
 }
@@ -5300,7 +5609,6 @@ function openPlayerProfile(playerData) {
   if (!content) return;
   const isOwnMobileProfile=isMobileGameUi() && Boolean(me?.user?.twitch_id) && String(playerData.twitch_id||'')===String(me.user.twitch_id);
   $('mobileSelfProfileActions')?.classList.toggle('hidden',!isOwnMobileProfile);
-  $('mobileProfileAdmin')?.classList.toggle('hidden',!isOwnMobileProfile || !desktopAdminAuthorized);
   if(isOwnMobileProfile)refreshDesktopAdminAccess();
 
   const creature = playerData.creature_id ? creatureById(playerData.creature_id) : null;
@@ -5327,7 +5635,7 @@ function openPlayerProfile(playerData) {
   const globalXp = Math.floor(Number(playerData.global_xp || 0));
   const creatureXp = Math.floor(Number(playerData.xp || 0));
 
-  content.innerHTML = `<div id="playerProfileHero" class="player-profile-hero" style="--profile-card-image:${escapeHtml(cardBg)};${cardFrame ? `border-color:${escapeHtml(cardFrame.border)};box-shadow:${escapeHtml(cardFrame.shadow)};` : ''}"><div class="player-profile-hero-inner"><div id="playerProfileAvatar" class="player-profile-avatar">${avatarHtml}</div><div class="player-profile-identity"><div class="player-profile-name">${escapeHtml(playerData.display_name || 'Joueur')}</div>${titleHtml}<div class="player-profile-rank">${playerData.excluded_from_ranking ? 'Hors classement' : `Rang #${Number(playerData.rank) || '—'}`} · ${playerData.is_sub ? '⭐ Abonné Twitch' : 'Viewer'}</div></div></div></div>
+  content.innerHTML = `<div id="playerProfileHero" class="player-profile-hero${playerData.cosmetic_background==='streak_bg_100'?' streak-100-background':playerData.cosmetic_background==='streak_bg_250'?' streak-250-background':''}" style="--profile-card-image:${escapeHtml(cardBg)};${cardFrame ? `border-color:${escapeHtml(cardFrame.border)};box-shadow:${escapeHtml(cardFrame.shadow)};` : ''}">${streakMotionMarkup(playerData.cosmetic_background)}<div class="player-profile-hero-inner"><div id="playerProfileAvatar" class="player-profile-avatar">${avatarHtml}</div><div class="player-profile-identity"><div class="player-profile-name">${escapeHtml(playerData.display_name || 'Joueur')}</div>${titleHtml}<div class="player-profile-rank">${playerData.excluded_from_ranking ? 'Hors classement' : `Rang #${Number(playerData.rank) || '—'}`} · ${playerData.is_sub ? '⭐ Abonné Twitch' : 'Viewer'}</div></div></div></div>
   <div class="player-profile-stats">
     <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau global</div><div class="player-profile-stat-value">${globalLevel}</div></div>
     <div class="player-profile-stat"><div class="player-profile-stat-label">Niveau Lovys</div><div class="player-profile-stat-value">${creatureLevel}</div></div>
@@ -5378,7 +5686,6 @@ $('leaderboard')?.addEventListener('keydown', event => {
 
 $('playerProfileClose')?.addEventListener('click', closePlayerProfile);
 $('mobileProfileAccount')?.addEventListener('click',()=>{if(isMobileGameUi())openAccountModal();});
-$('mobileProfileAdmin')?.addEventListener('click',()=>{if(isMobileGameUi())openDesktopAdmin();});
 $('playerProfileContent')?.addEventListener('click', event => {
   if (!isMobileGameUi()) return;
   const badge = event.target.closest('.player-profile-badge');
@@ -5388,6 +5695,12 @@ $('playerProfileContent')?.addEventListener('click', event => {
   if (badge) {
     event.stopPropagation();
     badge.classList.toggle('touch-open');
+    if(badge.classList.contains('touch-open')){
+      const rect=badge.getBoundingClientRect();
+      const half=Math.min(130,(window.innerWidth-32)/2);
+      const center=Math.max(half+16,Math.min(window.innerWidth-half-16,rect.left+rect.width/2));
+      badge.style.setProperty('--badge-tooltip-offset', `${center-(rect.left+rect.width/2)}px`);
+    }
   }
 });
 document.addEventListener('click', event => {
@@ -5433,6 +5746,24 @@ function sortCatalogItems(items, category) {
 
 let shopData = null;
 let shopCategory = 'title';
+let twitchRewardChecking = false;
+let twitchRewardCelebrationActive = false;
+let twitchRewardCheckTimer = null;
+let watchStreakRewardChecking = false;
+let watchStreakCelebrationActive = false;
+let watchStreakCheckTimer = null;
+function scheduleWatchStreakRewardCheck(delay=1100){
+  clearTimeout(watchStreakCheckTimer);
+  watchStreakCheckTimer=setTimeout(()=>void showPendingWatchStreakReward(),delay);
+}
+function scheduleTwitchRewardCheck(delay=900){
+  clearTimeout(twitchRewardCheckTimer);
+  twitchRewardCheckTimer=setTimeout(()=>void showPendingTwitchRewards(),delay);
+}
+function twitchRewardBlockedByPve(){
+  return Boolean(pveBattleState.running || (isDesktopGameUi() && desktopView==='pve') ||
+    !$('pveModal')?.classList.contains('hidden') || !$('pveBattleOverlay')?.classList.contains('hidden'));
+}
 let mobileShopPage = 0;
 let mobileShopPageCategory = 'title';
 const MOBILE_SHOP_PAGE_SIZE = 8;
@@ -5440,6 +5771,7 @@ let shopTitleFilter = 'all';
 let shopBackgroundFilter = 'all';
 let shopFrameFilter = 'all';
 let shopAvatarFrameFilter = 'all';
+let shopObjectFilter = 'all';
 let shopPreviewCurrentKey = null;
 let shopFocusItemKey = null;
 let inventoryCategory = 'title';
@@ -5459,12 +5791,13 @@ function saveNavMemory(patch) {
 }
 function saveCommerceMemory() {
   saveNavMemory({commerceTab, shopCategory, inventoryCategory, inventoryTitleFilter,
-    shopTitleFilter, shopBackgroundFilter, shopFrameFilter, shopAvatarFrameFilter});
+    shopTitleFilter, shopBackgroundFilter, shopFrameFilter, shopAvatarFrameFilter, shopObjectFilter});
 }
 function restoreCommerceMemory() {
   const saved = readNavMemory();
-  const allowed = ['title','background','frame','avatar_frame','object'];
+  const allowed = ['title','background','frame','avatar_frame','object','twitch'];
   if (allowed.includes(saved.shopCategory)) shopCategory = saved.shopCategory;
+  if (['all','xp','boost','egg','incubation'].includes(saved.shopObjectFilter)) shopObjectFilter = saved.shopObjectFilter;
   if (allowed.includes(saved.inventoryCategory)) inventoryCategory = saved.inventoryCategory;
   if (saved.commerceTab === 'inventory' || saved.commerceTab === 'shop') commerceTab = saved.commerceTab;
   for (const key of ['inventoryTitleFilter','shopTitleFilter','shopBackgroundFilter','shopFrameFilter','shopAvatarFrameFilter']) {
@@ -5626,6 +5959,8 @@ function shopSuccessLabel(url, itemKey, fallback) {
 
 function shopPreview(item) {
   if (item.category === 'title') return `<div class="shop-item-preview"><div class="shop-preview-title" style="color:${escapeHtml(item.color || '#fff')}">&quot;${escapeHtml(item.name)}&quot;</div></div>`;
+  if (item.key === 'reward_bg_twitch_live') return `<div class="shop-item-preview shop-preview-bg twitch-live-background" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"><span class="twitch-logo-layer" aria-hidden="true">${Array.from({length:10},()=>'<img src="/assets/twitch-glyph.svg" alt="">').join('')}</span></div>`;
+  if (item.key === 'streak_bg_100' || item.key === 'streak_bg_250') return `<div class="shop-item-preview shop-preview-bg ${item.key==='streak_bg_100'?'streak-100-background':'streak-250-background'}" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover;background-position:center">${streakMotionMarkup(item.key)}</div>`;
   if (item.collection === 'atelier' && item.category === 'background') return `<div class="shop-item-preview shop-preview-bg" style="background-image:${escapeHtml(profileBackgroundValue(item.key))};background-size:cover"></div>`;
   if (item.collection === 'atelier' && item.category === 'frame') {
     const frame = profileFrameStyle(item.key);
@@ -5639,6 +5974,131 @@ function shopPreview(item) {
   }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
+}
+
+async function showPendingWatchStreakReward(){
+  if(watchStreakRewardChecking||watchStreakCelebrationActive||!me?.user||document.hidden||twitchRewardBlockedByPve())return;
+  if(twitchRewardChecking||twitchRewardCelebrationActive||badgeCelebrationActive||document.getElementById('heartGiftCelebration')||
+      window.LovysEvolutionCelebration?.isActive()||rewardWheelSpinning||
+      !$('shopPurchaseSuccessModal')?.classList.contains('hidden')||!$('rewardWheelWinPopup')?.classList.contains('hidden')||
+      document.getElementById('returnSummaryOverlay')){scheduleWatchStreakRewardCheck(1100);return;}
+  watchStreakRewardChecking=true;
+  const accountKey=String(me.user.id||me.user.twitch_id||'');
+  try{
+    const response=await fetch('/api/watch-streak/notifications/pending',{cache:'no-store'});
+    if(!response.ok)return;
+    const {rewards}=await response.json();
+    const reward=Array.isArray(rewards)?rewards[0]:null;
+    if(!reward||accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    const count=Number(reward.count);
+    const items=String(reward.description||'').replace('Fiole Double XP · ','Fiole Double XP — ').split(' · ').filter(Boolean);
+    watchStreakCelebrationActive=true;
+    const modal=document.createElement('div');
+    modal.id='watchStreakCelebration';
+    modal.className='badge-unlock-celebration twitch-reward-celebration watch-streak-celebration';
+    modal.innerHTML=`<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:38},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#9147ff','#d5aaff','#fff','#65ddff'][i%4]}"></i>`).join('')}</div><div class="badge-unlock-card twitch-reward-card" role="dialog" aria-modal="true" aria-labelledby="watchStreakRewardTitle" aria-describedby="watchStreakRewardCopy">
+      <img class="twitch-reward-glyph" src="/assets/twitch-glyph.svg" alt="">
+      <div class="badge-unlock-kicker">Série de visionnage Twitch</div>
+      <h2 class="badge-unlock-title" id="watchStreakRewardTitle">Félicitations pour ta fidélité !</h2>
+      <p class="twitch-reward-copy" id="watchStreakRewardCopy">Tu as partagé une série de <strong>${count} lives consécutifs</strong> sur Twitch. Tu as débloqué :</p>
+      <div class="twitch-reward-items ${items.length>1?'multiple':''}">${items.map(item=>`<div class="twitch-reward-entry"><div class="watch-streak-gift-icon" aria-hidden="true">${item.includes('XP')?'✨':item.includes('Cash')?'💰':item.includes('œuf')?'🥚':item.includes('fragments')?'🧩':'🎁'}</div><div class="twitch-reward-entry-name"><strong>${escapeHtml(item)}</strong></div></div>`).join('')}</div>
+      <div class="badge-unlock-condition">Retrouve tes objets dans l’inventaire. L’XP et le LoVeR’Cash ont été crédités directement.</div>
+      <button class="badge-unlock-ok" type="button">Super, merci !</button>
+    </div>`;
+    document.body.appendChild(modal);
+    modal.querySelector('button')?.addEventListener('click',async()=>{
+      modal.querySelector('button').disabled=true;
+      try{
+        const ack=await fetch('/api/watch-streak/notifications/acknowledge',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({count})});
+        if(!ack.ok)throw new Error('Confirmation indisponible.');
+      }catch(error){console.error('Confirmation de série Twitch :',error);}
+      modal.classList.remove('show');
+      setTimeout(()=>modal.remove(),300);
+      watchStreakCelebrationActive=false;
+      scheduleWatchStreakRewardCheck(500);
+      scheduleTwitchRewardCheck(600);
+      setTimeout(showNextBadgeCelebration,350);
+    },{once:true});
+    requestAnimationFrame(()=>modal.classList.add('show'));
+    setTimeout(()=>modal.querySelector('button')?.focus(),260);
+  }catch(error){console.error('Récompense de série Twitch en attente :',error);}
+  finally{watchStreakRewardChecking=false;}
+}
+
+function renderTwitchRewardSummary(modal,rewards,catalog){
+  modal.rewardIds=rewards.map(reward=>reward.id);
+  const copy=modal.querySelector('#twitchRewardCopy');
+  if(copy)copy.textContent=rewards.length===1?'Vous venez de débloquer un objet sur Twitch :':`Vous venez de débloquer ${rewards.length} objets sur Twitch :`;
+  const list=modal.querySelector('#twitchRewardItems');
+  if(!list)return;
+  list.classList.toggle('multiple',rewards.length>1);
+  list.innerHTML=rewards.map(reward=>{
+    const item=(catalog||[]).find(entry=>entry.key===reward.itemKey)||{
+      key:reward.itemKey,name:reward.name,category:reward.category,icon:reward.icon||'🎁',color:'#cba6ff',twitchPoints:1
+    };
+    const type=item.category==='title'?'Titre':item.category==='background'?'Fond':item.category==='event'?'Événement':'Objet';
+    return `<div class="twitch-reward-entry"><div class="twitch-reward-visual">${shopPreview(item)}</div><div class="twitch-reward-entry-name"><span>${type}</span><strong>« ${escapeHtml(item.name)} »</strong></div></div>`;
+  }).join('');
+}
+
+async function showPendingTwitchRewards(){
+  if(twitchRewardChecking || !me?.user || document.hidden || twitchRewardBlockedByPve())return;
+  const accountKey=String(me.user.id||me.user.twitch_id||'');
+  if(!twitchRewardCelebrationActive && (watchStreakRewardChecking || watchStreakCelebrationActive || badgeCelebrationActive || document.getElementById('heartGiftCelebration') ||
+      window.LovysEvolutionCelebration?.isActive() || rewardWheelSpinning ||
+      !$('shopPurchaseSuccessModal')?.classList.contains('hidden') || !$('rewardWheelWinPopup')?.classList.contains('hidden') ||
+      document.getElementById('returnSummaryOverlay'))){scheduleTwitchRewardCheck(900);return;}
+  twitchRewardChecking=true;
+  try{
+    const response=await fetch('/api/twitch-rewards/notifications/pending',{cache:'no-store'});
+    if(!response.ok)return;
+    const {rewards}=await response.json();
+    if(!Array.isArray(rewards)||!rewards.length||accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    let catalog=shopData?.catalog;
+    if(!catalog){
+      const shopResponse=await fetch('/api/shop',{cache:'no-store'});
+      if(shopResponse.ok)catalog=(await shopResponse.json()).catalog;
+    }
+    if(accountKey!==String(me?.user?.id||me?.user?.twitch_id||'')||twitchRewardBlockedByPve())return;
+    let modal=$('twitchRewardCelebration');
+    if(modal && twitchRewardCelebrationActive){if(!modal.dataset.closing)renderTwitchRewardSummary(modal,rewards,catalog);return;}
+    twitchRewardCelebrationActive=true;
+    modal=document.createElement('div');
+    modal.id='twitchRewardCelebration';
+    modal.className='badge-unlock-celebration twitch-reward-celebration';
+    modal.innerHTML=`<div class="badge-unlock-confetti" aria-hidden="true">${Array.from({length:38},(_,i)=>`<i style="--confetti-x:${(i*37)%100}%;--confetti-drift:${(i%2?-1:1)*(24+(i*11)%95)}px;--confetti-delay:${((i%12)*.065).toFixed(3)}s;--confetti-turn:${180+(i*79)%540}deg;--confetti-color:${['#9147ff','#d5aaff','#fff','#65ddff'][i%4]}"></i>`).join('')}</div><div class="badge-unlock-card twitch-reward-card" role="dialog" aria-modal="true" aria-labelledby="twitchRewardTitle" aria-describedby="twitchRewardCopy">
+      <img class="twitch-reward-glyph" src="/assets/twitch-glyph.svg" alt="">
+      <div class="badge-unlock-kicker">Récompenses Twitch</div>
+      <h2 class="badge-unlock-title" id="twitchRewardTitle">Félicitations pour votre fidélité !</h2>
+      <p class="twitch-reward-copy" id="twitchRewardCopy"></p>
+      <div class="twitch-reward-items" id="twitchRewardItems"></div>
+      <div class="badge-unlock-condition">Retrouvez vos nouveaux objets dans l’inventaire pour les équiper.</div>
+      <button class="badge-unlock-ok" type="button">Super, merci !</button>
+    </div>`;
+    renderTwitchRewardSummary(modal,rewards,catalog);
+    document.body.appendChild(modal);
+    const close=async()=>{
+      const ids=[...(modal.rewardIds||[])];
+      modal.dataset.closing='1';
+      modal.classList.remove('show');
+      try{
+        const ack=await fetch('/api/twitch-rewards/notifications/acknowledge',{
+          method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})
+        });
+        if(!ack.ok)throw new Error('Confirmation indisponible.');
+      }catch(error){console.error('Confirmation des récompenses Twitch :',error);}
+      finally{
+        setTimeout(()=>modal.remove(),300);
+        twitchRewardCelebrationActive=false;
+        scheduleWatchStreakRewardCheck(500);
+        setTimeout(showNextBadgeCelebration,350);
+      }
+    };
+    modal.querySelector('button')?.addEventListener('click',close,{once:true});
+    requestAnimationFrame(()=>modal.classList.add('show'));
+    setTimeout(()=>modal.querySelector('button')?.focus(),260);
+  }catch(error){console.error('Récompenses Twitch en attente :',error);}
+  finally{twitchRewardChecking=false;}
 }
 
 function shopCategoryLabel(category) {
@@ -5658,7 +6118,11 @@ function getShopActionButtons(item, { includePreview = false } = {}) {
   const buttons = [];
   if (includePreview && !isDesktopGameUi()) buttons.push(`<button class="shop-action secondary" type="button" data-shop-preview="${escapeHtml(item.key)}">👁 Prévisualiser</button>`);
 
-  if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
+  if (item.twitchPoints && !item.owned && !item.equipped) {
+    buttons.push(shopData?.twitchRewardsReady
+      ? '<a class="shop-action" href="https://www.twitch.tv/loverdosetv" target="_blank" rel="noopener noreferrer" aria-label="Ouvrir les points de chaîne sur Twitch">Ouvrir les points de chaîne ↗</a>'
+      : '<button class="shop-action" type="button" disabled>Activation Twitch en cours</button>');
+  } else if (item.rewardOnly && !item.owned && !item.equipped) { buttons.push('<button class="shop-action" type="button" disabled>À débloquer</button>');
   } else if (item.comingSoon) {
     buttons.push('<button class="shop-action" type="button" disabled>Bientôt</button>');
   } else if (item.category === 'object') {
@@ -5800,6 +6264,7 @@ function setCommerceTab(tab) {
 function syncDesktopBoostData() {
   if (!isDesktopGameUi()) return;
   desktopActiveBoosts = shopData?.activeBoosts || {};
+   desktopXpBoostRemainingSeconds = Number(shopData?.xpBoostRemainingSeconds || 0);
   renderDesktopBoostStatus();
 }
 
@@ -5868,7 +6333,7 @@ function renderShopItemPreview() {
   const item = getShopItemByKey(shopPreviewCurrentKey);
   if (!item) return;
 
-  $('shopItemPreviewSubtitle').textContent = isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')
+  $('shopItemPreviewSubtitle').textContent = item.twitchPoints ? 'Échange tes points directement sur la chaîne Twitch.' : isDesktopGameUi() && !$('inventoryModal')?.classList.contains('hidden')
     ? 'Essaie cet article sur ta carte avant de l’équiper.'
     : "Découvre l’article avant de dépenser ton LoVeR'Cash.";
   $('shopItemPreviewTitle').textContent = `👁 Prévisualisation · ${shopCategoryLabel(item.category)}`;
@@ -5886,7 +6351,7 @@ function renderShopItemPreview() {
     statusText = 'Possédé';
   }
 
-  $('shopItemPreviewMeta').innerHTML = `<span class="shop-preview-pill price">💰 ${escapeHtml(price)}</span>${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
+  $('shopItemPreviewMeta').innerHTML = `${item.twitchPoints?'':`<span class="shop-preview-pill price">💰 ${escapeHtml(price)}</span>`}${item.comingSoon ? '<span class="shop-preview-pill">Bientôt</span>' : ''}`;
   $('shopItemPreviewOwned').textContent = statusText;
 
   const effectEl = $('shopItemPreviewEffect');
@@ -5955,6 +6420,22 @@ function closeShopItemPreview() {
   $('shopItemPreviewModal')?.classList.add('hidden');
 }
 
+const SHOP_OBJECT_SECTIONS = [
+  {key:'xp', label:'XP', icon:'🧪'},
+  {key:'boost', label:'Boosts', icon:'⚡'},
+  {key:'egg', label:'Œufs', icon:'🥚'},
+  {key:'incubation', label:'Incubation', icon:'⏱️'},
+  {key:'other', label:'Autres objets', icon:'🎁'}
+];
+
+function shopObjectGroup(item) {
+  if (item.key === 'mystery_egg' || item.key === 'fragment_mystery_egg') return 'egg';
+  if (item.key === 'incubator_skip_30') return 'incubation';
+  if (item.xpAmount > 0) return 'xp';
+  if (item.liveHours > 0) return 'boost';
+  return 'other';
+}
+
 function mobileShopPageItems(items){
   if(mobileShopPageCategory!==shopCategory){mobileShopPage=0;mobileShopPageCategory=shopCategory;}
   const pageCount=Math.max(1,Math.ceil(items.length/MOBILE_SHOP_PAGE_SIZE));
@@ -5974,6 +6455,13 @@ function mobileShopPageItems(items){
 function renderShop() {
   if (!shopData) return;
   $('shopBalance').textContent = Math.floor(Number(shopData.balance || 0));
+  const objectFilters = $('shopObjectFilters');
+  objectFilters?.classList.toggle('hidden', shopCategory !== 'object');
+  objectFilters?.querySelectorAll('[data-shop-object-filter]').forEach(button => {
+    const selected = button.dataset.shopObjectFilter === shopObjectFilter;
+    button.classList.toggle('active', selected);
+    button.setAttribute('aria-pressed', String(selected));
+  });
   const titleFilterWrap = $('shopTitleFilterWrap');
   const backgroundFilterWrap = $('shopBackgroundFilterWrap');
   const frameFilterWrap = $('shopFrameFilterWrap');
@@ -5987,13 +6475,14 @@ function renderShop() {
   // reste dans Progression / Inventaire et ne doit jamais apparaître ici.
   const isProgressionReward = item => {
     if (!item) return false;
-    if (item.rewardOnly) return true;
+    if (item.twitchPoints) return false;
+    if (item.rewardOnly && !item.twitchPoints) return true;
     const key = String(item.key || '');
     const description = String(item.description || '');
     return /^reward_/.test(key) || /(?:niveau|level)\s+(?:global|général)/i.test(description);
   };
   const allCategoryItems = sortCatalogItems((shopData.catalog || []).filter(item =>
-    item.category === shopCategory && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
+    (shopCategory === 'twitch' ? Boolean(item.twitchPoints) : item.category === shopCategory && !item.twitchPoints) && !isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))
   ), shopCategory);
   let items = allCategoryItems;
   if (!isMobileGameUi() && shopCategory === 'title' && shopTitleFilter !== 'all') {
@@ -6005,12 +6494,30 @@ function renderShop() {
   } else if (!isMobileGameUi() && shopCategory === 'avatar_frame' && shopAvatarFrameFilter !== 'all') {
     items = allCategoryItems.filter(item => String(item.subcategory || 'classic') === shopAvatarFrameFilter);
   }
+  const showObjectSections = shopCategory === 'object' && shopObjectFilter === 'all';
+  if (shopCategory === 'object') {
+    items = [{key:'fragment_mystery_egg'}, ...items];
+    items = showObjectSections
+      ? SHOP_OBJECT_SECTIONS.flatMap(({key}) => items.filter(item => shopObjectGroup(item) === key))
+      : items.filter(item => shopObjectGroup(item) === shopObjectFilter);
+  }
   if(isMobileGameUi())items=mobileShopPageItems(items);
-  $('shopGrid').innerHTML = items.map(item => {
+  const twitchSetup = shopCategory==='twitch' && !shopData.twitchRewardsReady && shopData.twitchRewardsAdmin
+    ? `<div class="shop-twitch-setup">${shopData.twitchRewardsAuthorizationRequired
+        ? 'Autorisation de la chaîne requise pour les récompenses. <a href="/auth/twitch/tracker">Autoriser les points de chaîne ↗</a>'
+        : 'Les récompenses se configurent automatiquement avec la liaison Twitch enregistrée.'}${shopData.twitchRewardsError
+        ? `<p role="alert">${escapeHtml(shopData.twitchRewardsError)}</p>` : ''}</div>` : '';
+  const renderItem = item => {
+    if (item.key === 'fragment_mystery_egg') {
+      return `<article class="shop-item" data-shop-item-key="fragment_mystery_egg"><div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div><div class="shop-item-name">Œuf mystère contre fragments</div><div class="shop-item-desc">Échange tes fragments gagnés en PvE contre un œuf à placer dans l’incubateur.</div><div class="shop-item-meta"><span class="shop-price">10 fragments d’œuf / œuf</span><span class="shop-qty">Tu en as : ${fragmentCurrentBalance()}</span></div><div class="shop-actions"><button class="shop-action" type="button" data-open-fragment-shop>Échanger des fragments</button></div></article>`;
+    }
     const price = item.rewardOnly ? 'Récompense à débloquer' : (item.exclusive ? 'Exclusif' : `${Math.floor(Number(item.price || 0))} LoVeR'Cash`);
     const actions = getShopActionButtons(item, { includePreview: true });
     const activeUntil = shopData.activeBoosts?.[item.key];
-    const activeText = isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
+    const xpBoostSeconds = xpBoostLiveHours(item.key) ? Number(shopData.xpBoostRemainingSeconds || 0) : 0;
+    const activeText = isMobileGameUi() && xpBoostSeconds > 0
+      ? `<div class="shop-owned">XP ×2 · encore ${formatBoostRemainingTime(xpBoostSeconds*1000)} de présence en live</div>`
+      : isMobileGameUi() && activeUntil ? `<div class="shop-owned">Actif jusqu’à ${new Date(activeUntil).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>` : '';
     const ownedText = item.category === 'object'
       ? (Number(item.quantity || 0) > 0 ? `<span class="shop-qty">Possédé : ${Number(item.quantity)}</span>` : '')
       : (item.owned || item.exclusive ? '<span class="shop-owned">Possédé</span>' : '');
@@ -6018,25 +6525,37 @@ function renderShop() {
       ${shopPreview(item)}
       <div class="shop-item-name">${escapeHtml(item.name)}</div>
       <div class="shop-item-desc">${escapeHtml(item.description || '')}</div>
-      <div class="shop-item-meta"><span class="shop-price">${escapeHtml(price)}</span>${ownedText}</div>
+      ${item.twitchPoints ? (ownedText ? `<div class="shop-item-meta">${ownedText}</div>` : '') : `<div class="shop-item-meta"><span class="shop-price">${escapeHtml(price)}</span>${ownedText}</div>`}
       ${activeText}
       <div class="shop-actions">${actions}</div>
     </article>`;
-  }).join('') || '<div class="muted">Aucun article dans cette catégorie.</div>';
+  };
+  const cards = showObjectSections ? SHOP_OBJECT_SECTIONS.map(({key, label, icon}) => {
+    const sectionItems = items.filter(item => shopObjectGroup(item) === key);
+    if (!sectionItems.length) return '';
+    return `<section class="shop-object-section" aria-labelledby="shop-object-${key}">
+      <h3 class="shop-object-section-title" id="shop-object-${key}"><span aria-hidden="true">${icon}</span>${label}</h3>
+      <div class="shop-object-section-items">${sectionItems.map(renderItem).join('')}</div>
+    </section>`;
+  }).join('') : items.map(renderItem).join('');
+  $('shopGrid').innerHTML = twitchSetup + (cards || '<div class="muted">Aucun article dans cette catégorie.</div>');
 
   const shopCounts = Object.create(null);
+  shopCounts.object = 1; // Œuf disponible contre des fragments.
   for (const item of shopData.catalog || []) {
     if (!isProgressionReward(item) && (item.category === 'object' || (!item.owned && !item.equipped && !item.exclusive))) {
-      shopCounts[item.category] = (shopCounts[item.category] || 0) + 1;
+      const category = item.twitchPoints ? 'twitch' : item.category;
+      shopCounts[category] = (shopCounts[category] || 0) + 1;
     }
   }
   const desktopShop = isDesktopGameUi();
   document.querySelectorAll('[data-shop-category]').forEach(button => {
     const category = button.dataset.shopCategory;
     button.classList.toggle('active', category === shopCategory);
-    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
+    button.textContent = `${({title:'🏷️ Titres',background:'🖼️ Fonds',frame:'✨ Encadrements',avatar_frame:'🪞 Cadres de profil',object:'🎁 Objets',twitch:'💜 Twitch'})[category]}${desktopShop ? ` ${shopCounts[category] || 0}` : ''}`;
   });
   // La carte de visite ne dépend pas du filtre ou de la catégorie de la boutique.
+  if(shopCategory==='twitch')scheduleTwitchRewardCheck();
 }
 
 function inventoryOwnedItems() {
@@ -6154,6 +6673,11 @@ async function loadShop() {
 
 function focusShopItem(itemKey) {
   shopFocusItemKey = itemKey || null;
+  const item = getShopItemByKey(itemKey);
+  if (shopCategory === 'object' && item) {
+    const group = shopObjectGroup(item);
+    shopObjectFilter = group === 'other' ? 'all' : group;
+  }
   renderShop();
   if (!itemKey) return;
   requestAnimationFrame(() => {
@@ -6359,6 +6883,7 @@ async function confirmShopPurchase() {
 let desktopObjectUseBusy = false;
 let mobileIncubatorBoostBusy = false;
 let desktopActiveBoosts = {};
+let desktopXpBoostRemainingSeconds = 0;
 let desktopBoostNotice = null;
 let desktopBoostNoticeTimer = null;
 
@@ -6367,16 +6892,70 @@ function formatBoostRemainingTime(milliseconds) {
   const hours = Math.floor(minutes / 60), rest = minutes % 60;
   return hours ? `${hours} h${rest ? ' '+String(rest).padStart(2,'0') : ''}` : `${minutes} min`;
 }
+function renderMobileHomeXpBoost() {
+  const panel = $('mobileHomeXpBoost');
+  if (!panel) return;
+  const onHome = Boolean(isMobileGameUi() && me?.user);
+  const remaining = Math.max(0, Number(mobileHomeXpBoostRemainingSeconds) || 0);
+  panel.hidden = !onHome;
+  if (!onHome) return;
+  const seconds = Math.ceil(remaining);
+  const time = remaining > 0
+    ? [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60].map(n => String(n).padStart(2,'0')).join(':')
+    : 'Aucun boost actif';
+  const label = $('mobileHomeXpBoostTime');
+  if (label && label.textContent !== time) label.textContent = time;
+  const heading = panel.querySelector('.home-xp-boost-top strong');
+  if (heading) heading.textContent = remaining > 0 ? '⚡ DOUBLE XP ACTIF' : '⚡ DOUBLE XP';
+  const multiplier = panel.querySelector('.home-xp-boost-multiplier');
+  if (multiplier) multiplier.hidden = remaining <= 0;
+  const caption = panel.querySelector('.home-xp-boost-caption');
+  if (caption) caption.textContent = remaining > 0 ? 'Temps de présence en live restant · en pause hors live' : 'Active un Double XP depuis ton inventaire.';
+}
+let mobileHomeXpBoostRemainingSeconds = 0;
+let mobileHomeXpBoostRefreshing = false;
+async function refreshMobileHomeXpBoost() {
+  if (!isMobileGameUi() || document.hidden || !me?.user || mobileHomeXpBoostRefreshing) return;
+  mobileHomeXpBoostRefreshing = true;
+  try {
+    const response = await fetch('/api/shop', {cache:'no-store'});
+    if (!response.ok) return;
+    const data = await response.json();
+    mobileHomeXpBoostRemainingSeconds = Math.max(0, Number(data.xpBoostRemainingSeconds) || 0);
+    renderMobileHomeXpBoost();
+  } catch {} finally {mobileHomeXpBoostRefreshing = false;}
+}
+setInterval(() => {
+  if (!isMobileGameUi() || document.hidden) return;
+  renderMobileHomeXpBoost();
+  if ($('mobileNavHome')?.classList.contains('active')) void refreshMobileHomeXpBoost();
+}, 30000);
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) void refreshMobileHomeXpBoost();
+});
+$('mobileNavHome')?.addEventListener('click', () => { renderMobileHomeXpBoost(); void refreshMobileHomeXpBoost(); });
 function renderDesktopBoostStatus() {
   const box = $('desktopBoostList');
   if (!box || !isDesktopGameUi()) return;
-  const active = Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
-    const label = key === 'boost_xp_x2' ? '⚡ XP Lovys ×2' : '💰 LoVeR’Cash ×2';
+  const active = [];
+  const remaining = Math.max(0, Number(desktopXpBoostRemainingSeconds) || 0);
+  if (remaining > 0) {
+    const seconds = Math.ceil(remaining);
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const time = `${String(hours).padStart(2,'0')}:${String(minutes).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+    active.push(`<div class="home-xp-boost-feature" role="status"><div class="home-xp-boost-top"><strong>⚡ DOUBLE XP ACTIF</strong><span class="home-xp-boost-multiplier">×2</span></div><div class="home-xp-boost-time" aria-label="Temps de double XP restant">${time}</div><div class="home-xp-boost-caption">Temps de présence en live restant · en pause hors live</div></div>`);
+  }
+  active.push(...Object.entries(desktopActiveBoosts).filter(([,until]) => Date.parse(until) > Date.now()).map(([key,until]) => {
+    const label = key === 'boost_cash_x2' ? '💰 LoVeR’Cash ×2' : '⚡ XP Lovys ×2';
     return `<span class="desktop-boost-chip"><strong>${label}</strong> · encore ${formatBoostRemainingTime(Date.parse(until)-Date.now())}</span>`;
-  });
+  }));
   if (desktopBoostNotice) active.push(`<span class="desktop-boost-notice ${desktopBoostNotice.error?'error':''}">${escapeHtml(desktopBoostNotice.message)}</span>`);
-  box.innerHTML = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
+  const nextHtml = active.join('') || '<p class="home-boost-empty">Aucun boost actif pour le moment.</p>';
+  if(box.innerHTML !== nextHtml)box.innerHTML = nextHtml;
 }
+
 function showDesktopBoostNotice(message, error = false) {
   if (!isDesktopGameUi()) return;
   clearTimeout(desktopBoostNoticeTimer);
@@ -6384,31 +6963,41 @@ function showDesktopBoostNotice(message, error = false) {
   renderDesktopBoostStatus();
   desktopBoostNoticeTimer = setTimeout(() => {desktopBoostNotice=null;renderDesktopBoostStatus();},12000);
 }
+let desktopBoostRefreshPending = false;
 async function refreshDesktopBoostStatus() {
-  if (document.hidden || !isDesktopGameUi() || document.body.classList.contains('auth-locked')) return;
+  if (desktopBoostRefreshPending || document.hidden || !isDesktopGameUi() || desktopView !== 'home' || document.body.classList.contains('auth-locked')) return;
+  desktopBoostRefreshPending = true;
   try {
     const response = await fetch('/api/shop',{cache:'no-store'});
     if (!response.ok) return;
     const data = await response.json();
     desktopActiveBoosts = data.activeBoosts || {};
+    desktopXpBoostRemainingSeconds = Number(data.xpBoostRemainingSeconds || 0);
     renderDesktopBoostStatus();
-  } catch {}
+  } catch {} finally {
+    desktopBoostRefreshPending = false;
+  }
 }
-setInterval(() => {if(!document.hidden){renderDesktopBoostStatus();refreshDesktopBoostStatus();}},60000);
+setInterval(() => {
+  if(document.hidden || !isDesktopGameUi() || desktopView !== 'home')return;
+  renderDesktopBoostStatus();
+  void refreshDesktopBoostStatus();
+},60000);
 
 let desktopBoostAcceptedClose = null;
 function showDesktopBoostAccepted(itemKey, data) {
   if (!isDesktopGameUi()) return;
   desktopBoostAcceptedClose?.();
   const acceleration = data.acceleration;
-  const title = itemKey === 'boost_xp_x2' ? '⚡ Double XP activé !'
+  const title = xpBoostLiveHours(itemKey) ? '⚡ Double XP activé !'
     : itemKey === 'boost_cash_x2' ? '💰 Double LoVeR’Cash activé !' : '⏱️ Œuf accéléré !';
-  const copy = itemKey === 'boost_xp_x2' ? 'Ton Lovys gagne deux fois plus d’XP pendant tes heures de présence en live.'
+  const copy = xpBoostLiveHours(itemKey) ? `Ton Lovys actif gagne deux fois plus d’XP pendant ${xpBoostLiveHours(itemKey)} h de présence comptabilisée sur le live. Hors live, le compteur ne diminue pas.`
     : itemKey === 'boost_cash_x2' ? 'Tu gagnes deux fois plus de LoVeR’Cash pendant tes heures de présence en live.'
     : data.message || 'Le temps d’incubation a été réduit.';
   const until = Date.parse(data.boostExpiresAt);
   const hours = Number(data.quantity || 1);
   const detail = acceleration ? `Emplacement ${acceleration.slot} · ${acceleration.ready ? 'Prêt à éclore !' : `Éclosion dans ${formatEggTime(acceleration.remainingSeconds)}`}`
+    : xpBoostLiveHours(itemKey) ? `${hours*xpBoostLiveHours(itemKey)} heures de live ajoutées · encore ${formatBoostRemainingTime(Number(data.xpBoostRemainingSeconds||0)*1000)} de présence créditée`
     : Number.isFinite(until) ? `${hours} heure${hours>1?'s':''} ajoutée${hours>1?'s':''} · ${formatBoostRemainingTime(until-Date.now())} restantes · fin à ${new Date(until).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}` : `Durée ajoutée : ${hours} heure${hours>1?'s':''}`;
   const previousFocus = document.activeElement;
   const overlay = document.createElement('div');
@@ -6504,8 +7093,8 @@ async function chooseEggForAcceleration(preferredSlot = null) {
     if (buy) await openShopForIncubatorAccelerators();
     return null;
   }
-  const hatch = Number(data.hatchSeconds || 21600);
-  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < hatch);
+  const hatch = Number(data.hatchSeconds || 18000);
+  const slots = (data.slots || []).filter(slot => !slot.empty && !slot.ready && Number(slot.watchedSeconds) < incubatorSlotHatchSeconds(slot,data));
   if (!slots.length) throw new Error('Aucun œuf à accélérer.');
   return new Promise(resolve => {
     const previousFocus = document.activeElement;
@@ -6515,9 +7104,9 @@ async function chooseEggForAcceleration(preferredSlot = null) {
     overlay.setAttribute('aria-modal','true');
     overlay.setAttribute('aria-labelledby','eggBoostChoiceTitle');
     let selected = slots.find(slot=>Number(slot.slot)===Number(preferredSlot)) || null;
-    const maxQuantity = slot => Math.min(12,owned,Math.ceil(Math.max(0,hatch-Number(slot.watchedSeconds))/1800));
+    const maxQuantity = slot => Math.min(12,owned,Math.ceil(Math.max(0,incubatorSlotHatchSeconds(slot,data)-Number(slot.watchedSeconds))/1800));
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="eggBoostChoiceTitle">⚡ Accélérer un œuf</h2><p>Tu possèdes <strong>${owned}</strong> accélérateur${owned>1?'s':''} de 30 minutes. Choisis l’œuf et la quantité à utiliser.</p><div class="egg-boost-choices">${slots.map(slot => {
-      const remaining = Math.max(0,hatch-Number(slot.watchedSeconds));
+      const remaining = Math.max(0,incubatorSlotHatchSeconds(slot,data)-Number(slot.watchedSeconds));
       return `<button type="button" data-egg-boost-slot="${Number(slot.slot)}" aria-pressed="${selected===slot}"><span>🥚 Emplacement ${Number(slot.slot)}</span><strong>${formatEggTime(remaining)} restantes</strong></button>`;
     }).join('')}</div><div class="egg-boost-quantity" data-egg-boost-quantity-wrap><label for="eggBoostQuantity">Quantité</label><div><button type="button" data-egg-minus aria-label="Réduire">−</button><input id="eggBoostQuantity" type="number" min="1" max="12" value="1" step="1" inputmode="numeric"><button type="button" data-egg-plus aria-label="Augmenter">＋</button></div></div><p class="egg-boost-question" data-egg-boost-question></p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-egg-boost-cancel>Annuler</button><button class="shop-action" type="button" data-egg-boost-confirm disabled>Utiliser</button></div></div>`;
     const input = overlay.querySelector('#eggBoostQuantity');
@@ -6529,7 +7118,7 @@ async function chooseEggForAcceleration(preferredSlot = null) {
       overlay.querySelector('[data-egg-boost-confirm]').disabled = !valid;
       overlay.querySelector('[data-egg-minus]').disabled = !selected || !valid || amount<=1;
       overlay.querySelector('[data-egg-plus]').disabled = !selected || !valid || amount>=max;
-      const remaining = selected ? Math.max(0,hatch-Number(selected.watchedSeconds)) : 0;
+      const remaining = selected ? Math.max(0,incubatorSlotHatchSeconds(selected,data)-Number(selected.watchedSeconds)) : 0;
       overlay.querySelector('[data-egg-boost-question]').textContent = !selected ? 'Choisis un œuf.' : !valid ? `Choisis de 1 à ${max} accélérateur(s).` : `${amount} accélérateur(s) · −${formatEggTime(Math.min(remaining,amount*1800))} · ${remaining<=amount*1800?'Prêt à éclore !':formatEggTime(remaining-amount*1800)+' restantes'}`;
     };
     const finish = value => {document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus();resolve(value);};
@@ -6553,7 +7142,7 @@ function confirmDesktopObjectUse(itemKey) {
   const stock = Math.max(0,Number(item?.quantity || 0));
   const max = Math.min(100,stock);
   const name = item?.name || 'cet objet';
-  const effect = itemKey === 'boost_xp_x2' ? 'Double tes gains d’XP Lovys pendant 1 heure.'
+  const effect = xpBoostLiveHours(itemKey) ? `XP du Lovys actif ×2 pendant ${xpBoostLiveHours(itemKey)} h de présence comptabilisée sur le live. Le compteur ne diminue pas hors live.`
     : itemKey === 'boost_cash_x2' ? 'Double tes gains de LoVeR’Cash pendant 1 heure.'
     : item?.description || '';
   if (!max) return Promise.resolve(0);
@@ -6566,7 +7155,7 @@ function confirmDesktopObjectUse(itemKey) {
     overlay.setAttribute('aria-labelledby','objectUseConfirmTitle');
     overlay.innerHTML = `<div class="desktop-egg-boost-panel"><h2 id="objectUseConfirmTitle">✨ Utiliser un bonus</h2><p>${escapeHtml(name)} · ${stock} disponible${stock>1?'s':''}.</p><p>${escapeHtml(effect)}</p><label for="objectUseQuantity">Nombre de boosts à activer</label><div class="egg-boost-quantity"><div><button type="button" data-use-minus aria-label="Diminuer">−</button><input id="objectUseQuantity" type="number" min="1" max="${max}" step="1" value="1" inputmode="numeric"><button type="button" data-use-plus aria-label="Augmenter">＋</button></div></div><button class="shop-action secondary" type="button" data-use-max>Tout utiliser${stock>100?' (100 maximum)':''}</button><p data-use-duration aria-live="polite"></p><p>Les objets sont consommés uniquement si l’activation réussit.</p><div class="egg-boost-actions"><button class="shop-action secondary" type="button" data-object-use-no>✕ Annuler</button><button class="shop-action" type="button" data-object-use-yes>✓ Activer</button></div></div>`;
     const input=overlay.querySelector('#objectUseQuantity'),confirm=overlay.querySelector('[data-object-use-yes]');
-    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n} heure${n>1?'s':''} ajoutée${n>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
+    const update=()=>{const n=Number(input.value),valid=Number.isSafeInteger(n)&&n>=1&&n<=max;confirm.disabled=!valid;overlay.querySelector('[data-use-duration]').textContent=valid?`${n} boost${n>1?'s':''} consommé${n>1?'s':''} · ${n*(xpBoostLiveHours(itemKey)||1)} heure${n*(xpBoostLiveHours(itemKey)||1)>1?'s':''} de ${xpBoostLiveHours(itemKey)?'présence en live':'bonus'} ajoutée${n*(xpBoostLiveHours(itemKey)||1)>1?'s':''}.`:`Choisis entre 1 et ${max} boosts.`;};
     let finished = false;
     const finish = value => {
       if (finished) return;
@@ -6605,35 +7194,35 @@ function showXpBottleResult(data,error=false){
   overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('button'))close();});
   document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);overlay.querySelector('button').focus();
 }
-function chooseXpBottleQuantity(stock){
+function chooseXpBottleQuantity(stock, unitXp=100, unitName='fiole'){
   const max=Math.min(100,Math.max(0,Math.floor(Number(stock)||0)));
   if(!max)return Promise.resolve(0);
   return new Promise(resolve=>{
     const previousFocus=document.activeElement,overlay=document.createElement('div');
     overlay.className='desktop-egg-boost-overlay';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','xpBottleQuantityTitle');
-    overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="xpBottleQuantityTitle">🧪 Alimenter la banque d’XP</h2><p>${stock} fiole(s) disponibles · 100 XP par fiole.</p><label for="xpBottleAmount">XP à ajouter à la banque</label><input id="xpBottleAmount" class="admin-reset-input" type="number" min="100" max="${max*100}" step="100" value="100" inputmode="numeric"><button type="button" class="shop-action secondary" data-bottle-max>Tout utiliser${stock>100?' (100 fioles max)':''}</button><p data-bottle-total aria-live="polite"></p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-bottle-cancel>Annuler</button><button type="button" class="shop-action" data-bottle-confirm>Confirmer</button></div></div>`;
+    overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="xpBottleQuantityTitle">🧪 Alimenter la banque d’XP</h2><p>${stock} ${unitName}(s) disponibles · ${unitXp} XP par ${unitName}.</p><label for="xpBottleAmount">XP à ajouter à la banque</label><input id="xpBottleAmount" class="admin-reset-input" type="number" min="${unitXp}" max="${max*unitXp}" step="${unitXp}" value="${unitXp}" inputmode="numeric"><button type="button" class="shop-action secondary" data-bottle-max>Tout utiliser${stock>100?' (100 objets max)':''}</button><p data-bottle-total aria-live="polite"></p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-bottle-cancel>Annuler</button><button type="button" class="shop-action" data-bottle-confirm>Confirmer</button></div></div>`;
     const input=overlay.querySelector('input'),button=overlay.querySelector('[data-bottle-confirm]');
-    const update=()=>{const xp=Number(input.value),valid=Number.isSafeInteger(xp)&&xp>=100&&xp<=max*100&&xp%100===0;button.disabled=!valid;overlay.querySelector('[data-bottle-total]').textContent=valid?`${xp/100} fiole(s) consommée(s) → +${xp.toLocaleString('fr-FR')} XP en banque.`:'Choisis un multiple de 100 XP dans la limite de tes fioles.';};
+    const update=()=>{const xp=Number(input.value),valid=Number.isSafeInteger(xp)&&xp>=unitXp&&xp<=max*unitXp&&xp%unitXp===0;button.disabled=!valid;overlay.querySelector('[data-bottle-total]').textContent=valid?`${xp/unitXp} ${unitName}(s) consommée(s) → +${xp.toLocaleString('fr-FR')} XP en banque.`:`Choisis un multiple de ${unitXp} XP dans la limite de tes ${unitName}s.`;};
     let finished=false;const finish=value=>{if(finished)return;finished=true;document.removeEventListener('keydown',onKey,true);overlay.remove();if(previousFocus?.isConnected)previousFocus.focus({preventScroll:true});resolve(value);};
     const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();finish(0);}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
-    overlay.addEventListener('input',update);overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-bottle-cancel]'))finish(0);else if(event.target.closest('[data-bottle-max]')){input.value=String(max*100);update();}else if(event.target.closest('[data-bottle-confirm]')){update();if(!button.disabled)finish(Number(input.value)/100);}});
+    overlay.addEventListener('input',update);overlay.addEventListener('click',event=>{if(event.target===overlay||event.target.closest('[data-bottle-cancel]'))finish(0);else if(event.target.closest('[data-bottle-max]')){input.value=String(max*unitXp);update();}else if(event.target.closest('[data-bottle-confirm]')){update();if(!button.disabled)finish(Number(input.value)/unitXp);}});
     document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);update();input.focus();
   });
 }
 
-async function useXpBottle(){
+async function useXpBottle(itemKey='xp_bottle_100'){
   if(xpBottleUseBusy)return;
   xpBottleUseBusy=true;
   try{
     await loadShop();
-    const quantity=await chooseXpBottleQuantity(getShopItemByKey('xp_bottle_100')?.quantity);
+    const item=getShopItemByKey(itemKey);
+    const quantity=await chooseXpBottleQuantity(item?.quantity,item?.xpAmount||100,itemKey==='xp_gourd_500'?'gourde':'fiole');
     if(!quantity)return;
-    const response=await fetch('/api/shop/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemKey:'xp_bottle_100',quantity})});
+    const response=await fetch('/api/shop/use',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({itemKey,quantity})});
     const data=await response.json();
     if(!response.ok)throw new Error(data.error||'Impossible d’utiliser cette bouteille.');
     if(me?.user)me.user.pending_xp=Number(data.pendingXp||0);
     if(lovysCollectionData)lovysCollectionData.pendingXp=Number(data.pendingXp||0);
-    const item=getShopItemByKey('xp_bottle_100');
     if(item){item.quantity=Math.max(0,Number(item.quantity||0)-quantity);item.owned=item.quantity>0;}
     showXpBottleResult(data);
     // Les données d’inventaire et de réserve se mettent à jour sans retarder le résultat.
@@ -6642,8 +7231,28 @@ async function useXpBottle(){
   finally{xpBottleUseBusy=false;}
 }
 
+let mysteryEggUseBusy = false;
 async function shopAction(url, itemKey, preferredSlot = null) {
-  if(url==='/api/shop/use'&&itemKey==='xp_bottle_100')return useXpBottle();
+  if (url === '/api/shop/use' && itemKey === 'mystery_egg') {
+    if (mysteryEggUseBusy) return;
+    mysteryEggUseBusy = true;
+    setShopMessage();
+    try {
+      const response = await fetch('/api/incubator/place', { method:'POST', headers:{'Content-Type':'application/json'}, body:'{}' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Impossible de placer cet œuf.');
+      await Promise.allSettled([loadIncubatorSlots(), loadShop()]);
+      if (!$('inventoryModal')?.classList.contains('hidden')) renderInventory();
+      if (shopPreviewCurrentKey && !$('shopItemPreviewModal')?.classList.contains('hidden')) renderShopItemPreview();
+      setShopMessage(`Œuf placé dans l’incubateur ${data.slot} !`, 'ok');
+    } catch (error) {
+      setShopMessage(error.message || 'Impossible de placer cet œuf.', 'error');
+    } finally {
+      mysteryEggUseBusy = false;
+    }
+    return;
+  }
+  if(url==='/api/shop/use'&&['xp_bottle_100','xp_gourd_500'].includes(itemKey))return useXpBottle(itemKey);
   if (url === '/api/shop/equip' || url === '/api/shop/unequip') {
     equipCosmeticInstantly(url, itemKey);
     return;
@@ -6657,14 +7266,8 @@ async function shopAction(url, itemKey, preferredSlot = null) {
   setShopMessage();
   try {
     let target = {};
-    if(desktopUse && itemKey === 'mystery_egg') {
-      await openDesktopView('incubator');await loadIncubatorSlots();
-      const free = incubatorData?.slots?.find(slot => slot.empty);
-      if(!free)throw new Error('Tous tes emplacements sont occupés. Fais éclore un œuf pour libérer une place.');
-      openIncubatorAddModal(free.slot);return;
-    }
     if(url === '/api/shop/use' && itemKey === 'incubator_skip_30') {target=await chooseEggForAcceleration(preferredSlot);if(!target)return;}
-    else if(url === '/api/shop/use' && ['boost_xp_x2','boost_cash_x2'].includes(itemKey)) {
+    else if(url === '/api/shop/use' && ['boost_xp_x2','boost_xp_x2_5h','boost_xp_x2_10h','boost_cash_x2'].includes(itemKey)) {
       await loadShop();
       const quantity=await confirmDesktopObjectUse(itemKey);
       if(!quantity)return;
@@ -6734,6 +7337,15 @@ $('shopAvatarFrameFilter')?.addEventListener('change', event => {
   saveCommerceMemory();
   renderShop();
 });
+$('shopObjectFilters')?.addEventListener('click', event => {
+  const button = event.target.closest('[data-shop-object-filter]');
+  if (!button) return;
+  shopObjectFilter = button.dataset.shopObjectFilter;
+  mobileShopPage = 0;
+  shopFocusItemKey = null;
+  saveCommerceMemory();
+  renderShop();
+});
 $('inventoryTitleFilter')?.addEventListener('change', event => {
   inventoryTitleFilter = event.target.value || 'all';
   saveCommerceMemory();
@@ -6753,7 +7365,7 @@ $('inventoryCurrentEquipment')?.addEventListener('click', event => {
   if (remove && !commerceBusy) shopAction('/api/shop/unequip', remove.dataset.commerceRemove);
   else if (slot) {inventoryCategory = slot.dataset.commerceSlot;inventoryTitleFilter = 'all';setCommerceTab('inventory');}
 });
-setInterval(syncDesktopBoostData, 30000);
+setInterval(()=>{if(!document.hidden && isDesktopGameUi())syncDesktopBoostData();}, 30000);
 window.addEventListener('resize', syncInventoryPagePlacement);
 
 document.querySelectorAll('[data-inventory-category]').forEach(button => {
@@ -6964,6 +7576,11 @@ registerForm.addEventListener('submit', async event => {
 
 loginForm.addEventListener('submit', async event => {
   event.preventDefault();
+  event.lwgLoginHandled = true;
+  if(loginForm.dataset.loginPending === '1') return;
+  loginForm.dataset.loginPending = '1';
+  const loginSubmit = loginForm.querySelector('button[type="submit"]');
+  if(loginSubmit) loginSubmit.disabled = true;
   loginError.style.display = 'none';
 
   showLoading(
@@ -7035,6 +7652,9 @@ showSuccess(
 
   loginError.textContent = 'Impossible de contacter le serveur.';
   loginError.style.display = 'block';
+} finally {
+  delete loginForm.dataset.loginPending;
+  if(loginSubmit) loginSubmit.disabled = false;
 }
 });
 
@@ -7060,7 +7680,7 @@ function syncDesktopAdminPlacement(){
 function setDesktopAdminAccess(allowed){
   desktopAdminAuthorized=Boolean(allowed);
   $('desktopAdminButton')?.classList.toggle('hidden',!desktopAdminAuthorized);
-  $('mobileProfileAdmin')?.classList.toggle('hidden',!desktopAdminAuthorized || !isMobileGameUi() || $('mobileSelfProfileActions')?.classList.contains('hidden'));
+  $('mobileMoreAdmin')?.classList.toggle('hidden',!desktopAdminAuthorized || !isMobileGameUi());
   if(!desktopAdminAuthorized){closeDesktopAdmin();if(isDesktopGameUi())desktopAdminConfirmationCancel?.();}
   syncDesktopAdminPlacement();
 }
@@ -7093,7 +7713,7 @@ async function openDesktopAdmin(){
     modal.dataset.scrollLocked='true';
   }
   modal.classList.remove('hidden');
-  if (isDesktopGameUi()) $('adminTrackerButton')?.click();
+  if (isDesktopGameUi()) $('adminDashboardButton')?.click();
   if (!isDesktopGameUi()) $('desktopAdminClose')?.focus();
   await loadTrackerStatus();
 }
@@ -7106,7 +7726,7 @@ function closeDesktopAdmin(){
     delete modal.dataset.scrollLocked;
   }
   if(isDesktopGameUi()) return;
-  else if(isMobileGameUi())$('mobileProfileAdmin')?.focus();
+  else if(isMobileGameUi())$('mobileMoreAdmin')?.focus();
 }
 $('desktopAdminButton')?.addEventListener('click',openDesktopAdmin);
 $('desktopAdminClose')?.addEventListener('click',()=>{if(isDesktopGameUi())location.hash='#accueil';else closeDesktopAdmin();});
@@ -7296,7 +7916,7 @@ async function openEventsModal() {
   modal.classList.remove('hidden');
   await Promise.all([refreshEventsState(),refreshBadgeEvents()]);
   stopEventsRefresh();
-  eventsRefreshTimer = setInterval(()=>{if(!document.hidden)void refreshEventsState();}, 1500);
+  eventsRefreshTimer = setInterval(()=>{if(!document.hidden && !$('eventsModal')?.classList.contains('hidden'))void refreshEventsState();}, 5000);
 }
 
 function closeEventsModal() {
@@ -7381,6 +8001,18 @@ function adminPlayerAvatar(player){
   const initial=Array.from(String(player.username||'?').trim())[0]||'?';
   return `<span class="admin-player-avatar" aria-hidden="true"><span>${escapeHtml(initial.toUpperCase())}</span>${image}</span>`;
 }
+function adminPlayerTwitchLink(player){
+  const login=String(player.twitchLogin||'');
+  if(!/^[a-z0-9_]{1,25}$/i.test(login))return 'Twitch non lié';
+  return `<a href="https://www.twitch.tv/${encodeURIComponent(login)}" target="_blank" rel="noopener noreferrer" class="admin-twitch-link">Twitch : ${escapeHtml(login)} ↗</a>`;
+}
+function adminLovysPortrait(lovy){
+  const level=Math.max(1,Number(lovy.level)||1);
+  const name=String(lovy.name||lovy.creatureId||lovy.creature_id||'Lovys');
+  const image=lovysImageUrl(lovy.creatureId||lovy.creature_id,lovysEvolutionForLevel(level));
+  const label=escapeHtml(name+' · Niveau '+level);
+  return `<span class="admin-lovys-portrait" role="img" aria-label="${label}">${image?`<img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async">`:'🐉'}</span>`;
+}
 function renderAdminPlayers(data) {
   const list = $('adminPlayersList');
   const total = $('adminPlayersTotal');
@@ -7402,7 +8034,7 @@ function renderAdminPlayers(data) {
         ? `Œuf · ${formatAdminHours(player.watchSeconds)}`
         : '👤 Compte créé';
     const twitchText = player.twitchConnected
-      ? `✅ Twitch${player.twitchLogin ? ` · ${escapeHtml(player.twitchLogin)}` : ''}`
+      ? `✅ ${adminPlayerTwitchLink(player)}`
       : '⚪ Twitch non lié';
     const discordText = player.discordVerified
       ? `✅ Discord${player.discordUsername ? ` · ${escapeHtml(player.discordUsername)}` : ''}`
@@ -7417,6 +8049,7 @@ function renderAdminPlayers(data) {
         <div>
           <div class="admin-player-meta">${stateText}</div>
           <div class="admin-player-status"><span class="admin-player-pill">${player.isSub ? '⭐ Sub' : '☆ Non sub'}</span><span class="admin-player-pill">💰 ${Math.round(Number(player.points || 0))} LoVeR'Cash</span></div>
+          <div class="admin-player-meta">🐉 ${(player.lovys||[]).length} Lovys</div>
         </div>
         <div>
           <div class="admin-player-meta">${twitchText}</div>
@@ -7455,7 +8088,8 @@ async function openAdminPlayerEditor(accountId){
   document.querySelector(`.admin-player-card[data-account-id="${CSS.escape(String(accountId))}"]`)?.classList.add('editor-selected');
   editor.classList.remove('hidden');
   editor.innerHTML='<div class="admin-players-empty">Chargement du compte…</div>';
-  editor.scrollIntoView({behavior:'smooth',block:'start'});
+  if(isDesktopGameUi())editor.scrollIntoView({behavior:'smooth',block:'start'});
+  else editor.scrollTop=0;
   try{
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/detail`);
     if(requestId!==adminPlayerEditorRequest)return;
@@ -7473,8 +8107,9 @@ function renderAdminPlayerEditor(player){
   const eggs=Array.isArray(player.inventory)?player.inventory.find(x=>x.item_key==='mystery_egg')?.quantity||0:0;
   const pveWins=pve.reduce((sum,x)=>sum+Number(x.wins||0),0);
   editor.innerHTML=`
-    <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${player.twitchLogin?`Twitch : ${escapeHtml(player.twitchLogin)}`:'Twitch non lié'}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
-    <div class="admin-editor-section admin-email-edit"><h3>👤 Pseudo du joueur</h3><p class="admin-player-meta">Modifier le pseudo affiché dans le jeu. Le compte Twitch lié reste le même.</p><div class="admin-email-edit-row"><input data-admin-username type="text" autocomplete="off" minlength="3" maxlength="24" value="${escapeHtml(player.username||'')}" ${player.isBroadcaster?'disabled':''} aria-label="Pseudo du joueur"><button type="button" class="btn secondary" data-admin-username-save ${player.isBroadcaster?'disabled':''}>Enregistrer</button></div><p data-admin-username-message class="admin-player-meta" role="status">${player.isBroadcaster?'Pseudo du diffuseur protégé.':''}</p></div>
+    <div class="admin-editor-head"><div class="admin-editor-identity">${adminPlayerAvatar(player)}<div><div class="admin-editor-title">⚙️ ${escapeHtml(player.username||'Joueur')}${player.isBroadcaster?' · 👑 Admin':''}</div><div class="admin-player-meta">${escapeHtml(player.email||'—')} · ${adminPlayerTwitchLink(player)}</div></div></div><button class="account-close" type="button" data-admin-close-editor>×</button></div>
+    <div class="admin-editor-section"><h3>🏅 Titres permanents</h3><div class="admin-player-stock">${(player.permanentTitles||[]).length?player.permanentTitles.map(item=>`<div><strong>${escapeHtml(item.name)}</strong><span>Permanent · conservé après les resets</span></div>`).join(''):'<p class="admin-player-meta">Aucun titre permanent attribué.</p>'}</div></div>
+    <div class="admin-editor-section admin-email-edit"><h3>👤 Pseudo du joueur</h3><p class="admin-player-meta">Le nouveau pseudo apparaîtra dans le jeu et servira aussi à la connexion. Le nom Twitch ne change pas.</p><div class="admin-email-edit-row"><input data-admin-username type="text" autocomplete="off" minlength="3" maxlength="24" value="${escapeHtml(player.username||'')}" ${player.isBroadcaster?'disabled':''} aria-label="Pseudo du joueur"><button type="button" class="btn secondary" data-admin-username-save ${player.isBroadcaster?'disabled':''}>Enregistrer</button></div><p data-admin-username-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-editor-section admin-email-edit"><h3>✉️ Adresse e-mail du compte</h3><p class="admin-player-meta">Modifier uniquement l’adresse existante. Le joueur conservera son mot de passe et ses connexions.</p><div class="admin-email-edit-row"><input data-admin-email type="email" autocomplete="off" maxlength="254" value="${escapeHtml(player.email||'')}" ${player.email?'':'disabled'} aria-label="Adresse e-mail du joueur"><button type="button" class="btn secondary" data-admin-email-save ${player.email?'':'disabled'}>Enregistrer</button></div><p data-admin-email-message class="admin-player-meta" role="status"></p></div>
     <div class="admin-player-summary">
       ${adminStatCard('🌐','Niveau global',`${player.globalLevel} · Prestige ${player.prestige}`)}
@@ -7489,8 +8124,11 @@ function renderAdminPlayerEditor(player){
     <div class="admin-editor-section"><h3>💰 Suivi de l’économie</h3><div class="admin-player-summary">${adminStatCard('↗','Cash gagné au total',formatAdminNumber(player.cashEarned))}${adminStatCard('↘','Cash dépensé au total',formatAdminNumber(player.cashSpent))}${adminStatCard('🧩','Fragments d’œuf',formatAdminNumber(player.eggFragments))}${adminStatCard('✨','Fragments universels',formatAdminNumber(player.universalFragments))}</div></div>
     <div class="admin-editor-section"><h3>🎒 Inventaire actuel</h3><div class="admin-player-stock">${(player.inventory||[]).length?(player.inventory||[]).map(item=>`<div><span>${escapeHtml(item.name||item.item_key)}</span><strong>×${formatAdminNumber(item.quantity)}</strong></div>`).join(''):'<p class="admin-player-meta">Inventaire vide.</p>'}</div></div>
     <section class="admin-editor-section admin-player-history" data-player-history data-offset="0"><div class="admin-player-history-head"><h3>📜 Historique du joueur</h3><button type="button" class="btn secondary" data-admin-history-refresh>Actualiser</button></div><p class="admin-player-meta">Les achats et utilisations détaillés sont enregistrés à partir de cette mise à jour. Les anciens achats ne peuvent pas être reconstitués. Le journal est conservé après une remise à zéro du compte.</p><label class="admin-history-filter">Afficher <select data-admin-history-type><option value="all">Toutes les opérations</option><option value="purchase">Achats</option><option value="use">Objets utilisés</option><option value="admin">Actions administrateur</option></select></label><div data-admin-history-list aria-live="polite"><p class="admin-player-meta">Chargement de l’historique…</p></div><button type="button" class="btn secondary hidden" data-admin-history-more>Voir les opérations précédentes</button></section>
-    <div class="admin-editor-section"><h3>🎁 Donner ou retirer un objet</h3><p class="admin-player-meta">Ajout à l’inventaire sans activation. Quantité négative pour retirer.</p><div class="admin-adjust-row"><div><strong>🎒 Consommable</strong></div><select data-admin-item-key aria-label="Objet à donner">${(player.grantableItems||[]).map(item=>`<option value="${escapeHtml(item.key)}">${escapeHtml((item.icon||'🎁')+' '+item.name)}</option>`).join('')}</select><input type="number" step="1" value="1" min="-100" max="100" data-admin-amount="grant_item" aria-label="Quantité"><button class="btn secondary" data-admin-action="grant_item" ${(player.grantableItems||[]).length?'':'disabled'}>Appliquer</button></div></div>
-    <div class="admin-editor-section"><h3>⚡ Donner du Double XP</h3><p class="admin-player-meta">Le boost est crédité à l’inventaire du joueur, sans activation automatique. Plusieurs boosts ajoutent du temps, jamais un multiplicateur ×4.</p><div class="admin-adjust-row"><div><strong>⚡ Double XP ×2</strong></div><select data-admin-boost-hours aria-label="Durée du Double XP"><option value="2">Double XP · 2 heures</option><option value="5">Double XP · 5 heures</option><option value="10">Double XP · 10 heures</option></select><input type="number" value="1" min="1" max="20" step="1" data-admin-amount="grant_xp_boost_hours" aria-label="Nombre de boosts"><button class="btn secondary" type="button" data-admin-action="grant_xp_boost_hours">Donner</button></div></div>
+    <div class="admin-editor-section"><h3>⚡ Donner du Double XP</h3><p class="admin-player-meta">Crédite des heures de Double XP x2 dans l’inventaire du joueur, sans activation automatique. Les boosts ajoutent de la durée, pas un multiplicateur x4.</p><div class="admin-adjust-row"><div><strong>⚡ Double XP x2</strong></div><select data-admin-boost-hours aria-label="Durée du Double XP"><option value="2">Double XP · 2 heures</option><option value="5">Double XP · 5 heures</option><option value="10">Double XP · 10 heures</option></select><input type="number" value="1" min="1" max="20" step="1" data-admin-amount="grant_xp_boost_hours" aria-label="Nombre de boosts"><button class="btn secondary" type="button" data-admin-action="grant_xp_boost_hours">Donner</button></div></div>
+    <div class="admin-editor-section"><h3>⚡ Retirer du Double XP</h3><p class="admin-player-meta">Retirer des objets non utilisés ou des heures déjà activées, séparément.</p>
+      <div class="admin-adjust-row"><div><strong>📦 Retirer des boosts de l’inventaire</strong></div><select data-admin-remove-boost-hours aria-label="Durée du boost à retirer"><option value="2">2 heures</option><option value="5">5 heures</option><option value="10">10 heures</option></select><input type="number" value="1" min="1" max="20" step="1" data-admin-amount="remove_xp_boost_inventory" aria-label="Nombre de boosts à retirer"><button class="btn secondary" type="button" data-admin-action="remove_xp_boost_inventory">Retirer</button></div>
+      <div class="admin-adjust-row"><div><strong>⏱️ Retirer des heures déjà activées</strong><div class="admin-player-meta">Solde actuel : ${(Math.max(0,Number(player.activeXpBoostSeconds||0))/3600).toLocaleString('fr-FR',{maximumFractionDigits:2})} h</div></div><input type="number" value="1" min="1" max="200" step="1" data-admin-amount="remove_active_xp_boost_hours" aria-label="Heures actives à retirer"><button class="btn secondary" type="button" data-admin-action="remove_active_xp_boost_hours">Retirer les heures</button></div>
+    </div>
     <div class="admin-editor-reason"><label>Motif de la correction <span>(facultatif mais conseillé)</span></label><input id="adminPlayerActionReason" maxlength="180" placeholder="Ex. récompense événement, correction support…"></div>
     <div class="admin-editor-section"><h3>🛠 Corrections du compte</h3><div class="admin-adjust-grid">
       ${adminAdjustRow('💰',"LoVeR'Cash",'cash','+ / −')}
@@ -7501,7 +8139,7 @@ function renderAdminPlayerEditor(player){
       ${adminAdjustRow('🥚','Donner des œufs','grant_egg','quantité',true)}
       ${adminAdjustRow('👑','Régler le Prestige','prestige','valeur',true)}
     </div></div>
-    <div class="admin-editor-section"><h3>🐉 Lovys & fragments</h3><div class="admin-lovys-admin-list">${lovys.length?lovys.map(l=>`<div class="admin-lovys-row"><div><strong>${l.is_active?'⭐ ':''}${escapeHtml(l.name)}</strong><div class="admin-player-meta">Niv. ${l.level} · Rang ${l.rank}/5 · ${escapeHtml(l.rarity)} · ${formatAdminNumber(l.xp)} XP</div></div><div class="admin-lovys-fragments"><span>🧩 ${formatAdminNumber(l.fragments)}</span><input type="number" value="10" step="1" data-lovys-fragment-input="${l.id}"><button class="btn secondary" data-admin-action="lovys_fragments" data-lovys-id="${l.id}">Appliquer</button></div></div>`).join(''):'<div class="admin-player-meta">Aucun Lovys.</div>'}</div></div>
+    <div class="admin-editor-section"><h3>🐉 Lovys & fragments</h3><div class="admin-lovys-admin-list">${lovys.length?lovys.map(l=>`<div class="admin-lovys-row"><div class="admin-lovys-main">${adminLovysPortrait(l)}<div><strong>${l.is_active?'⭐ ':''}${escapeHtml(l.name)}</strong><div class="admin-player-meta">Niv. ${l.level} · Rang ${l.rank}/5 · ${escapeHtml(l.rarity)} · ${formatAdminNumber(l.xp)} XP</div></div></div><div class="admin-lovys-fragments"><span>🧩 ${formatAdminNumber(l.fragments)}</span><input type="number" value="10" step="1" data-lovys-fragment-input="${l.id}"><button class="btn secondary" data-admin-action="lovys_fragments" data-lovys-id="${l.id}">Appliquer</button></div></div>`).join(''):'<div class="admin-player-meta">Aucun Lovys.</div>'}</div></div>
     <div class="admin-editor-columns">
       <div class="admin-editor-section"><h3>🥚 Incubateur</h3>${incubator.length?incubator.map(e=>`<div class="admin-mini-row"><span>Slot ${e.slot}</span><strong>${e.status==='ready'?'✅ Prêt':'⏳ En cours'}</strong></div>`).join(''):'<div class="admin-player-meta">Aucun œuf placé.</div>'}</div>
       <div class="admin-editor-section"><h3>🏅 Badges</h3><div class="admin-badge-admin-list">${badges.length?badges.slice(0,12).map(b=>`<span class="admin-player-pill">${escapeHtml(b.badge_name||b.badge_key)}</span>`).join(''):'<span class="admin-player-meta">Aucun badge.</span>'}</div></div>
@@ -7564,11 +8202,11 @@ function adminActionConfirmationDetails(action, amount, button, editor){
     const hours=Number(editor.querySelector('[data-admin-boost-hours]')?.value)||2;
     return {username,actionText:`Donner ${numeric} Double XP de ${hours}h`,question:`Donner ${numeric} Double XP de ${hours}h (${numeric*hours}h au total) à ${username} ?`};
   }
-  if(action==='grant_item'){
-    const name=editor.querySelector('[data-admin-item-key]')?.selectedOptions?.[0]?.textContent?.trim()||'objet';
-    const verb=numeric<0?'Retirer':'Donner',qty=Math.abs(numeric);
-    return {username,actionText:`${verb} ${qty} × ${name}`,question:`${verb} ${qty} × ${name} à ${username} ?`};
+  if(action==='remove_xp_boost_inventory'){
+    const hours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value)||2;
+    return {username,actionText:`Retirer ${numeric} boost(s) Double XP de ${hours}h`,question:`Retirer ${numeric} boost(s) Double XP de ${hours}h de l’inventaire de ${username} ? Les heures déjà activées resteront intactes.`};
   }
+  if(action==='remove_active_xp_boost_hours')return {username,actionText:`Retirer ${numeric}h de Double XP actif`,question:`Retirer ${numeric} heure(s) du Double XP déjà actif de ${username} ? Les boosts de l’inventaire resteront intacts.`};
   if(action==='grant_egg') return {username,actionText:`Donner ${Number(numeric)||0} œuf(s)`,question:`Êtes-vous sûr de vouloir donner ${Number(numeric)||0} œuf(s) à ${username} ?`};
   if(action==='prestige') return {username,actionText:`Régler le Prestige sur ${Number(numeric)||0}`,question:`Êtes-vous sûr de vouloir régler le Prestige de ${username} sur ${Number(numeric)||0} ?`};
   if(action==='lovys_fragments'){
@@ -7602,14 +8240,14 @@ function trapDesktopAdminFocus(event,container){
   else if(!event.shiftKey && (document.activeElement===last || !container.contains(document.activeElement))){event.preventDefault();first.focus();}
 }
 function resetAccountConfirmationDetails(username){
-  return {username,requireUsername:true,actionText:'Remettre toute la progression à zéro',question:'Cette action efface définitivement la progression et tout l’inventaire. Les comptes liés et les identifiants sont conservés. Recopie le pseudo du joueur pour confirmer.'};
+  return {username,requireUsername:true,actionText:'Remettre toute la progression à zéro',question:'Cette action efface définitivement la progression et l’inventaire ordinaire. Les comptes liés, les identifiants et les titres permanents sont conservés. Recopie le pseudo du joueur pour confirmer.'};
 }
 function showResetAccountConfirmation(details){
   return new Promise(resolve=>{
     const previousFocus=document.activeElement;
     const overlay=document.createElement('div');
     overlay.className='admin-confirm-overlay';overlay.setAttribute('data-admin-confirm-overlay','');
-    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="resetAccountTitle"><h3 id="resetAccountTitle">Réinitialiser ${escapeHtml(details.username)} ?</h3><p>${escapeHtml(details.question)}</p><label class="admin-reset-label" for="adminResetUsername">Pseudo : <strong>${escapeHtml(details.username)}</strong></label><input id="adminResetUsername" class="admin-reset-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-reset-cancel>Annuler</button><button type="button" class="btn warning" data-reset-approve disabled>Réinitialiser définitivement</button></div></div>`;
+    overlay.innerHTML=`<div class="admin-confirm-card" role="dialog" aria-modal="true" aria-labelledby="resetAccountTitle"><h3 id="resetAccountTitle">${escapeHtml(details.title||`Réinitialiser ${details.username} ?`)}</h3><p>${escapeHtml(details.question)}</p><label class="admin-reset-label" for="adminResetUsername">${escapeHtml(details.confirmationLabel||'Pseudo')} : <strong>${escapeHtml(details.username)}</strong></label><input id="adminResetUsername" class="admin-reset-input" type="text" autocomplete="off" autocapitalize="off" spellcheck="false"><div class="admin-confirm-actions"><button type="button" class="btn secondary" data-reset-cancel>Annuler</button><button type="button" class="btn warning" data-reset-approve disabled>Réinitialiser définitivement</button></div></div>`;
     document.body.appendChild(overlay);
     const input=overlay.querySelector('input'),approve=overlay.querySelector('[data-reset-approve]');
     let finished=false;
@@ -7665,11 +8303,11 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
     const hours=Number(editor.querySelector('[data-admin-boost-hours]')?.value)||2;
     return {username,actionText:`Donner ${numeric} Double XP de ${hours}h`,question:`Donner ${numeric} Double XP de ${hours}h (${numeric*hours}h au total) à ${username} ?`};
   }
-  if(action==='grant_item'){
-    const name=editor.querySelector('[data-admin-item-key]')?.selectedOptions?.[0]?.textContent?.trim()||'objet';
-    const verb=numeric<0?'Retirer':'Donner',qty=Math.abs(numeric);
-    return {username,actionText:`${verb} ${qty} × ${name}`,question:`${verb} ${qty} × ${name} à ${username} ?`};
+  if(action==='remove_xp_boost_inventory'){
+    const hours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value)||2;
+    return {username,actionText:`Retirer ${numeric} boost(s) Double XP de ${hours}h`,question:`Retirer ${numeric} boost(s) Double XP de ${hours}h de l’inventaire de ${username} ? Les heures déjà activées resteront intactes.`};
   }
+  if(action==='remove_active_xp_boost_hours')return {username,actionText:`Retirer ${numeric}h de Double XP actif`,question:`Retirer ${numeric} heure(s) du Double XP déjà actif de ${username} ? Les boosts de l’inventaire resteront intacts.`};
   if(action==='grant_egg')return {username,actionText:`Donner ${qty} œuf(s) mystère`,question:`Donner ${qty} œuf(s) mystère à ${username} ?`};
   if(action==='prestige')return {username,actionText:`Régler le Prestige à ${numeric}`,question:`Régler le Prestige de ${username} à ${numeric} ?`};
   if(action==='lovys_fragments'){
@@ -7682,8 +8320,8 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
 function validateDesktopAdminAmount(action,amount){
   if(['reset_battle','reset_pve','reset_account'].includes(action))return;
   const value=Number(amount);
-  const limit=action==='grant_xp_boost_hours'?20:action==='grant_item'?100:action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
-  if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (['grant_egg','grant_xp_boost_hours'].includes(action) && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
+  const limit=['grant_xp_boost_hours','remove_xp_boost_inventory'].includes(action)?20:action==='remove_active_xp_boost_hours'?200:action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
+  if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (['grant_egg','grant_xp_boost_hours','remove_xp_boost_inventory','remove_active_xp_boost_hours'].includes(action) && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
     throw new Error(`Saisis un nombre entier ${action==='grant_egg'?`entre 1 et ${limit}`:action==='prestige'?`entre 0 et ${limit}`:`non nul entre −${limit.toLocaleString('fr-FR')} et ${limit.toLocaleString('fr-FR')}`}.`);
   }
 }
@@ -7703,7 +8341,8 @@ function desktopAdminPlayerSuccessMessage(action,amount,details){
   const removing=Number(amount)<0;
   if(action==='cash')return removing?`Retrait de ${qty} LoVeR’Cash effectué pour ${name}.`:`${qty} LoVeR’Cash bien crédités à ${name}.`;
   if(action==='grant_xp_boost_hours')return `${qty} booster(s) Double XP donnés à ${name}.`;
-  if(action==='grant_item')return `${removing?'Retrait':'Don'} de ${qty} objet(s) effectué pour ${name}.`;
+  if(action==='remove_xp_boost_inventory')return `${qty} booster(s) Double XP retirés de l’inventaire de ${name}.`;
+  if(action==='remove_active_xp_boost_hours')return `${qty}h de Double XP actif retirées à ${name}.`;
   if(action==='grant_egg')return `${qty} œuf(s) mystère bien donnés à ${name}.`;
   if(action==='pending_xp')return removing?`Réserve d’XP Lovys de ${name} mise à jour.`:`${qty} XP Lovys bien créditées à la réserve de ${name}.`;
   if(action==='global_xp')return `XP globale de ${name} bien mise à jour.`;
@@ -7731,7 +8370,7 @@ async function runAdminPlayerAction(button){
   if(!approved)return;
   button.disabled=true;const old=button.textContent;button.textContent='…';
   try{
-    const body={action,reason,amount};if(action==='grant_item')body.itemKey=editor.querySelector('[data-admin-item-key]')?.value;if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);if(action==='reset_account')body.confirmUsername=details.username;if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+    const body={action,reason,amount};if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);if(action==='remove_xp_boost_inventory')body.boostHours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value);if(action==='reset_account')body.confirmUsername=details.username;if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const msg=$('adminPlayerActionMessage');if(msg){msg.textContent=`✅ ${data.summary}`;msg.className='admin-action-message success';}
     await openAdminPlayerEditor(accountId);await loadAdminPlayers();
@@ -7749,8 +8388,7 @@ async function runDesktopAdminPlayerAction(button){
   const body={action,reason:$('adminPlayerActionReason')?.value?.trim()||''};
   if(amount!==undefined)body.amount=Number(amount);
   if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
-  if(action==='grant_item')body.itemKey=editor.querySelector('[data-admin-item-key]')?.value;
-  if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);
+  if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);if(action==='remove_xp_boost_inventory')body.boostHours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value);
   const details=desktopAdminActionConfirmationDetails(action,amount,button,editor);
   const old=button.textContent;button.disabled=true;
   try{
@@ -7770,7 +8408,8 @@ async function runDesktopAdminPlayerAction(button){
 
 async function loadAdminDashboard(){
   const box=$('adminDashboardContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
-  try{const d=await adminFetch('/api/admin/dashboard');const s=d.stats||{},t=d.tracker||{},b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👥','Joueurs inscrits',s.players,`${s.activeToday} actif(s) aujourd’hui`)}${adminStatCard('🟣','Twitch liés',s.twitchLinked)}${adminStatCard('🥚','Incubations',s.incubating,`${s.readyEggs} prêt(s)`)}${adminStatCard('🐉','Lovys possédés',s.lovys)}${adminStatCard('⚔️','Combats aujourd’hui',s.fightsToday,`${s.victoriesToday} victoire(s)`)}${adminStatCard('👑','Boss vaincus',s.bossWinsToday)}${adminStatCard('💰','Cash en circulation',formatAdminNumber(s.cashBalance))}${adminStatCard('🎡','Roues aujourd’hui',s.wheelSpinsToday)}</div><div class="admin-dashboard-section"><h3>📺 Tracker</h3><div class="admin-health ${t.error?'bad':t.live?'good':''}"><strong>${t.error?'⚠️ À vérifier':t.live?'🟢 Live détecté':'⚪ Chaîne hors ligne'}</strong><span>${t.chatters||0} dans le chat · ${t.matched||0} joueur(s) reconnu(s)</span></div></div><div class="admin-dashboard-section"><h3>🔥 Boost live</h3><div class="admin-player-meta">XP ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}${b.expiresAt?` · jusqu’à ${new Date(b.expiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</div></div><div class="admin-dashboard-section"><h3>📜 Activité admin récente</h3>${(d.recent||[]).length?(d.recent||[]).map(x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.summary)}</strong><div class="admin-player-meta">${new Date(x.created_at).toLocaleString('fr-FR')}</div></div></div>`).join(''):'<div class="admin-player-meta">Aucune action enregistrée.</div>'}</div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  try{const d=await adminFetch('/api/admin/dashboard');const s=d.stats||{},t=d.tracker||{},b=d.liveBoosts||{};box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👥','Joueurs inscrits',s.players,`${s.activeToday} actif(s) aujourd’hui`)}${adminStatCard('🟣','Twitch liés',s.twitchLinked)}${adminStatCard('🥚','Incubations',s.incubating,`${s.readyEggs} prêt(s)`)}${adminStatCard('🐉','Lovys possédés',s.lovys)}${adminStatCard('⚔️','Combats aujourd’hui',s.fightsToday,`${s.victoriesToday} victoire(s)`)}${adminStatCard('👑','Boss vaincus',s.bossWinsToday)}${adminStatCard('💰','Cash en circulation',formatAdminNumber(s.cashBalance))}${adminStatCard('🎡','Roues aujourd’hui',s.wheelSpinsToday)}</div><div class="admin-dashboard-section"><h3>📺 Tracker</h3><div class="admin-health ${t.error?'bad':t.live?'good':''}"><strong>${t.error?'⚠️ À vérifier':t.live?'🟢 Live détecté':'⚪ Chaîne hors ligne'}</strong><span>${t.chatters||0} dans le chat · ${t.matched||0} joueur(s) reconnu(s)</span></div></div><div class="admin-dashboard-section"><h3>🔥 Boost live</h3><div class="admin-player-meta">XP ×${b.xp||1} · Cash ×${b.cash||1} · XP globale ×${b.globalXp||1}${b.expiresAt?` · jusqu’à ${new Date(b.expiresAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`:''}</div></div>`;}catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message)}</div>`;}
+  await Promise.allSettled([loadAdminEconomy(),...($('adminDashboardHistory')?.open?[loadAdminHistory()]:[])]);
 }
 async function loadAdminEconomy(){
   const box=$('adminEconomyContent');if(!box)return;box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
@@ -7780,7 +8419,7 @@ async function loadAdminEconomy(){
 async function loadWizebotAlertsPanel(){
   const host=$('adminTrackerContent');if(!host)return;
   let panel=$('adminWizebotAlerts');
-  if(!panel){panel=document.createElement('section');panel.id='adminWizebotAlerts';panel.className='admin-dashboard-section wizebot-settings';host.appendChild(panel);}
+  if(!panel){panel=document.createElement('section');panel.id='adminWizebotAlerts';panel.className='bot-studio-content';host.appendChild(panel);}
   try{
     const data=await adminFetch('/api/admin/wizebot');
     if(!panel.isConnected)return;
@@ -7790,116 +8429,6 @@ async function loadWizebotAlertsPanel(){
     if(data.gameBotActive)panel.querySelector('.wizebot-heading p').textContent='Le bot Twitch du jeu gère maintenant les annonces du jeu et les drops. Wizebot reste disponible pour les annonces normales de la chaîne.';
   }catch(error){panel.innerHTML=`<h3>🤖 Wizebot · Alertes du jeu</h3><p class="admin-player-meta">${escapeHtml(error.message)}</p>`;}
 }
-let adminBotMessageTemplates=[];
-let adminBotActionNotice=null;
-function setBotActionNotice(message,error=false){
-  adminBotActionNotice={message,error};
-  const status=$('adminGameBot')?.querySelector('[data-game-bot-status]');
-  if(status){status.textContent=message;status.dataset.error=String(error);}
-}
-async function loadGameBotPanel(){
-  const host=$('adminBotContent');if(!host)return;
-  let panel=$('adminGameBot');
-  if(!panel){panel=document.createElement('section');panel.id='adminGameBot';panel.className='admin-dashboard-section wizebot-settings';host.appendChild(panel);}
-  try{
-    const data=await adminFetch('/api/admin/game-bot');
-    adminBotMessageTemplates=data.templates||[];
-    if(!panel.isConnected)return;
-    panel.innerHTML=`<div class="bot-connection-card"><div class="bot-card-eyebrow">🤖 LoVeRWatchBot</div><h3>Le bot de ton jeu</h3><p class="admin-player-meta">Ce bot lit !catch en direct et annonce les drops du jeu. Wizebot garde les annonces normales de la chaîne.</p><p>${data.connected?`Compte connecté : <strong>${escapeHtml(data.login||'Bot')}</strong> · ${data.subscriptionId?'abonnement chat configuré':'abonnement chat à configurer'}`:'Aucun compte bot connecté.'}</p>${data.error?`<p role="alert">⚠️ ${escapeHtml(data.error)}</p>`:''}<p class="admin-player-meta">Crée un compte Twitch distinct pour le bot, rends ce compte modérateur de ta chaîne, puis connecte-le ici. La connexion utilise la même URL de retour Twitch que le jeu.</p><a class="btn secondary" href="/api/game-bot/connect">Connecter le compte bot</a>${data.connected?` <button type="button" class="btn secondary" data-game-bot-subscribe>Relancer la connexion au chat</button> <button type="button" class="btn bot-power-switch" role="switch" aria-label="Bot du jeu" aria-checked="${Boolean(data.enabled)}" data-game-bot-toggle data-enabled="${Boolean(data.enabled)}"><span class="bot-power-track" aria-hidden="true"><span class="bot-power-thumb"></span></span><span class="bot-power-label">Bot ${data.enabled?'ON':'OFF'}</span></button> <button type="button" class="btn secondary" data-game-bot-test>Tester le chat</button><small class="bot-chat-test-help">Le test envoie un seul message, même si le bot est OFF ou si le live est arrêté.</small>`:''}</div><div class="wizebot-drop bot-drop-card"><span class="bot-card-eyebrow">Déclenchement automatique · Live requis</span><h4>🎁 Drops !catch</h4><p>Au lancement d’un drop, le bot annonce une récompense. Les joueurs liés à Twitch ont 60 secondes pour taper !catch, puis il tire et annonce 1 à 3 gagnants. 50 % LoVeR’Cash, 25 % fragments d’œuf, 20 % bouteille de 100 XP et 5 % œuf mystère.</p><button type="button" class="btn" data-game-bot-drop>Lancer un drop supplémentaire</button><p>${data.round?.status==='open'?'Drop en cours':data.round?.status==='pending'?'Drop en préparation':''}</p></div><p data-game-bot-status role="status" aria-live="polite"></p>`;
-    const schedule=data.schedule||{enabled:true,min_minutes:20,max_minutes:40};
-    panel.insertAdjacentHTML('beforeend',`<div class="wizebot-drop bot-schedule-card"><span class="bot-card-eyebrow">🎲 Le bot s’en charge</span><h4>Drops automatiques aléatoires</h4><p>Le bot attend un délai choisi au hasard, annonce le drop puis tire les gagnants. Après la fin du drop, il choisit un nouveau délai. Aucun lancement hors live.</p><form data-bot-schedule-form><label class="bot-schedule-toggle"><input type="checkbox" name="enabled" ${schedule.enabled?'checked':''}> Activer les drops automatiques</label><div class="bot-schedule-inputs"><label>Délai minimum (minutes)<input name="minMinutes" type="number" min="5" max="180" step="1" required value="${Number(schedule.min_minutes)}"></label><label>Délai maximum (minutes)<input name="maxMinutes" type="number" min="5" max="180" step="1" required value="${Number(schedule.max_minutes)}"></label></div><button class="btn" type="submit">Enregistrer les délais</button><p role="status" data-bot-schedule-status></p></form><p class="bot-schedule-next">${!data.enabled?'Bot désactivé : active-le pour lancer les drops.':!schedule.enabled?'Drops automatiques désactivés.':!data.live?'En attente du live et du tracker. Le délai sera tiré à leur démarrage.':data.round&&['pending','open'].includes(data.round.status)?'Drop en cours : un nouveau délai sera tiré à sa fin.':schedule.next_at?'Prochain drop prévu à '+escapeHtml(new Date(schedule.next_at).toLocaleString('fr-FR')):'Préparation du prochain délai aléatoire…'}</p><p class="admin-player-meta">Réglage possible de 5 à 180 minutes. Enregistrer relance le délai. Un arrêt du live remet l’attente à zéro ; le prochain live repart avec un nouveau tirage.</p></div>`);
-    const labels={custom:'Message personnalisé',test:'Test',drop:'Lancement du drop',winners:'Résultat du drop',egg:'Œuf prêt','boost-soon':'Boost bientôt terminé','boost-end':'Boost terminé','live-boost':'Boost du live',announcement:'Annonce du jeu'};
-    const round=data.round,states={pending:'En préparation',open:'Participation ouverte',settled:'Terminé',cancelled:'Annulé'};
-    const remaining=round?.ends_at?Math.max(0,Math.ceil((Date.parse(round.ends_at)-Date.parse(data.serverTime))/1000)):0;
-    panel.insertAdjacentHTML('beforeend',`<div class="wizebot-drop"><h4>✏️ Éditeur des messages</h4><p>Modifier le texte ne change pas les délais ni les récompenses. Les annonces du jeu utilisent les textes ci-dessous. Les variables sont remplacées par les informations du joueur ou du drop. Les messages personnalisés s’envoient manuellement ; ils ne se répètent pas automatiquement.</p><button type="button" class="btn" data-bot-message-new>Ajouter un message</button><div class="game-bot-messages">${adminBotMessageTemplates.map(template=>`<article class="game-bot-message bot-template-card"><span class="bot-template-badge">${template.custom?'Message personnalisé':'Annonce du jeu'}</span><h5>${escapeHtml(template.label)}</h5><p class="game-bot-message-text">${escapeHtml(template.text)}</p><div class="bot-card-actions"><button type="button" class="btn secondary" data-bot-message-edit="${escapeHtml(template.key)}">Modifier</button> <button type="button" class="btn secondary" data-bot-message-reset="${escapeHtml(template.key)}">${template.custom?'Supprimer':'Texte par défaut'}</button>${template.custom?` <button type="button" class="btn" data-bot-message-send="${escapeHtml(template.key)}">Envoyer dans le chat</button>`:''}</div></article>`).join('')}</div></div>`);
-    panel.insertAdjacentHTML('beforeend',`<div class="wizebot-drop"><h4>⏱️ Fonctionnement et délais</h4><p><strong>Bot ${data.enabled?'actif':'désactivé'}</strong> · Actualisation du panneau toutes les 15 secondes pendant son affichage.</p><ul><li><strong>Drops automatiques :</strong> délai aléatoire entre ${Number(data.schedule?.min_minutes||20)} et ${Number(data.schedule?.max_minutes||40)} minutes, après le début du live puis après chaque drop terminé. Le bouton de lancement reste facultatif.</li><li><strong>Participation : 60 secondes</strong> après l’annonce, avec !catch. Une inscription par compte lié au jeu.</li><li><strong>Tirage :</strong> 1 gagnant (70 %), 2 (25 %) ou 3 (5 %), dans la limite des participants. Même récompense pour chaque gagnant.</li><li><strong>Envoi du bot :</strong> vérification toutes les 3 secondes. Le lancement et le résultat partent au prochain passage, avec un délai supplémentaire possible lié à Twitch.</li><li><strong>Œufs prêts et boosts :</strong> détection toutes les 15 secondes, puis envoi au passage du bot (jusqu’à 3 annonces par passage).</li><li><strong>Boosts :</strong> rappel dans les 5 dernières minutes, puis annonce de fin. Une annonce par étape et par expiration.</li><li><strong>Validité :</strong> annonce d’œuf pendant 5 minutes, annonce de fin de boost pendant 2 minutes. Les annonces devenues périmées sont ignorées.</li><li>Les drops nécessitent un live actif et un tracker à jour. Ils sont annulés si ces conditions disparaissent.</li></ul></div><div class="wizebot-drop"><h4>🎯 Dernier drop</h4>${round?`<p>${escapeHtml(states[round.status]||round.status)} · ${Number(round.participants||0)} participant(s) · ${escapeHtml({cash:'20 LoVeR’Cash',fragments:'2 fragments d’œuf',xp:'1 fiole de 100 XP',egg:'1 œuf mystère'}[round.reward_key]||round.reward_key)}</p>${round.status==='open'?`<p>Fin des inscriptions : ${escapeHtml(new Date(round.ends_at).toLocaleString('fr-FR'))} · <span data-bot-countdown="${remaining}" data-bot-countdown-at="${Date.now()}">${remaining} s restantes</span></p>`:''}`:'<p>Aucun drop lancé.</p>'}</div><div class="wizebot-drop"><h4>💬 Messages du bot</h4><button type="button" class="btn secondary" data-game-bot-refresh>Actualiser</button><p class="admin-player-meta">Les 50 derniers envois ou tentatives. Le journal conserve jusqu’à 500 messages à partir de cette mise à jour. « Envoyé » signifie accepté par Twitch.</p><div class="game-bot-messages">${(data.messages||[]).map(message=>`<article class="game-bot-message"><p><strong>${escapeHtml(labels[message.kind]||message.kind)}</strong> · ${message.status==='sent'?'✅ Envoyé':'❌ Échec'} · <time>${escapeHtml(new Date(message.created_at).toLocaleString('fr-FR'))}</time></p><p class="game-bot-message-text">${escapeHtml(message.message)}</p>${message.error?`<p role="status">${escapeHtml(message.error)}</p>`:''}</article>`).join('')||'<p>Aucun message enregistré pour le moment.</p>'}</div></div>`);
-
-    const cards=[...panel.querySelectorAll(':scope > .wizebot-drop')];
-    const grid=document.createElement('div');grid.className='bot-panel-grid';
-    const connection=panel.querySelector('.bot-connection-card');
-    if(connection){
-      const toolbar=document.createElement('div');toolbar.className='bot-connection-actions';
-      connection.querySelectorAll(':scope > .btn').forEach(button=>toolbar.appendChild(button));
-      connection.appendChild(toolbar);
-      const help=connection.querySelector('.bot-chat-test-help');if(help)connection.appendChild(help);
-      const status=panel.querySelector('[data-game-bot-status]');if(status)connection.appendChild(status);
-      grid.appendChild(connection);
-    }
-    for(const card of cards){
-      const title=card.querySelector('h4')?.textContent||'';
-      if(title.includes('Éditeur'))card.classList.add('bot-editor-card','bot-card-wide');
-      else if(title.includes('Fonctionnement'))card.classList.add('bot-timing-card','bot-card-wide');
-      else if(title.includes('Messages du bot'))card.classList.add('bot-history-card','bot-card-wide');
-      else if(title.includes('Dernier drop'))card.classList.add('bot-current-drop-card');
-      grid.appendChild(card);
-    }
-    const current=grid.querySelector('.bot-current-drop-card'),drop=grid.querySelector('.bot-drop-card');if(current&&drop)drop.after(current);
-    panel.prepend(grid);
-    if(adminBotActionNotice)setBotActionNotice(adminBotActionNotice.message,adminBotActionNotice.error);
-
-  }catch(error){panel.innerHTML=`<h3>🎮 Bot Twitch du jeu</h3><p>${escapeHtml(error.message)}</p>`;}
-}
-setInterval(()=>{const panel=$('adminGameBot');if(!document.hidden&&panel?.getClientRects().length&&!panel.querySelector('button:disabled')&&!document.querySelector('.game-bot-editor')&&!panel.querySelector('[data-bot-schedule-dirty]'))void loadGameBotPanel();},15000);
-setInterval(()=>{const timer=document.querySelector('[data-bot-countdown]');if(!timer)return;const seconds=Math.max(0,Number(timer.dataset.botCountdown)-Math.floor((Date.now()-Number(timer.dataset.botCountdownAt))/1000));timer.textContent=seconds?`${seconds} s restantes`:'Inscriptions closes · tirage en cours…';},1000);
-function openBotMessageEditor(template=null){
-  if(document.querySelector('.game-bot-editor'))return;
-  const previousFocus=document.activeElement,overlay=document.createElement('div'),custom=!template||template.custom;
-  overlay.className='desktop-egg-boost-overlay game-bot-editor';overlay.setAttribute('role','dialog');overlay.setAttribute('aria-modal','true');overlay.setAttribute('aria-labelledby','botMessageEditorTitle');
-  overlay.innerHTML=`<div class="desktop-egg-boost-panel"><h2 id="botMessageEditorTitle">${template?'Modifier le message':'Nouveau message'}</h2><label for="botMessageLabel">Titre</label><input id="botMessageLabel" class="admin-reset-input" maxlength="80" value="${escapeHtml(template?.label||'')}" ${custom?'':'readonly'}><label for="botMessageText">Message (400 caractères maximum)</label><textarea id="botMessageText" rows="5" maxlength="400">${escapeHtml(template?.text||'')}</textarea><p>${template?.variables?.length?'Variables : '+template.variables.map(name=>'{'+escapeHtml(name)+'}').join(', '):'Texte libre sans variable.'}</p><p>Aperçu avec des données d’exemple :</p><p class="game-bot-message-text" data-message-preview></p><p role="status" data-message-error></p><div class="egg-boost-actions"><button type="button" class="shop-action secondary" data-message-cancel>Annuler</button><button type="button" class="shop-action" data-message-save>Enregistrer</button></div></div>`;
-  let busy=false;
-  const close=()=>{if(busy)return;document.removeEventListener('keydown',onKey,true);overlay.remove();previousFocus?.isConnected&&previousFocus.focus();};
-  const onKey=event=>{if(event.key==='Escape'){event.preventDefault();event.stopImmediatePropagation();close();}else if(event.key==='Tab')trapDesktopAdminFocus(event,overlay);};
-  const input=overlay.querySelector('textarea'),error=overlay.querySelector('[data-message-error]');
-  const preview=()=>{const samples={joueur:'@ExempleJoueur',gagnants:'@Joueur1, @Joueur2',recompense:'une bouteille de 100 XP',boost:'double XP',minutes:'5'};overlay.querySelector('[data-message-preview]').textContent=input.value.replace(/\{([a-z]+)\}/g,(match,name)=>samples[name]||match);};
-  overlay.addEventListener('input',preview);
-  overlay.addEventListener('click',async event=>{
-    if(event.target===overlay||event.target.closest('[data-message-cancel]')){close();return;}
-    if(!event.target.closest('[data-message-save]')||busy)return;
-    busy=true;const button=overlay.querySelector('[data-message-save]');button.disabled=true;error.textContent='';
-    try{await adminFetch('/api/admin/game-bot/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:template?.key||'',label:overlay.querySelector('#botMessageLabel').value,text:input.value})});busy=false;close();await loadGameBotPanel();}catch(err){error.textContent=err.message;}finally{busy=false;button.disabled=false;}
-  });
-  document.body.appendChild(overlay);document.addEventListener('keydown',onKey,true);preview();input.focus();
-}
-$('adminBotContent')?.addEventListener('input',event=>{const form=event.target.closest('[data-bot-schedule-form]');if(form)form.setAttribute('data-bot-schedule-dirty','true');});
-$('adminBotContent')?.addEventListener('submit',async event=>{
-  const form=event.target.closest('[data-bot-schedule-form]');if(!form)return;event.preventDefault();
-  const button=form.querySelector('button'),status=form.querySelector('[data-bot-schedule-status]');if(button.disabled)return;
-  button.disabled=true;status.textContent='';
-  try{
-    const result=await adminFetch('/api/admin/game-bot/schedule',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:form.elements.enabled.checked,minMinutes:Number(form.elements.minMinutes.value),maxMinutes:Number(form.elements.maxMinutes.value)})});
-    await loadGameBotPanel();const updated=$('adminGameBot')?.querySelector('[data-bot-schedule-status]');if(updated)updated.textContent=result.message;
-  }catch(error){status.textContent=error.message;}finally{button.disabled=false;}
-});
-$('adminBotContent')?.addEventListener('click',async event=>{
-  const edit=event.target.closest('[data-bot-message-edit],[data-bot-message-new]');
-  if(edit){openBotMessageEditor(adminBotMessageTemplates.find(template=>template.key===edit.dataset.botMessageEdit));return;}
-  const messageAction=event.target.closest('[data-bot-message-reset],[data-bot-message-send]');
-  if(messageAction){
-    if(messageAction.disabled)return;
-    const sending=messageAction.hasAttribute('data-bot-message-send'),key=messageAction.dataset.botMessageSend||messageAction.dataset.botMessageReset,template=adminBotMessageTemplates.find(item=>item.key===key);if(!template)return;
-    messageAction.disabled=true;
-    try{
-      const approved=await showAdminActionConfirmation({username:template.label,actionText:sending?'Envoyer dans le chat Twitch':template.custom?'Supprimer ce message':'Rétablir le texte par défaut',question:sending?`Envoyer maintenant ce message : ${template.text}`:template.custom?'Supprimer ce message personnalisé ?':'Remplacer le texte modifié par le texte d’origine ?'});
-      if(!approved)return;
-      const result=await adminFetch('/api/admin/game-bot/messages/'+(sending?'send':'reset'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key})});
-      await loadGameBotPanel();const status=$('adminGameBot')?.querySelector('[data-game-bot-status]');if(status)status.textContent=result.message||'Modification enregistrée.';
-    }catch(error){const status=$('adminGameBot')?.querySelector('[data-game-bot-status]');if(status)status.textContent=error.message;}finally{messageAction.disabled=false;}
-    return;
-  }
-  if(event.target.closest('[data-game-bot-refresh]')){await loadGameBotPanel();return;}
-  const action=event.target.closest('[data-game-bot-subscribe],[data-game-bot-toggle],[data-game-bot-drop],[data-game-bot-test]');if(!action||action.disabled)return;
-  action.disabled=true;action.setAttribute('aria-busy','true');const originalLabel=action.textContent;
-  if(action.hasAttribute('data-game-bot-test'))action.textContent='Envoi du test…';
-  setBotActionNotice(action.hasAttribute('data-game-bot-test')?'Envoi du message de test dans le chat Twitch…':'Action en cours…');
-  try{
-    const url=action.hasAttribute('data-game-bot-subscribe')?'/api/admin/game-bot/subscribe':action.hasAttribute('data-game-bot-toggle')?'/api/admin/game-bot/enabled':action.hasAttribute('data-game-bot-test')?'/api/admin/game-bot/test':'/api/admin/game-bot/drop';
-    const body=action.hasAttribute('data-game-bot-toggle')?{enabled:action.dataset.enabled!=='true'}:{};
-    const data=await adminFetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-    await loadGameBotPanel();
-    setBotActionNotice(data.message||(action.hasAttribute('data-game-bot-toggle')?(data.enabled?'Bot ON : prêt à envoyer les annonces du jeu.':'Bot OFF : annonces et drops arrêtés.'):'Action prise en compte.'));
-    if(action.hasAttribute('data-game-bot-toggle'))$('adminGameBot')?.querySelector('[data-game-bot-toggle]')?.focus({preventScroll:true});
-  }catch(error){setBotActionNotice(error.message,true);}finally{action.disabled=false;action.removeAttribute('aria-busy');if(action.hasAttribute('data-game-bot-test'))action.textContent=originalLabel;}
-});
 $('adminTrackerContent')?.addEventListener('click',async event=>{
   const panel=$('adminWizebotAlerts');if(!panel)return;
   const copy=event.target.closest('[data-wizebot-copy]');
@@ -7956,6 +8485,7 @@ async function loadAdminPlayers() {
 }
 
 function openAdminPlayersModal() {
+  if(isDesktopGameUi())$('adminDashboardModal')?.classList.add('hidden');
   $('adminPlayersModal')?.classList.remove('hidden');
   if ($('adminPlayersSearch')) $('adminPlayersSearch').value = '';
   loadAdminPlayers();
@@ -7969,29 +8499,32 @@ function closeAdminPlayersModal() {
 $('adminPlayersButton')?.addEventListener('click', openAdminPlayersModal);
 $('adminPlayersClose')?.addEventListener('click', closeAdminPlayersModal);
 $('adminDashboardButton')?.addEventListener('click',()=>openAdminModal('adminDashboardModal',loadAdminDashboard));
-$('adminEconomyButton')?.addEventListener('click',()=>openAdminModal('adminEconomyModal',loadAdminEconomy));
-async function loadTrackerDetectedAccounts(){
-  const box=$('trackerDetectedContent'); if(!box)return;
-  box.innerHTML='<div class="admin-players-empty">Chargement…</div>';
+$('adminDashboardRefresh')?.addEventListener('click',async event=>{const button=event.currentTarget;if(button.disabled)return;button.disabled=true;try{await loadAdminDashboard();}finally{button.disabled=false;}});
+let adminResetAllBusy=false;
+async function resetAllPlayersGame(){
+  const button=$('adminResetAllGame'),message=$('adminResetAllMessage');
+  if(adminResetAllBusy||!button)return;
+  adminResetAllBusy=true;button.disabled=true;message.textContent='';
+  const confirmation='REINITIALISER TOUT LE JEU';
   try{
-    const r=await fetch('/api/tracker/detected-accounts',{cache:'no-store'}); const d=await r.json();
-    if(!r.ok)throw new Error(d.error||'Chargement impossible.');
-    if(!d.live){box.innerHTML='<div class="admin-players-empty">⚪ La chaîne est hors ligne.</div>';return;}
-    const matched=Array.isArray(d.matched)?d.matched:[];
-    const others=(Array.isArray(d.chatters)?d.chatters:[]).filter(x=>!x.linked);
-    const row=x=>`<div class="admin-history-row"><div><strong>${escapeHtml(x.twitchName||x.twitchLogin||'Compte Twitch')}</strong><div class="admin-player-meta">@${escapeHtml(x.twitchLogin||'—')}${x.watchGameName?` · LoVeR Watch Game : ${escapeHtml(x.watchGameName)}`:''}</div></div><div>${x.linked?'✅ Reconnu':'⚪ Non lié'}</div></div>`;
-    box.innerHTML=`<div class="admin-dashboard-grid">${adminStatCard('👁','Spectateurs Twitch',d.viewerCount||0)}${adminStatCard('💬','Comptes chat',d.chatterCount||0)}${adminStatCard('🎮','LoVeR Watch Game reconnus',d.matchedCount||0)}</div><div class="admin-dashboard-section"><h3>✅ Comptes LoVeR Watch Game détectés</h3>${matched.length?matched.map(row).join(''):'<div class="admin-players-empty">Aucun compte LoVeR Watch Game reconnu pour le moment.</div>'}</div><div class="admin-dashboard-section"><h3>Autres comptes présents dans le chat</h3><div class="admin-player-meta" style="margin-bottom:10px">Les bots connus et le compte diffuseur sont exclus des récompenses.</div>${others.length?others.map(row).join(''):'<div class="admin-players-empty">Aucun autre compte.</div>'}</div>`;
-  }catch(e){box.innerHTML=`<div class="admin-players-empty">⚠️ ${escapeHtml(e.message||'Chargement impossible.')}</div>`;}
+    const confirmed=await showResetAccountConfirmation({username:confirmation,title:'Réinitialiser le jeu pour tout le monde ?',confirmationLabel:'Phrase de confirmation',question:'Tous les joueurs, toi compris, repartiront au niveau 1, sans Lovys, XP, Prestige, monnaies, inventaire ou badges. Les comptes, les liaisons et les titres permanents sont conservés. Cette action est définitive. Recopie la phrase ci-dessous pour confirmer.'});
+    if(!confirmed)return;
+    message.textContent='Réinitialisation en cours…';
+    const response=await fetch('/api/admin/reset-game',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirmation,confirmAll:true,requestId:crypto.randomUUID()})});
+    const data=await response.json();
+    if(!response.ok||!data.ok)throw Error(data.error||'Réinitialisation impossible.');
+    message.textContent=data.message||'Le jeu a été réinitialisé pour tout le monde.';
+    window.LovysEvolutionCelebration?.reset();
+    setTimeout(()=>location.reload(),1200);
+  }catch(error){message.textContent=error.message||'La réponse du serveur n’a pas pu être vérifiée. Actualise le dashboard avant de réessayer.';}
+  finally{adminResetAllBusy=false;button.disabled=false;}
 }
-
-$('trackerDetectedButton')?.addEventListener('click',()=>openAdminModal('trackerDetectedModal',loadTrackerDetectedAccounts));
-$('trackerDetectedClose')?.addEventListener('click',()=>$('trackerDetectedModal')?.classList.add('hidden'));
-$('trackerDetectedModal')?.addEventListener('click',e=>{if(e.target?.id==='trackerDetectedModal')$('trackerDetectedModal')?.classList.add('hidden');});
-
+$('adminResetAllGame')?.addEventListener('click',resetAllPlayersGame);
+$('adminDashboardHistory')?.addEventListener('toggle',event=>{if(event.currentTarget.open)void loadAdminHistory();});
+$('adminPlayersBack')?.addEventListener('click',()=>{closeAdminPlayersModal();openAdminModal('adminDashboardModal');});
 $('adminTrackerButton')?.addEventListener('click',()=>{openAdminModal('adminTrackerModal',loadAdminTrackerPanel);if(isDesktopGameUi())loadTrackerStatus();});
-$('adminBotButton')?.addEventListener('click',()=>openAdminModal('adminBotModal',loadGameBotPanel));
-$('adminHistoryButton')?.addEventListener('click',()=>openAdminModal('adminHistoryModal',loadAdminHistory));
-[['adminDashboardModal','adminDashboardClose'],['adminEconomyModal','adminEconomyClose'],['adminTrackerModal','adminTrackerClose'],['adminBotModal','adminBotClose'],['adminHistoryModal','adminHistoryClose']].forEach(([modalId,closeId])=>{
+$('adminBotButton')?.addEventListener('click',()=>{window.location.assign('/bot');});
+[['adminDashboardModal','adminDashboardClose'],['adminTrackerModal','adminTrackerClose'],['adminBotModal','adminBotClose']].forEach(([modalId,closeId])=>{
   $(closeId)?.addEventListener('click',()=>closeAdminModal(modalId));
   $(modalId)?.addEventListener('click',e=>{if(e.target.id===modalId)closeAdminModal(modalId);});
 });
@@ -8061,20 +8594,16 @@ $('adminPlayerEditor')?.addEventListener('click', async event=>{
   if(saveUsername){
     const editor=$('adminPlayerEditor'),field=editor?.querySelector('[data-admin-username]'),message=editor?.querySelector('[data-admin-username-message]');
     const username=String(field?.value||'').trim();
-    if(!field?.checkValidity() || username.length<3 || username.length>24){
-      if(message)message.textContent='Le pseudo doit contenir entre 3 et 24 caractères.';
-      return;
-    }
-    if(username===editor.dataset.playerUsername)return;
-    if(!await showAdminActionConfirmation({username:editor.dataset.playerUsername||'Joueur',actionText:'Modifier le pseudo',question:`Remplacer le pseudo ${editor.dataset.playerUsername||'Joueur'} par ${username} ?`}))return;
+    if(!field?.checkValidity() || username.length<3 || username.length>24){if(message)message.textContent='Le pseudo doit contenir entre 3 et 24 caractères.';return;}
+    if(!await showAdminActionConfirmation({username:editor.dataset.playerUsername||'Joueur',actionText:'Modifier le pseudo',question:`Enregistrer « ${username} » comme nouveau pseudo de connexion et d’affichage ?`}))return;
     saveUsername.disabled=true;
     try{
-      const accountId=editor.dataset.accountId;
-      const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/username`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+      const data=await adminFetch(`/api/admin/players/${encodeURIComponent(editor.dataset.accountId)}/username`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({username})});
+      if(message)message.textContent='✓ Pseudo mis à jour : '+data.username;
+      editor.dataset.playerUsername=data.username;
+      const title=editor.querySelector('.admin-editor-title');
+      if(title)title.textContent='⚙️ '+data.username;
       await loadAdminPlayers();
-      await openAdminPlayerEditor(accountId);
-      const result=$('adminPlayerEditor')?.querySelector('[data-admin-username-message]');
-      if(result)result.textContent='✓ Pseudo mis à jour : '+data.username;
     }catch(error){if(message)message.textContent='⚠️ '+error.message;}
     finally{saveUsername.disabled=false;}
     return;
@@ -8559,6 +9088,7 @@ $('subBenefitsModal')?.addEventListener('mouseup', event => {
 
 /* V240 — restauration du contrôleur d'en-tête partagé V229 */
 const STANDARD_PAGE_HEADER_DATA={
+ pve:['⚔️ Aventure PvE','Les récompenses importantes sont données à la première victoire.'],
  lovys:['🐉 Mes Lovys','Gère ta collection, tes fragments de doublons et les rangs ⭐ de tes Lovys.'],
  incubator:['🥚 Incubateur',"Tes emplacements d’incubation."],
  lobby:['🤝 Communauté',"La place centrale pour proposer, trouver et sécuriser tes échanges de fragments et d'œufs."],
@@ -8569,7 +9099,7 @@ const STANDARD_PAGE_HEADER_DATA={
 function updateStandardPageHeader(view){
  const el=document.getElementById('standardPageHeader'),t=document.getElementById('standardPageHeaderTitle'),s=document.getElementById('standardPageHeaderSubtitle');
  if(!el||!t||!s)return;
- const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d&&view!=='pve';
+ const d=STANDARD_PAGE_HEADER_DATA[view],show=!!d;
  el.classList.toggle('is-visible',show);el.setAttribute('aria-hidden',show?'false':'true');
  if(show){t.textContent=d[0];s.textContent=d[1]||'';s.hidden=!d[1];}
 }
@@ -8663,6 +9193,10 @@ function syncDesktopLeaderboardPlacement(){
 }
 async function openDesktopView(view='home'){
   if(!isDesktopGameUi())return;
+  if(view==='admin' && !await refreshDesktopAdminAccess()){
+    history.replaceState(null,'',location.pathname+location.search+'#accueil');
+    return openDesktopView('home');
+  }
   if(view==='inventory') return openInventory();
   if(view!=='lobby' && !$('communityGuideModal')?.classList.contains('hidden'))closeCommunityGuide();
   syncDesktopLeaderboardPlacement();
@@ -8681,6 +9215,7 @@ async function openDesktopView(view='home'){
   document.body.dataset.desktopView=view;
   updateStandardPageHeader(view);
   closeDesktopPrimaryPages(view);
+  if(view!=='pve'){scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck();}
   const leaderboardBoard=document.querySelector('.global-leaderboard');
   if(view!=='leaderboard'){
     leaderboardBoard?.style.setProperty('display','none','important');
@@ -8750,12 +9285,21 @@ function lobbyRelativeSeen(value){if(!value)return 'Hors ligne';const sec=Math.m
 function lobbyPlayerMarkup(player){
   const active=player.lovys;const avatar=player.profileImageUrl?`<img loading="lazy" decoding="async" src="${escapeHtml(player.profileImageUrl)}" alt="">`:'👤';
   const status=player.present?'🟢 En ligne':`⚪ ${lobbyRelativeSeen(player.lastSeenAt)}`;const offers=Number(player.activeOffers||0);
-  return `<article class="lobby-player-card ${player.present?'present':''}" data-lobby-user="${Number(player.userId)}" ${isDesktopGameUi()?'tabindex="0" role="button" aria-label="Voir la collection de '+escapeHtml(player.username)+'"':''}><div class="lobby-player-avatar">${avatar}<span class="lobby-presence-dot"></span></div><div class="lobby-player-copy"><div class="lobby-player-name">${escapeHtml(player.username)}</div><div class="lobby-player-meta">${status} · Niveau ${Number(player.level||1)}${Number(player.prestige||0)>0?` · Prestige ${Number(player.prestige)}`:''}</div>${active?`<div class="lobby-player-lovys">🐉 ${escapeHtml(active.name)} · Niv. ${Number(active.level||1)} · ${'⭐'.repeat(Math.max(1,Number(active.rank||1)))}</div>`:'<div class="lobby-player-lovys muted">Aucun Lovys actif</div>'}${offers?`<div class="lobby-player-offers">🔄 ${offers} offre${offers>1?'s':''} active${offers>1?'s':''}</div>`:''}</div><div class="lobby-player-actions">${isDesktopGameUi()?'<span class="player-collection-link">Voir la collection →</span>':`<button class="lobby-secondary-btn" type="button" data-lobby-profile="${escapeHtml(player.twitchId||'')}">Voir le profil</button><button class="lobby-primary-btn" type="button" data-lobby-trade-user="${Number(player.userId)}">Échanger</button>`}</div></article>`;
+  return `<article class="lobby-player-card ${player.present?'present':''}" data-lobby-user="${Number(player.userId)}" data-community-card-frame="${escapeHtml(player.cosmeticFrame||'')}" ${isDesktopGameUi()?'tabindex="0" role="button" aria-label="Voir la collection de '+escapeHtml(player.username)+'"':''}><div class="lobby-player-avatar" data-community-avatar-frame="${escapeHtml(player.cosmeticAvatarFrame||'')}">${avatar}<span class="lobby-presence-dot"></span></div><div class="lobby-player-copy"><div class="lobby-player-name">${escapeHtml(player.username)}</div>${player.cosmeticTitle?`<div class="lobby-player-title" style="color:${escapeHtml(player.cosmeticTitleColor||'#d9c8ff')}">&quot;${escapeHtml(player.cosmeticTitle)}&quot;</div>`:''}<div class="lobby-player-meta">${status} · Niveau ${Number(player.level||1)}${Number(player.prestige||0)>0?` · Prestige ${Number(player.prestige)}`:''}</div>${active?`<div class="lobby-player-lovys">🐉 ${escapeHtml(active.name)} · Niv. ${Number(active.level||1)} · ${'⭐'.repeat(Math.max(1,Number(active.rank||1)))}</div>`:'<div class="lobby-player-lovys muted">Aucun Lovys actif</div>'}${offers?`<div class="lobby-player-offers">🔄 ${offers} offre${offers>1?'s':''} active${offers>1?'s':''}</div>`:''}</div><div class="lobby-player-actions">${isDesktopGameUi()?'<span class="player-collection-link">Voir la collection →</span>':`<button class="lobby-secondary-btn" type="button" data-lobby-profile="${escapeHtml(player.twitchId||'')}">Voir le profil</button><button class="lobby-primary-btn" type="button" data-lobby-trade-user="${Number(player.userId)}">Échanger</button>`}</div></article>`;
 }
 function updateLobbyMarkup(element,markup){
   if(!element)return;
   if(element._lobbyMarkup===markup)return;
   element.innerHTML=markup;element._lobbyMarkup=markup;
+  element.querySelectorAll('[data-community-avatar-frame]').forEach(avatar=>{
+    const presence=avatar.querySelector('.lobby-presence-dot');
+    presence?.remove();
+    applyAvatarFrameCosmetics(avatar,avatar.dataset.communityAvatarFrame);
+    if(presence)avatar.append(presence);
+  });
+  element.querySelectorAll('[data-community-card-frame]').forEach(card=>{
+    if(card.dataset.communityCardFrame)applyProfileCosmetics(card,null,card.dataset.communityCardFrame);
+  });
 }
 function lobbyRefreshIsBlocked(){
   const shown=id=>{const element=$(id);return element && !element.classList.contains('hidden');};
@@ -8786,24 +9330,24 @@ function renderLobbyPlayers(){const grid=$('lobbyPlayersGrid');if(!grid)return;c
 
 function tradeLovysById(id){return (tradeInventory.lovys||[]).find(l=>l.creatureId===id);}
 function tradeCanReceive(asset){return asset.type!=='fragment'||Boolean(tradeLovysById(asset.creatureId));}
-function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
+function tradeBalanceFor(asset){if(asset.type==='xp_bottle')return Number(tradeInventory.xpBottles||0);if(asset.type==='xp_gourd')return Number(tradeInventory.xpGourds||0);if(tradeBoostHours(asset.type))return Number(tradeInventory[({xp_boost:'xpBoosts',xp_boost_5h:'xpBoosts5h',xp_boost_10h:'xpBoosts10h'})[asset.type]]||0);if(asset.type==='egg')return Number(tradeInventory.eggs||0);return Number(tradeLovysById(asset.creatureId)?.fragments||0);}
 function tradeAcceptBlockReason(offer,option){
   if(Number(offer.creatorUserId)===Number(tradeOffers._selfUserId||0))return 'Tu ne peux pas accepter ta propre offre.';
   if(!tradeCanReceive(offer.offer)){
-    const name=String(offer.offer.name||'ce Lovy').replace(/^Fragments\s+/i,'');
+    const name=String(offer.offer.name||'ce Lovys').replace(/^Fragments\s+/i,'');
     return 'Tu dois déjà posséder '+name+' pour recevoir ses fragments.';
   }
-  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
+  if(tradeBalanceFor(option)<Number(option.quantity||0))return 'Tu ne possèdes pas assez de '+(option.type==='xp_bottle'?'fioles disponibles':option.type==='xp_gourd'?'gourdes disponibles':tradeBoostHours(option.type)?'boosters disponibles':option.type==='egg'?'œufs disponibles':'fragments')+' : '+tradeBalanceFor(option)+' / '+Number(option.quantity||0)+' requis.';
   return '';
 }
 function tradeCanAcceptOption(offer,option){return Number(offer.creatorUserId)!==Number((tradeOffers._selfUserId||0))&&tradeCanReceive(offer.offer)&&tradeBalanceFor(option)>=Number(option.quantity||0);}
-function tradeAssetMarkup(asset){const art=asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
+function tradeAssetMarkup(asset){const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';const art=image?`<img src="${escapeHtml(image)}" alt="">`:(asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':asset.type==='egg'?'🥚':'🧩');return `<span class="trade-asset-icon">${art}</span><span><strong>${escapeHtml(asset.name||'Objet')}</strong><small>× ${Number(asset.quantity||0)}${asset.rarity?` · ${escapeHtml(asset.rarity)}`:''}</small></span>`;}
 function tradeStatusLabel(status){return {open:'Active',completed:'Acceptée',cancelled:'Annulée',expired:'Expirée'}[status]||status;}
 function formatTradeRemaining(value){const ms=new Date(value).getTime()-Date.now();if(ms<=0)return 'expirée';const m=Math.ceil(ms/60000);if(m<60)return `expire dans ${m} min`;const h=Math.ceil(m/60);if(h<48)return `expire dans ${h} h`;return `expire dans ${Math.ceil(h/24)} j`;}
 function tradeOfferMarkup(offer,mine=false){
   const options=(offer.options||[]).map(option=>{const possible=tradeCanAcceptOption(offer,option);return `<div class="trade-option ${possible?'possible':''}">${tradeAssetMarkup(option)}${!mine&&offer.status==='open'?`<button type="button" data-trade-accept="${Number(offer.id)}" data-trade-option="${Number(option.id)}" ${possible?'':'disabled'}>${possible?'Accepter':'Indisponible'}</button>${possible?'':`<small class="trade-unavailable-reason">ⓘ ${escapeHtml(tradeAcceptBlockReason(offer,option))}</small>`}`:''}</div>`;}).join('');
   const accepted=offer.status==='completed'?`<div class="trade-completed-note">✓ Échange terminé${offer.acceptedByName?` avec ${escapeHtml(offer.acceptedByName)}`:''}</div>`:'';
-  return `<article class="trade-offer-card status-${escapeHtml(offer.status)}"><div class="trade-offer-head"><div class="trade-owner"><span>${offer.creatorAvatar?`<img loading="lazy" decoding="async" src="${escapeHtml(offer.creatorAvatar)}" alt="">`:'👤'}</span><div><strong>${escapeHtml(offer.creatorName)}</strong><small>${tradeStatusLabel(offer.status)} · ${offer.status==='open'?formatTradeRemaining(offer.expiresAt):formatTradeDate(offer.acceptedAt||offer.expiresAt)}</small></div></div>${mine&&offer.status==='open'?`<button class="trade-cancel-btn" type="button" data-trade-cancel="${Number(offer.id)}">Annuler</button>`:''}</div><div class="trade-exchange-side trade-exchange-give"><div class="trade-label">TU PROPOSES</div><div class="trade-give">${tradeAssetMarkup(offer.offer)}</div></div><div class="trade-exchange-side trade-exchange-want"><div class="trade-label">CONTRE</div><div class="trade-options">${options}</div></div>${accepted}</article>`;
+  return `<article class="trade-offer-card status-${escapeHtml(offer.status)}" data-community-card-frame="${escapeHtml(offer.creatorFrame||'')}"><div class="trade-offer-head"><div class="trade-owner"><span class="trade-owner-avatar" data-community-avatar-frame="${escapeHtml(offer.creatorAvatarFrame||'')}">${offer.creatorAvatar?`<img loading="lazy" decoding="async" src="${escapeHtml(offer.creatorAvatar)}" alt="">`:'👤'}</span><div><strong>${escapeHtml(offer.creatorName)}</strong>${offer.creatorTitle?`<span class="trade-owner-title" style="color:${escapeHtml(offer.creatorTitleColor||'#d9c8ff')}">&quot;${escapeHtml(offer.creatorTitle)}&quot;</span>`:''}<small>${tradeStatusLabel(offer.status)} · ${offer.status==='open'?formatTradeRemaining(offer.expiresAt):formatTradeDate(offer.acceptedAt||offer.expiresAt)}</small></div></div>${mine&&offer.status==='open'?`<button class="trade-cancel-btn" type="button" data-trade-cancel="${Number(offer.id)}">Annuler</button>`:''}</div><div class="trade-exchange-side trade-exchange-give"><div class="trade-label">${escapeHtml(offer.creatorName)} PROPOSE</div><div class="trade-give">${tradeAssetMarkup(offer.offer)}</div></div><div class="trade-exchange-side trade-exchange-want"><div class="trade-label">CONTRE</div><div class="trade-options">${options}</div></div>${accepted}</article>`;
 }
 function formatTradeDate(value){try{return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(value));}catch{return '—';}}
 async function loadTradeInventory(){const r=await fetch('/api/trades/inventory',{cache:'no-store'}),d=await r.json();if(!r.ok)throw new Error(d.error||"Impossible de charger l'inventaire.");tradeInventory=d;return d;}
@@ -8815,7 +9359,7 @@ async function loadTrades(mine=false,silent=false){
 }
 function renderTrades(mine=false){
   const grid=$(mine?'lobbyMineGrid':'lobbyTradesGrid');if(!grid)return;let offers=mine?myTradeOffers:tradeOffers;
-  if(!mine){const select=$('lobbyTradeCreatureFilter');if(select){const available=[...new Map((tradeOffers||[]).filter(o=>o.offer?.creatureId).map(o=>[o.offer.creatureId,String(o.offer.name||'').replace(/^Fragments\s+/,'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));const keep=tradeCreatureFilter;updateLobbyMarkup(select,'<option value="all">Tous les Lovys</option>'+available.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join(''));select.value=available.some(x=>x[0]===keep)?keep:'all';if(select.value==='all')tradeCreatureFilter='all';}offers=offers.filter(o=>(tradeFilter==='all'||(tradeFilter==='possible'&&(o.options||[]).some(opt=>tradeCanAcceptOption(o,opt)))||o.offer.type===tradeFilter)&&(tradeCreatureFilter==='all'||o.offer.creatureId===tradeCreatureFilter));}
+  if(!mine){const select=$('lobbyTradeCreatureFilter');if(select){const available=[...new Map((tradeOffers||[]).filter(o=>o.offer?.creatureId).map(o=>[o.offer.creatureId,String(o.offer.name||'').replace(/^Fragments\s+/,'')])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'fr'));const keep=tradeCreatureFilter;updateLobbyMarkup(select,'<option value="all">Tous les Lovys</option>'+available.map(([id,name])=>`<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join(''));select.value=available.some(x=>x[0]===keep)?keep:'all';if(select.value==='all')tradeCreatureFilter='all';}offers=offers.filter(o=>(tradeFilter==='all'||(tradeFilter==='possible'&&(o.options||[]).some(opt=>tradeCanAcceptOption(o,opt)))||(o.offer.type===tradeFilter||(tradeFilter==='xp_boost'&&tradeBoostHours(o.offer.type))))&&(tradeCreatureFilter==='all'||o.offer.creatureId===tradeCreatureFilter));}
   if(isMobileGameUi())offers=mobileTradePageItems(offers,mine);
   const markup=offers.length?offers.map(o=>tradeOfferMarkup(o,mine)).join(''):`<div class="lobby-empty lobby-empty-action"><strong>${mine?'Aucune offre publiée':'Aucune offre pour l’instant'}</strong><span>${mine?'Crée ta première annonce pour commencer à échanger.':'Sois le premier à faire vivre la bourse.'}</span><button class="lobby-primary-btn" type="button" data-empty-create>＋ Créer la première offre</button></div>`;
   updateLobbyMarkup(grid,markup);
@@ -8876,7 +9420,8 @@ document.querySelectorAll('[data-trade-filter]').forEach(btn=>btn.addEventListen
 $('lobbyTradeCreatureFilter')?.addEventListener('change',e=>{tradeCreatureFilter=e.target.value||'all';renderTrades(false);});
 $('desktopLobbyPage')?.addEventListener('click',e=>{if(e.target.closest('[data-empty-create]'))openTradeComposer();});
 $('lobbyWishesGrid')?.addEventListener('click',async e=>{const wish=e.target.closest('[data-wish-toggle]');if(wish){const wanted=wish.getAttribute('aria-pressed')!=='true';await fetch('/api/trades/wishes',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatureId:wish.dataset.wishToggle,wanted})});loadTradeWishes();return;}const trade=e.target.closest('[data-wish-trade-creature]');if(trade){await openTradeComposer(trade.dataset.wishTradeCreature||'');}});
-let lastLobbyUnread=0;async function refreshLobbyNotifications(){try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;void refreshAcceptedTradeNotices();if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
+let lastLobbyUnread=0;let lobbyNotificationsPending=false;
+async function refreshLobbyNotifications(){if(lobbyNotificationsPending||document.hidden||!me?.user)return;lobbyNotificationsPending=true;try{const r=await fetch('/api/trades/notifications',{cache:'no-store'}),d=await r.json();if(!r.ok)return;const n=Number(d.unread||0),badges=[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean);badges.forEach(badge=>{badge.textContent=String(n);badge.classList.toggle('hidden',n<=0);});if(n>lastLobbyUnread&&lastLobbyUnread>=0&&typeof Notification!=='undefined'&&Notification.permission==='granted'){const newest=(d.items||[]).find(x=>!x.read_at);if(newest&&newest.event_type!=='offer_expired')new Notification('LoVeR Watch Game · Communauté',{body:newest.message});}lastLobbyUnread=n;void refreshAcceptedTradeNotices();if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}finally{lobbyNotificationsPending=false;}}
 async function markLobbyNotificationsRead(){try{await fetch('/api/trades/notifications/read',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});lastLobbyUnread=0;[$('lobbyNavBadge'),$('mobileLobbyNavBadge')].filter(Boolean).forEach(b=>b.classList.add('hidden'));if(isMobileGameUi())renderMobileHomeActions(buildNextActions());}catch{}}
 function startLobbyAutoRefresh(){clearInterval(lobbyAutoRefreshTimer);lobbyAutoRefreshTimer=setInterval(()=>{if(!document.hidden){refreshLobbyNotifications();void refreshLobbySilently();}},30000);}startLobbyAutoRefresh();refreshLobbyNotifications();
 
@@ -8885,27 +9430,46 @@ function tradeCreatureImageUrl(l){
   const normalize=value=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
   const id=normalize(l.creatureId),name=normalize(l.name);
   const known=homeMonsters.find(m=>normalize(m.id)===id||normalize(m.name)===name);
+  if(Number(l.level)>0)return lovysImageUrl(l.creatureId||known?.id||l.name,l.evolution??lovysEvolutionForLevel(l.level))||known?.image||String(l.image||'');
   if(known?.image)return known.image;
   const aliases={mossy:'/Mossy.webp',plant:'/Mossy.webp',nymea:'/Nymea.webp',water:'/Nymea.webp',voltis:'/Voltis.webp',lightning:'/Voltis.webp',brumee:'/Brumee.webp',mist:'/Brumee.webp',flamby:'/Flamby.webp',fire:'/Flamby.webp',crysal:'/Crysal.webp',crystal:'/Crysal.webp',ferox:'/Ferox.webp',forge:'/Ferox.webp',nocty:'/Nocty.webp',dark:'/Nocty.webp',solka:'/Solka.webp',solar:'/Solka.webp',mimo:'/Mimo.webp',dream:'/Mimo.webp'};
   return aliases[id]||aliases[name]||String(l.image||'');
 }
-function tradeCreatureOptions(selected='',offered=false){return (tradeInventory.lovys||[]).filter(l=>!offered||Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
-function tradeCreatureMenuMarkup(row) {
-  const offered = isDesktopGameUi() && row?.classList.contains('trade-asset-row');
-  const requested = isDesktopGameUi() && row?.hasAttribute('data-trade-option-row');
-  const choices = (tradeInventory.lovys || []).filter(item => !offered || Number(item.fragments) > 0);
-  return `<div class="trade-creature-menu">${choices.map(item => `<button type="button" data-trade-creature-choice="${escapeHtml(item.creatureId)}"><img src="${escapeHtml(tradeCreatureImageUrl(item))}" alt=""><span><strong>${escapeHtml(item.name)}</strong><small>${escapeHtml(item.rarity || '')} · ${requested ? 'Fragments à recevoir' : `${Number(item.fragments || 0)} fragments disponibles`}</small></span></button>`).join('')}</div>`;
+function tradeCreatureOptions(selected='',ownedOnly=false){return (tradeInventory.lovys||[]).filter(l=>!ownedOnly||Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeOwnedOfferTypes(inventory=tradeInventory){
+  // Only stock already available in the player's inventory, excluding reserved offers.
+  const stockedFragments=(inventory.lovys||[]).some(l=>Number(l.fragments||0)>0);
+  return [
+    ['fragment',stockedFragments],['egg',Number(inventory.eggs||0)>0],
+    ['xp_bottle',Number(inventory.xpBottles||0)>0],['xp_gourd',Number(inventory.xpGourds||0)>0],
+    ['xp_boost',Number(inventory.xpBoosts||0)>0],['xp_boost_5h',Number(inventory.xpBoosts5h||0)>0],
+    ['xp_boost_10h',Number(inventory.xpBoosts10h||0)>0]
+  ].filter(([,owned])=>owned).map(([type])=>type);
 }
-
-function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false){if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span><b class="trade-select-chevron">⌄</b>`;}
-function setupTradeVisualSelector(row){const type=(row.querySelector('[data-trade-type]')||row.querySelector('#tradeOfferType'))?.value||'fragment',select=row.querySelector('[data-trade-creature]'),preview=row.querySelector('[data-trade-preview]');if(!preview||!select)return;preview.classList.toggle('is-selectable',type==='fragment');preview.dataset.tradeVisualSelector=type==='fragment'?'1':'0';if(isDesktopGameUi()){if(type==='fragment'){preview.tabIndex=0;preview.setAttribute('role','button');preview.setAttribute('aria-label','Choisir un Lovys');}else{preview.removeAttribute('tabindex');preview.removeAttribute('role');preview.removeAttribute('aria-label');}}}
-
+const allTradeOfferTypes=[...$('tradeOfferType').options].map(option=>({value:option.value,label:option.textContent}));
+function syncTradeOwnedOfferOptions(prefillCreature=''){
+  const type=$('tradeOfferType'),creature=$('tradeOfferCreature');
+  const owned=new Set(tradeOwnedOfferTypes());
+  const available=allTradeOfferTypes.filter(option=>owned.has(option.value));
+  const previousType=type.value,previousCreature=creature.value;
+  type.innerHTML=available.length
+    ? available.map(option=>`<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('')
+    : '<option value="">Aucun objet disponible à proposer</option>';
+  type.disabled=!available.length;
+  type.value=available.some(option=>option.value===previousType)?previousType:available[0]?.value||'';
+  // Requests still use the complete list of Lovys the player can receive fragments for.
+  creature.innerHTML=tradeCreatureOptions('',true);
+  const selected=typeof prefillCreature==='string'&&prefillCreature?prefillCreature:previousCreature;
+  if([...creature.options].some(option=>option.value===selected))creature.value=selected;
+  return available.length>0;
+}
+function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false,gourd=false,boost=0){if(boost)return `<span class="trade-preview-egg">⚡</span><span><strong>Double XP</strong><small>${boost} h actives sur le live</small></span>`;if(gourd)return `<span class="trade-preview-egg">🫙</span><span><strong>Gourde de 500 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
 function syncTradeAssetRow(row) {
   const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
   const creature = row.querySelector('[data-trade-creature]'), preview = row.querySelector('[data-trade-preview]');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   if (preview) {
-    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle');
+    preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',tradeBoostHours(type));
     if (isDesktopGameUi() && type === 'fragment') {
       const detail = preview.querySelector('small');
       if (detail) detail.textContent = `${tradeLovysById(creature?.value)?.rarity || 'Lovys'} · Fragments à recevoir`;
@@ -8917,21 +9481,31 @@ function syncTradeAssetRow(row) {
     row.dataset.quantityType = type;
     setupDesktopTradeQuantity(quantity);
   }
-  setupTradeVisualSelector(row);
 }
-function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
+function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option><option value="xp_gourd">🫙 Gourde de 500 XP</option><option value="xp_boost">⚡ Double XP · 2 h de live</option><option value="xp_boost_5h">⚡ Double XP · 5 h de live</option><option value="xp_boost_10h">⚡ Double XP · 10 h de live</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
 function syncTradeOfferFields() {
-  const type = $('tradeOfferType')?.value || 'fragment', creature = $('tradeOfferCreature');
+  const type = $('tradeOfferType')?.value || '', creature = $('tradeOfferCreature');
+  const input=$('tradeOfferQuantity');
+  if(!type){
+    if(creature){creature.classList.add('hidden');creature.disabled=true;}
+    if($('tradeOfferPreview'))$('tradeOfferPreview').innerHTML='';
+    if(input){input.value='1';input.max='1';input.disabled=true;}
+    if($('tradeOfferBalance'))$('tradeOfferBalance').textContent='Aucun objet disponible à proposer. Obtiens un objet ou des fragments pour créer une offre.';
+    if($('tradePublish'))$('tradePublish').disabled=true;
+    if($('tradeComposerNext'))$('tradeComposerNext').disabled=true;
+    return;
+  }
+  if(input)input.disabled=false;
+  if($('tradePublish'))$('tradePublish').disabled=false;
+  if($('tradeComposerNext'))$('tradeComposerNext').disabled=false;
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   const preview = $('tradeOfferPreview');
-  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle');
-  setupTradeVisualSelector($('tradeOfferType')?.closest('.trade-asset-row') || document);
+  if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',tradeBoostHours(type));
   const balance = tradeBalanceFor({ type, creatureId: creature?.value });
-  const input = $('tradeOfferQuantity');
   input.max = String(Math.max(1, Math.min(999, balance)));
   input.value = String(Math.max(1, Math.min(Number(input.value || 1), Number(input.max))));
-  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
+  if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'xp_gourd' ? `Disponible : ${balance} gourde(s) de 500 XP` : tradeBoostHours(type) ? `Disponible : ${balance} booster(s) double XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
 }
 let desktopTradeComposerStep = 1;
 
@@ -8947,16 +9521,18 @@ function tradeComposerAssets() {
 
 function desktopTradeAssetLabel(asset) {
   if (asset.type === 'xp_bottle') return `${asset.quantity} fiole(s) de 100 XP`;
+  if (asset.type === 'xp_gourd') return `${asset.quantity} gourde(s) de 500 XP`;
+  if (tradeBoostHours(asset.type)) return `${asset.quantity} booster(s) double XP · ${tradeBoostHours(asset.type)} h`;
   if (asset.type === 'egg') return `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère`;
   return `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${tradeLovysById(asset.creatureId)?.name || 'Lovys'}`;
 }
 
 function validateDesktopTradeComposer(includeRequests = false) {
   const { offer, options, durationDays } = tradeComposerAssets();
-  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
+  const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
   if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
   const balance = tradeBalanceFor(offer);
-  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
+  if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : tradeBoostHours(offer.type) ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
   if (!includeRequests) return '';
   if (!options.length || options.length > 3 || options.some(asset => !valid(asset))) return 'Choisis de 1 à 3 alternatives avec des quantités entières entre 1 et 999.';
   const key = asset => `${asset.type}:${asset.creatureId || ''}:${asset.quantity}`;
@@ -8968,8 +9544,8 @@ function validateDesktopTradeComposer(includeRequests = false) {
 
 function desktopTradeRecapAsset(asset) {
   const creature = asset.type === 'fragment' ? tradeLovysById(asset.creatureId) : null;
-  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':'🥚'}</span>`;
-  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const visual = creature ? `<img src="${escapeHtml(tradeCreatureImageUrl(creature))}" alt="">` : `<span class="trade-recap-egg">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':'🥚'}</span>`;
+  return `<div class="trade-recap-asset">${visual}<span><strong>${escapeHtml(desktopTradeAssetLabel(asset))}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : tradeBoostHours(asset.type) ? `${tradeBoostHours(asset.type)} h actives sur le live` : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function renderDesktopTradeRecap() {
@@ -9020,13 +9596,10 @@ function setupDesktopTradeComposer() {
   composer.classList.toggle('desktop-trade-wizard', isDesktopGameUi());
   if (!isDesktopGameUi()) return;
   $('tradeOfferType').setAttribute('data-trade-type', '');
-  $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments Lovys';
+  if($('tradeOfferType').querySelector('[value="fragment"]'))$('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments Lovys';
   $('tradeOfferPreview').setAttribute('data-trade-preview', '');
   const stocked = (tradeInventory.lovys || []).filter(item => Number(item.fragments) > 0);
-  const current = $('tradeOfferCreature').value;
-  $('tradeOfferCreature').innerHTML = stocked.map(item => `<option value="${escapeHtml(item.creatureId)}">${escapeHtml(item.name)}</option>`).join('');
-  if (stocked.some(item => item.creatureId === current)) $('tradeOfferCreature').value = current;
-  syncTradeAvailableOfferChoices();
+  // The offer dropdown was filtered from real stock for both desktop and mobile.
   const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
   $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
   $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
@@ -9068,40 +9641,35 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions('',true);if(!syncTradeAvailableOfferChoices()){alert('Tu ne possèdes aucun objet ou fragment disponible à échanger.');return;}if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{
+    hideTradePublishConfirmation();
+    await loadTradeInventory();
+    await refreshLobbyCounts();
+    tradeOptionCount=1;
+    syncTradeOwnedOfferOptions(prefillCreature);
+    $('tradeOfferQuantity').value='10';
+    $('tradeComposerMessage').textContent='';
+    $('tradeComposerMessage').classList.remove('error');
+    renderTradeOptions();
+    setupDesktopTradeComposer();
+    syncTradeOfferFields();
+    updateTradeComposerRecap();
+    $('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';
+    $('tradeComposer')?.classList.remove('hidden');
+  }catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
 $('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}});
-function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
+function tradeComposerSummary(){const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(type)?`booster double XP · ${tradeBoostHours(type)} h`:type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(t)?`booster double XP · ${tradeBoostHours(t)} h`:t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
 function updateTradeComposerRecap(){const el=$('tradeComposerRecap');if(!el)return;if(isDesktopGameUi())el.innerHTML=renderDesktopTradeRecap();else el.textContent=tradeComposerSummary();}
 $('tradeComposer')?.addEventListener('input',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});$('tradeComposer')?.addEventListener('change',()=>{updateTradeComposerRecap();hideTradePublishConfirmation();});
 $('tradeOptionsList')?.addEventListener('change',e=>{const row=e.target.closest('[data-trade-option-row]');if(row)syncTradeAssetRow(row);});
 $('tradeOptionsList')?.addEventListener('click',e=>{if(!e.target.closest('[data-trade-remove]')||tradeOptionCount<=1)return;const rows=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')],idx=rows.indexOf(e.target.closest('[data-trade-option-row]'));if(idx>=0){rows[idx].remove();tradeOptionCount--;[...$('tradeOptionsList').querySelectorAll('.trade-option-number')].forEach((n,i)=>n.textContent=String(i+1));$('tradeOptionAdd').disabled=false;if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}}});
 
-document.addEventListener('click',e=>{
-  const choice=e.target.closest('[data-trade-creature-choice]');
-  if(choice){
-    const preview=choice.closest('[data-trade-preview]'),row=preview?.closest('.trade-asset-row,[data-trade-option-row]'),select=row?.querySelector('[data-trade-creature]');
-    if(select){select.value=choice.dataset.tradeCreatureChoice||select.value;select.dispatchEvent(new Event('change',{bubbles:true}));}
-    document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());e.stopPropagation();return;
-  }
-  const preview=e.target.closest('[data-trade-preview][data-trade-visual-selector="1"]');
-  if(preview){
-    const wasOpen=!!preview.querySelector('.trade-creature-menu');document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
-    if(!wasOpen)preview.insertAdjacentHTML('beforeend',tradeCreatureMenuMarkup(preview.closest('.trade-asset-row,[data-trade-option-row]')));e.stopPropagation();return;
-  }
-  document.querySelectorAll('.trade-creature-menu').forEach(m=>m.remove());
-});
 document.addEventListener('keydown', event => {
   if (!isDesktopGameUi() || $('tradeComposer')?.classList.contains('hidden')) return;
-  if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-trade-preview][data-trade-visual-selector="1"]')) {
-    event.preventDefault();event.target.click();
-  }
-  if (event.key === 'Escape' && $('tradePublishConfirm')?.classList.contains('hidden')) {
-    const menus = document.querySelectorAll('.trade-creature-menu');
-    if (menus.length) menus.forEach(menu => menu.remove()); else closeTradeComposer();
-  }
+  if (event.key === 'Escape' && $('tradePublishConfirm')?.classList.contains('hidden')) closeTradeComposer();
 });
 window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
   if (!event.matches) {
@@ -9114,7 +9682,7 @@ window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
     $('tradeOfferQuantity').max = '999';
     syncTradeAvailableOfferChoices();
     $('tradeOfferType').removeAttribute('data-trade-type');
-    $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments d’un Lovys';
+    if($('tradeOfferType').querySelector('[value="fragment"]'))$('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments d’un Lovys';
     $('tradeOfferPreview').removeAttribute('data-trade-preview');
     $('tradeOfferPreview').removeAttribute('tabindex');
     $('tradeOfferPreview').removeAttribute('role');
@@ -9124,8 +9692,15 @@ window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
 let pendingTradePublication=null;
 function hideTradePublishConfirmation(){const box=$('tradePublishConfirm'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(box)box.classList.add('hidden');if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');pendingTradePublication=null;}
 $('tradePublish')?.addEventListener('click',()=>{
+  const offerType=$('tradeOfferType').value;
+  const stockOffer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};
+  if(!tradeOwnedOfferTypes().includes(offerType)||!Number.isSafeInteger(stockOffer.quantity)||stockOffer.quantity<1||stockOffer.quantity>999||tradeBalanceFor(stockOffer)<stockOffer.quantity){
+    $('tradeComposerMessage').textContent='Tu peux proposer uniquement les objets et quantités disponibles dans ton inventaire.';
+    $('tradeComposerMessage').classList.add('error');
+    return;
+  }
   if(isDesktopGameUi()){const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
-  const offerType=$('tradeOfferType').value;const offer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
+  const offer=stockOffer;const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
   pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`:tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
 $('tradePublishCancel')?.addEventListener('click',hideTradePublishConfirmation);
@@ -9145,7 +9720,7 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
 });
 let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
-  return assets.map(asset=>`<div class="trade-exchange-item">${asset.type==='fragment'&&asset.image?`<img src="${escapeHtml(asset.image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`).join('');
+  return assets.map(asset=>{const image=asset.type==='fragment'?tradeCreatureImageUrl(asset):'';return `<div class="trade-exchange-item">${image?`<img src="${escapeHtml(image)}" alt="">`:`<span class="trade-exchange-object" aria-hidden="true">${asset.type==='xp_bottle'?'🧪':asset.type==='xp_gourd'?'🫙':tradeBoostHours(asset.type)?'⚡':asset.type==='egg'?'🥚':'🧩'}</span>`}<strong>${escapeHtml(asset.name||'Objet')}</strong><span>× ${Number(asset.quantity||0)}</span></div>`;}).join('');
 }
 async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedNotice=false}){
   if(activeTradeExchange)return false;
@@ -9165,12 +9740,12 @@ async function runTradeAcceptance({partner,give,receive,submit,refresh,acceptedN
     main.addEventListener('click',async()=>{
       if(state==='working')return;
       if(state!=='confirm'){finish();return;}
-      state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Les objets sont en cours de transfert.';
+      state='working';card.classList.add('working');main.disabled=cancel.disabled=close.disabled=true;main.textContent='Échange en cours…';status.textContent='Transfert des objets avec '+(partner||'ce joueur')+'…';
       try{
         await submit();committed=true;
         await new Promise(done=>setTimeout(done,1200));
         state='success';card.classList.remove('working');card.classList.add('success');emblem.textContent='✓';
-        overlay.querySelector('#tradeExchangeTitle').textContent=acceptedNotice?'Félicitations !':'Félicitations pour ton échange avec '+(partner||'ce joueur')+' !';
+        overlay.querySelector('#tradeExchangeTitle').textContent='Félicitations pour ton échange avec '+(partner||'ce joueur')+' !';
         status.textContent=acceptedNotice?'Ton offre a été acceptée par '+(partner||'ce joueur')+' ! Les objets ont été transférés.':'Échange effectué avec '+(partner||'ce joueur')+' ! Les objets ont été transférés.';
         main.textContent='Parfait !';cancel.hidden=true;main.disabled=close.disabled=false;main.focus();
         try{await refresh?.();}catch(error){console.warn('Échange confirmé, actualisation différée :',error);}
@@ -9274,6 +9849,7 @@ function startLiveUpdates() {
   if (!me?.user || !window.EventSource || liveUpdates) return;
 
   liveUpdates = new EventSource('/api/live-updates');
+  liveUpdates.addEventListener('game-reset-all',()=>{if(me?.user){window.LovysEvolutionCelebration?.reset();location.reload();}});
   liveUpdates.addEventListener('account-reset', event => {
     try{const data=JSON.parse(event.data);if(data.twitchId&&String(data.twitchId)===String(me?.user?.twitch_id))location.reload();}catch{}
   });
@@ -9282,6 +9858,8 @@ function startLiveUpdates() {
   });
   liveUpdates.addEventListener('connected', () => {
     if (!$('eventsModal')?.classList.contains('hidden')) refreshEventsState();
+    scheduleTwitchRewardCheck(1400);
+    scheduleWatchStreakRewardCheck(1700);
   });
   liveUpdates.addEventListener('live-boost-update', () => window.refreshLiveXpBoost?.());
   liveUpdates.addEventListener('connected', () => window.refreshLiveXpBoost?.());
@@ -9292,6 +9870,24 @@ function startLiveUpdates() {
   liveUpdates.addEventListener('tracker-update', refreshLiveGameState);
   liveUpdates.addEventListener('challenge-update', refreshLiveGameState);
   liveUpdates.addEventListener('shop-update', async () => {await refreshLiveGameState();refreshDesktopBoostStatus();if(isDesktopGameUi() && desktopView==='shop') {try {await loadShop();}catch{}}});
+  liveUpdates.addEventListener('watch-streak-reward',event=>{
+    try{
+      const data=JSON.parse(event.data);
+      if(String(data.twitchId)!==String(me?.user?.twitch_id))return;
+      void refreshLiveGameState();
+      if((isDesktopGameUi()&&desktopView==='progression')||!$('progressionModal')?.classList.contains('hidden'))void loadProgression();
+      if(!$('inventoryModal')?.classList.contains('hidden'))void loadShop();
+      scheduleWatchStreakRewardCheck(900);
+    }catch(error){console.warn('Récompense de série Twitch :',error);}
+  });
+  liveUpdates.addEventListener('twitch-reward', event => {
+    try{
+      const data=JSON.parse(event.data);
+      if(String(data.twitchId)!==String(me?.user?.twitch_id))return;
+      if((isDesktopGameUi() && desktopView==='shop') || !$('shopModal')?.classList.contains('hidden') || !$('inventoryModal')?.classList.contains('hidden'))void loadShop().catch(console.warn);
+      scheduleTwitchRewardCheck(1400);
+    }catch(error){console.warn('Récompense Twitch :',error);}
+  });
   liveUpdates.addEventListener('trade-update', () => { void refreshLobbyNotifications();void refreshLobbySilently(); });
   // Ces actions peuvent valider des badges sans passer par le tracker Twitch.
   for (const type of ['game-update','incubator-update','trade-update']) {
@@ -9314,14 +9910,17 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration(); }
+  if (!document.hidden && me?.user) { void refreshLiveGameState();refreshDesktopHomeLiveStatus();refreshMobileHomeLiveStatus();showNextBadgeCelebration();scheduleTwitchRewardCheck();scheduleWatchStreakRewardCheck(); }
 });
 
 startLiveUpdates();
 
 refreshDesktopHomeLiveStatus();
-setInterval(refreshDesktopHomeLiveStatus, 30000);
-setInterval(refreshMobileHomeLiveStatus, 30000);
+setInterval(()=>{
+  if(document.hidden || !me?.user)return;
+  if(isDesktopGameUi())void refreshDesktopHomeLiveStatus();
+  else if(isMobileGameUi())void refreshMobileHomeLiveStatus();
+},30000);
 
 // Filet de sécurité si une connexion SSE est interrompue par le navigateur/proxy.
 setInterval(() => {
@@ -9436,17 +10035,26 @@ $('gameFeedbackModal')?.addEventListener('click',e=>{if(e.target===$('gameFeedba
 $('gameFeedbackRemoveImage')?.addEventListener('click',clearFeedbackImage);
 $('gameFeedbackKind')?.addEventListener('change',()=>{const bug=$('gameFeedbackKind').value==='bug';$('gameFeedbackDescriptionLabel').textContent=bug?'Que s’est-il passé ? Comment reproduire le bug ?':'Quelle est ton idée et que pourrait-elle améliorer ?';$('gameFeedbackDescription').placeholder=bug?'Explique ce que tu faisais, ce qui s’est passé et ce que tu attendais…':'Décris ton idée et pourquoi elle serait utile aux joueurs…';});
 $('gameFeedbackScreenshot')?.addEventListener('change',async()=>{
-  const file=$('gameFeedbackScreenshot').files[0];clearFeedbackImage();if(!file)return;
-  const version=gameFeedbackImageVersion;gameFeedbackImageBusy=true;feedbackMessage('Préparation de la capture…');
+  const input=$('gameFeedbackScreenshot'),file=input.files?.[0];
+  gameFeedbackImageVersion++;const version=gameFeedbackImageVersion;
+  gameFeedbackScreenshot=null;$('gameFeedbackImage').removeAttribute('src');$('gameFeedbackImagePreview').classList.add('hidden');
+  if(!file){gameFeedbackImageBusy=false;feedbackMessage('');return;}
+  gameFeedbackImageBusy=true;feedbackMessage('Préparation de la capture…');
   let url;
   try {
     if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>12000000)throw Error('Choisis une image PNG, JPEG ou WebP de moins de 12 Mo.');
-    url=URL.createObjectURL(file);const image=new Image();image.src=url;await image.decode();
+    url=URL.createObjectURL(file);
+    const image=new Image();
+    await new Promise((resolve,reject)=>{
+      image.onload=resolve;
+      image.onerror=()=>reject(Error('Impossible de lire cette photo. Essaie une capture PNG ou JPEG.'));
+      image.src=url;
+    });
     if(image.width*image.height>40000000)throw Error('Cette image est trop grande.');
-    const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const context=canvas.getContext('2d');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
+    const scale=Math.min(1,1600/Math.max(image.width,image.height)),canvas=document.createElement('canvas');canvas.width=Math.max(1,Math.round(image.width*scale));canvas.height=Math.max(1,Math.round(image.height*scale));const context=canvas.getContext('2d');if(!context)throw Error('Impossible de préparer cette capture.');context.fillStyle='#fff';context.fillRect(0,0,canvas.width,canvas.height);context.drawImage(image,0,0,canvas.width,canvas.height);
     const result=canvas.toDataURL('image/jpeg',.82);if(result.length>2000000)throw Error('La capture est trop lourde. Essaie une image plus petite.');
     if(version!==gameFeedbackImageVersion)return;gameFeedbackScreenshot=result;$('gameFeedbackImage').src=result;$('gameFeedbackImagePreview').classList.remove('hidden');feedbackMessage('Capture prête à être envoyée.');
-  } catch(error){if(version===gameFeedbackImageVersion)feedbackMessage(error.message||'Capture illisible.',true);}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
+  } catch(error){if(version===gameFeedbackImageVersion){input.value='';feedbackMessage(error.message||'Capture illisible.',true);}}finally{if(url)URL.revokeObjectURL(url);if(version===gameFeedbackImageVersion)gameFeedbackImageBusy=false;}
 });
 $('gameFeedbackDescription')?.addEventListener('keydown',event=>{
   if(event.key!=='Enter'||event.shiftKey||event.ctrlKey||event.altKey||event.metaKey||event.isComposing)return;
@@ -9510,7 +10118,7 @@ async function openAdminFeedbackDetail(id){
   }catch(error){if(generation===adminFeedbackGeneration)detail.innerHTML=`<button class="btn secondary" data-feedback-return type="button">← Liste des retours</button><p>${escapeHtml(error.message)}</p>`;}
 }
 $('adminFeedbackOpen')?.addEventListener('click',async()=>{$('desktopAdminContent').classList.add('hidden');if(!isDesktopGameUi())$('adminFeedbackOpen').classList.add('hidden');$('adminFeedbackSection').classList.remove('hidden');$('adminFeedbackNotice').textContent='';adminFeedbackArchive=false;adminFeedbackPage=1;await loadAdminFeedback();$('adminFeedbackSection').scrollIntoView({block:'start',behavior:'smooth'});});
-$('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');});
+$('adminFeedbackBack')?.addEventListener('click',()=>{adminFeedbackGeneration++;$('adminFeedbackSection').classList.add('hidden');$('desktopAdminContent').classList.remove('hidden');$('adminFeedbackOpen').classList.remove('hidden');if(isDesktopGameUi())$('adminDashboardButton')?.click();});
 for(const [id,archive] of [['adminFeedbackActive',false],['adminFeedbackArchive',true]])$(id)?.addEventListener('click',()=>{adminFeedbackArchive=archive;adminFeedbackPage=1;$('adminFeedbackNotice').textContent='';loadAdminFeedback();});
 $('adminFeedbackPurge')?.addEventListener('click',async()=>{
   if(!adminFeedbackArchive||!adminFeedbackSelectedIds.size)return;
@@ -9522,8 +10130,8 @@ $('adminFeedbackPurge')?.addEventListener('click',async()=>{
     $('adminFeedbackNotice').textContent='Suppression des messages sélectionnés…';
     const data=await adminFetch('/api/admin/feedback/archive',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})});
     await loadAdminFeedback();
-    const deleted=Number(data.deleted)||0,failed=data.failedIds||[];
-    $('adminFeedbackNotice').textContent=`✓ ${deleted} message${deleted>1?'s':''} supprimé${deleted>1?'s':''}.${failed.length?` Conservé${failed.length>1?'s':''} : ${failed.map(id=>`#${id}`).join(', ')} (Discord indisponible ou ancien message sans identifiant).`:''}`;
+    const deleted=Number(data.deleted)||0,failed=data.failedIds||[],discordNotDeleted=data.discordNotDeletedIds||[];
+    $('adminFeedbackNotice').textContent='✓ '+deleted+' message'+(deleted>1?'s':'')+' supprimé'+(deleted>1?'s':'')+'.'+(failed.length?' Conservés : '+failed.map(id=>'#'+id).join(', ')+'.':'')+(discordNotDeleted.length?' Messages Discord à effacer manuellement : '+discordNotDeleted.map(id=>'#'+id).join(', ')+'.':'');
   }catch(error){$('adminFeedbackNotice').textContent=`Aucun message supprimé : ${error.message}. Vérifie que le serveur a bien été redéployé avec ce correctif.`;}
   finally{updateAdminFeedbackSelection();}
 });
@@ -9596,35 +10204,28 @@ document.querySelector('.desktop-game-footer-terms')?.addEventListener('toggle',
 function syncDesktopAdminPageLayout() {
   const tabs=$('desktopAdminTabs'), slot=$('desktopAdminPageSlot');
   if(!tabs || !slot)return;
-  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES), 'desktopAdminContent']) {
-    const node=$(id); if(!node)continue;
+  for(const id of [...Object.keys(DESKTOP_ADMIN_PAGES), 'adminFeedbackOpen', ...Object.values(DESKTOP_ADMIN_PAGES)]) {
+    const node=$(id); if(!node||id==='adminPlayersButton')continue;
     if(!desktopAdminLayoutOrigins.has(id)) {
       const origin=document.createComment(id+'-mobile-origin');
       node.parentNode.insertBefore(origin,node);desktopAdminLayoutOrigins.set(id,origin);
     }
     if(isDesktopGameUi()) {
-      if(id==='desktopAdminContent') $('adminTrackerContent')?.before(node);
-      else (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
-      if(id==='adminTrackerButton') {
-        if(desktopTrackerButtonMarkup===null)desktopTrackerButtonMarkup=node.innerHTML;
-        const logo=document.querySelector('.home-twitch-logo')?.cloneNode(true);
-        if(logo){logo.setAttribute('class','admin-twitch-logo');node.replaceChildren(logo,document.createTextNode(' Twitch'));}
-      }
+      (Object.values(DESKTOP_ADMIN_PAGES).includes(id)?slot:tabs).appendChild(node);
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','region');node.removeAttribute('aria-modal');}
     } else {
       const origin=desktopAdminLayoutOrigins.get(id);origin.parentNode.insertBefore(node,origin.nextSibling);
       if(Object.values(DESKTOP_ADMIN_PAGES).includes(id)){node.setAttribute('role','dialog');node.setAttribute('aria-modal','true');}
-      if(id==='adminTrackerButton' && desktopTrackerButtonMarkup!==null)node.innerHTML=desktopTrackerButtonMarkup;
-      if(id==='desktopAdminContent')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
       if(id==='adminFeedbackOpen')node.classList.toggle('hidden',!$('adminFeedbackSection').classList.contains('hidden'));
     }
   }
+  $('desktopAdminContent')?.classList.toggle('hidden',isDesktopGameUi()||!$('adminFeedbackSection').classList.contains('hidden'));
 }
 $('desktopAdminTabs')?.addEventListener('click',event=>{
   const button=event.target.closest('button');if(!button || !isDesktopGameUi())return;
   for(const id of Object.values(DESKTOP_ADMIN_PAGES))$(id)?.classList.add('hidden');
   $('adminFeedbackSection')?.classList.add('hidden');
-  $('desktopAdminContent')?.classList.toggle('hidden',button.id!=='adminTrackerButton');
+  $('desktopAdminContent')?.classList.add('hidden');
   $('adminFeedbackOpen')?.classList.remove('hidden');
   $('desktopAdminTabs').querySelectorAll('button').forEach(node=>node.toggleAttribute('aria-current',node===button));
 },true);
@@ -9674,15 +10275,15 @@ function playerBundleDraft(side) {
   return [...(list?.children || [])].map(row => {
     const value = row.querySelector('[data-bundle-asset]')?.value;
     if (!value) return null;
-    return { type: ['egg','xp_bottle'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
+    return { type: ['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value) ? value : 'fragment', creatureId: ['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value) ? null : value.slice(9), quantity: Number(row.querySelector('[data-bundle-quantity]')?.value || 0) };
   }).filter(Boolean);
 }
 
 function playerBundleAssetMarkup(asset) {
   const creature = (playerTradeInventory?.catalog || []).find(item => item.creatureId === asset.creatureId) || (playerCollectionData?.lovys || []).find(item => item.creatureId === asset.creatureId);
   const image = creature?.image;
-  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
-  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
+  const name = asset.type === 'xp_bottle' ? `${asset.quantity} fiole(s) de 100 XP` : asset.type === 'xp_gourd' ? `${asset.quantity} gourde(s) de 500 XP` : tradeBoostHours(asset.type) ? `${asset.quantity} booster(s) double XP · ${tradeBoostHours(asset.type)} h` : asset.type === 'egg' ? `${asset.quantity} œuf${asset.quantity > 1 ? 's' : ''} mystère` : `${asset.quantity} fragment${asset.quantity > 1 ? 's' : ''} de ${creature?.name || asset.creatureId}`;
+  return `<div class="trade-recap-asset">${image ? `<img src="${escapeHtml(image)}" alt="">` : `<span class="trade-recap-egg">${asset.type === 'xp_bottle' ? '🧪' : asset.type === 'xp_gourd' ? '🫙' : tradeBoostHours(asset.type) ? '⚡' : asset.type === 'egg' ? '🥚' : '🧩'}</span>`}<span><strong>${escapeHtml(name)}</strong><small>${asset.type === 'xp_bottle' ? '100 XP par fiole' : asset.type === 'xp_gourd' ? '500 XP par gourde' : tradeBoostHours(asset.type) ? `${tradeBoostHours(asset.type)} h actives sur le live` : asset.type === 'egg' ? 'Objet d’incubation' : escapeHtml(creature?.rarity || 'Fragments Lovys')}</small></span></div>`;
 }
 
 function playerBundleGroupMarkup(assets) {
@@ -9700,7 +10301,7 @@ function syncPlayerBundleRow(row) {
   const choice = playerBundleChoices(row.dataset.bundleSide).find(item => item.value === row.querySelector('[data-bundle-asset]').value);
   const input = row.querySelector('[data-bundle-quantity]');
   input.max = String(Math.min(999, choice?.quantity || 999));
-  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'egg' ? '🥚' : '🧩';
+  row.querySelector('.player-bundle-asset-preview').innerHTML = choice?.image ? `<img src="${escapeHtml(choice.image)}" alt="">` : choice?.value === 'xp_bottle' ? '🧪' : choice?.value === 'xp_gourd' ? '🫙' : tradeBoostHours(choice?.value) ? '⚡' : choice?.value === 'egg' ? '🥚' : '🧩';
   const stock = row.querySelector('.player-bundle-stock');
   if (stock) stock.textContent = choice ? `${choice.quantity} disponible${choice.quantity > 1 ? 's' : ''}` : 'Choisis un élément';
 }
@@ -9736,6 +10337,9 @@ function playerBundleChoices(side) {
   const receiverIds=new Set(receiver.lovys.map(l=>l.creatureId));
   const assets=source.lovys.filter(l=>receiverIds.has(l.creatureId) && Number(l.fragments)>0).map(l=>({value:'fragment:'+l.creatureId,label:'🧩 '+l.name+' · '+Number(l.fragments)+' disponibles',quantity:Number(l.fragments),image:l.image}));
   if(Number(source.xpBottles)>0)assets.push({value:'xp_bottle',label:'🧪 Fiole de 100 XP · '+Number(source.xpBottles)+' disponibles',quantity:Number(source.xpBottles)});
+  if(Number(source.xpGourds)>0)assets.push({value:'xp_gourd',label:'🫙 Gourde de 500 XP · '+Number(source.xpGourds)+' disponibles',quantity:Number(source.xpGourds)});
+  if(Number(source.xpBoosts)>0)assets.push({value:'xp_boost',label:'⚡ Double XP · 2 h de live · '+Number(source.xpBoosts)+' disponibles',quantity:Number(source.xpBoosts)});
+  for(const h of [5,10])if(Number(source[`xpBoosts${h}h`])>0)assets.push({value:`xp_boost_${h}h`,label:`⚡ Double XP · ${h} h de live · ${Number(source[`xpBoosts${h}h`])} disponibles`,quantity:Number(source[`xpBoosts${h}h`])});
   if(Number(source.eggs)>0)assets.push({value:'egg',label:'🥚 Œuf mystère · '+Number(source.eggs)+' disponibles',quantity:Number(source.eggs)});
   return assets;
 }
@@ -9777,7 +10381,7 @@ function readPlayerBundle(side) {
     const value=row.querySelector('[data-bundle-asset]').value,quantity=Number(row.querySelector('[data-bundle-quantity]').value),choice=choices.find(c=>c.value===value);
     if(!choice||!Number.isSafeInteger(quantity)||quantity<1||quantity>999||quantity>choice.quantity)throw new Error('Vérifie les éléments et les quantités disponibles de chaque côté.');
     if(seen.has(value))throw new Error('Choisis chaque élément une seule fois et ajuste sa quantité.');seen.add(value);
-    return {type:['egg','xp_bottle'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle'].includes(value)?null:value.slice(9),quantity};
+    return {type:['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value)?value:'fragment',creatureId:['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(value)?null:value.slice(9),quantity};
   });
 }
 function showPlayerBundleStage(stage,offered=[]) {
@@ -9800,7 +10404,7 @@ function showPlayerBundleStage(stage,offered=[]) {
 }
 function playerBundleSummary(assets) {
   const catalog=playerTradeInventory?.catalog || [];
-  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
+  return assets.map(asset=>`${asset.quantity} × ${asset.type==='xp_bottle'?'fiole de 100 XP':asset.type==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(asset.type)?`booster double XP · ${tradeBoostHours(asset.type)} h`:asset.type==='egg'?'œuf mystère':'fragments '+(catalog.find(l=>l.creatureId===asset.creatureId)?.name || asset.creatureId)}`).join(' + ');
 }
 $('lobbyPlayerCollectionBody')?.addEventListener('input',()=>{if(!playerTradeBusy){clearPlayerBundleConfirmation();renderPlayerBundleRecap();}});
 $('lobbyPlayerCollectionBody')?.addEventListener('change',event=>{
@@ -9910,7 +10514,7 @@ $('playerTradeInbox')?.addEventListener('click',async event=>{
 // PC — Présentation de la communauté, mémorisée sur le compte.
 const communityGuideSteps = [
  {icon:'🤝',title:'Bienvenue dans la Communauté !',text:'Ici, les joueurs échangent des fragments de Lovys et des œufs mystère disponibles.',details:'<p><strong>🔄 Échanges :</strong> trouve les offres publiques.</p><p><strong>📜 Mes offres :</strong> suis ou annule tes annonces.</p><p><strong>👥 Joueurs :</strong> découvre les collections et propose un échange à une personne précise.</p><p><strong>💜 Souhaits :</strong> indique les Lovys que tu recherches.</p><p><strong>🕘 Historique :</strong> retrouve uniquement les échanges auxquels tu as participé.</p>'},
- {icon:'🧩',title:'Quels fragments peux-tu échanger ?',text:'Les fragments améliorent un Lovy que tu possèdes déjà. Les œufs permettent de découvrir de nouveaux Lovys.',details:'<p><strong>Les deux joueurs doivent déjà posséder le Lovys correspondant.</strong></p><p>Exemple : même avec des œufs disponibles, tu ne peux pas recevoir des fragments de Crysal si tu n’as pas encore Crysal. Il faut d’abord le découvrir dans un œuf.</p><p>Un échange de fragments ne débloque pas le Lovy correspondant. Ton Lovy reste dans ta collection lorsque tu donnes ses fragments.</p><p>Les œufs mystère disponibles peuvent aussi être échangés. Les œufs en incubation restent dans leurs incubateurs.</p>'},
+ {icon:'🧩',title:'Quels fragments peux-tu échanger ?',text:'Les fragments améliorent un Lovys que tu possèdes déjà. Les œufs permettent de découvrir de nouveaux Lovys.',details:'<p><strong>Les deux joueurs doivent déjà posséder le Lovys correspondant.</strong></p><p>Exemple : même avec des œufs disponibles, tu ne peux pas recevoir des fragments de Crysal si tu n’as pas encore Crysal. Il faut d’abord le découvrir dans un œuf.</p><p>Un échange de fragments ne débloque pas le Lovys correspondant. Ton Lovys reste dans ta collection lorsque tu donnes ses fragments.</p><p>Les œufs mystère disponibles peuvent aussi être échangés. Les œufs en incubation restent dans leurs incubateurs.</p>'},
  {icon:'👥',title:'Je propose / Je voudrais',text:'Clique sur le rectangle d’un joueur pour voir ses Lovys avec leurs photos, ses fragments et ses œufs.',details:'<p><strong>Je propose :</strong> tes fragments compatibles et tes œufs disponibles.</p><p><strong>Je voudrais :</strong> les fragments que ce joueur possède pour tes Lovys, et ses œufs disponibles.</p><p>D’abord, choisis <strong>1 à 3 éléments dans Je propose</strong> et valide cette étape. Ensuite, choisis <strong>1 à 3 éléments dans Je voudrais</strong>. La confirmation finale récapitule les deux côtés avant l’envoi.</p><p><strong>Aucun choix ?</strong> Le joueur doit avoir du stock compatible : posséder un Lovys ne suffit pas pour demander des fragments qu’il n’a pas.</p>'},
  {icon:'✅',title:'Confirmer et suivre ton échange',text:'Relis les quantités avant d’envoyer. Tes objets proposés sont réservés jusqu’à la réponse du joueur.',details:'<p><strong>Proposition ciblée :</strong> le destinataire accepte ou refuse dans <strong>Joueurs</strong>. Tu peux y annuler ta proposition.</p><p><strong>Offre publique :</strong> propose un élément contre une des alternatives. Un joueur choisit une seule contrepartie pour accepter.</p><p>En cas de refus, d’annulation ou d’expiration, les objets réservés sont rendus. L’acceptation transfère les éléments ensemble.</p><p>Maximum 3 offres actives et 20 échanges réalisés par jour.</p>'}
 ];
@@ -9991,19 +10595,23 @@ function mobileTradePageItems(offers,mine) {
 function mobileHomeActionItems(actions=[]) {
   const useful=actions.filter(action=>action.priority);
   const xp=Math.floor(Number(me?.user?.pending_xp||0));
-  if(me?.user?.creature_id && xp>0)useful.push({id:'mobile-xp',icon:'⚡',title:`${xp.toLocaleString('fr-FR')} XP à distribuer`,desc:'Fais progresser le Lovy de ton choix.',button:'Distribuer'});
+  if(me?.user?.creature_id && xp>0)useful.push({id:'mobile-xp',icon:'⚡',title:`${xp.toLocaleString('fr-FR')} XP à distribuer`,desc:'Fais progresser le Lovys de ton choix.',button:'Distribuer'});
   if(lastLobbyUnread>0)useful.push({id:'mobile-community',icon:'🤝',title:`${lastLobbyUnread} nouveauté${lastLobbyUnread>1?'s':''} dans la communauté`,desc:'Consulte les dernières activités de tes échanges.',button:'Voir'});
   useful.push(...actions.filter(action=>!action.priority));
   return useful;
 }
-function renderMobileHomeActions(actions=[], prepared=false) {
-  if(!isMobileGameUi())return;
-  const list=$('mobileHomeActionsList');if(!list)return;
-  const useful=prepared?actions:mobileHomeActionItems(actions);
-  const all=$('mobileHomeAllActions');
-  if(all){all.hidden=useful.length<=3;all.textContent=`Tout voir (${useful.length}) ›`;}
-  list.innerHTML=useful.length ? useful.slice(0,3).map((action,index)=>`<article class="mobile-home-action"><span class="mobile-home-action-icon" aria-hidden="true">${escapeHtml(action.icon)}</span><div><small class="next-action-step">${index===0?'MAINTENANT':`ENSUITE · ${index+1}`}</small><strong>${escapeHtml(action.title)}</strong><p>${escapeHtml(action.desc)}</p></div><button type="button" data-next-action="${escapeHtml(action.id)}"${action.key?` data-key="${escapeHtml(action.key)}"`:''}${action.slot?` data-slot="${Number(action.slot)}"`:''}>${escapeHtml(action.button)}</button></article>`).join('') : '<p class="mobile-actions-empty">✓ Tout est à jour. Regarde le live pour faire progresser tes Lovys.</p>';
+function renderMobileHomeActions() {
+  if (!isMobileGameUi()) return;
+  const container = document.querySelector('.mobile-home-actions');
+  if (!container) return;
+  // Le cadre Double XP remplace l'ancien bloc « À faire maintenant » sur mobile/tablette.
+  if (!$('mobileHomeXpBoost')) {
+    container.innerHTML = `<section id="mobileHomeXpBoost" class="home-xp-boost-feature mobile-home-xp-boost" aria-live="polite"><div class="home-xp-boost-top"><strong>⚡ DOUBLE XP</strong><span class="home-xp-boost-multiplier" hidden>×2</span></div><div id="mobileHomeXpBoostTime" class="home-xp-boost-time">Aucun boost actif</div><div class="home-xp-boost-caption">Active un Double XP depuis ton inventaire.</div></section>`;
+  }
+  renderMobileHomeXpBoost();
+  void refreshMobileHomeXpBoost();
 }
+
 async function runMobileHomeSpecialAction(button) {
   if(!isMobileGameUi())return false;
   if(button.dataset.nextAction==='mobile-xp'){
@@ -10046,6 +10654,7 @@ async function mobileBack(kind) {
   await toggleMobilePanel('more');
 }
 $('mobileNavMore')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('more');});
+$('mobileMoreAdmin')?.addEventListener('click',()=>{if(isMobileGameUi())openDesktopAdmin();});
 $('mobileMoreShop')?.addEventListener('click',()=>{if(isMobileGameUi())toggleMobilePanel('shop');});
 $('mobileHomeActionsList')?.addEventListener('click',async event=>{
   if(!isMobileGameUi())return;
@@ -10111,11 +10720,3 @@ document.addEventListener('visibilitychange',()=>{
 });
 window.matchMedia(MOBILE_GAME_MEDIA).addEventListener('change',updateMobileEnhancements);
 updateMobileEnhancements();
-
-
-
-
-
-
-
-
