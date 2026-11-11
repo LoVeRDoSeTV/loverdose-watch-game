@@ -1,7 +1,17 @@
 // Exclusive title: ownership is tied to the three original Twitch accounts.
 // Never infer a recipient from a similar nickname or the number of players.
 export const BETA_TESTER_TITLE={key:'reward_title_beta_tester',category:'title',subcategory:'violet',name:'Bêta testeur',price:0,color:'#c7a1ff',description:'Titre permanent réservé à LoVeRMiyu, LoVeRKiLLeR et lzkll3_. Conservé après les réinitialisations du jeu.',rewardOnly:true,exclusive:true,permanent:true};
-const campaign='beta-testers-v2-exact';
+export const BETA_TESTER_CAMPAIGN='beta-testers-v2-exact';
+const campaign=BETA_TESTER_CAMPAIGN;
+
+// Never authorize equipping this title merely because an inventory row exists.
+export async function hasBetaTesterEntitlement(client,accountId,twitchId){
+  if(!accountId||!twitchId)return false;
+  const result=await client.query(`SELECT 1 FROM account_permanent_rewards
+    WHERE account_id=$1 AND twitch_id=$2 AND item_key=$3 AND source=$4`,
+    [accountId,twitchId,BETA_TESTER_TITLE.key,BETA_TESTER_CAMPAIGN]);
+  return result.rows.length>0;
+}
 const BETA_TWITCH_LOGINS=Object.freeze(['lovermiyu','loverkiller','lzkll3_']);
 const normalize=value=>String(value||'').trim().toLowerCase();
 
