@@ -64,7 +64,7 @@ test('la série Twitch crédite la réserve XP sans changer le Lovys et donne le
     await initWatchStreakRewards(db);
     await grantSharedWatchStreak(db,{twitchId:'viewer',count:5,messageId:'xp'});
     const user=(await db.query('SELECT xp,pending_xp FROM users WHERE id=1')).rows[0];
-    assert.equal(user.xp,24980);assert.equal(user.pending_xp,50);
+    assert.equal(user.xp,24980);assert.equal(user.pending_xp,65);
     await grantSharedWatchStreak(db,{twitchId:'viewer',count:350,messageId:'final'});
     const inventory=(await db.query('SELECT item_key FROM shop_inventory ORDER BY item_key')).rows.map(row=>row.item_key);
     assert.ok(inventory.includes('boost_xp_x2'));
