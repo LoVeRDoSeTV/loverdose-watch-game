@@ -1,130 +1,54 @@
-name: Contrôle de fusion isolée
+name: Valider et nettoyer la branche de fusion
 on:
   push:
     branches:
       - integration/main-unification-20261111
-  pull_request:
-    branches:
-      - main
 permissions:
   contents: write
 jobs:
-  inspect-merge:
+  validate-and-clean:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Fusionner dans le runner uniquement sans modifier les branches
+      - name: Vérifier le code fusionné
         shell: bash
         run: |
-          git config user.name "Integration Check"
-          git config user.email "integration-check@users.noreply.github.com"
-          git fetch origin main performance-safe-modules-20261029
-          git merge -X theirs --no-commit --no-ff origin/performance-safe-modules-20261029
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('src/routes/pve.js')
-          lines=p.read_text().splitlines(keepends=True)
-          seen=False
-          result=[]
-          for line in lines:
-              if 'const lovysId=Number(resolved.state.player.lovysId||0);' in line:
-                  if seen:
-                      continue
-                  seen=True
-              result.append(line)
-          p.write_text(''.join(result))
-          print('Nombre de déclarations de lovysId :',sum('const lovysId=Number(resolved.state.player.lovysId||0);' in line for line in result))
-          PY
-          echo "APERCU_PVE"
-          sed -n '85,135p' src/routes/pve.js
-          python3 - <<'PY'
-          from pathlib import Path
-          # Harmonise the PvE reward persistence with both historic schemas.
-          p=Path('src/combat/rewards.js')
-          src=p.read_text()
-          old="    await client.query('COMMIT');"
-          insert="""    await client.query(`CREATE TABLE IF NOT EXISTS user_lovys_pve_progress (
-              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-              lovys_id INTEGER NOT NULL REFERENCES user_lovys(id) ON DELETE CASCADE,
-              fight_key TEXT NOT NULL, first_won_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
-              PRIMARY KEY(user_id,lovys_id,fight_key))`);
-              await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
-                SELECT user_id,lovys_id,fight_key FROM user_pve_lovys_wins ON CONFLICT DO NOTHING`);
-          """
-          assert src.count(old)==1
-          p.write_text(src.replace(old,insert+old))
-          # Expose compatible result fields and per-Lovys status without removing replay protections.
-          p=Path('src/routes/pve.js'); src=p.read_text()
-          old="firstWin,replayReward,reward,events:"
-          assert old in src
-          src=src.replace(old,"firstWin,firstLovysWin:Boolean(firstWin||replayReward),replayReward,reward,events:",1)
-          # Also check won battles if this zone has no final boss (test fixtures).
-          old="const lovysWins=victory&&lovysId&&bossKey?(await client.query("
-          assert old in src
-          src=src.replace(old,"const lovysWins=victory&&lovysId?(await client.query(",1)
-          old="[user.id,lovysId,[fight.key,bossKey]])"
-          assert old in src
-          src=src.replace(old,"[user.id,lovysId,bossKey?[fight.key,bossKey]:[fight.key]])",1)
-          old="won:lovysWins.has(fight.key), accountWon:"
-          assert old in src
-          src=src.replace(old,"won:lovysWins.has(fight.key), wonWithLovys:lovysWins.has(fight.key), cashRange:(fight.boss||fight.miniBoss||fight.finalBoss)?{min:10,max:10}:{min:3,max:5}, accountWon:",1)
-          p.write_text(src)
-          # Keep the new reward preview helper alongside feature-branch UI logic.
-          p=Path('public/app.js');src=p.read_text()
-          helper="function pveRewardPreview(fight){\n  if(!fight)return '';\n  if(fight.wonWithLovys)return 'Déjà gagné avec ce Lovys : aucune nouvelle récompense.';\n  const r=fight.rewards||{},range=fight.cashRange||(fight.boss?{min:10,max:10}:{min:3,max:5});\n  const cash=range.min===range.max?range.min:`${range.min} à ${range.max}`;\n  const base=`+${Number(r.creatureXp||0)} XP Lovys · +${cash} LoVeR’Cash`;\n  return fight.won?`Première victoire avec ce Lovys : ${base}`:`Première victoire : ${base} · +${Number(r.globalXp||0)} XP globale · +${Number(r.fragments||0)} fragments d’œuf`;\n}\nfunction pveResultRewardText(result){\n  if(!result.victory)return '';\n  if(!result.firstLovysWin)return 'Déjà gagné avec ce Lovys : aucune nouvelle récompense.';\n  const r=result.reward||{};\n  const base=`+${Number(r.creatureXp||0)} XP Lovys · +${Number(r.cash||0)} LoVeR’Cash`;\n  return result.firstWin?`Première victoire : ${base} · +${Number(r.globalXp||0)} XP globale · +${Number(r.fragments||0)} fragments d’œuf`:`Première victoire avec ce Lovys : ${base}`;\n}\n"
-          assert 'function pveRewardPreview(' not in src
-          assert 'function pveFightDetailMarkup(' in src
-          src=src.replace('function pveFightDetailMarkup(',helper+'function pveFightDetailMarkup(',1)
-          p.write_text(src)
-          # Keep explicit "une seule fois" wording in PvE badge descriptions.
-          p=Path('src/achievements.js');src=p.read_text()
-          src=src.replace("Chaque adversaire ne compte qu’une fois, même si tu rejoues le combat.", "Chaque adversaire compte une seule fois, même si tu rejoues le combat.")
-          p.write_text(src)
-          PY
-          echo "CONFLITS_RESTANTS"
-          git diff --name-only --diff-filter=U
-          echo "FONCTIONNALITES_VERIFIEES"
-          for term in "BETA_TESTER_TITLE_KEY" "canUseBetaTesterTitle" "syncTradeAvailableOfferChoices" "grant_xp_boost_hours"; do
-            if grep -Rq "$term" server.js public/app.js; then
-              echo "OK $term"
-            else
-              echo "MANQUANT $term"
-              exit 1
-            fi
-          done
-          echo "APERCU_CHANGEMENTS"
-          git diff --cached --stat | tail -12
           git diff --check
           node --check server.js
           node --check public/app.js
           node --check src/routes/pve.js
-      - name: Installer pour les tests
+          grep -q 'canUseBetaTesterTitle' server.js
+          grep -q 'syncTradeAvailableOfferChoices' public/app.js
+      - name: Installer les dépendances de test
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Regénérer et contrôler les fichiers compressés
+      - name: Vérifier et générer les bundles
         run: |
           npm run build:css
           npm run build:js
           npm run check:css
           npm run check:js
           npm run check:deploy
-      - name: Tester la version fusionnée
+      - name: Tests complets
         run: npm test
-      - name: Enregistrer seulement la branche de travail après tests verts
-        if: github.event_name == 'pull_request'
+      - name: Nettoyer exclusivement la branche de fusion
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Éliminer les outils temporaires après validation ; ne jamais toucher aux sauvegardes.
-          # Nettoyer uniquement les dépendances suivies par erreur, sans toucher aux sauvegardes.
+          # Retirer uniquement les dépendances versionnées, sans altérer le disque du VPS.
           git rm -rf --cached --ignore-unmatch node_modules
+          # Retirer l'outillage temporaire de fusion. Aucun fichier de sauvegarde concerné.
           git rm -rf --ignore-unmatch tools/integration .github/workflows/integration-merge-check.yml
-          git add -A
+          # Enregistrer uniquement les bundles compilés.
+          git add -u public/app.min.js public/bot-studio.min.js public/styles-extended.min.css public/pve-expansion.min.css public/return-summary.min.css public/live-xp-boost.min.css public/tablet.min.css public/lovys-evolution.min.css
           git diff --cached --check
-          git commit -m "Fusionner les fonctionnalités du jeu et préserver les correctifs [skip ci]"
-          git push origin HEAD:refs/heads/integration/main-unification-20261111
+          if ! git diff --cached --quiet; then
+            git commit -m "Nettoyer les dépendances temporaires et conserver les bundles validés [skip ci]"
+            git push origin HEAD:refs/heads/integration/main-unification-20261111
+          fi
