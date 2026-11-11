@@ -151,19 +151,8 @@
     line-height:1.4;
   }
 
-  /* Fond des récompenses 100/250 lives : médaille entière sur une carte portrait.
-     La source SVG garde ses proportions, contrairement à background-size:cover. */
-  /* Profil complet : illustration panoramique conservée sans zoom excessif. */
+  /* Pour les cartes, retour au vrai SVG panoramique, voir règles plus bas. */
   .player-profile-hero:is(.streak-100-background,.streak-250-background) {
-    background-size:100% auto,cover,cover,cover!important;
-    background-position:center top,center,center,center!important;
-    background-repeat:no-repeat!important;
-    animation:none!important;
-  }
-  /* Les aperçus sont indépendants : on conserve l'illustration complète. */
-  .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
-  #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
-  .inventory-visit-preview .player-visit-card:is(.streak-100-background,.streak-250-background) {
     background-size:100% auto,cover,cover,cover!important;
     background-position:center top,center,center,center!important;
     background-repeat:no-repeat!important;
@@ -215,55 +204,43 @@
   display:none!important;
 }
 
-/* La véritable carte de l'accueil utilise un cadrage SVG portrait dédié.
-   Chaque médaille est visible sur la droite SOUS les informations du profil.
-   Les prévisualisations continuent d'utiliser les SVG panoramiques d'origine. */
+/* Fonds 100/250 lives : SVG ORIGINAL (1200 x 440). On agrandit la carte
+   plutôt que zoomer ou redessiner le cercle. Même cadrage sur la vraie
+   carte et dans la collection de badges ; prévisualisation boutique intacte. */
 @media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
-  body .dashboard-left-stack > .player-visit-card.streak-100-background {
-    background-image:url("/assets/streak-100-mobile.svg?v=2"),
-      radial-gradient(circle at 10% 0%,rgba(145,71,255,.16),transparent 42%),
-      linear-gradient(160deg,#15192b,#0b0f20)!important;
-    background-size:100% auto,cover,cover!important;
-    background-position:center center,center,center!important;
+  body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background),
+  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
+  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
+  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) {
+    background-size:100% auto,cover,cover,cover!important;
+    background-position:center bottom 28px,center,center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
-  body .dashboard-left-stack > .player-visit-card.streak-250-background {
-    background-image:url("/assets/streak-250-mobile.svg?v=2"),
-      radial-gradient(circle at 10% 0%,rgba(196,153,89,.14),transparent 42%),
-      linear-gradient(160deg,#20172e,#0d1022)!important;
-    background-size:100% auto,cover,cover!important;
-    background-position:center center,center,center!important;
-    background-repeat:no-repeat!important;
-    animation:none!important;
+  body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background) {
+    display:flex;
+    flex-direction:column;
+    min-height:295px;
+    box-sizing:border-box;
   }
-  /* La prévisualisation complète ne reprend jamais le cadrage portrait de l'accueil. */
-  #shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before,
-  .watch-streak-preview-art .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before {
-    background-size:contain,cover!important;
-    background-position:center center,center!important;
-    background-repeat:no-repeat!important;
+  body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-actions {
+    margin-top:auto;
+    padding-top:22px;
+    position:relative;
+    z-index:2;
   }
-
-  /* Aperçus des cartes : même visuel mobile que sur l'accueil, positionné
-     à droite et en bas, sans être rogné derrière le pseudo.
-     L'image conserve ses proportions et le cercle reste parfaitement rond. */
-  :is(#badgeVisitPreviewVisual,.watch-streak-preview-art,.inventory-visit-preview) .player-visit-card.streak-100-background {
-    background-image:url("/assets/streak-100-mobile.svg?v=2"),
-      radial-gradient(circle at 10% 0%,rgba(145,71,255,.16),transparent 42%),
-      linear-gradient(160deg,#15192b,#0b0f20)!important;
-    background-size:100% auto,cover,cover!important;
-    background-position:center center,center,center!important;
-    background-repeat:no-repeat!important;
-    animation:none!important;
+  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
+  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
+  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) {
+    display:flex;
+    flex-direction:column;
+    box-sizing:border-box;
+    min-height:260px;
   }
-  :is(#badgeVisitPreviewVisual,.watch-streak-preview-art,.inventory-visit-preview) .player-visit-card.streak-250-background {
-    background-image:url("/assets/streak-250-mobile.svg?v=2"),
-      radial-gradient(circle at 10% 0%,rgba(196,153,89,.14),transparent 42%),
-      linear-gradient(160deg,#20172e,#0d1022)!important;
-    background-size:100% auto,cover,cover!important;
-    background-position:center center,center,center!important;
-    background-repeat:no-repeat!important;
-    animation:none!important;
+  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges,
+  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges,
+  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges {
+    margin-top:auto!important;
+    padding-top:12px;
   }
 }
