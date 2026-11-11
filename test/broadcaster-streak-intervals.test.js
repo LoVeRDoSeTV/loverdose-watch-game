@@ -4,7 +4,7 @@ import {PGlite} from '@electric-sql/pglite';
 import {initWatchStreakRewards} from '../src/watch-streak-rewards.js';
 import {initBroadcasterStreak,registerBroadcasterLive} from '../src/broadcaster-streak.js';
 
-test('le streamer avance à chaque live mais n’obtient un nouveau cadeau qu’à 205',async()=>{
+test('le compteur streamer avance sans attribuer de cadeau automatiquement',async()=>{
   const db=new PGlite();
   try{
     await db.exec(`CREATE TABLE accounts(id integer PRIMARY KEY,twitch_id text UNIQUE);
@@ -21,6 +21,7 @@ test('le streamer avance à chaque live mais n’obtient un nouveau cadeau qu’
     };
     await initBroadcasterStreak(pool,'streamer');
     const initial=(await db.query('SELECT points,pending_xp FROM users WHERE id=1')).rows[0];
+    assert.equal((await db.query('SELECT COUNT(*)::int total FROM user_watch_streak_rewards')).rows[0].total,0,'Initialiser 200 lives ne distribue pas de cadeau');
     for(let day=1;day<=4;day++){
       assert.equal(await registerBroadcasterLive(pool,'streamer',new Date(Date.UTC(2026,10,day,18))),true);
       const state=(await db.query("SELECT count FROM broadcaster_watch_streak WHERE twitch_id='streamer'")).rows[0];
@@ -33,9 +34,10 @@ test('le streamer avance à chaque live mais n’obtient un nouveau cadeau qu’
     const nextLive=new Date(Date.UTC(2026,10,5,18));
     assert.equal(await registerBroadcasterLive(pool,'streamer',nextLive),true);
     assert.equal((await db.query("SELECT count FROM broadcaster_watch_streak WHERE twitch_id='streamer'")).rows[0].count,205);
-    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,1);
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,0);
     assert.equal(await registerBroadcasterLive(pool,'streamer',nextLive),false);
+    assert.deepEqual((await db.query('SELECT points,pending_xp FROM users WHERE id=1')).rows[0],initial);
     await initBroadcasterStreak(pool,'streamer');
-    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,1);
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,0);
   }finally{await db.close();}
 });
