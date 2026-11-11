@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420" fill="none" aria-labelledby="title">
+  <title id="title">100 lives — fond bureau au médaillon réduit et entièrement visible</title>
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="700" y2="470" gradientUnits="userSpaceOnUse"><stop stop-color="#110b25"/><stop offset=".52" stop-color="#221151"/><stop offset="1" stop-color="#090f2c"/></linearGradient>
+    <linearGradient id="arc" x1="260" y1="400" x2="1170" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#a369ff" stop-opacity="0"/><stop offset=".6" stop-color="#ae6aff"/><stop offset="1" stop-color="#e1c9ff"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#9147ff" stop-opacity=".58"/><stop offset="1" stop-color="#9147ff" stop-opacity="0"/></radialGradient>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="16"/></filter>
+  </defs>
+  <!-- Fond pleine carte : un seul rectangle, derrière tous les motifs. -->
+  <rect width="700" height="420" fill="url(#base)"/>
+  <circle cx="548" cy="295" r="250" fill="url(#light)" opacity="0.75"/>
+  <path d="M-60 452C156 414 367 218 740 94" stroke="url(#arc)" stroke-width="38" opacity=".30" filter="url(#glow)"/>
+  <path d="M-60 452C156 414 367 218 740 94" stroke="url(#arc)" stroke-width="3.4" opacity=".77"/>
+  <path d="M155 471C335 367 493 297 740 239" stroke="#b18cff" stroke-opacity=".29" stroke-width="1.7"/>
+  <path d="M180 0L515 470M341 0L660 470" stroke="#b18cff" stroke-opacity=".10" stroke-width="1.1"/>
+  <!-- Médaillon original à taille adaptée : entièrement à droite, sous les badges et au-dessus des boutons. -->
+  <g transform="translate(178.21 175.05) scale(0.41)">
+  <circle cx="919" cy="195" r="127" stroke="#ab70ff" stroke-opacity=".72" stroke-width="20" filter="url(#glow)"/>
+  <circle cx="919" cy="195" r="127" stroke="#e8ccff" stroke-opacity=".68" stroke-width="2.5"/>
+  <circle cx="919" cy="195" r="141" stroke="#bca4ff" stroke-opacity=".15" stroke-width="1" stroke-dasharray="2 12"/>
+  <text x="919" y="214" text-anchor="middle" font-family="Arial,sans-serif" font-size="100" font-weight="900" letter-spacing="-7" fill="#efe0ff">100</text>
+  <path d="M850 236h138" stroke="#e0c4ff" stroke-opacity=".65" stroke-width="3"/>
+  <text x="919" y="261" text-anchor="middle" font-family="Arial,sans-serif" font-size="19" font-weight="700" letter-spacing="5" fill="#d1a5ff">LIVES</text>
+  </g>
+  <g transform="translate(626 390) scale(3.2)" fill="#d8c2ff" opacity=".72"><path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/><path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/></g>
+  <g fill="#d7b9ff" opacity=".70">
+    <circle cx="66" cy="46" r="1.5"/><circle cx="314" cy="198" r="1.5"/>
+    <circle cx="385" cy="42" r="2"/><circle cx="682" cy="129" r="1.6"/>
+    <circle cx="133" cy="359" r="1.2"/>
+  </g>
+</svg>
