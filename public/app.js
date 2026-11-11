@@ -9707,6 +9707,7 @@ async function openTradeComposer(prefillCreature='',offerToEdit=null){
     $('tradeComposer').dataset.editing=String(editing);
     $('tradeComposer').querySelector('.trade-composer-head h2').textContent=editing?'✏️ Modifier mon offre':'🔄 Créer une offre';
     $('tradePublish').textContent=editing?'Enregistrer les modifications':isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';
+    $('tradePublishConfirmBtn').textContent=editing?'Confirmer la modification':'Confirmer la publication';
     updateTradeComposerRecap();
     $('tradeComposer')?.classList.remove('hidden');
   }catch(error){editingTradeOffer=null;alert(error.message);}
@@ -9776,7 +9777,7 @@ $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
     $('tradePublishSuccess').querySelector('strong').textContent=payload.offerId?'Offre modifiée !':'Offre postée !';
     await new Promise(resolve=>setTimeout(resolve,1500));hideTradePublishConfirmation();closeTradeComposer();await openLobbyTab('mine');
   }catch(error){msg.textContent=error.message;msg.className='trade-composer-message error';hideTradePublishConfirmation();}
-  finally{btn.disabled=false;btn.textContent='Confirmer la publication';}
+  finally{btn.disabled=false;btn.textContent=editingTradeOffer?'Confirmer la modification':'Confirmer la publication';}
 });
 let activeTradeExchange=false;
 function tradeExchangeAssetList(assets){
