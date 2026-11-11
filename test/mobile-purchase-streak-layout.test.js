@@ -47,6 +47,9 @@ test('100 and 250 use the SAME full-bleed vector asset on mobile player and shop
     assert.equal((art.match(/<rect /g)||[]).length,1,'Only full-bleed background rectangle allowed');
     const ring=milestone===100?'cx="919" cy="195" r="127"':'cx="916" cy="201" r="139"';
     assert.ok(art.includes(ring)&&original.includes(ring),'Original medal ring must stay intact');
+    assert.match(art,/id="glow" x="-100%" y="-100%" width="300%" height="300%"/,'Glow needs an expanded clip region to prevent a rectangular outline');
+    assert.ok(art.includes('filter="url(#glow)"'),'The ring keeps its smooth glow');
+
   }
   const compact=entries.find(rule=>rule.selector.includes('body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background)')&&rule.values['min-height']);
   assert.equal(compact?.values['min-height'],'0!important');
