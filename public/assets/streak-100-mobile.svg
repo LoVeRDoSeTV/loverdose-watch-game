@@ -4,7 +4,7 @@
     <linearGradient id="base" x1="0" y1="0" x2="700" y2="470" gradientUnits="userSpaceOnUse"><stop stop-color="#110b25"/><stop offset=".52" stop-color="#221151"/><stop offset="1" stop-color="#090f2c"/></linearGradient>
     <linearGradient id="arc" x1="260" y1="400" x2="1170" y2="42" gradientUnits="userSpaceOnUse"><stop stop-color="#a369ff" stop-opacity="0"/><stop offset=".6" stop-color="#ae6aff"/><stop offset="1" stop-color="#e1c9ff"/></linearGradient>
     <radialGradient id="light"><stop stop-color="#9147ff" stop-opacity=".58"/><stop offset="1" stop-color="#9147ff" stop-opacity="0"/></radialGradient>
-    <filter id="glow"><feGaussianBlur stdDeviation="16"/></filter>
+    <filter id="glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="16"/></filter>
   </defs>
   <!-- Fond pleine carte : un seul rectangle, derrière tous les motifs. -->
   <rect width="700" height="470" fill="url(#base)"/>
