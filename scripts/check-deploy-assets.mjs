@@ -33,7 +33,7 @@ function collectJavaScript(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const fullPath = path.join(directory, entry.name);
     if (entry.isDirectory()) collectJavaScript(fullPath);
-    else if (entry.isFile() && /\\.(?:js|mjs|cjs)$/i.test(entry.name)) javascript.push(fullPath);
+    else if (entry.isFile() && /\.(?:js|mjs|cjs)$/i.test(entry.name)) javascript.push(fullPath);
   }
 }
 for (const folder of ['src', 'scripts', 'public']) collectJavaScript(path.join(root, folder));
@@ -48,7 +48,7 @@ function checkPublicSecrets(directory) {
   for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
     const fullPath = path.join(directory, entry.name);
     if (entry.isDirectory()) checkPublicSecrets(fullPath);
-    else if (entry.isFile() && /(?:^\\.env(?:\\..*)?$|\\.(?:sql|dump|pem|key|bak)$|^id_(?:rsa|ed25519)$)/i.test(entry.name)) {
+    else if (entry.isFile() && /(?:^\.env(?:\..*)?$|\.(?:sql|dump|pem|key|bak)$|^id_(?:rsa|ed25519)$)/i.test(entry.name)) {
       errors.push('Fichier sensible dans public/ : ' + path.relative(pub, fullPath));
     }
   }
