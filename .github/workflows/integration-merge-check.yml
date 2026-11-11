@@ -3,9 +3,6 @@ on:
   push:
     branches:
       - integration/main-unification-20261111
-  pull_request:
-    branches:
-      - main
 permissions:
   contents: write
 jobs:
@@ -114,11 +111,15 @@ jobs:
           npm run check:deploy
       - name: Tester la version fusionnée
         run: npm test
-      - name: Enregistrer uniquement la branche de travail si les vérifications réussissent
+      - name: Enregistrer seulement la branche de travail après tests verts
         if: github.event_name == 'push'
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Éliminer les outils temporaires après validation ; ne jamais toucher aux sauvegardes.
+          git rm -rf --ignore-unmatch tools/integration .github/workflows/integration-merge-check.yml
           git add -A
-          git commit -m "Intégrer les fonctionnalités et les corrections validées dans une branche de travail"
+          git diff --cached --check
+          git commit -m "Fusionner les fonctionnalités du jeu et préserver les correctifs [skip ci]"
           git push origin HEAD:refs/heads/integration/main-unification-20261111
