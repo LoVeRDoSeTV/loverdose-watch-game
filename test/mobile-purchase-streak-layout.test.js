@@ -38,7 +38,7 @@ test('100 and 250 lives have separate mobile assets on the real home card',()=>{
     const real=rules.find(rule=>rule.selector.includes(`streak-${milestone}-background`));
     assert.ok(real,`Missing home card CSS for ${milestone} lives`);
     assert.match(real.values['background-image'],new RegExp(`streak-${milestone}-mobile\\.svg`));
-    assert.match(real.values['background-size'],/100% 100%/);
+    assert.match(real.values['background-size'],/100% auto/);
   }
   const shop=[];
   root.walkRules(rule=>{
@@ -79,4 +79,25 @@ test('100 and 250 lives have centered medal thumbnails without changing the equi
   assert.match(medal?.['background-position']||'',/92% center/);
   assert.ok(layer?.display?.includes('none'));
   assert.ok(!medal.selector.includes('.player-visit-card'));
+});
+
+test('100/250 lives preview in badge collection uses the mobile artwork without stretching the ring',()=>{
+  const root=postcss.parse(css);
+  const previewRules=[];
+  root.walkRules(rule=>{
+    if(rule.selector.includes('#badgeVisitPreviewVisual')&&rule.selector.includes('.player-visit-card')){
+      const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
+      if(values['background-image'])previewRules.push({selector:rule.selector,values});
+    }
+  });
+  for(const milestone of [100,250]){
+    const match=previewRules.find(rule=>rule.selector.includes(`streak-${milestone}-background`));
+    assert.ok(match,`Missing badge collection preview for ${milestone} lives`);
+    assert.match(match.values['background-image'],new RegExp(`streak-${milestone}-mobile\\\\.svg`));
+    assert.match(match.values['background-size'],/100% auto/);
+    assert.match(match.values['background-position'],/center center/);
+  }
+  const svg=readFileSync(new URL('../public/assets/streak-100-mobile.svg',import.meta.url),'utf8');
+  assert.match(svg,/stroke="#e8ccff"/);
+  assert.doesNotMatch(svg,/<circle cx="292" cy="159"[^>]*fill="#21143c"/);
 });
