@@ -3,7 +3,7 @@ import { initLiveBoostTimeline, mutateLiveBoosts, averageLiveBoosts, publicLiveB
 import { initPlayerHistory, recordPlayerHistory, registerAdminPlayerHistory } from './src/player-history.js';
 import { resetPlayerProgress } from './src/reset-player.js';
 import { registerGlobalGameReset } from './src/reset-game.js';
-import { initPermanentRewards, BETA_TESTER_TITLE } from './src/permanent-rewards.js';
+import { initPermanentRewards, BETA_TESTER_TITLE, hasBetaTesterEntitlement } from './src/permanent-rewards.js';
 import { createAchievements, WATCH_STAGE_REWARDS, WATCH_HOUR_STAGES } from './src/achievements.js';
 import express from 'express';
 import { globalThresholdForLevel, lovysProgressionFromXp, migrateLovysProgressionCurve, LOVYS_MAX_XP, LIVE_ATTENDANCE_SECONDS, reconcileLovysXp, LIVE_TICK_SQL, syncActiveLovysXp, recordDailyLiveActivity } from './src/xp-economy.js';
@@ -6608,7 +6608,9 @@ app.get('/api/shop', async (req, res) => {
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
     const isBroadcaster = broadcasterId && String(account.twitch_id || '') === broadcasterId;
     // Le titre Bêta testeur n'apparaît que chez ses véritables bénéficiaires.
-    const catalog = SHOP_ITEMS.filter(item => item.key !== BETA_TESTER_TITLE.key || inventory.get(item.key) > 0).map(item => ({
+    const betaTitleEligible = inventory.get(BETA_TESTER_TITLE.key)>0 &&
+      await hasBetaTesterEntitlement(pool,account.id,account.twitch_id);
+    const catalog = SHOP_ITEMS.filter(item => item.key !== BETA_TESTER_TITLE.key || betaTitleEligible).map(item => ({
       ...item,
       owned: item.category === 'object' ? inventory.get(item.key) > 0 : inventory.has(item.key),
       quantity: item.category === 'object' ? (inventory.get(item.key) || 0) : undefined,
@@ -6722,6 +6724,10 @@ app.post('/api/shop/equip-outfit', async (req, res) => {
         if (key === MASTER_TITLE.key) {
           if (!isBroadcaster) {await client.query('ROLLBACK');return res.status(403).json({error:'Titre exclusif.'});}
         } else {
+          if(key === BETA_TESTER_TITLE.key &&
+             !await hasBetaTesterEntitlement(client,req.session.account.id,accountResult.rows[0].twitch_id)){
+            await client.query('ROLLBACK');return res.status(403).json({error:'Titre réservé aux trois bêta-testeurs.'});
+          }
           const owned = await client.query('SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0 FOR SHARE', [req.session.account.id,key]);
           if (!owned.rowCount) {await client.query('ROLLBACK');return res.status(403).json({error:'Tu ne possèdes pas tous les articles de cette tenue.'});}
         }
@@ -6757,6 +6763,10 @@ app.post('/api/shop/equip', async (req, res) => {
 
     const item = shopItemByKey(key);
     if (!item || !['title','background','frame','avatar_frame'].includes(item.category)) return res.status(400).json({ error:'Article non équipable.' });
+    if(key === BETA_TESTER_TITLE.key &&
+       !await hasBetaTesterEntitlement(pool,req.session.account.id,accountResult.rows[0]?.twitch_id)){
+      return res.status(403).json({error:'Titre réservé aux trois bêta-testeurs.'});
+    }
     const owned = await pool.query(`SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0`, [req.session.account.id, key]);
     if (!owned.rowCount) return res.status(403).json({ error:'Tu ne possèdes pas cet article.' });
 
