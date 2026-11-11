@@ -1,0 +1,180 @@
+/* Dialogues d'achat compacts sur téléphone et tablette tactile.
+   Les actions restent visibles, même dans un navigateur à barre d'outils haute. */
+@media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
+  #shopPurchaseConfirmModal,
+  #shopPurchaseSuccessModal {
+    position:fixed!important;
+    inset:0!important;
+    box-sizing:border-box!important;
+    width:100%!important;
+    max-width:none!important;
+    height:100dvh!important;
+    padding:max(10px,env(safe-area-inset-top)) 10px max(10px,env(safe-area-inset-bottom))!important;
+    display:flex!important;
+    align-items:center!important;
+    justify-content:center!important;
+    overflow:hidden!important;
+    z-index:1001100!important;
+    background:rgba(7,4,18,.80)!important;
+    backdrop-filter:blur(7px)!important;
+  }
+  #shopPurchaseConfirmModal.hidden,
+  #shopPurchaseSuccessModal.hidden {display:none!important;}
+
+  #shopPurchaseConfirmModal > .shop-purchase-card,
+  #shopPurchaseSuccessModal > .shop-purchase-card {
+    box-sizing:border-box!important;
+    flex:0 1 auto;
+    width:min(520px,100%)!important;
+    max-width:520px!important;
+    min-width:0!important;
+    min-height:0!important;
+    max-height:calc(100dvh - 20px - env(safe-area-inset-top) - env(safe-area-inset-bottom))!important;
+    margin:auto!important;
+    padding:18px 15px 12px!important;
+    border-radius:18px!important;
+    overflow-x:hidden!important;
+    overflow-y:auto!important;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin;
+  }
+
+  .shop-purchase-modal .shop-purchase-close {
+    top:10px;right:10px;
+    width:38px;height:38px;
+  }
+  .shop-purchase-modal .shop-purchase-kicker {
+    font-size:10px;
+    letter-spacing:.12em;
+    padding-right:25px;
+    padding-left:25px;
+  }
+  .shop-purchase-modal .shop-purchase-card h2 {
+    margin:5px 32px 10px!important;
+    font-size:clamp(20px,4.4vw,24px)!important;
+    line-height:1.2;
+  }
+  .shop-purchase-modal .shop-purchase-visual {
+    width:116px!important;
+    min-height:74px!important;
+    margin:2px auto 7px!important;
+  }
+  .shop-purchase-modal .shop-purchase-visual .shop-item-preview {
+    box-sizing:border-box;
+    width:100%!important;
+    height:80px!important;
+    min-height:80px!important;
+  }
+  .shop-purchase-modal .shop-purchase-name {
+    font-size:clamp(16px,4vw,19px);
+    line-height:1.25;
+    margin:3px auto;
+    overflow-wrap:anywhere;
+  }
+  .shop-purchase-modal .shop-purchase-copy {
+    margin:5px auto 9px;
+    font-size:12px;
+    line-height:1.4;
+  }
+  .shop-purchase-modal .shop-purchase-quantity.is-visible {
+    margin:10px 0 7px!important;
+    gap:6px 9px;
+  }
+  .shop-purchase-modal .shop-purchase-quantity > div {gap:7px;}
+  .shop-purchase-modal .shop-purchase-quantity label {font-size:12px;}
+  .shop-purchase-modal .shop-purchase-quantity button {
+    width:40px;height:40px;
+    min-width:40px;
+  }
+  .shop-purchase-modal .shop-purchase-quantity input {
+    width:65px;height:40px;
+  }
+  .shop-purchase-modal .shop-purchase-quantity small {
+    margin-top:1px;
+    font-size:11px;
+  }
+  .shop-purchase-modal .shop-purchase-error:not(:empty) {
+    margin:5px 0;
+  }
+  .shop-purchase-modal .shop-purchase-summary {
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    margin:10px 0 0!important;
+  }
+  .shop-purchase-modal .shop-purchase-summary span {
+    min-width:0;
+    padding:10px 7px;
+    border-radius:12px;
+    font-size:11px;
+    line-height:1.3;
+  }
+  .shop-purchase-modal .shop-purchase-summary strong {
+    font-size:clamp(11px,3vw,14px);
+    line-height:1.35;
+    overflow-wrap:anywhere;
+  }
+  /* Les boutons restent accessibles sans devoir chercher le bas de la popup. */
+  .shop-purchase-modal .shop-purchase-actions {
+    position:sticky!important;
+    bottom:0;
+    z-index:5;
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    margin:12px 0 0!important;
+    padding:10px 0 2px!important;
+    border-top:1px solid rgba(190,145,255,.19);
+    background:linear-gradient(180deg,rgba(28,18,49,.86),#1b1230 30%);
+  }
+  .shop-purchase-modal .shop-purchase-actions .shop-action {
+    box-sizing:border-box;
+    width:100%!important;
+    min-width:0!important;
+    min-height:46px!important;
+    padding:9px 6px;
+    font-size:12px;
+    line-height:1.25;
+    white-space:normal;
+    overflow-wrap:anywhere;
+  }
+  .shop-purchase-modal .shop-payment-orbit {
+    width:58px;height:58px;
+    margin-bottom:8px;
+    font-size:26px;
+  }
+  .shop-purchase-modal .shop-purchase-success-message {
+    margin:9px auto 6px;
+    padding:10px;
+    font-size:12px;
+    line-height:1.4;
+  }
+
+  /* Fond des récompenses 100/250 lives : médaille entière sur une carte portrait.
+     La source SVG garde ses proportions, contrairement à background-size:cover. */
+  .player-visit-card:is(.streak-100-background,.streak-250-background),
+  .player-profile-hero:is(.streak-100-background,.streak-250-background) {
+    background-size:100% auto,cover,cover,cover!important;
+    background-position:center top,center,center,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before {
+    background-size:100% auto,cover!important;
+    background-position:center top,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  .shop-item-preview:is(.streak-100-background,.streak-250-background) {
+    background-size:100% auto,cover!important;
+    background-position:center top,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+}
+@media (max-height:640px) and (max-width:900px) {
+  .shop-purchase-modal .shop-purchase-card h2 {margin-bottom:6px!important;}
+  .shop-purchase-modal .shop-purchase-visual {min-height:60px!important;}
+  .shop-purchase-modal .shop-purchase-visual .shop-item-preview {height:66px!important;min-height:66px!important;}
+}
