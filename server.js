@@ -646,6 +646,7 @@ const SHOP_ITEMS = [
   { key:'title_etoile_rose', category:'title', subcategory:'pink', name:'Étoile rose', price:400, color:'#ff95ef', description:'Un titre lumineux et pétillant pour les profils les plus stylés.' },
   { key:'title_roi_arene', category:'title', subcategory:'gold', name:'Reine de l’arène', price:500, color:'#f4cd67', description:"Un titre doré premium réservé aux plus grosses collectionneuses de LoVeR'Cash." },
   { key:'title_souverain_live', category:'title', subcategory:'gold', name:'Souverain du live', price:600, color:'#ffd86b', description:'Un grand titre doré pour les profils les plus prestigieux.' },
+  { key:'title_beta_testeur', category:'title', subcategory:'violet', name:'Bêta testeur', price:0, color:'#bb95ff', description:'Titre exclusif réservé aux trois bêta-testeurs.', rewardOnly:true, exclusive:true },
   { key:'reward_title_recrue', category:'title', subcategory:'silver', name:'Recrue de LoVeR Watch Game', price:0, color:'#9aa3b8', description:'Débloqué au niveau global 1.', rewardOnly:true },
   { key:'reward_title_eclaireur', category:'title', subcategory:'blue', name:'Éclaireur du Live', price:0, color:'#67c7ff', description:'Débloqué au niveau global 6.', rewardOnly:true },
   { key:'reward_title_veilleur', category:'title', subcategory:'blue', name:'Veilleur du Live', price:0, color:'#7dd8d0', description:'Débloqué au niveau global 11.', rewardOnly:true },
@@ -742,6 +743,9 @@ const SHOP_ITEMS = [
 
 const MASTER_TITLE = { key:'title_master_game', category:'title', subcategory:'gold', name:'Maître du jeu', price:0, color:'#f3c85b', description:'Titre exclusif réservé au diffuseur.', exclusive:true };
 const TITLE_NONE_KEY = '__none__';
+const BETA_TESTER_TITLE_KEY='title_beta_testeur';
+const BETA_TESTER_LOGINS=new Set(['lovermiyu','loverkiller','lzkll3_']);
+const canUseBetaTesterTitle=username=>BETA_TESTER_LOGINS.has(String(username||'').trim().toLowerCase());
 
 function shopItemByKey(key) {
   return SHOP_ITEMS.find(item => item.key === key) || null;
@@ -6372,7 +6376,7 @@ app.get('/api/shop', async (req, res) => {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
 
     const accountResult = await pool.query(
-      `SELECT id, twitch_id, equipped_title_key, equipped_background_key, equipped_frame_key, equipped_avatar_frame_key FROM accounts WHERE id = $1`,
+      `SELECT id, username, twitch_id, equipped_title_key, equipped_background_key, equipped_frame_key, equipped_avatar_frame_key FROM accounts WHERE id = $1`,
       [req.session.account.id]
     );
     const account = accountResult.rows[0];
@@ -6393,9 +6397,9 @@ app.get('/api/shop', async (req, res) => {
 
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
     const isBroadcaster = broadcasterId && String(account.twitch_id || '') === broadcasterId;
-    const catalog = SHOP_ITEMS.map(item => ({
+    const catalog = SHOP_ITEMS.filter(item=>item.key!==BETA_TESTER_TITLE_KEY||canUseBetaTesterTitle(account.username)).map(item => ({
       ...item,
-      owned: item.category === 'object' ? inventory.get(item.key) > 0 : inventory.has(item.key),
+      owned: item.key===BETA_TESTER_TITLE_KEY ? canUseBetaTesterTitle(account.username) : item.category === 'object' ? inventory.get(item.key) > 0 : inventory.has(item.key),
       quantity: item.category === 'object' ? (inventory.get(item.key) || 0) : undefined,
       equipped:
         (item.category === 'title' && account.equipped_title_key === item.key) ||
@@ -6481,7 +6485,7 @@ app.post('/api/shop/equip-outfit', async (req, res) => {
   try {
     client = await pool.connect();
     await client.query('BEGIN');
-    const accountResult = await client.query('SELECT twitch_id FROM accounts WHERE id = $1 FOR UPDATE', [req.session.account.id]);
+    const accountResult = await client.query('SELECT twitch_id,username FROM accounts WHERE id = $1 FOR UPDATE', [req.session.account.id]);
     if (!accountResult.rowCount) {await client.query('ROLLBACK');return res.status(404).json({error:'Compte introuvable.'});}
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
     const isBroadcaster = Boolean(broadcasterId && String(accountResult.rows[0].twitch_id || '') === broadcasterId);
@@ -6492,9 +6496,11 @@ app.post('/api/shop/equip-outfit', async (req, res) => {
         if (!item || item.category !== category || item.category === 'object') {
           await client.query('ROLLBACK');return res.status(400).json({error:'Article incompatible avec cet emplacement.'});
         }
-        if (key === MASTER_TITLE.key) {
+        if (key === BETA_TESTER_TITLE_KEY) {
+          if(!canUseBetaTesterTitle(accountResult.rows[0].username)){await client.query('ROLLBACK');return res.status(403).json({error:'Titre Bêta testeur exclusif.'});}
+        } else if (key === MASTER_TITLE.key) {
           if (!isBroadcaster) {await client.query('ROLLBACK');return res.status(403).json({error:'Titre exclusif.'});}
-        } else {
+        } else if(key!==BETA_TESTER_TITLE_KEY) {
           const owned = await client.query('SELECT 1 FROM shop_inventory WHERE account_id = $1 AND item_key = $2 AND quantity > 0 FOR SHARE', [req.session.account.id,key]);
           if (!owned.rowCount) {await client.query('ROLLBACK');return res.status(403).json({error:'Tu ne possèdes pas tous les articles de cette tenue.'});}
         }
@@ -6518,9 +6524,15 @@ app.post('/api/shop/equip', async (req, res) => {
     if (!req.session.account || !req.session.user) return res.status(401).json({ error:'Connexion requise.' });
     const key = String(req.body?.itemKey || '').trim();
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
-    const accountResult = await pool.query(`SELECT twitch_id FROM accounts WHERE id = $1`, [req.session.account.id]);
+    const accountResult = await pool.query(`SELECT twitch_id,username FROM accounts WHERE id = $1`, [req.session.account.id]);
     const isBroadcaster = broadcasterId && String(accountResult.rows[0]?.twitch_id || '') === broadcasterId;
 
+    if(key===BETA_TESTER_TITLE_KEY){
+      if(!canUseBetaTesterTitle(accountResult.rows[0]?.username))return res.status(403).json({error:'Titre Bêta testeur exclusif.'});
+      await pool.query(`UPDATE accounts SET equipped_title_key=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[req.session.account.id,key]);
+      pushLiveUpdate('shop-update',{twitchId:req.session.user.twitchId});
+      return res.json({ok:true});
+    }
     if (key === MASTER_TITLE.key) {
       if (!isBroadcaster) return res.status(403).json({ error:'Titre exclusif.' });
       await pool.query(`UPDATE accounts SET equipped_title_key = $2, updated_at=CURRENT_TIMESTAMP WHERE id = $1`, [req.session.account.id, key]);
