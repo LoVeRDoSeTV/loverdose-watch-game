@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - integration/main-unification-20261111
+  pull_request:
+    branches:
+      - main
 permissions:
   contents: read
 jobs:
