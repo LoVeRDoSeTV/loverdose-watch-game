@@ -32,3 +32,12 @@ test('100 and 250 live backgrounds retain their artwork proportions on narrow ca
   assert.ok(bgRules.length>=3);
   assert.ok(bgRules.every(rule=>rule.nodes.some(decl=>decl.prop==='background-size'&&decl.value.includes('100% auto'))));
 });
+
+test('200 live avatar frame preview stays visibly gold and bounded on mobile',()=>{
+  const root=postcss.parse(css);
+  let frame=false;
+  root.walkRules(rule=>{
+    if(rule.selector.includes('.frame-streak-200 .shop-preview-avatarframe-inner') && rule.toString().includes('#f6c875') && rule.toString().includes('50px'))frame=true;
+  });
+  assert.ok(frame);
+});
