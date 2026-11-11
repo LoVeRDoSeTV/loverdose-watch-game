@@ -32,9 +32,10 @@ test('un partage Twitch crédite son palier une seule fois, à un compte lié',a
     assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,50);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:10,messageId:'f'}),true);
     assert.equal((await db.query("SELECT quantity FROM shop_inventory WHERE item_key='mystery_egg'")).rows[0].quantity,1);
-    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,3);
+    // Partager 10 lives valide aussi le palier 7 encore non réclamé.
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,4);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:4,messageId:'other'}),true);
-    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,15);
+    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,30);
     assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,0);
     assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,75);
   }finally{await db.close();}
