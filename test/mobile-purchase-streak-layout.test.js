@@ -25,48 +25,35 @@ test('purchase modal remains hidden when closed and scrollable within a dynamic 
   assert.ok(responsive&&hidden&&scroll&&sticky,'Mobile purchase layout must keep dialogs usable');
 });
 
-test('100/250 lives cards and previews cover their entire background without a rectangular seam',()=>{
+test('100 and 250 use the SAME full-bleed vector asset on mobile player and shop preview',()=>{
   const root=postcss.parse(css);
-  let card=null,shopPreview=null;
+  const entries=[];
   root.walkRules(rule=>{
-    const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
-    if(rule.selector.includes('.dashboard-left-stack > .player-visit-card') &&
-       rule.selector.includes('#badgeVisitPreviewVisual .player-visit-card') &&
-       values['background-size'])card={selector:rule.selector,values};
-    if(rule.selector.includes('.shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before') &&
-       values['background-size'])shopPreview={selector:rule.selector,values};
+    entries.push({selector:rule.selector,values:Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]))});
   });
-  assert.ok(card,'Real and badge preview cards need a common full-bleed rule');
-  assert.match(card.selector,/streak-100-background/);
-  assert.match(card.selector,/streak-250-background/);
-  assert.equal(card.values['background-size'],'cover,cover,cover,cover!important');
-  assert.equal(card.values['background-position'],'82% center,center,center,center!important');
-  assert.ok(shopPreview,'Shop preview pseudo-element needs independent full-bleed rule');
-  assert.equal(shopPreview.values['background-size'],'cover,cover!important');
-  assert.equal(shopPreview.values['background-position'],'82% center,center!important');
-  assert.ok(!css.includes('center bottom 28px'));
-  assert.ok(!css.includes('background-size:100% auto,cover'));
-  assert.ok(!css.includes('streak-100-mobile.svg'));
-  assert.ok(!css.includes('streak-250-mobile.svg'));
   for(const milestone of [100,250]){
+    const name='streak-'+milestone+'-mobile.svg';
+    const card=entries.find(rule=>rule.selector.includes('.dashboard-left-stack > .player-visit-card.streak-'+milestone+'-background')&&rule.values['background-image']);
+    const shop=entries.find(rule=>rule.selector.includes('#shopItemPreviewVisual .shop-profile-preview-card.streak-'+milestone+'-background::before')&&rule.values['background-image']);
+    assert.ok(card&&shop,'Full coverage missing for '+milestone+' lives');
+    assert.ok(card.values['background-image'].includes(name));
+    assert.ok(shop.values['background-image'].includes(name));
+    assert.match(card.values['background-size'],/cover/);
+    assert.match(shop.values['background-size'],/cover/);
+    const art=readFileSync(new URL('../public/assets/'+name,import.meta.url),'utf8');
     const original=readFileSync(new URL('../public/assets/streak-'+milestone+'.svg',import.meta.url),'utf8');
-    assert.match(original,/viewBox="0 0 1200 440"/);
+    assert.match(art,/viewBox="0 0 700 470"/);
+    assert.match(art,/<rect width="700" height="470" fill="url\\(#base\\)"\\/>/);
+    assert.equal((art.match(/<rect /g)||[]).length,1,'Only full-bleed background rectangle allowed');
+    const ring=milestone===100?'cx="919" cy="195" r="127"':'cx="916" cy="201" r="139"';
+    assert.ok(art.includes(ring)&&original.includes(ring),'Original medal ring must stay intact');
   }
+  const compact=entries.find(rule=>rule.selector.includes('body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background)')&&rule.values['min-height']);
+  assert.equal(compact?.values['min-height'],'0!important');
+  const stage=entries.find(rule=>rule.selector.includes('#shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)')&&rule.values['min-height']);
+  assert.equal(stage?.values['min-height'],'220px!important');
 });
 
-test('mobile cards have enough room for the circle and the action button',()=>{
-  const root=postcss.parse(css);
-  let home=null,preview=null,actions=null;
-  root.walkRules(rule=>{
-    const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
-    if(rule.selector.includes('body .dashboard-left-stack > .player-visit-card') && values['min-height'])home=values;
-    if(rule.selector.includes('body #badgeVisitPreviewVisual .player-visit-card') && values['min-height'])preview=values;
-    if(rule.selector.includes('> .player-card-actions') && values['padding-top'])actions=values;
-  });
-  assert.ok(parseInt(home?.['min-height']||'0')>=290);
-  assert.ok(parseInt(preview?.['min-height']||'0')>=250);
-  assert.equal(actions?.['margin-top'],'auto');
-});
 test('200 live avatar frame preview stays visibly gold and bounded on mobile',()=>{
   const root=postcss.parse(css);
   let frame=false;
