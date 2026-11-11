@@ -58,7 +58,7 @@ html:not(.game-styles-ready) #styleLoading{position:fixed;inset:0;z-index:214748
 <script defer src="/style-recovery.js?v=582"></script>
 <script defer src="/live-xp-boost.js?v=521"></script>
 <script defer src="/lovys-evolution.min.js?v=569"></script>
-<script defer src="/app.min.js?v=650"></script>
+<script defer src="/app.min.js?v=651"></script>
 <script defer src="/bot-studio.min.js?v=550"></script>
 <script defer src="/auth-fallback.js?v=575"></script>
 <style>.mobile-home-actions .home-xp-boost-feature{display:block;box-sizing:border-box;padding:16px;border:1px solid rgba(179,119,255,.55);border-radius:16px;background:linear-gradient(135deg,rgba(76,35,119,.55),rgba(22,15,38,.9));color:#f2eaff}.mobile-home-actions .home-xp-boost-top{display:flex;align-items:center;justify-content:space-between;font-weight:750}.mobile-home-actions .home-xp-boost-time{font-size:26px;font-weight:800;margin:8px 0;font-variant-numeric:tabular-nums}.mobile-home-actions .home-xp-boost-caption{font-size:13px;color:#d1b9e9}</style><style id="watch-streak-compact-styles">
@@ -73,6 +73,10 @@ html:not(.game-styles-ready) #styleLoading{position:fixed;inset:0;z-index:214748
 .watch-streak-compact .watch-streak-reward .watch-streak-count{font-size:17px;font-weight:800;white-space:nowrap}
 .watch-streak-compact .watch-streak-reward .watch-streak-count small{font-size:12px}
 .watch-streak-compact .watch-streak-reward .watch-streak-status{font-size:11px}
+.watch-streak-reward.unlocked{position:relative;isolation:isolate;overflow:hidden;border-color:#777986!important;background:#252732!important;box-shadow:none!important}
+.watch-streak-reward.unlocked>:not(.watch-streak-claimed-overlay){opacity:.32;filter:grayscale(1)}
+.watch-streak-reward .watch-streak-claimed-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:8px;background:rgba(14,16,24,.32);color:#fff;font-size:clamp(13px,2vw,17px);font-weight:950;letter-spacing:.09em;text-align:center;text-shadow:0 2px 8px #000;pointer-events:none;z-index:2}
+.watch-streak-reward.unlocked[aria-pressed="true"]{outline-color:#aa9dbc}
 .watch-streak-compact .watch-streak-preview{margin-top:12px}
 @media(max-width:650px){.watch-streak-compact .watch-streak-progress-head{gap:10px}.watch-streak-compact .watch-streak-reward{min-width:96px!important}}
 </style>
