@@ -9603,7 +9603,7 @@ function renderDesktopTradeRecap() {
   const requests = desktopTradeComposerStep === 2
     ? options.map((asset, index) => `${index ? '<span class="trade-recap-or">OU</span>' : ''}${desktopTradeRecapAsset(asset)}`).join('')
     : '<p class="trade-recap-placeholder">Tu choisiras ce que tu souhaites recevoir à l’étape suivante.</p>';
-  return `<h3>Ton offre d’échange</h3><div class="trade-recap-label">TU PROPOSES</div>${desktopTradeRecapAsset(offer)}<div class="trade-recap-divider">⇄</div><div class="trade-recap-label">TU VOUDRAIS</div>${requests}<p class="trade-recap-footnote">${desktopTradeComposerStep === 2 ? 'Une seule alternative sera échangée contre ta proposition.' : 'Tes objets restent disponibles tant que tu n’as pas confirmé.'}</p><div class="trade-recap-duration">⏳ ${durationDays === 1 ? '24 heures' : `${durationDays} jours`}</div>`;
+  return `<h3>${editingTradeOffer?'Modification de ton offre':'Ton offre d’échange'}</h3><div class="trade-recap-label">TU PROPOSES</div>${desktopTradeRecapAsset(offer)}<div class="trade-recap-divider">⇄</div><div class="trade-recap-label">TU VOUDRAIS</div>${requests}<p class="trade-recap-footnote">${desktopTradeComposerStep === 2 ? 'Une seule alternative sera échangée contre ta proposition.' : 'Tes objets restent disponibles tant que tu n’as pas confirmé.'}</p><div class="trade-recap-duration">⏳ ${editingTradeOffer?'Expiration inchangée':durationDays===1?'24 heures':`${durationDays} jours`}</div>`;
 }
 
 function showDesktopTradeComposerStep(step) {
@@ -9673,25 +9673,50 @@ $('tradeComposerBack')?.addEventListener('click', () => {
   showDesktopTradeComposerStep(1);
   $('tradeOfferType').focus();
 });
-async function openTradeComposer(prefillCreature=''){
+async function openTradeComposer(prefillCreature='',offerToEdit=null){
   try{
     hideTradePublishConfirmation();
+    editingTradeOffer=offerToEdit?.status==='open'?offerToEdit:null;
     await loadTradeInventory();
     await refreshLobbyCounts();
-    tradeOptionCount=1;
-    syncTradeOwnedOfferOptions(prefillCreature);$('tradeOfferQuantity').dataset.quantityKey='';
+    tradeOptionCount=Math.max(1,Math.min(3,editingTradeOffer?.options?.length||1));
+    syncTradeOwnedOfferOptions(editingTradeOffer?.offer?.creatureId||prefillCreature);
+    $('tradeOfferQuantity').dataset.quantityKey='';
     $('tradeOfferQuantity').value='';
     $('tradeComposerMessage').textContent='';
     $('tradeComposerMessage').classList.remove('error');
     renderTradeOptions();
+    if(editingTradeOffer){
+      $('tradeOfferType').value=editingTradeOffer.offer.type;
+      if(editingTradeOffer.offer.type==='fragment')$('tradeOfferCreature').value=editingTradeOffer.offer.creatureId;
+    }
     setupDesktopTradeComposer();
     syncTradeOfferFields();
+    if(editingTradeOffer){
+      $('tradeOfferQuantity').value=String(editingTradeOffer.offer.quantity);
+      [...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].forEach((row,index)=>{
+        const asset=editingTradeOffer.options[index];
+        if(!asset)return;
+        row.querySelector('[data-trade-type]').value=asset.type;
+        if(asset.type==='fragment')row.querySelector('[data-trade-creature]').value=asset.creatureId;
+        syncTradeAssetRow(row);
+        row.querySelector('[data-trade-quantity]').value=String(asset.quantity);
+      });
+    }
+    const editing=Boolean(editingTradeOffer);
+    $('tradeComposer').dataset.editing=String(editing);
+    $('tradeComposer').querySelector('.trade-composer-head h2').textContent=editing?'✏️ Modifier mon offre':'🔄 Créer une offre';
+    $('tradePublish').textContent=editing?'Enregistrer les modifications':isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';
     updateTradeComposerRecap();
-    $('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';
     $('tradeComposer')?.classList.remove('hidden');
-  }catch(error){alert(error.message);}
+  }catch(error){editingTradeOffer=null;alert(error.message);}
 }
-function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
+function closeTradeComposer(){
+  hideTradePublishConfirmation();
+  $('tradeComposer')?.classList.add('hidden');
+  $('tradeComposer').dataset.editing='false';
+  editingTradeOffer=null;
+}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
 $('tradeOptionAdd')?.addEventListener('click',()=>{tradeOptionCount=Math.min(3,tradeOptionCount+1);renderTradeOptions();if(isDesktopGameUi()){updateTradeComposerRecap();hideTradePublishConfirmation();}});
 function tradeComposerSummary(){if(!$('tradeOfferQuantity')?.value||[...$('tradeOptionsList').querySelectorAll('[data-trade-quantity]')].some(x=>!x.value))return 'Choisis une quantité pour préparer ton échange.';const type=$('tradeOfferType')?.value||'fragment',creature=$('tradeOfferCreature')?.value,qty=Number($('tradeOfferQuantity')?.value||0),name=type==='xp_bottle'?'fiole de 100 XP':type==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(type)?`booster double XP · ${tradeBoostHours(type)} h`:type==='egg'?'œuf mystère':(tradeLovysById(creature)?.name||'fragments');const opts=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const t=row.querySelector('[data-trade-type]').value,q=Number(row.querySelector('[data-trade-quantity]').value||0),cid=row.querySelector('[data-trade-creature]').value;return `${q} × ${t==='xp_bottle'?'fiole de 100 XP':t==='xp_gourd'?'gourde de 500 XP':tradeBoostHours(t)?`booster double XP · ${tradeBoostHours(t)} h`:t==='egg'?'œuf mystère':(tradeLovysById(cid)?.name||'fragments')}`;});return `Tu donnes ${qty} × ${name}. Tu demandes : ${opts.join(' ou ')}.`;}
@@ -9734,7 +9759,7 @@ $('tradePublish')?.addEventListener('click',()=>{
   }
   {const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
   const offer=stockOffer;const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
-  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`:tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
+  pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3),offerId:editingTradeOffer?.id||null};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. ${editingTradeOffer?'Expiration conservée.':`Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`}`:tradeComposerSummary();$('tradePublishConfirmTitle').textContent=editingTradeOffer?'Confirmer la modification ?':'Confirmer la publication ?';if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
 $('tradePublishCancel')?.addEventListener('click',hideTradePublishConfirmation);
 $('tradePublishConfirm')?.addEventListener('click',e=>{if(e.target===$('tradePublishConfirm'))hideTradePublishConfirmation();});
@@ -9742,11 +9767,13 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('tradePublishCon
 $('tradePublishConfirmBtn')?.addEventListener('click',async()=>{
   if(!pendingTradePublication)return;
   const btn=$('tradePublishConfirmBtn'),msg=$('tradeComposerMessage'),payload=pendingTradePublication,normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');
-  btn.disabled=true;btn.textContent='Publication…';msg.className='trade-composer-message';msg.textContent='';
+  btn.disabled=true;btn.textContent=payload.offerId?'Modification…':'Publication…';msg.className='trade-composer-message';msg.textContent='';
   try{
-    const r=await fetch('/api/trades',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();
+    const endpoint=payload.offerId?'/api/trades/'+payload.offerId+'/edit':'/api/trades';
+    const r=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}),d=await r.json();
     if(!r.ok)throw new Error(d.error||'Publication impossible.');
     pendingTradePublication=null;if(normal)normal.classList.add('hidden');if(success)success.classList.remove('hidden');
+    $('tradePublishSuccess').querySelector('strong').textContent=payload.offerId?'Offre modifiée !':'Offre postée !';
     await new Promise(resolve=>setTimeout(resolve,1500));hideTradePublishConfirmation();closeTradeComposer();await openLobbyTab('mine');
   }catch(error){msg.textContent=error.message;msg.className='trade-composer-message error';hideTradePublishConfirmation();}
   finally{btn.disabled=false;btn.textContent='Confirmer la publication';}
@@ -9829,7 +9856,7 @@ async function acceptTrade(offerId,optionId){
 }
 async function cancelTrade(offerId){if(!confirm('Annuler cette offre ? Les objets réservés seront rendus à ton inventaire.'))return;const r=await fetch(`/api/trades/${offerId}/cancel`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'}),d=await r.json();if(!r.ok){alert(d.error||'Annulation impossible.');return;}await loadGame();await loadLovysCollection();await loadTrades(true);}
 $('lobbyTradesGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[data-trade-accept]');if(btn&&!btn.disabled)acceptTrade(Number(btn.dataset.tradeAccept),Number(btn.dataset.tradeOption));});
-$('lobbyMineGrid')?.addEventListener('click',e=>{const btn=e.target.closest('[data-trade-cancel]');if(btn)cancelTrade(Number(btn.dataset.tradeCancel));});
+$('lobbyMineGrid')?.addEventListener('click',e=>{const edit=e.target.closest('[data-trade-edit]');if(edit){const offer=myTradeOffers.find(o=>o.id===Number(edit.dataset.tradeEdit));if(offer?.status==='open')openTradeComposer('',offer);return;}const btn=e.target.closest('[data-trade-cancel]');if(btn)cancelTrade(Number(btn.dataset.tradeCancel));});
 
 
 async function inviteFriendToWatchGame(){
