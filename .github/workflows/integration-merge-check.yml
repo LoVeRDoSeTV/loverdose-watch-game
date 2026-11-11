@@ -118,6 +118,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           # Éliminer les outils temporaires après validation ; ne jamais toucher aux sauvegardes.
+          # Nettoyer uniquement les dépendances suivies par erreur, sans toucher aux sauvegardes.
+          git rm -rf --cached --ignore-unmatch node_modules
           git rm -rf --ignore-unmatch tools/integration .github/workflows/integration-merge-check.yml
           git add -A
           git diff --cached --check
