@@ -36,6 +36,7 @@ jobs:
           npm run check:css
           npm run check:js
           npm run check:deploy
+          node --check server.js
           node --test test/admin-double-xp.test.js
       - name: Enregistrer uniquement les fichiers compressés
         run: |
