@@ -25,22 +25,33 @@ test('purchase modal remains hidden when closed and scrollable within a dynamic 
   assert.ok(responsive&&hidden&&scroll&&sticky,'Mobile purchase layout must keep dialogs usable');
 });
 
-test('100 and 250 lives use separate crops on actual mobile cards and full artwork in previews',()=>{
+test('100 and 250 lives have separate mobile assets on the real home card',()=>{
   const root=postcss.parse(css);
   const rules=[];
   root.walkRules(rule=>{
-    if(rule.selector.includes('streak-100-background')&&rule.selector.includes('streak-250-background')){
-      const size=rule.nodes.find(node=>node.prop==='background-size')?.value;
-      rules.push({selector:rule.selector,size});
+    if(rule.selector.includes('.dashboard-left-stack > .player-visit-card')){
+      const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
+      rules.push({selector:rule.selector,values});
     }
   });
-  const real=rules.find(rule=>rule.selector.includes('.dashboard-left-stack > .player-visit-card'));
-  const preview=rules.find(rule=>rule.selector.includes('.watch-streak-preview-art .player-visit-card'));
-  const shop=rules.find(rule=>rule.selector.includes('.shop-profile-preview-card'));
-  assert.ok(real?.size?.includes('auto 100%'),'The actual card should crop its wide background');
-  assert.ok(preview?.size?.includes('100% auto'),'The card preview should show the complete artwork');
-  assert.ok(shop?.size?.includes('100% auto'),'The shop preview must preserve its separate rendering');
-  assert.ok(!real.selector.includes('.watch-streak-preview-art'),'Real card styling must not control previews');
+  for(const milestone of [100,250]){
+    const real=rules.find(rule=>rule.selector.includes(`streak-${milestone}-background`));
+    assert.ok(real,`Missing home card CSS for ${milestone} lives`);
+    assert.match(real.values['background-image'],new RegExp(`streak-${milestone}-mobile\\.svg`));
+    assert.match(real.values['background-size'],/100% 100%/);
+  }
+  const shop=[];
+  root.walkRules(rule=>{
+    if(rule.selector.includes('.shop-profile-preview-card')&&rule.selector.includes('streak-250-background')){
+      shop.push(Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value])));
+    }
+  });
+  assert.ok(shop.some(values=>values['background-size']?.includes('contain')));
+  for(const milestone of [100,250]){
+    const svg=readFileSync(new URL(`../public/assets/streak-${milestone}-mobile.svg`,import.meta.url),'utf8');
+    assert.match(svg,/viewBox="0 0 360 260"/);
+    assert.match(svg,new RegExp(`>${milestone}<\\/text>`));
+  }
 });
 
 test('200 live avatar frame preview stays visibly gold and bounded on mobile',()=>{
@@ -53,11 +64,11 @@ test('200 live avatar frame preview stays visibly gold and bounded on mobile',()
 });
 
 
-test('250 lives shows its centered gold medal only in shop and inventory thumbnails',()=>{
+test('100 and 250 lives have centered medal thumbnails without changing the equipped card',()=>{
   const root=postcss.parse(css);
   let medal=null,layer=null;
   root.walkRules(rule=>{
-    if(rule.selector.includes('.shop-item-preview.streak-250-background')&&rule.selector.includes('#inventoryModal')){
+    if(rule.selector.includes('.shop-item-preview:is(.streak-100-background,.streak-250-background)')&&rule.selector.includes('#inventoryModal')){
       const map=Object.fromEntries(rule.nodes.filter(node=>node.type==='decl').map(node=>[node.prop,node.value]));
       if(map['background-size'])medal={selector:rule.selector,...map};
       if(map.display)layer={selector:rule.selector,...map};
@@ -67,5 +78,5 @@ test('250 lives shows its centered gold medal only in shop and inventory thumbna
   assert.match(medal?.['background-size']||'',/270% auto/);
   assert.match(medal?.['background-position']||'',/92% center/);
   assert.ok(layer?.display?.includes('none'));
-  assert.ok(!medal.selector.includes('.player-visit-card'),'La carte équipée doit conserver son véritable fond');
+  assert.ok(!medal.selector.includes('.player-visit-card'));
 });
