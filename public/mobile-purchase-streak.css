@@ -280,3 +280,26 @@
     overflow-wrap:anywhere;
   }
 }
+
+/* Fonds de série Twitch : rendu PC sans cercle tronqué.
+   Le fond de bureau conserve toute l'illustration et place le médaillon
+   en bas à droite, sans interférer avec les badges ou les informations.
+   Les règles mobile/tablette ci-dessus restent inchangées. */
+@media (min-width:901px) and (pointer:fine) {
+  body .dashboard-left-stack > .player-visit-card.streak-100-background,
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-100-background {
+    background-image:url("/assets/streak-100-desktop.svg?v=1")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body .dashboard-left-stack > .player-visit-card.streak-250-background,
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-250-background {
+    background-image:url("/assets/streak-250-desktop.svg?v=1")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+}
