@@ -99,3 +99,33 @@ test('100/250 streak shop and inventory thumbnails use corrected original SVG wi
     assert.equal(rule.declarations['background-position'],undefined,'Do not change thumbnail position');
   }
 });
+
+test('PC 100/250 lives : médaillons entiers en bas à droite, badges dégagés et versions mobiles inchangées',()=>{
+  const root=postcss.parse(css);
+  const desktop=[];
+  root.walkAtRules('media',media=>{
+    if(media.params.includes('min-width:901px')&&media.params.includes('pointer:fine')){
+      media.walkRules(rule=>desktop.push({selector:rule.selector,values:Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]))}));
+    }
+  });
+  for(const milestone of [100,250]){
+    const key='streak-'+milestone+'-background';
+    const rule=desktop.find(rule=>rule.selector.includes('.dashboard-left-stack > .player-visit-card.'+key)&&rule.values['background-image']);
+    assert.ok(rule,'Missing scoped desktop style for '+milestone);
+    assert.match(rule.values['background-image'],new RegExp('streak-'+milestone+'-desktop'));
+    assert.match(rule.values['background-size'],/cover/);
+    assert.ok(!('min-height' in rule.values),'Do not stretch the player card');
+    const svg=readFileSync(new URL('../public/assets/streak-'+milestone+'-desktop.svg',import.meta.url),'utf8');
+    assert.match(svg,/viewBox="0 0 700 420"/);
+    assert.match(svg,/scale\\(0\\.41\\)/);
+    assert.match(svg,/id="glow" x="-100%" y="-100%" width="300%" height="300%"/);
+    const centerX=555,centerY=255,radius=(milestone===100?127:139)*0.41;
+    assert.ok(centerX-radius>0&&centerX+radius<700);
+    assert.ok(centerY-radius>0&&centerY+radius<420);
+    assert.ok(centerY-radius>175,'Medal should stay below the top-right badge row');
+    assert.ok(centerY+radius<320,'Medal should stay above card actions');
+  }
+  for(const milestone of [100,250]){
+    assert.match(css,new RegExp('streak-'+milestone+'-mobile'));
+  }
+});
