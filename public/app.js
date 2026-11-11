@@ -8889,7 +8889,7 @@ function tradeCreatureImageUrl(l){
   const aliases={mossy:'/Mossy.webp',plant:'/Mossy.webp',nymea:'/Nymea.webp',water:'/Nymea.webp',voltis:'/Voltis.webp',lightning:'/Voltis.webp',brumee:'/Brumee.webp',mist:'/Brumee.webp',flamby:'/Flamby.webp',fire:'/Flamby.webp',crysal:'/Crysal.webp',crystal:'/Crysal.webp',ferox:'/Ferox.webp',forge:'/Ferox.webp',nocty:'/Nocty.webp',dark:'/Nocty.webp',solka:'/Solka.webp',solar:'/Solka.webp',mimo:'/Mimo.webp',dream:'/Mimo.webp'};
   return aliases[id]||aliases[name]||String(l.image||'');
 }
-function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).filter(l=>Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeCreatureOptions(selected='',offered=false){return (tradeInventory.lovys||[]).filter(l=>!offered||Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
 function tradeCreatureMenuMarkup(row) {
   const offered = isDesktopGameUi() && row?.classList.contains('trade-asset-row');
   const requested = isDesktopGameUi() && row?.hasAttribute('data-trade-option-row');
@@ -9068,7 +9068,7 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();if(!syncTradeAvailableOfferChoices()){alert('Tu ne possèdes aucun objet ou fragment disponible à échanger.');return;}if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions('',true);if(!syncTradeAvailableOfferChoices()){alert('Tu ne possèdes aucun objet ou fragment disponible à échanger.');return;}if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
