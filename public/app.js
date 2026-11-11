@@ -9615,6 +9615,16 @@ function showDesktopTradeComposerStep(step) {
   $('tradeComposer').querySelector('.trade-composer-card')?.scrollTo({ top: 0 });
 }
 
+function setupDesktopTradeQuantity(input,offered=false){
+  if(!isDesktopGameUi()||!input)return;
+  input.setAttribute('aria-label',offered?'Quantité à proposer':'Quantité à demander');
+  if(input.closest('.trade-quantity-control'))return;
+  const wrapper=document.createElement('div');
+  wrapper.className='trade-quantity-control';
+  input.before(wrapper);
+  wrapper.innerHTML=`<span>Quantité</span><div><button type="button" data-trade-quantity-step="-1" aria-label="Diminuer la quantité">−</button><button type="button" data-trade-quantity-step="1" aria-label="Augmenter la quantité">＋</button></div>${offered?'<button type="button" class="trade-quantity-max" data-trade-quantity-max>Tout proposer</button>':''}`;
+  wrapper.querySelector('div').insertBefore(input,wrapper.querySelector('[data-trade-quantity-step="1"]'));
+}
 function syncTradeAvailableOfferChoices(){
   const select=$('tradeOfferType');if(!select)return false;
   const available={fragment:(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0),egg:Number(tradeInventory.eggs||0)>0,xp_bottle:Number(tradeInventory.xpBottles||0)>0};
@@ -9716,7 +9726,7 @@ $('tradePublish')?.addEventListener('click',()=>{
     $('tradeComposerMessage').classList.add('error');
     return;
   }
-  if(isDesktopGameUi()){const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
+  {const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
   const offer=stockOffer;const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
   pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`:tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
