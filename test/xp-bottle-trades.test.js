@@ -9,7 +9,7 @@ test.before(async()=>{
  for(const name of ['trade_offers','trade_offer_options']){const start=source.indexOf('CREATE TABLE IF NOT EXISTS '+name+' (');const end=source.indexOf('`)\u003b',start);await db.exec(source.slice(start,end));}
  for(const name of ['trade_offers','trade_offer_options']){const start=source.indexOf('ALTER TABLE '+name+' DROP CONSTRAINT');const end=source.indexOf('`)\u003b',start);await db.exec(source.slice(start,end));}
  context=vm.createContext({console:{error(){}},pool:{connect:async()=>client},TRADE_MAX_QUANTITY:999,TRADE_MAX_OPTIONS:3,TRADE_MAX_ACTIVE:5,TRADE_DURATIONS:new Set([1,3,7]),TRADE_MAX_DAILY_COMPLETED:10,creatures:[],tradeCreatureName:id=>id,restoreExpiredPlayerTrades:async()=>{},pushLiveUpdate(){},tradeWriteRateLimit(){},app:{post:(path,...handlers)=>routes.set(path,handlers.at(-1))}});
- vm.runInContext(source.slice(source.indexOf('function normalizeTradeAsset'),source.indexOf('function normalizePlayerTradeBundle')),context);
+ vm.runInContext(source.slice(source.indexOf('function tradeBoostHours'),source.indexOf('function normalizePlayerTradeBundle')),context);
  for(const path of ['/api/trades','/api/trades/:offerId/accept','/api/trades/:offerId/cancel']){const start=source.indexOf("app.post('"+path+"'");const end=source.indexOf('\n});',start)+4;vm.runInContext(source.slice(start,end),context);}
 });
 test.after(async()=>db?.close());
@@ -40,4 +40,41 @@ test('bottles may be requested as payment; insufficient stock rolls everything b
  assert.equal((await call('/api/trades/:offerId/accept',1,{optionId:option},id)).statusCode,400);assert.equal(await stock(1),2);assert.equal(await stock(2),0);
  await client.query("UPDATE shop_inventory SET quantity=3 WHERE account_id=1 AND item_key='xp_bottle_100'");
  assert.equal((await call('/api/trades/:offerId/accept',1,{optionId:option},id)).statusCode,200);assert.equal(await stock(2),3);assert.equal(await stock(1),0);assert.equal(await stock(1,'mystery_egg'),1);
+});
+test('500 XP gourds transfer as distinct items and cancellation restores the reserved stock',async()=>{
+ await client.query("INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES(1,'xp_gourd_500',2)");
+ const request={offer:{type:'xp_gourd',quantity:1},options:[{type:'egg',quantity:1}],durationDays:3};
+ const first=await call('/api/trades',1,request);assert.equal(first.statusCode,200,JSON.stringify(first.body));
+ assert.equal(await stock(1,'xp_gourd_500'),1);
+ assert.equal((await call('/api/trades/:offerId/cancel',1,{},first.body.offerId)).statusCode,200);
+ assert.equal(await stock(1,'xp_gourd_500'),2);
+ const second=await call('/api/trades',1,request);assert.equal(second.statusCode,200,JSON.stringify(second.body));
+ const option=(await client.query('SELECT id FROM trade_offer_options WHERE offer_id=$1',[second.body.offerId])).rows[0].id;
+ assert.equal((await call('/api/trades/:offerId/accept',2,{optionId:option},second.body.offerId)).statusCode,200);
+ assert.equal(await stock(1,'xp_gourd_500'),1);assert.equal(await stock(2,'xp_gourd_500'),1);
+});
+
+test('Twitch double XP inventory can be offered, transferred and used as payment',async()=>{
+ await client.query("INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES(1,'boost_xp_x2',2)");
+ const first=await call('/api/trades',1,{offer:{type:'xp_boost',quantity:1},options:[{type:'egg',quantity:1}],durationDays:3});
+ assert.equal(first.statusCode,200,JSON.stringify(first.body));
+ assert.equal(await stock(1,'boost_xp_x2'),1);
+ const option=(await client.query('SELECT id FROM trade_offer_options WHERE offer_id=$1',[first.body.offerId])).rows[0].id;
+ assert.equal((await call('/api/trades/:offerId/accept',2,{optionId:option},first.body.offerId)).statusCode,200);
+ assert.equal(await stock(2,'boost_xp_x2'),1);
+ const second=await call('/api/trades',2,{offer:{type:'egg',quantity:1},options:[{type:'xp_boost',quantity:1}],durationDays:3});
+ assert.equal(second.statusCode,200,JSON.stringify(second.body));
+ const payment=(await client.query('SELECT id FROM trade_offer_options WHERE offer_id=$1',[second.body.offerId])).rows[0].id;
+ assert.equal((await call('/api/trades/:offerId/accept',1,{optionId:payment},second.body.offerId)).statusCode,200);
+ assert.equal(await stock(2,'boost_xp_x2'),2);
+});
+
+for(const hours of [5,10])test(`the ${hours}h XP boost retains its identity through reservation and exchange`,async()=>{
+ const key=`boost_xp_x2_${hours}h`,type=`xp_boost_${hours}h`;
+ await client.query('INSERT INTO shop_inventory(account_id,item_key,quantity) VALUES(1,$1,2)',[key]);
+ const offer=await call('/api/trades',1,{offer:{type,quantity:1},options:[{type:'egg',quantity:1}],durationDays:3});
+ assert.equal(offer.statusCode,200,JSON.stringify(offer.body));assert.equal(await stock(1,key),1);
+ const option=(await client.query('SELECT id FROM trade_offer_options WHERE offer_id=$1',[offer.body.offerId])).rows[0].id;
+ const accepted=await call('/api/trades/:offerId/accept',2,{optionId:option},offer.body.offerId);assert.equal(accepted.statusCode,200,JSON.stringify(accepted.body));
+ assert.equal(await stock(2,key),1);assert.equal(await stock(2,'boost_xp_x2'),0);
 });

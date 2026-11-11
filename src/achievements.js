@@ -69,7 +69,7 @@ export function achievementDescription(id, goal) {
     'rank-team': `Possède ${goal} Lovys au rang 5 dans ta collection.`,
     level: `Fais atteindre le niveau ${goal} à au moins un de tes Lovys. Il s’agit du niveau du Lovys, pas de ton niveau global.`,
     'level-team': `Possède ${goal} Lovys ayant chacun atteint le niveau 50.`,
-    victories: `Remporte ${goal} combat${plural ? 's' : ''} PvE différents. Chaque combat compte une seule fois, même avec un autre Lovys.`,
+    victories: `Remporte ${goal} combat${plural ? 's' : ''} PvE différent${plural ? 's' : ''}. Chaque adversaire compte une seule fois, même si tu rejoues le combat.`,
     'close-win': 'Remporte un combat PvE avec ton Lovys encore en vie et moins de 10 % de ses PV maximum restants.',
     flawless: 'Remporte un combat PvE sans que ton Lovys subisse le moindre dégât.',
     variety: `Remporte au moins un combat PvE avec chacune de ${goal} espèces de Lovys différentes.`,
@@ -172,7 +172,8 @@ export function createAchievements({pool,creatures,zones,progressionFromXp,award
       for(const [metric,value] of Object.entries(values)){
         if(previous.some(row=>row.metric===metric&&(metric==='victories'?Number(row.value)===value:Number(row.value)>=value)))continue;
         await client.query(`INSERT INTO user_achievement_progress(user_id,metric,value) VALUES($1,$2,$3)
-          ON CONFLICT(user_id,metric) DO UPDATE SET value=CASE WHEN EXCLUDED.metric='victories' THEN EXCLUDED.value ELSE GREATEST(user_achievement_progress.value,EXCLUDED.value) END`,[userId,metric,value]);
+          ON CONFLICT(user_id,metric) DO UPDATE SET value=CASE WHEN user_achievement_progress.metric='victories'
+            THEN EXCLUDED.value ELSE GREATEST(user_achievement_progress.value,EXCLUDED.value) END`,[userId,metric,value]);
       }
       const watch=(await client.query('SELECT game_id,game_name,watch_seconds FROM user_game_watch WHERE user_id=$1',[userId])).rows;
       const definitions=[...ACHIEVEMENT_FAMILIES.map(f=>({...f,value:values[f.metric]})),...WATCH_FAMILIES.map(f=>({

@@ -3,7 +3,7 @@ import path from 'node:path';
 import { rateLimit } from 'express-rate-limit';
 import { panelSettings, verifyExtensionToken, loadPanelSnapshot } from '../twitch-panel.js';
 
-export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattleStats,catalog,env=process.env}){
+export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,starterHatchSeconds,creatureBattleStats,catalog,env=process.env}){
   const router=express.Router();
   const siteOrigin=new URL(baseUrl).origin;
   router.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
@@ -25,6 +25,7 @@ export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattl
 
   router.get('/art/:file',(req,res)=>{
     const files=new Set(['Mossy.webp','Nymea.webp','Voltis.webp','Brumee.webp','Flamby.webp','Crysal.webp','Ferox.webp','Nocty.webp','Solka.webp','Mimo.webp']);
+    for(const name of [...files])for(const level of [25,50])files.add(name.replace('.webp',`-evolution-${level}.webp`));
     if(!files.has(req.params.file))return res.sendStatus(404);
     res.set('Cross-Origin-Resource-Policy','cross-origin');
     res.set('Cache-Control','public, max-age=3600');
@@ -39,7 +40,7 @@ export function createTwitchPanelRouter({pool,baseUrl,hatchSeconds,creatureBattl
     catch{return res.status(401).json({state:'authorization_required',error:'Actualise l’autorisation Twitch.'});}
     if(!identity.user_id||identity.is_unlinked===true||identity.is_unlinked==='true')return res.json({state:'identity_required'});
     try{
-      res.json(await loadPanelSnapshot({pool,twitchId:identity.user_id,hatchSeconds,creatureBattleStats,catalog}));
+      res.json(await loadPanelSnapshot({pool,twitchId:identity.user_id,hatchSeconds,starterHatchSeconds,creatureBattleStats,catalog}));
     }catch(error){console.error('Erreur lecture panel Twitch :',error.message);res.status(500).json({error:'La progression est momentanément indisponible.'});}
   });
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import { PGlite } from '@electric-sql/pglite';
-import { globalThresholdForLevel,lovysProgressionFromXp,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
+import { globalThresholdForLevel,lovysProgressionFromXp,lovysThresholdForLevel,migratePreviousLovysXp,migrateLovysProgressionCurve,LOVYS_MAX_XP,LIVE_TICK_SQL,creditLovysXp,reconcileLovysXp,syncActiveLovysXp,recordDailyLiveActivity } from '../src/xp-economy.js';
 import { ACHIEVEMENT_FAMILIES,WATCH_FAMILIES,WATCH_HOUR_STAGES,createAchievements } from '../src/achievements.js';
 import { PVE_ZONES,PVE_FIGHTS,pveFightByKey,pvePreviousFight } from '../src/combat/zones.js';
 import { initPveRewards } from '../src/combat/rewards.js';
@@ -21,10 +21,11 @@ test.before(async()=>{
  away_global_xp double precision DEFAULT 0,away_lovercash double precision DEFAULT 0,away_watch_seconds bigint DEFAULT 0,last_live_seen_at timestamptz,updated_at timestamptz,
  total_lovys_hatched int DEFAULT 0,progress_reset_at timestamptz);
  CREATE TABLE user_lovys(id int PRIMARY KEY,user_id int REFERENCES users(id),creature_id text,xp double precision DEFAULT 0,is_active boolean DEFAULT FALSE,rank int DEFAULT 1,fragments int DEFAULT 0,updated_at timestamptz);
- CREATE TABLE user_active_boosts(user_id int,boost_key text,starts_at timestamptz,expires_at timestamptz,PRIMARY KEY(user_id,boost_key));
+ CREATE TABLE user_active_boosts(user_id int,boost_key text,starts_at timestamptz,expires_at timestamptz,remaining_live_seconds double precision,PRIMARY KEY(user_id,boost_key));
  CREATE TABLE user_daily_activity(user_id int,activity_date date,watch_seconds bigint,global_xp_earned double precision,lovercash_earned double precision,updated_at timestamptz,PRIMARY KEY(user_id,activity_date));
  CREATE TABLE user_game_tabs(user_id int,last_seen_at timestamptz);
  CREATE TABLE user_pve_progress(user_id int,fight_key text,wins int DEFAULT 0,attempts int DEFAULT 0,first_won_at timestamptz,last_fought_at timestamptz,PRIMARY KEY(user_id,fight_key));
+ CREATE TABLE user_lovys_pve_progress(user_id int,lovys_id int REFERENCES user_lovys(id),fight_key text,won_at timestamptz DEFAULT CURRENT_TIMESTAMP,PRIMARY KEY(user_id,lovys_id,fight_key));
  CREATE TABLE user_pve_battles(user_id int PRIMARY KEY,fight_key text,state_json jsonb,updated_at timestamptz);
  CREATE TABLE user_combat_reports(id serial PRIMARY KEY,user_id int,fight_key text,result text,creature_level int,enemy_level int,creature_power int,enemy_power int,reward_creature_xp int,reward_global_xp int,reward_fragments int,report_json jsonb,created_at timestamptz DEFAULT CURRENT_TIMESTAMP);
  CREATE TABLE economy_migrations(version text PRIMARY KEY);
@@ -43,6 +44,62 @@ test.before(async()=>{
  CREATE TABLE user_global_xp_level_rewards(user_id int,prestige int,level int,xp_amount double precision,PRIMARY KEY(user_id,prestige,level));
  CREATE TABLE user_global_cash_level_rewards(user_id int,prestige int,level int,cash_amount double precision,PRIMARY KEY(user_id,prestige,level));
  CREATE TABLE user_global_lovys_xp_rewards(user_id int,prestige int,level int,xp_amount double precision,PRIMARY KEY(user_id,prestige,level));`);
+});
+
+test('PvE checkmarks follow the active Lovys while unlocks and first rewards follow the account',async()=>{
+ const id=await player(),otherId=id+20000,keys=PVE_FIGHTS.slice(0,2).map(f=>f.key);
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,is_active) VALUES($1,$2,'water',FALSE)",[otherId,id]);
+ for(const key of keys){
+  await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,key]);
+  await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$1,$2)',[id,key]);
+ }
+ const router=createPveRouter({pool,zones:PVE_ZONES,previousFight:pvePreviousFight,fightByKey:pveFightByKey,creatureBattleStats:()=>({name:'Test'})});
+ const handler=router.stack.find(layer=>layer.route?.path==='/').route.stack[0].handle;
+ async function read(){const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}}},res);assert.equal(res.statusCode,200);return res.body;}
+ const first=await read();assert.equal(first.activeLovysId,id);assert.equal(first.zones[0].fights.filter(f=>f.won).length,2);
+ await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,otherId]);
+ const second=await read();assert.equal(second.activeLovysId,otherId);assert.equal(second.zones[0].fights.filter(f=>f.won).length,0);
+ for(const f of second.zones[0].fights.slice(0,2)){assert.equal(f.accountWon,true);assert.equal(f.replayRewardAvailable,true);}
+ // Chaque Lovys doit débloquer son propre combat suivant ; les victoires du compte restent consultables.
+ assert.equal(first.zones[0].fights[1].unlocked,true);
+ assert.equal(second.zones[0].fights[0].unlocked,true);
+ assert.equal(second.zones[0].fights[1].unlocked,false);
+ await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,keys[0]]);
+ const partial=await read();assert.equal(partial.zones[0].fights[0].won,true);assert.equal(partial.zones[0].fights[1].won,false);assert.equal(partial.zones[0].fights[0].replayRewardAvailable,false);
+ await query('UPDATE user_lovys SET is_active=(id=$2) WHERE user_id=$1',[id,id]);
+ assert.equal((await read()).zones[0].fights.filter(f=>f.won).length,2);
+});
+
+test('PvE replays reward each other Lovys once, then stop after its zone boss',async()=>{
+ const id=await player(600),otherId=id+10000;
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,xp,is_active) VALUES($1,$2,'plant',0,FALSE)",[otherId,id]);
+ const router=createPveRouter({pool,zones:PVE_ZONES,previousFight:pvePreviousFight,fightByKey:pveFightByKey,globalThresholdForLevel});
+ const handler=router.stack.find(layer=>layer.route?.path==='/action').route.stack[0].handle;
+ const fight=PVE_FIGHTS[0],boss=PVE_ZONES[0].fights.find(item=>item.finalBoss);
+ async function win(lovysId,fightToWin=fight){
+  const state=createBattleState({fight:fightToWin,player:{name:'Test',creatureId:'plant',lovysId,level:5,rank:1,type:'Neutre',hp:100000,attack:100000,defense:10000,speed:100}});
+  await query('INSERT INTO user_pve_battles VALUES($1,$2,$3,NULL)',[id,fightToWin.key,JSON.stringify(state)]);
+  const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}},body:{action:'basic'}},res);
+  assert.equal(res.statusCode,200);assert.equal(res.body.victory,true);return res.body;
+ }
+ const first=await win(id);
+ assert.ok(first.reward.cash>=3&&first.reward.cash<=5);
+ assert.equal((await win(id)).replayReward,false);
+ const replay=await win(otherId);
+ assert.equal(replay.replayReward,true);assert.ok(replay.reward.cash>=3&&replay.reward.cash<=5);
+ assert.equal(replay.reward.creatureXp,fight.rewards.creatureXp);
+ assert.equal((await query('SELECT xp FROM user_lovys WHERE id=$1',[otherId])).rows[0].xp,replay.reward.creatureXp);
+ assert.equal((await balances(id)).points,first.reward.cash+replay.reward.cash);
+ assert.equal((await win(otherId)).replayReward,false);
+ await query('INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key) VALUES($1,$2,$3)',[id,otherId,boss.key]);
+ await query('INSERT INTO user_pve_progress(user_id,fight_key,wins) VALUES($1,$2,1)',[id,PVE_FIGHTS[1].key]);
+ const blocked=await win(otherId,PVE_FIGHTS[1]);
+ assert.equal(blocked.replayReward,false);assert.equal(blocked.reward.cash,0);
+ const mini=PVE_ZONES[0].fights.find(item=>item.miniBoss);
+ assert.equal((await win(id,mini)).reward.cash,10);
+ assert.equal((await win(id,boss)).reward.cash,10);
+ assert.equal((await win(id,boss)).reward.cash,0);
+ assert.equal((await balances(id)).points,first.reward.cash+replay.reward.cash+20);
 });
 test.after(async()=>{await db?.close();});
 let next=0;
@@ -72,6 +129,39 @@ function response(){return {statusCode:200,status(n){this.statusCode=n;return th
 test('global thresholds keep their current curve',()=>{
  assert.equal(globalThresholdForLevel(10),810);assert.equal(globalThresholdForLevel(25),3960);assert.equal(globalThresholdForLevel(55),17010);assert.equal(globalThresholdForLevel(56),17600);
 });
+test('slower curve keeps existing Lovys levels, progress and all badge rewards',()=>{
+ assert.equal(lovysThresholdForLevel(10),1000);
+ assert.equal(Math.round(lovysThresholdForLevel(18)),3667);
+ assert.equal(lovysThresholdForLevel(25),6000);
+ assert.equal(lovysThresholdForLevel(50),LOVYS_MAX_XP);
+ for(const level of [1,10,11,18,25,26,40,50]){
+  const old=level<=25?(level<=10?(level-1)*1000/9:1000+(level-10)*2500/15):3500+260*(level-25)+25*(level-25)*(level-26);
+  const mapped=migratePreviousLovysXp(old);
+  assert.equal(lovysProgressionFromXp(mapped).level,level);
+  assert.ok(Math.abs(mapped-lovysThresholdForLevel(level))<1e-7);
+ }
+});
+
+test('pace migration preserves active and inactive levels once without changing reserve',async()=>{
+ const id=await player(1000+8*2500/15);
+ const inactive=id+10000;
+ await query("INSERT INTO user_lovys(id,user_id,creature_id,xp,is_active) VALUES($1,$2,'water',$3,FALSE)",[inactive,id,3500]);
+ await query('UPDATE users SET pending_xp=500 WHERE id=$1',[id]);
+ // This fixture already uses the previous 25 000 XP curve.
+ await query("CREATE TABLE IF NOT EXISTS economy_migrations(version text PRIMARY KEY,applied_at timestamptz DEFAULT CURRENT_TIMESTAMP)");
+ await query("INSERT INTO economy_migrations(version) VALUES('v498-lovys-curve') ON CONFLICT DO NOTHING");
+ await migrateLovysProgressionCurve(pool);
+ let u=await balances(id),other=(await query('SELECT xp FROM user_lovys WHERE id=$1',[inactive])).rows[0];
+ assert.equal(lovysProgressionFromXp(u.xp).level,18);
+ assert.equal(lovysProgressionFromXp(other.xp).level,25);
+ assert.equal(u.pending_xp,500);
+ const xp=u.xp;
+ await migrateLovysProgressionCurve(pool);
+ u=await balances(id);
+ assert.equal(u.xp,xp);
+ assert.equal(u.pending_xp,500);
+});
+
 test('real SQL credits normal, subscriber and pre-hatch reserve without multiplying watch time',async()=>{
  const a=await player(),b=await player(0,{sub:true}),c=await player(0,{hatched:false});
  await tick([a,b,c]);
@@ -84,7 +174,8 @@ test('live gains stop exactly at level 50 and send overflow to reserve',async()=
 });
 test('potion expiry midway through a poll pays only its overlap and reports actual boosted cash',async()=>{
  const id=await player();
- for(const key of ['boost_xp_x2','boost_cash_x2'])await query('INSERT INTO user_active_boosts VALUES($1,$2,$3,$4)',[id,key,'2026-10-24T11:00:00Z','2026-10-24T11:59:30Z']);
+ // Double XP utilise désormais 30 secondes de présence restantes, tandis que le boost Cash garde sa date d'expiration.
+ for(const key of ['boost_xp_x2','boost_cash_x2'])await query('INSERT INTO user_active_boosts(user_id,boost_key,starts_at,expires_at,remaining_live_seconds) VALUES($1,$2,$3,$4,$5)',[id,key,'2026-10-24T11:00:00Z','2026-10-24T11:59:30Z',key==='boost_xp_x2'?30:null]);
  const r=await tick([id],60),u=await balances(id);
  assert.ok(Math.abs(u.xp-2.5)<1e-9);assert.ok(Math.abs(u.points-.25)<1e-9);assert.equal(r.rows[0].cash_gain,u.points);assert.equal(Number(u.watch_seconds),60);
 });
@@ -146,6 +237,16 @@ test('actual PvE action route preserves live XP, pays the first victory once and
   assert.equal((await balances(id)).xp,600+fight.rewards.creatureXp);
  }
  assert.equal((await query('SELECT wins FROM user_pve_progress WHERE user_id=$1',[id])).rows[0].wins,2);
+ assert.ok((await balances(id)).points>=3&&(await balances(id)).points<=5);
+ assert.equal((await balances(id)).egg_fragments,fight.rewards.fragments);
+ const achievements=createAchievements({pool,creatures:[],zones:PVE_ZONES,progressionFromXp:lovysProgressionFromXp,awardRewards:async()=>{}});
+ await achievements.init();
+ const badge=(await achievements.sync(id,id)).find(item=>item.badgeKey==='achievement:victories');
+ assert.equal(badge.progressValue,1);
+ assert.equal(badge.stages[0].unlocked,true);
+ // Corrige également les anciens compteurs qui avaient déjà inclus les replays.
+ await query("UPDATE user_achievement_progress SET value=30 WHERE user_id=$1 AND metric='victories'",[id]);
+ assert.equal((await achievements.sync(id,id)).find(item=>item.badgeKey==='achievement:victories').progressValue,1);
 });
 
 test('badge rebalance tops up old tiers once and pays the same total to a new player',async()=>{
@@ -195,6 +296,34 @@ test('global rewards read locked current XP and prestige keeps excess instead of
  vm.runInContext(source.slice(source.indexOf("app.post('/api/prestige'"),source.indexOf('const FRAGMENT_EGG_PRICE')),ctx);
  const res=response();await handler({session:{account:{id},user:{twitchId:String(id)}}},res);
  assert.equal(res.statusCode,200);assert.equal((await balances(id)).prestige,1);assert.equal((await balances(id)).global_xp,3350);
+});
+
+test('profile reward refresh uses five queries without rewriting earned rewards and preserves prestige grants',async()=>{
+ const statements=[];
+ const trackedClient={query:async(sql,args)=>{statements.push(sql);return query(sql,args);},release(){}};
+ const trackedPool={query:trackedClient.query,connect:async()=>trackedClient};
+ const ctx=extracted('async function syncGlobalLevelRewards','function typeMultiplier',{pool:trackedPool});
+ for(const name of ['GLOBAL_LEVEL_CASH_REWARDS','GLOBAL_LEVEL_CASH_LEVELS','GLOBAL_LEVEL_XP_REWARDS']){
+  const a=source.indexOf(`const ${name} =`);
+  const b=name==='GLOBAL_LEVEL_XP_REWARDS'?source.indexOf('\n);',a)+3:source.indexOf(';',a)+1;
+  vm.runInContext(source.slice(a,b),ctx);
+ }
+ vm.runInContext(source.slice(source.indexOf('function globalProgressionFromXp'),source.indexOf('const CREATURE_MILESTONES')),ctx);
+ const id=await player();await query('UPDATE users SET global_xp=$2 WHERE id=$1',[id,globalThresholdForLevel(55)]);
+ const first=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.ok(first.globalXpGranted>0);assert.ok(first.cashGranted>0);assert.ok(first.pendingXpGranted>0);
+ const before=await balances(id);statements.length=0;
+ const repeat=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.equal(statements.length,5,'BEGIN, three reads and COMMIT only');
+ assert.ok(statements.every(sql=>!/^\s*(INSERT|UPDATE|DELETE)/i.test(sql)));
+ assert.deepEqual(await balances(id),before);
+ assert.equal(repeat.globalXpGranted,0);assert.equal(repeat.pendingXpGranted,0);assert.equal(repeat.cashGranted,0);
+ await query('DELETE FROM user_global_cash_level_rewards WHERE user_id=$1 AND prestige=0 AND level=5',[id]);
+ assert.ok((await ctx.syncGlobalLevelRewards(trackedPool,id,id,0)).cashGranted>0,'missing legacy reward is still backfilled');
+ assert.equal((await ctx.syncGlobalLevelRewards(trackedPool,id,id,0)).cashGranted,0);
+ await query('UPDATE users SET prestige=1 WHERE id=$1',[id]);
+ const prestige=await ctx.syncGlobalLevelRewards(trackedPool,id,id,0);
+ assert.ok(prestige.globalXpGranted>0);assert.ok(prestige.cashGranted>0);assert.ok(prestige.pendingXpGranted>0);
 });
 
 test('startup global XP backfill runs once and never refills a completed prestige',async()=>{

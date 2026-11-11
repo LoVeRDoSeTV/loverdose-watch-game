@@ -154,9 +154,8 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
     const ids=req.body?.ids;
     if(!Array.isArray(ids)||!ids.length||ids.length>20||ids.some(id=>!Number.isSafeInteger(id)||id<1)||new Set(ids).size!==ids.length)return res.status(400).json({error:'Sélectionne entre 1 et 20 archives de cette page.'});
     try{
-      let deleted=0;const failedIds=[];
-      // Chaque retour reste verrouillé jusqu'à la réponse de Discord : un changement
-      // de statut simultané ne peut pas supprimer un dossier redevenu actif.
+      let deleted=0;const failedIds=[],discordNotDeletedIds=[];
+      // Le verrou garantit que seul un retour encore archivé est supprimé.
       for(let start=0;start<ids.length;start+=5){
         await Promise.all(ids.slice(start,start+5).map(async id=>{
           const client=await pool.connect();
@@ -165,26 +164,30 @@ export function createFeedbackRouter({pool,getBroadcasterAccount}) {
             const row=(await client.query(`SELECT discord_message_id,discord_status,discord_sent_at FROM game_feedback WHERE id=$1 AND status='resolved' FOR UPDATE`,[id])).rows[0];
             if(!row){failedIds.push(id);await client.query('ROLLBACK');return;}
             const messageId=String(row.discord_message_id||'');
+            let discordNotDeleted=false;
             if(messageId){
               const webhook=feedbackWebhookUrl();
-              if(!webhook||!/^\d{17,20}$/.test(messageId)){failedIds.push(id);await client.query('ROLLBACK');return;}
-              let response;
-              try{response=await fetch(`${webhook}/messages/${messageId}`,{method:'DELETE',redirect:'error',signal:AbortSignal.timeout(12000)});}catch{failedIds.push(id);await client.query('ROLLBACK');return;}
-              // Seul le code 10008 confirme qu'un message n'existe plus. Un
-              // webhook supprimé renvoie aussi 404, sans permettre le nettoyage.
-              const missingMessage=response.status===404&&Number((await response.json().catch(()=>({}))).code)===10008;
-              if(!response.ok&&!missingMessage){failedIds.push(id);await client.query('ROLLBACK');return;}
+              if(!webhook||!/^\d{17,20}$/.test(messageId))discordNotDeleted=true;
+              else{
+                try{
+                  const response=await fetch(`${webhook}/messages/${messageId}`,{method:'DELETE',redirect:'error',signal:AbortSignal.timeout(12000)});
+                  const missingMessage=response.status===404&&Number((await response.json().catch(()=>({}))).code)===10008;
+                  if(!response.ok&&!missingMessage)discordNotDeleted=true;
+                }catch{discordNotDeleted=true;}
+              }
             }else if(row.discord_status==='sent'||row.discord_sent_at){
-              // Les anciens envois sans identifiant ne sont pas supprimables par webhook.
-              failedIds.push(id);await client.query('ROLLBACK');return;
+              // Anciens envois sans identifiant : le message Discord doit être effacé manuellement.
+              discordNotDeleted=true;
             }
-            await client.query(`DELETE FROM game_feedback WHERE id=$1 AND status='resolved'`,[id]);
+            const result=await client.query(`DELETE FROM game_feedback WHERE id=$1 AND status='resolved'`,[id]);
+            if(!result.rowCount){failedIds.push(id);await client.query('ROLLBACK');return;}
             await client.query('COMMIT');deleted++;
+            if(discordNotDeleted)discordNotDeletedIds.push(id);
           }catch(error){failedIds.push(id);try{await client.query('ROLLBACK');}catch{}console.warn(`[Feedback ${id}] Nettoyage des archives impossible :`,error);}
           finally{client.release();}
         }));
       }
-      res.json({ok:true,deleted,failedIds});
+      res.json({ok:true,deleted,failedIds,discordNotDeletedIds});
     }catch{res.status(500).json({error:'Impossible de nettoyer les archives.'});}
   });
   router.get('/admin/feedback/:id',async(req,res)=>{

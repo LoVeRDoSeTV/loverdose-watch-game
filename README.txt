@@ -15,6 +15,7 @@ Jeu communautaire web lié à Twitch : temps de visionnage, LoVeR'Cash, Lovys,
 - Progression Lovys : XP, niveaux, collection multi-Lovys et Lovys actif
 - Incubateur : jusqu'à 3 œufs en parallèle
 - Boutique / inventaire : titres, fonds, encadrements, cadres de profil et objets
+- Les fioles d'XP achetées sont ajoutées immédiatement à l'inventaire ; l'XP n'est créditée en réserve qu'à leur utilisation.
 - Défis / badges / classement / profils joueurs
 - PvE : carte d'aventure, combats, récompenses et Fragments d'œuf
 
@@ -68,6 +69,8 @@ Les zones PvE sont révélées progressivement :
 -----------------
 - Visuel œuf : public/assets/egg-premium.webp
 - Visuel fragment : public/assets/fragment-premium.webp
+- Le premier œuf (œuf de départ) éclot après 4 h de présence cumulée en live.
+- Les œufs suivants éclosent après 5 h de présence cumulée en live chacun.
 - Les œufs supplémentaires peuvent être placés dans l'incubateur.
 - Les emplacements actifs progressent simultanément avec le temps de visionnage Twitch.
 - Les Fragments d'œuf sont principalement gagnés en PvE.

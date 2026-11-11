@@ -1,0 +1,37 @@
+name: Vérification du jeu
+
+on:
+  pull_request:
+    branches: [main, performance-safe-modules-20261029]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Récupérer les sources
+        uses: actions/checkout@v4
+      - name: Configurer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+      - name: Vérifier les feuilles CSS allégées
+        run: npm run check:css
+      - name: Vérifier la synchronisation JavaScript
+        run: npm run check:js
+      - name: Vérifier les ressources réellement publiées
+        run: npm run check:deploy
+      - name: Vérifier la syntaxe JavaScript complémentaire
+        run: node --check public/bot-page.js
+      - name: Vérifier la syntaxe des serveurs
+        run: |
+          node --check server.js
+          node --check public/server.js
+      - name: Exécuter les tests
+        run: npm test

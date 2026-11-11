@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" fill="none">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1200" y2="440" gradientUnits="userSpaceOnUse"><stop stop-color="#110e21"/><stop offset=".56" stop-color="#271442"/><stop offset="1" stop-color="#311c36"/></linearGradient>
+    <linearGradient id="gold" x1="651" y1="385" x2="1164" y2="60" gradientUnits="userSpaceOnUse"><stop stop-color="#a96f31"/><stop offset=".5" stop-color="#ffe7a2"/><stop offset="1" stop-color="#c98f42"/></linearGradient>
+    <radialGradient id="light"><stop stop-color="#b268ff" stop-opacity=".4"/><stop offset="1" stop-color="#b268ff" stop-opacity="0"/></radialGradient>
+    <filter id="glow"><feGaussianBlur stdDeviation="17"/></filter>
+  </defs>
+  <rect width="1200" height="440" fill="url(#base)"/>
+  <circle cx="902" cy="207" r="305" fill="url(#light)"/>
+  <path d="M344 424C682 341 828 128 1175 31" stroke="url(#gold)" stroke-width="47" opacity=".2" filter="url(#glow)"/>
+  <path d="M344 424C682 341 828 128 1175 31" stroke="url(#gold)" stroke-opacity=".69" stroke-width="3"/>
+  <path d="M560 429C710 324 860 288 1225 273" stroke="#bf89ff" stroke-opacity=".53" stroke-width="3"/>
+  <path d="M515 0 860 440M673 0 1020 440" stroke="#d7acf5" stroke-opacity=".1" stroke-width="1"/>
+  <circle cx="916" cy="201" r="139" stroke="#efb85c" stroke-opacity=".68" stroke-width="21" filter="url(#glow)"/>
+  <circle cx="916" cy="201" r="139" fill="#180f2d" fill-opacity=".6" stroke="url(#gold)" stroke-width="3"/>
+  <circle cx="916" cy="201" r="126" stroke="#e4b76c" stroke-opacity=".32" stroke-width="1"/>
+  <path d="M887 116l11 10 18-17 18 17 11-10-7 29h-45z" fill="url(#gold)" opacity=".9"/>
+  <text x="916" y="229" text-anchor="middle" font-family="Arial,sans-serif" font-size="91" font-weight="900" letter-spacing="-6" fill="url(#gold)">250</text>
+  <path d="M857 247h118" stroke="url(#gold)" stroke-width="2"/>
+  <text x="916" y="272" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" font-weight="700" letter-spacing="5" fill="#f8d996">LIVES</text>
+  <g transform="translate(1088 324) scale(4.3)" fill="#edcf96" opacity=".78"><path d="M3.857 0 1 2.857v10.286h3.429V16l2.857-2.857h2.286L14.714 8V0H3.857zm9.714 7.429-2.286 2.285H9l-2 2v-2H4.429V1.143h9.142v6.286z"/><path d="M11.857 3.143h-1.143v3.428h1.143V3.143zm-3.143 0H7.57v3.428h1.143V3.143z"/></g>
+  <g fill="#f4d995" opacity=".78"><path d="m708 74 2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="m1137 75 2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/><path d="m661 322 2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></g>
+</svg>

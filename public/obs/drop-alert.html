@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Colis stratégique</title>
+<style>
+:root{--sky:#0a0720;--olive:#5b3fc4;--olive-d:#3a2590;--orange:#a78bfa;--canvas:#f3efff;--ground:#140a3c;--ink:#f3efff;
+  --font:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html,body{height:100%;margin:0;background:transparent;color:var(--ink);font-family:var(--font)}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}body.play{opacity:1}
+svg{width:min(92vw,420px);max-height:72dvh;height:auto;display:block}
+.caption{text-align:center;margin-top:8px;min-height:84px}
+.caption h1{margin:0;font-size:34px;font-weight:700;letter-spacing:.04em}
+.caption p{margin:4px 0 12px;font-size:18px;font-weight:500;opacity:.8}
+button{font:700 18px var(--font);letter-spacing:.04em;background:#8b5cf6;color:#fff;border:0;border-radius:4px;padding:9px 22px;cursor:pointer}
+button:focus-visible{outline:3px solid var(--canvas);outline-offset:3px}#replay{display:none}
+.t{font-family:var(--font);font-weight:700;letter-spacing:1.2px;fill:var(--canvas)}
+.beam,.halo,.puff,.caption{opacity:0}
+.beam{transform-origin:200px 404px}
+.puff{transform-box:fill-box;transform-origin:center}
+.lid{transform-origin:153px 404px}
+.sway{transform-origin:200px 220px}
+.chute{transform-origin:200px 300px}
+.play .drop{animation:fall 3.2s cubic-bezier(.25,.6,.5,1) both}
+.play .sway{animation:sway 3.2s ease-out both}
+.play .chute{animation:collapse .7s ease-in 3.2s both}
+.play .puff{animation:puff .9s ease-out 3.2s both}
+.play .lid{animation:lid .6s cubic-bezier(.3,1.4,.5,1) 4s both}
+.play .beam{animation:beam .8s ease-out 4.1s both}
+.play .halo{animation:fade .6s ease 4.6s both}
+.play .item{animation:rise 1s ease-out 4.5s both}
+.play .caption{animation:fade .6s ease 5.2s both}
+.item{transform:translateY(20px)}
+@keyframes fall{from{transform:translateY(-520px)}to{transform:none}}
+@keyframes sway{0%{transform:rotate(-5deg)}25%{transform:rotate(4deg)}50%{transform:rotate(-3deg)}75%{transform:rotate(1.5deg)}100%{transform:none}}
+@keyframes collapse{to{transform:translateY(80px) scaleY(.25);opacity:0}}
+@keyframes puff{from{transform:scale(.3);opacity:.6}to{transform:scale(2);opacity:0}}
+@keyframes lid{to{transform:rotate(-105deg)}}
+@keyframes beam{from{transform:scaleY(0);opacity:0}to{transform:scaleY(1);opacity:.85}}
+@keyframes rise{from{transform:translateY(20px)}to{transform:translateY(-72px)}}
+@keyframes fade{to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.play *{animation-duration:.01ms!important;animation-delay:0s!important}}
+</style>
+</head>
+<body>
+<svg viewBox="0 0 400 560" role="img" aria-label="Un colis stratégique descend en parachute, atterrit puis s’ouvre en libérant une lumière">
+  <defs>
+    <linearGradient id="beam" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#a78bfa" stop-opacity=".85"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></linearGradient>
+    <radialGradient id="halo"><stop offset="0" stop-color="#a78bfa" stop-opacity=".9"/><stop offset="1" stop-color="#a78bfa" stop-opacity="0"/></radialGradient>
+  </defs>
+  <polygon class="beam" points="170,404 230,404 310,60 90,60" fill="url(#beam)"/>
+  <g fill="#f3efff"><circle class="puff" cx="150" cy="466" r="14"/><circle class="puff" cx="250" cy="466" r="14"/><circle class="puff" cx="200" cy="470" r="18"/></g>
+  <g class="drop"><g class="sway">
+    <g class="chute">
+      <path d="M110 300 Q200 180 290 300 Q245 282 200 300 Q155 282 110 300Z" fill="#f3efff"/>
+      <path d="M155 288 Q200 200 245 288 Q222 280 200 292 Q178 280 155 288Z" fill="#8b5cf6"/>
+      <g stroke="#f3efff" stroke-width="1.5" fill="none"><path d="M112 300L160 400"/><path d="M200 296V400"/><path d="M288 300L240 400"/></g>
+    </g>
+    <circle class="halo" cx="200" cy="400" r="70" fill="url(#halo)"/>
+    <g class="item"><image id="dropItem" x="162" y="358" width="76" height="76" preserveAspectRatio="xMidYMid meet" href="/assets/egg-premium.webp"/></g>
+    <rect x="155" y="400" width="90" height="70" fill="#5b3fc4"/>
+    <g stroke="#3a2590" stroke-width="2"><path d="M155 417H245"/><path d="M155 453H245"/></g>
+    <rect x="155" y="426" width="90" height="8" fill="#a78bfa"/>
+    <text class="t" x="200" y="448" font-size="11" text-anchor="middle">LoVeR</text>
+    <text class="t" x="200" y="462" font-size="11" text-anchor="middle">Watch Game</text>
+    <rect class="lid" x="153" y="392" width="94" height="12" fill="#3a2590"/>
+  </g></g>
+</svg>
+<audio id="dropSound" src="/obs/drop-alert.mp3" preload="auto"></audio>
+<div class="caption">
+  <h1 id="reward">Colis livré</h1>
+  <p id="instruction">Tape !catch dans le chat !</p>
+  <button id="replay" type="button">Rejouer</button>
+</div>
+<script src="/obs/drop-alert.js" defer></script>
+</body>
+</html>

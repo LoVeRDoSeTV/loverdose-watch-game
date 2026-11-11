@@ -38,7 +38,7 @@ test('dashboard modules start together after incubation data, even if one module
     $:()=>({classList:{add(){},remove(){}}}),isMobileGameUi:()=>false,window:{},console,
     loadIncubatorSlots:()=>incubation.promise,
     ...Object.fromEntries(['syncDesktopLovysHub','loadBadges','loadDailyChallenges','loadRewardWheels'].map((name,i)=>[name,()=>{started.push(name);return modules[i].promise;}]))});
-  for(const name of ['refreshReturnSummary','reapplyPendingCosmetics','startLiveUpdates','refreshDesktopHomeLiveStatus','syncLoverCashDisplays','renderPlayerVisitCard','renderPlayerSubscriptionStatus','renderGame','renderNextActions','updatePwaInstallUi','setupTopDashboardSync','scheduleTopDashboardSync'])context[name]=()=>{};
+  for(const name of ['refreshReturnSummary','reapplyPendingCosmetics','startLiveUpdates','refreshDesktopHomeLiveStatus','syncLoverCashDisplays','renderPlayerVisitCard','renderPlayerSubscriptionStatus','renderGame','renderNextActions','updatePwaInstallUi','setupTopDashboardSync','scheduleTopDashboardSync','scheduleTwitchRewardCheck','scheduleWatchStreakRewardCheck','refreshMobileHomeXpBoost','showPendingHeartGift'])context[name]=()=>{};
   vm.runInContext(slice('async function loadGameOnce() {','let incubatorData = null;'),context);
   const pending=context.loadGameOnce().then(()=>{finished=true;});await flush();assert.equal(started.length,0);
   incubation.resolve();await flush();assert.equal(started.length,4);assert.equal(finished,false);

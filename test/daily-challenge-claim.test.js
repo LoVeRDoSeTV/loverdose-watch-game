@@ -32,6 +32,8 @@ test('detail locks repeated claims and displays success even when a refresh fail
   await s.run("claimDailyChallenge('watch_60')");assert.equal(s.requests.length,1);
   s.succeed();await pending;
   assert.equal(s.run("getDailyChallengeByKey('watch_60').claimed"),true);
+  assert.match(s.node('dailyChallengesGrid').innerHTML,/daily-challenge-progress-text[^>]*>.*✓ Récompense réclamée/);
+  assert.doesNotMatch(s.node('dailyChallengesGrid').innerHTML,/data-daily-claim/);
   assert.doesNotMatch(s.node('dailyChallengeDetailActions').innerHTML,/data-daily-claim/);
   assert.match(s.node('dailyChallengeDetailMessage').textContent,/5.*LoVeR.Cash.*15.*XP globale.*10.*XP Lovys en attente/);
   assert.equal(s.node('dailyChallengeDetailMessage').hidden,false);
