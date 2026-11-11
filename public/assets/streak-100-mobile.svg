@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 260" fill="none" aria-labelledby="title">
+  <title id="title">Récompense 100 lives — fond adapté à la carte mobile</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="360" y2="260" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#140c2d"/><stop offset=".58" stop-color="#25144f"/><stop offset="1" stop-color="#111b39"/>
+    </linearGradient>
+    <linearGradient id="trace" x1="86" y1="257" x2="350" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7540ce" stop-opacity=".10"/><stop offset=".65" stop-color="#ad78ff" stop-opacity=".72"/><stop offset="1" stop-color="#e5c8ff" stop-opacity=".44"/>
+    </linearGradient>
+    <linearGradient id="medal" x1="258" y1="119" x2="326" y2="194" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ad78ff"/><stop offset=".52" stop-color="#e5c8ff"/><stop offset="1" stop-color="#7540ce"/>
+    </linearGradient>
+    <radialGradient id="halo"><stop stop-color="#a46aff" stop-opacity=".26"/><stop offset="1" stop-color="#a46aff" stop-opacity="0"/></radialGradient>
+    <filter id="soft"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+  <rect width="360" height="260" fill="url(#bg)"/>
+  <circle cx="298" cy="171" r="115" fill="url(#halo)"/>
+  <path d="M117 260C178 235 265 205 361 145" stroke="url(#trace)" stroke-width="16" opacity=".54" filter="url(#soft)"/>
+  <path d="M117 260C178 235 265 205 361 145" stroke="url(#trace)" stroke-width="2.1" opacity=".65"/>
+  <path d="M216 0 354 153M280 0l78 88" stroke="#ad78ff" stroke-opacity=".10"/>
+  <circle cx="292" cy="159" r="36" stroke="#a46aff" stroke-opacity=".45" stroke-width="12" filter="url(#soft)"/>
+  <circle cx="292" cy="159" r="36" fill="#21143c" fill-opacity=".84" stroke="url(#medal)" stroke-width="2"/>
+  <circle cx="292" cy="159" r="32.3" stroke="#e5c8ff" stroke-opacity=".24" stroke-width=".8"/>
+  
+  <text x="292" y="166" fill="#e5c8ff" font-family="Arial,Helvetica,sans-serif" font-size="26" font-weight="900" letter-spacing="-1.5" text-anchor="middle">100</text>
+  <path d="M270 173h44" stroke="#e5c8ff" stroke-opacity=".72" stroke-width="1"/>
+  <text x="292" y="184" fill="#e5c8ff" font-family="Arial,Helvetica,sans-serif" font-size="6.5" font-weight="700" letter-spacing="2" text-anchor="middle">LIVES</text>
+  <g fill="#e5c8ff" opacity=".52"><circle cx="55" cy="179" r="1.4"/><circle cx="171" cy="33" r="1.8"/><circle cx="335" cy="215" r="1.2"/></g>
+</svg>
