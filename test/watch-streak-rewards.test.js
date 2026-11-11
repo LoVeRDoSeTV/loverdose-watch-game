@@ -26,18 +26,21 @@ test('un partage Twitch crédite son palier une seule fois, à un compte lié',a
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:3,messageId:'d'}),false);
     assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,10);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:5,messageId:'e'}),true);
-    assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,50);
-    assert.equal((await db.query('SELECT xp FROM users WHERE id=1')).rows[0].xp,50);
+    // Les récompenses de série Twitch sont mises en banque, pas sur le Lovys actif.
+    assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,0);
+    assert.equal((await db.query('SELECT xp,pending_xp FROM users WHERE id=1')).rows[0].xp,0);
+    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,50);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:10,messageId:'f'}),true);
     assert.equal((await db.query("SELECT quantity FROM shop_inventory WHERE item_key='mystery_egg'")).rows[0].quantity,1);
     assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,3);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:4,messageId:'other'}),true);
     assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,15);
-    assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,75);
+    assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,0);
+    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,75);
   }finally{await db.close();}
 });
 
-test('un Lovys au niveau maximal envoie le surplus en réserve et le dernier palier donne le boost',async()=>{
+test('la série Twitch crédite la réserve XP sans changer le Lovys et donne le boost final',async()=>{
   const db=new PGlite();
   try{
     await db.exec(`CREATE TABLE accounts(id integer PRIMARY KEY,twitch_id text UNIQUE);
@@ -54,10 +57,13 @@ test('un Lovys au niveau maximal envoie le surplus en réserve et le dernier pal
     await initWatchStreakRewards(db);
     await grantSharedWatchStreak(db,{twitchId:'viewer',count:5,messageId:'xp'});
     const user=(await db.query('SELECT xp,pending_xp FROM users WHERE id=1')).rows[0];
-    assert.equal(user.xp,25000);assert.equal(user.pending_xp,30);
+    assert.equal(user.xp,24980);assert.equal(user.pending_xp,50);
     await grantSharedWatchStreak(db,{twitchId:'viewer',count:350,messageId:'final'});
     const inventory=(await db.query('SELECT item_key FROM shop_inventory ORDER BY item_key')).rows.map(row=>row.item_key);
-    assert.deepEqual(inventory,['boost_xp_x2','streak_avatarframe_350']);
+    assert.ok(inventory.includes('boost_xp_x2'));
+    assert.ok(inventory.includes('streak_avatarframe_350'));
+    assert.equal((await db.query("SELECT quantity FROM shop_inventory WHERE item_key='boost_xp_x2'")).rows[0].quantity,1);
+    assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,24980);
     assert.equal(WATCH_STREAK_REWARDS.at(-1).count,350);
   }finally{await db.close();}
 });
