@@ -153,12 +153,10 @@
 
   /* Fond des récompenses 100/250 lives : médaille entière sur une carte portrait.
      La source SVG garde ses proportions, contrairement à background-size:cover. */
-  /* Carte réellement affichée sur l'accueil : cadrage large qui garde les
-     noms, rangs et boutons lisibles, sans grand médaillon derrière le texte. */
-  .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background),
+  /* Profil complet : illustration panoramique conservée sans zoom excessif. */
   .player-profile-hero:is(.streak-100-background,.streak-250-background) {
-    background-size:auto 100%,cover,cover,cover!important;
-    background-position:left center,center,center,center!important;
+    background-size:100% auto,cover,cover,cover!important;
+    background-position:center top,center,center,center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
@@ -206,15 +204,44 @@
 }
 
 
-/* Vignette 250 lives : zoomer uniquement la miniature boutique/inventaire sur la médaille dorée.
-   L'illustration SVG est très large (1200×440) : affichée entière dans un carré,
-   l'inscription 250 devient illisible. La vraie carte garde son fond complet. */
-:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-250-background {
+/* Miniatures carrées 100 / 250 : médailles visibles sans changer les aperçus complets. */
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview:is(.streak-100-background,.streak-250-background) {
   background-size:270% auto,cover!important;
   background-position:92% center,center!important;
   background-repeat:no-repeat!important;
   animation:none!important;
 }
-:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-250-background > .streak-motion-layer {
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview:is(.streak-100-background,.streak-250-background) > .streak-motion-layer {
   display:none!important;
+}
+
+/* La véritable carte de l'accueil utilise un cadrage SVG portrait dédié.
+   Chaque médaille est visible sur la droite SOUS les informations du profil.
+   Les prévisualisations continuent d'utiliser les SVG panoramiques d'origine. */
+@media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
+  body .dashboard-left-stack > .player-visit-card.streak-100-background {
+    background-image:url("/assets/streak-100-mobile.svg?v=1"),
+      radial-gradient(circle at 10% 0%,rgba(145,71,255,.16),transparent 42%),
+      linear-gradient(160deg,#15192b,#0b0f20)!important;
+    background-size:100% 100%,cover,cover!important;
+    background-position:center,center,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body .dashboard-left-stack > .player-visit-card.streak-250-background {
+    background-image:url("/assets/streak-250-mobile.svg?v=1"),
+      radial-gradient(circle at 10% 0%,rgba(196,153,89,.14),transparent 42%),
+      linear-gradient(160deg,#20172e,#0d1022)!important;
+    background-size:100% 100%,cover,cover!important;
+    background-position:center,center,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  /* La prévisualisation complète ne reprend jamais le cadrage portrait de l'accueil. */
+  #shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before,
+  .watch-streak-preview-art .shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before {
+    background-size:contain,cover!important;
+    background-position:center center,center!important;
+    background-repeat:no-repeat!important;
+  }
 }
