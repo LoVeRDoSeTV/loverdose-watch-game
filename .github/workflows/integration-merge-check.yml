@@ -66,6 +66,10 @@ jobs:
           old="won:lovysWins.has(fight.key), accountWon:"
           assert old in src
           src=src.replace(old,"won:lovysWins.has(fight.key), wonWithLovys:lovysWins.has(fight.key), cashRange:(fight.boss||fight.miniBoss||fight.finalBoss)?{min:10,max:10}:{min:3,max:5}, accountWon:",1)
+          # Always query the current fight; zones without a boss still must reject unpaid replays.
+          assert "const lovysWins=victory&&lovysId&&bossKey?" in src
+          src=src.replace("const lovysWins=victory&&lovysId&&bossKey?", "const lovysWins=victory&&lovysId?",1)
+          src=src.replace("[user.id,lovysId,[fight.key,bossKey]])", "[user.id,lovysId,[fight.key,bossKey].filter(Boolean)])",1)
           p.write_text(src)
           # Keep the new reward preview helper alongside feature-branch UI logic.
           p=Path('public/app.js');src=p.read_text()
