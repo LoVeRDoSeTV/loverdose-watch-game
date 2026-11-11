@@ -93,7 +93,7 @@ test('100/250 lives preview in badge collection uses the mobile artwork without 
   for(const milestone of [100,250]){
     const match=previewRules.find(rule=>rule.selector.includes(`streak-${milestone}-background`));
     assert.ok(match,`Missing badge collection preview for ${milestone} lives`);
-    assert.match(match.values['background-image'],new RegExp(`streak-${milestone}-mobile\\\\.svg`));
+    assert.match(match.values['background-image'],new RegExp(`streak-${milestone}-mobile\\.svg`));
     assert.match(match.values['background-size'],/100% auto/);
     assert.match(match.values['background-position'],/center center/);
   }
