@@ -1,7 +1,10 @@
 // Cadeaux du jeu : Twitch décide seul quels nombres peuvent être partagés.
 // Aucun palier n'est attribué à partir du compteur de présence du jeu.
 const stages = [
-  [3,{cash:10}], [5,{xp:50}], [7,{cash:15,fragments:3}], [10,{egg:1}],
+  // Début de série : un petit cadeau pour chaque live de 1 à 10.
+  [1,{cash:3}], [2,{xp:15}], [3,{cash:10}], [4,{cash:5}],
+  [5,{xp:50}], [6,{fragments:2}], [7,{cash:15,fragments:3}],
+  [8,{xp:25}], [9,{cash:10}], [10,{egg:1}],
   [15,{xp:75,cash:15}], [20,{fragments:5,cash:20}],
   [25,{cosmetic:'streak_title_25',xp:100}], [30,{cash:30}],
   [35,{xp:100,fragments:5}], [40,{cash:40}], [45,{xp:125,fragments:5}],
@@ -26,8 +29,8 @@ const stages = [
   [350,{cosmetic:'streak_avatarframe_350',boost:1}]
 ];
 
-// Tous les cinq lives, un cadeau intermédiaire sans écraser les récompenses spéciales.
-// Les partages Twitch à d'autres nombres restent également récompensés.
+// Après le 10e live : cadeaux strictement tous les 5 lives, sans écraser les paliers spéciaux.
+// Les nombres intermédiaires font progresser le compteur, mais ne donnent plus de cadeau.
 for (let count=5;count<=350;count+=5) {
   if (stages.some(([milestone])=>milestone===count)) continue;
   const tier=Math.floor(count/50);
@@ -62,9 +65,9 @@ const rewardByCount=new Map(WATCH_STREAK_REWARDS.map(reward=>[reward.count,rewar
 export function watchStreakRewardForCount(value){
   const count=Number(value);
   if(!Number.isSafeInteger(count)||count<1||count>350)return null;
-  // Twitch ne publie pas tous ses paliers partageables. Un palier que Twitch
-  // ajoute ou espace différemment reçoit tout de même un petit cadeau.
-  return rewardByCount.get(count)||{count,xp:25,cash:5,description:'25 XP Lovys · 5 LoVeR’Cash'};
+  // Lecture historique uniquement : conserver la description des anciens cadeaux
+  // attribués à des nombres intermédiaires, sans permettre de nouveaux gains.
+  return rewardByCount.get(count)||{count,xp:25,cash:5,description:'25 XP Lovys · 5 LoVeR’Cash (ancien palier)'};
 }
 
 export async function initWatchStreakRewards(pool){
@@ -83,7 +86,9 @@ export async function initWatchStreakRewards(pool){
 // La transaction appartient au webhook : en cas d'échec, le marqueur et les ressources
 // sont annulés ensemble, afin que Twitch puisse renvoyer la notification.
 export async function grantSharedWatchStreak(client,{twitchId,count,messageId}){
-  const reward=watchStreakRewardForCount(count);
+  // Seuls les paliers configurés peuvent attribuer des objets/XP/cash.
+  // La lecture des anciennes récompenses hors palier reste possible ci-dessus.
+  const reward=rewardByCount.get(Number(count));
   if(!reward||!twitchId||!messageId)return false;
   const player=(await client.query(`SELECT u.id user_id,a.id account_id FROM users u
     JOIN accounts a ON a.twitch_id=u.twitch_id WHERE u.twitch_id=$1 FOR UPDATE OF u`,[twitchId])).rows[0];
