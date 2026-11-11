@@ -172,6 +172,21 @@
     background-repeat:no-repeat!important;
     animation:none!important;
   }
+  /* Le palier 200 lives débloque un cadre d'avatar doré, pas un fond.
+     Garder une miniature bien proportionnée avec une bordure visible. */
+  .shop-preview-avatarframe.frame-streak-200 {
+    box-sizing:border-box;
+    max-width:100%;
+    overflow:visible;
+  }
+  .shop-preview-avatarframe.frame-streak-200 .shop-preview-avatarframe-inner {
+    box-sizing:border-box;
+    width:50px;height:50px;
+    flex:0 0 50px;
+    border:2px solid #f6c875;
+    border-radius:13px;
+    box-shadow:0 0 0 2px rgba(246,200,117,.22),0 0 16px rgba(246,200,117,.35);
+  }
 }
 @media (max-height:640px) and (max-width:900px) {
   .shop-purchase-modal .shop-purchase-card h2 {margin-bottom:6px!important;}
