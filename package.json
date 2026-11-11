@@ -10,7 +10,10 @@
     "migrate:ovh": "node scripts/migrate-ovh.mjs",
     "test": "node --test test/*.test.js",
     "build:css": "node scripts/build-css.mjs",
-    "check:css": "node scripts/build-css.mjs --check"
+    "check:css": "node scripts/build-css.mjs --check",
+    "build:js": "node scripts/build-js.mjs",
+    "check:js": "node scripts/build-js.mjs --check",
+    "check:deploy": "node scripts/check-deploy-assets.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -25,7 +28,8 @@
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.5.11",
-    "postcss": "8.5.6"
+    "postcss": "8.5.6",
+    "terser": "5.44.1"
   },
   "overrides": {
     "body-parser": "1.20.9",
