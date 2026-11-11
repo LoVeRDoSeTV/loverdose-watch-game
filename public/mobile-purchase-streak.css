@@ -228,7 +228,7 @@
   }
   body .dashboard-left-stack > .player-visit-card.streak-100-background,
   body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-100-background {
-    background-image:url("/assets/streak-100-mobile.svg?v=4")!important;
+    background-image:url("/assets/streak-100-mobile.svg?v=5")!important;
     background-size:cover!important;
     background-position:center!important;
     background-repeat:no-repeat!important;
@@ -236,7 +236,7 @@
   }
   body .dashboard-left-stack > .player-visit-card.streak-250-background,
   body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-250-background {
-    background-image:url("/assets/streak-250-mobile.svg?v=4")!important;
+    background-image:url("/assets/streak-250-mobile.svg?v=5")!important;
     background-size:cover!important;
     background-position:center!important;
     background-repeat:no-repeat!important;
@@ -249,14 +249,14 @@
     flex-direction:column;
   }
   body #shopItemPreviewVisual .shop-profile-preview-card.streak-100-background::before {
-    background-image:url("/assets/streak-100-mobile.svg?v=4")!important;
+    background-image:url("/assets/streak-100-mobile.svg?v=5")!important;
     background-size:cover!important;
     background-position:center!important;
     background-repeat:no-repeat!important;
     animation:none!important;
   }
   body #shopItemPreviewVisual .shop-profile-preview-card.streak-250-background::before {
-    background-image:url("/assets/streak-250-mobile.svg?v=4")!important;
+    background-image:url("/assets/streak-250-mobile.svg?v=5")!important;
     background-size:cover!important;
     background-position:center!important;
     background-repeat:no-repeat!important;
