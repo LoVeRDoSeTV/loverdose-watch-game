@@ -7379,7 +7379,7 @@ app.post('/api/trades/:offerId/edit',tradeWriteRateLimit,async(req,res)=>{
   if(!req.session.account||!req.session.user)return res.status(401).json({error:'Connexion requise.'});
   const offered=normalizeTradeAsset(req.body?.offer);
   const rawOptions=Array.isArray(req.body?.options)?req.body.options:[];
-  const options=rawOptions.map(normalizeTradeAsset);
+  const options=rawOptions.slice(0,TRADE_MAX_OPTIONS+1).map(normalizeTradeAsset);
   if(!offered||!options.length||options.length>TRADE_MAX_OPTIONS||options.some(option=>!option))
     return res.status(400).json({error:'Choisis un objet et une quantité pour chaque proposition.'});
   const unique=new Set(options.map(asset=>`${asset.type}:${asset.creatureId||''}:${asset.quantity}`));
