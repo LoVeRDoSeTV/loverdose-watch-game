@@ -8889,7 +8889,7 @@ function tradeCreatureImageUrl(l){
   const aliases={mossy:'/Mossy.webp',plant:'/Mossy.webp',nymea:'/Nymea.webp',water:'/Nymea.webp',voltis:'/Voltis.webp',lightning:'/Voltis.webp',brumee:'/Brumee.webp',mist:'/Brumee.webp',flamby:'/Flamby.webp',fire:'/Flamby.webp',crysal:'/Crysal.webp',crystal:'/Crysal.webp',ferox:'/Ferox.webp',forge:'/Ferox.webp',nocty:'/Nocty.webp',dark:'/Nocty.webp',solka:'/Solka.webp',solar:'/Solka.webp',mimo:'/Mimo.webp',dream:'/Mimo.webp'};
   return aliases[id]||aliases[name]||String(l.image||'');
 }
-function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).filter(l=>Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
 function tradeCreatureMenuMarkup(row) {
   const offered = isDesktopGameUi() && row?.classList.contains('trade-asset-row');
   const requested = isDesktopGameUi() && row?.hasAttribute('data-trade-option-row');
@@ -9006,6 +9006,15 @@ function setupDesktopTradeQuantity(input, offered = false) {
   wrapper.querySelector('div').insertBefore(input, wrapper.querySelector('[data-trade-quantity-step="1"]'));
 }
 
+function syncTradeAvailableOfferChoices(){
+  const select=$('tradeOfferType');if(!select)return false;
+  const available={fragment:(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0),egg:Number(tradeInventory.eggs||0)>0,xp_bottle:Number(tradeInventory.xpBottles||0)>0};
+  for(const option of select.options){if(Object.hasOwn(available,option.value)){option.disabled=!available[option.value];option.hidden=!available[option.value];}}
+  if(!available[select.value])select.value=Object.keys(available).find(type=>available[type])||'';
+  const hasItems=Object.values(available).some(Boolean);
+  $('tradePublish').disabled=!hasItems;
+  return hasItems;
+}
 function setupDesktopTradeComposer() {
   const composer = $('tradeComposer');
   composer.classList.toggle('desktop-trade-wizard', isDesktopGameUi());
@@ -9017,10 +9026,7 @@ function setupDesktopTradeComposer() {
   const current = $('tradeOfferCreature').value;
   $('tradeOfferCreature').innerHTML = stocked.map(item => `<option value="${escapeHtml(item.creatureId)}">${escapeHtml(item.name)}</option>`).join('');
   if (stocked.some(item => item.creatureId === current)) $('tradeOfferCreature').value = current;
-  $('tradeOfferType').querySelector('[value="fragment"]').disabled = !stocked.length;
-  $('tradeOfferType').querySelector('[value="egg"]').disabled = Number(tradeInventory.eggs || 0) < 1;
-  $('tradeOfferType').querySelector('[value="xp_bottle"]').disabled=Number(tradeInventory.xpBottles||0)<1;
-  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':'xp_bottle';
+  syncTradeAvailableOfferChoices();
   const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
   $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
   $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
@@ -9062,7 +9068,7 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':'xp_bottle';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();if(!syncTradeAvailableOfferChoices()){alert('Tu ne possèdes aucun objet ou fragment disponible à échanger.');return;}if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
@@ -9106,7 +9112,7 @@ window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
       wrapper.before(input);wrapper.remove();
     });
     $('tradeOfferQuantity').max = '999';
-    $('tradeOfferType').querySelectorAll('option').forEach(option => option.disabled = false);
+    syncTradeAvailableOfferChoices();
     $('tradeOfferType').removeAttribute('data-trade-type');
     $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments d’un Lovys';
     $('tradeOfferPreview').removeAttribute('data-trade-preview');
