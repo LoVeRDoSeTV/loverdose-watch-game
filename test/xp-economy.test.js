@@ -172,7 +172,8 @@ test('live gains stop exactly at level 50 and send overflow to reserve',async()=
 });
 test('potion expiry midway through a poll pays only its overlap and reports actual boosted cash',async()=>{
  const id=await player();
- for(const key of ['boost_xp_x2','boost_cash_x2'])await query('INSERT INTO user_active_boosts VALUES($1,$2,$3,$4)',[id,key,'2026-10-24T11:00:00Z','2026-10-24T11:59:30Z']);
+ // Double XP utilise désormais 30 secondes de présence restantes, tandis que le boost Cash garde sa date d'expiration.
+ for(const key of ['boost_xp_x2','boost_cash_x2'])await query('INSERT INTO user_active_boosts(user_id,boost_key,starts_at,expires_at,remaining_live_seconds) VALUES($1,$2,$3,$4,$5)',[id,key,'2026-10-24T11:00:00Z','2026-10-24T11:59:30Z',key==='boost_xp_x2'?30:null]);
  const r=await tick([id],60),u=await balances(id);
  assert.ok(Math.abs(u.xp-2.5)<1e-9);assert.ok(Math.abs(u.points-.25)<1e-9);assert.equal(r.rows[0].cash_gain,u.points);assert.equal(Number(u.watch_seconds),60);
 });
