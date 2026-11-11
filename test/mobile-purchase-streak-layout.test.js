@@ -25,21 +25,27 @@ test('purchase modal remains hidden when closed and scrollable within a dynamic 
   assert.ok(responsive&&hidden&&scroll&&sticky,'Mobile purchase layout must keep dialogs usable');
 });
 
-test('real and badge preview cards share original panoramic background rules',()=>{
+test('100/250 lives cards and previews cover their entire background without a rectangular seam',()=>{
   const root=postcss.parse(css);
-  const selectors=[];
+  let card=null,shopPreview=null;
   root.walkRules(rule=>{
+    const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
     if(rule.selector.includes('.dashboard-left-stack > .player-visit-card') &&
-      rule.selector.includes('#badgeVisitPreviewVisual .player-visit-card')){
-      const values=Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]));
-      if(values['background-size'])selectors.push({selector:rule.selector,values});
-    }
+       rule.selector.includes('#badgeVisitPreviewVisual .player-visit-card') &&
+       values['background-size'])card={selector:rule.selector,values};
+    if(rule.selector.includes('.shop-profile-preview-card:is(.streak-100-background,.streak-250-background)::before') &&
+       values['background-size'])shopPreview={selector:rule.selector,values};
   });
-  assert.equal(selectors.length,1);
-  assert.match(selectors[0].selector,/streak-100-background/);
-  assert.match(selectors[0].selector,/streak-250-background/);
-  assert.match(selectors[0].values['background-size'],/100% auto/);
-  assert.match(selectors[0].values['background-position'],/bottom 28px/);
+  assert.ok(card,'Real and badge preview cards need a common full-bleed rule');
+  assert.match(card.selector,/streak-100-background/);
+  assert.match(card.selector,/streak-250-background/);
+  assert.equal(card.values['background-size'],'cover,cover,cover,cover!important');
+  assert.equal(card.values['background-position'],'82% center,center,center,center!important');
+  assert.ok(shopPreview,'Shop preview pseudo-element needs independent full-bleed rule');
+  assert.equal(shopPreview.values['background-size'],'cover,cover!important');
+  assert.equal(shopPreview.values['background-position'],'82% center,center!important');
+  assert.ok(!css.includes('center bottom 28px'));
+  assert.ok(!css.includes('background-size:100% auto,cover'));
   assert.ok(!css.includes('streak-100-mobile.svg'));
   assert.ok(!css.includes('streak-250-mobile.svg'));
   for(const milestone of [100,250]){
