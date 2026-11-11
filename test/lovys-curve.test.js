@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
 import {PGlite} from '@electric-sql/pglite';
-import {LOVYS_MAX_XP,legacyLovysThresholdForLevel,lovysThresholdForLevel,lovysProgressionFromXp,migrateLegacyLovysXp,migrateLovysProgressionCurve} from '../src/xp-economy.js';
+import {LOVYS_MAX_XP,legacyLovysThresholdForLevel,lovysThresholdForLevel,lovysProgressionFromXp,migrateLegacyLovysXp,migratePreviousLovysXp,migrateLovysProgressionCurve} from '../src/xp-economy.js';
 import {PVE_FIGHTS} from '../src/combat/zones.js';
 
-test('early levels keep their thresholds, later levels get progressively more expensive',()=>{
-  for(let level=1;level<=25;level++)assert.equal(lovysThresholdForLevel(level),legacyLovysThresholdForLevel(level));
-  assert.equal(lovysThresholdForLevel(30),5300);assert.equal(lovysThresholdForLevel(40),12650);assert.equal(lovysThresholdForLevel(50),25000);
+test('early levels retain 1–10 pace and later levels follow the updated 25000 XP curve',()=>{
+  for(let level=1;level<=10;level++)assert.equal(lovysThresholdForLevel(level),legacyLovysThresholdForLevel(level));
+  assert.equal(lovysThresholdForLevel(25),6000);
+  assert.equal(lovysThresholdForLevel(30),7925);assert.equal(lovysThresholdForLevel(40),14587.5);assert.equal(lovysThresholdForLevel(50),25000);
   let previousCost=0;
   for(let level=25;level<50;level++){
     const cost=lovysThresholdForLevel(level+1)-lovysThresholdForLevel(level);
@@ -29,11 +30,12 @@ test('early levels keep their thresholds, later levels get progressively more ex
 test('conversion preserves every old level and its fraction, including existing max levels',()=>{
   for(let level=1;level<50;level++)for(const fraction of [0,.01,.25,.5,.99]){
     const old=legacyLovysThresholdForLevel(level)+(legacyLovysThresholdForLevel(level+1)-legacyLovysThresholdForLevel(level))*fraction;
-    const converted=migrateLegacyLovysXp(old),p=lovysProgressionFromXp(converted);
+    // The live upgrade applies v498 (legacy→previous) and then v499 (previous→current).
+    const converted=migratePreviousLovysXp(migrateLegacyLovysXp(old)),p=lovysProgressionFromXp(converted);
     assert.equal(p.level,level,`${level} at ${fraction}`);
     const progress=(converted-p.currentThreshold)/(p.nextThreshold-p.currentThreshold);
     assert.ok(Math.abs(progress-fraction)<1e-9);
-    if(level<25)assert.equal(converted,old);
+    if(level<10)assert.equal(converted,old);
   }
   assert.equal(migrateLegacyLovysXp(10000),LOVYS_MAX_XP);
 });
@@ -55,9 +57,9 @@ test('real migration converts active and inactive Lovys once and keeps reserves 
       (4,2,'plant',10500,TRUE,NULL),(5,2,'water',10800,FALSE,NULL);`);
     const result=await migrateLovysProgressionCurve(pool);assert.equal(result.applied,true);
     const users=(await client.query('SELECT * FROM users ORDER BY id')).rows,lovys=(await client.query('SELECT * FROM user_lovys ORDER BY id')).rows;
-    assert.equal(users[0].xp,migrateLegacyLovysXp(7530),'stale active snapshot must not lose live XP');
+    assert.equal(users[0].xp,migratePreviousLovysXp(migrateLegacyLovysXp(7530)),'stale active snapshot must not lose live XP');
     assert.equal(lovys[0].xp,users[0].xp);assert.equal(users[0].pending_xp,123);
-    assert.equal(lovys[1].xp,3500);assert.equal(lovys[2].xp,500);
+    assert.equal(lovys[1].xp,lovysThresholdForLevel(25));assert.equal(lovys[2].xp,500);
     assert.equal(users[1].xp,LOVYS_MAX_XP);assert.equal(lovys[3].xp,LOVYS_MAX_XP);assert.equal(lovys[4].xp,LOVYS_MAX_XP);
     assert.equal(users[1].pending_xp,2050,'old overflow is refunded at its real amount, once');
     assert.equal(users[2].pending_xp,600,'pre-hatch reserve is not multiplied');
