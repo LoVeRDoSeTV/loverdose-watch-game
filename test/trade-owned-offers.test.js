@@ -58,7 +58,7 @@ test('inventory with no tradeable objects shows only an empty message and disabl
     eggs:0,xpBottles:0,xpGourds:0,xpBoosts:0,xpBoosts5h:0,xpBoosts10h:0});
   assert.equal(context.syncTradeOwnedOfferOptions(),false);
   assert.equal(type.disabled,true);
-  assert.deepEqual(type.options,[]);
+  assert.deepEqual(type.options.map(option=>option.value),['']);
   assert.equal(type.value,'');
   assert.equal(creature.options.length,0);
   assert.match(type.innerHTML,/Aucun objet disponible à proposer/);
