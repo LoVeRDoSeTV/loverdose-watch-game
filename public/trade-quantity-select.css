@@ -1,0 +1,47 @@
+/* Quantités dans les échanges (Communauté) : sélection explicite pour PC,
+   mobile et tablette. La liste d'offre est bornée au stock dans app.js. */
+#tradeComposer select#tradeOfferQuantity,
+#tradeComposer select[data-trade-quantity] {
+  box-sizing:border-box;
+  display:block;
+  width:100%;
+  min-width:0;
+  min-height:44px;
+  padding:9px 25px 9px 10px;
+  border:1px solid rgba(168,127,240,.43);
+  border-radius:10px;
+  color:#f3edff;
+  background:#12172c;
+  font:inherit;
+  font-size:12px;
+  font-weight:750;
+  cursor:pointer;
+}
+#tradeComposer select#tradeOfferQuantity:has(option:first-child:checked),
+#tradeComposer select[data-trade-quantity]:has(option:first-child:checked) {
+  color:#c4b5dc;
+}
+#tradeComposer select#tradeOfferQuantity:focus-visible,
+#tradeComposer select[data-trade-quantity]:focus-visible {
+  outline:2px solid #b884ff;
+  outline-offset:2px;
+}
+#tradeComposer select#tradeOfferQuantity:disabled {
+  opacity:.55;
+  cursor:not-allowed;
+}
+@media (min-width:901px) and (pointer:fine) {
+  #tradeComposer.desktop-trade-wizard .trade-asset-row {
+    grid-template-columns:minmax(135px,185px) minmax(145px,1fr) minmax(150px,1fr) minmax(170px,195px)!important;
+  }
+  #tradeComposer.desktop-trade-wizard .trade-option-edit {
+    grid-template-columns:28px minmax(120px,150px) minmax(130px,1fr) minmax(150px,1fr) minmax(170px,195px) 36px!important;
+  }
+}
+@media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
+  #tradeComposer select#tradeOfferQuantity,
+  #tradeComposer select[data-trade-quantity] {
+    min-height:46px;
+    font-size:14px;
+  }
+}
