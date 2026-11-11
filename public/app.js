@@ -5970,7 +5970,12 @@ function shopPreview(item) {
   if (item.category === 'frame') return `<div class="shop-item-preview"><div class="shop-preview-frame frame-${escapeHtml(item.preview || 'violet')}"></div></div>`;
   if (item.category === 'avatar_frame') {
     const frame = profileAvatarFrameStyle(item.key);
-    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(item.preview || 'violet')}"><div class="shop-preview-avatarframe-inner${frame?.art ? ' cosmetic-avatar-decoration' : ''}" style="${frame?.art ? `--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};` : ''}">${frame?.art ? '<span class="cosmetic-avatar-photo"></span>' : ''}</div></div>`;
+    // Les cadres sans image (dont 200 lives) doivent eux aussi récupérer leur vrai contour.
+    const frameStyle = frame
+      ? `border-color:${escapeHtml(frame.border)};box-shadow:${escapeHtml(frame.shadow)};${frame.art ? `--avatar-frame-art:url(&quot;${escapeHtml(frame.art)}&quot;);` : ''}`
+      : '';
+    const frameClass = item.key === 'streak_avatarframe_200' ? 'streak-200' : (item.preview || 'violet');
+    return `<div class="shop-item-preview shop-preview-avatarframe frame-${escapeHtml(frameClass)}"><div class="shop-preview-avatarframe-inner${frame?.art ? ' cosmetic-avatar-decoration' : ''}" style="${frameStyle}">${frame?.art ? '<span class="cosmetic-avatar-photo"></span>' : ''}</div></div>`;
   }
   if (item.key === 'mystery_egg') return `<div class="shop-item-preview"><span class="shop-preview-egg-premium" aria-label="Œuf mystère"></span></div>`;
   return `<div class="shop-item-preview"><div class="shop-preview-object">${escapeHtml(item.icon || '🎁')}</div></div>`;
