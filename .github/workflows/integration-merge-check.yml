@@ -1,0 +1,30 @@
+name: Contrôle de fusion isolée
+on:
+  push:
+    branches:
+      - integration/main-unification-20261111
+permissions:
+  contents: read
+jobs:
+  inspect-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Analyser la fusion sans écrire sur le dépôt
+        shell: bash
+        run: |
+          git config user.name "Integration Check"
+          git config user.email "integration-check@users.noreply.github.com"
+          git fetch origin main performance-safe-modules-20261029
+          if git merge --no-commit --no-ff origin/performance-safe-modules-20261029; then
+            echo "FUSION_SANS_CONFLIT"
+          else
+            echo "FICHIERS_EN_CONFLIT"
+            git diff --name-only --diff-filter=U
+            echo "ETAT"
+            git status --short | head -100
+            exit 1
+          fi
+          git merge --abort || true
