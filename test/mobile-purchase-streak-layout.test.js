@@ -84,3 +84,18 @@ test('100 and 250 lives have centered medal thumbnails without changing the equi
   assert.ok(!medal.selector.includes('.player-visit-card'));
 });
 
+
+test('100/250 streak shop and inventory thumbnails use corrected original SVG without clipped glow',()=>{
+  const root=postcss.parse(css);
+  const rules=[];
+  root.walkRules(rule=>rules.push({selector:rule.selector,declarations:Object.fromEntries(rule.nodes.filter(n=>n.type==='decl').map(n=>[n.prop,n.value]))}));
+  for(const milestone of [100,250]){
+    const original=readFileSync(new URL('../public/assets/streak-'+milestone+'.svg',import.meta.url),'utf8');
+    assert.match(original,/id="glow" x="-100%" y="-100%" width="300%" height="300%"/);
+    const rule=rules.find(r=>r.selector.includes('.shop-item-preview.streak-'+milestone+'-background')&&r.declarations['background-image']);
+    assert.ok(rule?.selector.includes('#inventoryModal')&&rule.selector.includes('#shopModal'));
+    assert.match(rule.declarations['background-image'],new RegExp('streak-'+milestone+'\\.svg\\?v=631'));
+    assert.equal(rule.declarations['background-size'],undefined,'Do not change thumbnail size');
+    assert.equal(rule.declarations['background-position'],undefined,'Do not change thumbnail position');
+  }
+});
