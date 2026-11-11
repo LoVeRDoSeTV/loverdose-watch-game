@@ -107,3 +107,18 @@ test('montants invalides et contreparties répétées refusés',async()=>{
     assert.equal((await request({type:'egg',quantity:1},[{type:'egg',quantity:1}])).statusCode,400);
   }finally{await db.close();}
 });
+
+test('interface Mes offres présente le bouton et conserve les quantités réservées',()=>{
+  const source=readFileSync(new URL('../public/app.js',import.meta.url),'utf8');
+  const bundle=readFileSync(new URL('../public/app.min.js',import.meta.url),'utf8');
+  const html=readFileSync(new URL('../public/index.html',import.meta.url),'utf8');
+  for(const js of [source,bundle]){
+    assert.ok(js.includes('data-trade-edit'),'Bouton Modifier sur les offres ouvertes');
+    assert.ok(js.includes("openTradeComposer('',offer)"),'Ouverture de l’annonce existante');
+    assert.ok(js.includes('tradeComposerAvailableBalance(stockOffer)'),'Réservation déjà engagée réutilisable');
+    assert.ok(js.includes("editingTradeOffer.options[index]"),'Contreparties préremplies');
+    assert.ok(js.includes("payload.offerId?'/api/trades/'+payload.offerId+'/edit'"),'Enregistrement sur l’annonce existante');
+  }
+  assert.ok(html.includes('trade-offer-edit.css?v=1'));
+  assert.ok(html.includes('app.min.js?v=649'));
+});
