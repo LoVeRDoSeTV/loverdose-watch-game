@@ -1,4 +1,4 @@
-name: Valider et nettoyer la branche de fusion
+name: Valider et finaliser la fusion du jeu
 on:
   push:
     branches:
@@ -12,43 +12,41 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          persist-credentials: true
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Vérifier le code fusionné
-        shell: bash
+      - name: Contrôler le code fusionné
         run: |
-          git diff --check
           node --check server.js
           node --check public/app.js
           node --check src/routes/pve.js
-          grep -q 'canUseBetaTesterTitle' server.js
+          grep -q 'BETA_TESTER_TITLE_KEY' server.js
           grep -q 'syncTradeAvailableOfferChoices' public/app.js
-      - name: Installer les dépendances de test
-        run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Vérifier et générer les bundles
+          grep -q 'grant_xp_boost_hours' server.js
+      - name: Installer et reconstruire les ressources
         run: |
+          npm install --ignore-scripts --no-audit --no-fund
           npm run build:css
           npm run build:js
           npm run check:css
           npm run check:js
           npm run check:deploy
-      - name: Tests complets
+      - name: Exécuter tous les tests
         run: npm test
-      - name: Nettoyer exclusivement la branche de fusion
+      - name: Supprimer les dépendances suivies par erreur sans modifier les sauvegardes
         shell: bash
         run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = "integration/main-unification-20261111"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          # Retirer uniquement les dépendances versionnées, sans altérer le disque du VPS.
-          git rm -rf --cached --ignore-unmatch node_modules
-          # Retirer l'outillage temporaire de fusion. Aucun fichier de sauvegarde concerné.
-          git rm -rf --ignore-unmatch tools/integration .github/workflows/integration-merge-check.yml
-          # Enregistrer uniquement les bundles compilés.
-          git add -u public/app.min.js public/bot-studio.min.js public/styles-extended.min.css public/pve-expansion.min.css public/return-summary.min.css public/live-xp-boost.min.css public/tablet.min.css public/lovys-evolution.min.css
-          git diff --cached --check
-          if ! git diff --cached --quiet; then
-            git commit -m "Nettoyer les dépendances temporaires et conserver les bundles validés [skip ci]"
-            git push origin HEAD:refs/heads/integration/main-unification-20261111
+          git rm -r -f -q --cached --ignore-unmatch node_modules
+          git rm -f --ignore-unmatch .github/workflows/integration-merge-check.yml
+          git add -u
+          if git diff --cached --name-only | grep -Ei '(^|/)(backup|backups|sauvegarde|sauvegardes)(/|$)|\\.(dump|bak|sql)$'; then
+            echo "Erreur : des sauvegardes seraient modifiées"
+            exit 1
           fi
+          git diff --cached --check
+          git commit -m "Nettoyer la fusion validée sans toucher aux sauvegardes [skip ci]"
+          git push origin HEAD:refs/heads/integration/main-unification-20261111
