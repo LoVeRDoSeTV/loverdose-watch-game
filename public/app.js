@@ -9467,7 +9467,7 @@ function syncTradeOfferInventoryChoices(){
     .map(option=>`<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('');
   if(available.includes(originalType))select.value=originalType;
   creature.innerHTML=tradeCreatureOptions(originalCreature,true);
-  if(creature.querySelector(`option[value="${CSS.escape(originalCreature)}"]`))creature.value=originalCreature;
+  if([...creature.options].some(option=>option.value===originalCreature))creature.value=originalCreature;
   select.disabled=!available.length;
   const publish=$('tradePublish'),next=$('tradeComposerNext');
   if(publish)publish.disabled=!available.length;
