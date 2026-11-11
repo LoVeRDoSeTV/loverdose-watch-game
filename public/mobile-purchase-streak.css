@@ -204,3 +204,17 @@
   .shop-purchase-modal .shop-purchase-visual {min-height:60px!important;}
   .shop-purchase-modal .shop-purchase-visual .shop-item-preview {height:66px!important;min-height:66px!important;}
 }
+
+
+/* Vignette 250 lives : zoomer uniquement la miniature boutique/inventaire sur la médaille dorée.
+   L'illustration SVG est très large (1200×440) : affichée entière dans un carré,
+   l'inscription 250 devient illisible. La vraie carte garde son fond complet. */
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-250-background {
+  background-size:270% auto,cover!important;
+  background-position:92% center,center!important;
+  background-repeat:no-repeat!important;
+  animation:none!important;
+}
+:is(#shopModal,#inventoryModal) :is(.shop-item,.inventory-item) > .shop-item-preview.streak-250-background > .streak-motion-layer {
+  display:none!important;
+}

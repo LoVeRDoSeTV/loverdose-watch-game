@@ -51,3 +51,21 @@ test('200 live avatar frame preview stays visibly gold and bounded on mobile',()
   });
   assert.ok(frame);
 });
+
+
+test('250 lives shows its centered gold medal only in shop and inventory thumbnails',()=>{
+  const root=postcss.parse(css);
+  let medal=null,layer=null;
+  root.walkRules(rule=>{
+    if(rule.selector.includes('.shop-item-preview.streak-250-background')&&rule.selector.includes('#inventoryModal')){
+      const map=Object.fromEntries(rule.nodes.filter(node=>node.type==='decl').map(node=>[node.prop,node.value]));
+      if(map['background-size'])medal={selector:rule.selector,...map};
+      if(map.display)layer={selector:rule.selector,...map};
+    }
+  });
+  assert.ok(medal?.selector.includes('#shopModal'));
+  assert.match(medal?.['background-size']||'',/270% auto/);
+  assert.match(medal?.['background-position']||'',/92% center/);
+  assert.ok(layer?.display?.includes('none'));
+  assert.ok(!medal.selector.includes('.player-visit-card'),'La carte équipée doit conserver son véritable fond');
+});
