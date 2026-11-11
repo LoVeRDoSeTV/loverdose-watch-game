@@ -1,0 +1,48 @@
+name: Synchroniser les fichiers optimisés du correctif
+
+on:
+  push:
+    branches: [maintenance/game-health-20261111]
+    paths:
+      - '.github/workflows/sync-review-assets.yml'
+      - 'public/app.js'
+      - 'public/bot-studio.js'
+      - 'public/styles-extended.css'
+      - 'scripts/build-js.mjs'
+      - 'scripts/build-css.mjs'
+      - 'package.json'
+
+permissions:
+  contents: write
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - name: Reconstruire les CSS et JavaScript
+        run: |
+          npm run build:css
+          npm run build:js
+      - name: Vérifier les artefacts avant publication
+        run: |
+          npm run check:css
+          npm run check:js
+          npm run check:deploy
+          node --test test/admin-double-xp.test.js
+      - name: Enregistrer uniquement les fichiers compressés
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/app.min.js public/bot-studio.min.js public/*.min.css
+          if ! git diff --cached --quiet; then
+            git commit -m "Synchroniser les fichiers JavaScript et CSS compressés"
+            git push origin HEAD:maintenance/game-health-20261111
+          fi
