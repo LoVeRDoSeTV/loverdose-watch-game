@@ -8109,6 +8109,11 @@ function renderAdminPlayerEditor(player){
     <div class="admin-editor-section"><h3>💰 Suivi de l’économie</h3><div class="admin-player-summary">${adminStatCard('↗','Cash gagné au total',formatAdminNumber(player.cashEarned))}${adminStatCard('↘','Cash dépensé au total',formatAdminNumber(player.cashSpent))}${adminStatCard('🧩','Fragments d’œuf',formatAdminNumber(player.eggFragments))}${adminStatCard('✨','Fragments universels',formatAdminNumber(player.universalFragments))}</div></div>
     <div class="admin-editor-section"><h3>🎒 Inventaire actuel</h3><div class="admin-player-stock">${(player.inventory||[]).length?(player.inventory||[]).map(item=>`<div><span>${escapeHtml(item.name||item.item_key)}</span><strong>×${formatAdminNumber(item.quantity)}</strong></div>`).join(''):'<p class="admin-player-meta">Inventaire vide.</p>'}</div></div>
     <section class="admin-editor-section admin-player-history" data-player-history data-offset="0"><div class="admin-player-history-head"><h3>📜 Historique du joueur</h3><button type="button" class="btn secondary" data-admin-history-refresh>Actualiser</button></div><p class="admin-player-meta">Les achats et utilisations détaillés sont enregistrés à partir de cette mise à jour. Les anciens achats ne peuvent pas être reconstitués. Le journal est conservé après une remise à zéro du compte.</p><label class="admin-history-filter">Afficher <select data-admin-history-type><option value="all">Toutes les opérations</option><option value="purchase">Achats</option><option value="use">Objets utilisés</option><option value="admin">Actions administrateur</option></select></label><div data-admin-history-list aria-live="polite"><p class="admin-player-meta">Chargement de l’historique…</p></div><button type="button" class="btn secondary hidden" data-admin-history-more>Voir les opérations précédentes</button></section>
+    <div class="admin-editor-section"><h3>⚡ Donner du Double XP</h3><p class="admin-player-meta">Crédite des heures de Double XP x2 dans l’inventaire du joueur, sans activation automatique. Les boosts ajoutent de la durée, pas un multiplicateur x4.</p><div class="admin-adjust-row"><div><strong>⚡ Double XP x2</strong></div><select data-admin-boost-hours aria-label="Durée du Double XP"><option value="2">Double XP · 2 heures</option><option value="5">Double XP · 5 heures</option><option value="10">Double XP · 10 heures</option></select><input type="number" value="1" min="1" max="20" step="1" data-admin-amount="grant_xp_boost_hours" aria-label="Nombre de boosts"><button class="btn secondary" type="button" data-admin-action="grant_xp_boost_hours">Donner</button></div></div>
+    <div class="admin-editor-section"><h3>⚡ Retirer du Double XP</h3><p class="admin-player-meta">Retirer des objets non utilisés ou des heures déjà activées, séparément.</p>
+      <div class="admin-adjust-row"><div><strong>📦 Retirer des boosts de l’inventaire</strong></div><select data-admin-remove-boost-hours aria-label="Durée du boost à retirer"><option value="2">2 heures</option><option value="5">5 heures</option><option value="10">10 heures</option></select><input type="number" value="1" min="1" max="20" step="1" data-admin-amount="remove_xp_boost_inventory" aria-label="Nombre de boosts à retirer"><button class="btn secondary" type="button" data-admin-action="remove_xp_boost_inventory">Retirer</button></div>
+      <div class="admin-adjust-row"><div><strong>⏱️ Retirer des heures déjà activées</strong><div class="admin-player-meta">Solde actuel : ${(Math.max(0,Number(player.activeXpBoostSeconds||0))/3600).toLocaleString('fr-FR',{maximumFractionDigits:2})} h</div></div><input type="number" value="1" min="1" max="200" step="1" data-admin-amount="remove_active_xp_boost_hours" aria-label="Heures actives à retirer"><button class="btn secondary" type="button" data-admin-action="remove_active_xp_boost_hours">Retirer les heures</button></div>
+    </div>
     <div class="admin-editor-reason"><label>Motif de la correction <span>(facultatif mais conseillé)</span></label><input id="adminPlayerActionReason" maxlength="180" placeholder="Ex. récompense événement, correction support…"></div>
     <div class="admin-editor-section"><h3>🛠 Corrections du compte</h3><div class="admin-adjust-grid">
       ${adminAdjustRow('💰',"LoVeR'Cash",'cash','+ / −')}
@@ -8178,6 +8183,15 @@ function adminActionConfirmationDetails(action, amount, button, editor){
     const qty=Math.abs(Number(numeric)||0);
     return {username,actionText:`${verb} ${qty.toLocaleString('fr-FR')} ${labels[action]}`,question:`Êtes-vous sûr de vouloir ${verb.toLowerCase()} ${qty.toLocaleString('fr-FR')} ${labels[action]} ${Number(numeric)<0?'à':'à'} ${username} ?`};
   }
+  if(action==='grant_xp_boost_hours'){
+    const hours=Number(editor.querySelector('[data-admin-boost-hours]')?.value)||2;
+    return {username,actionText:`Donner ${numeric} Double XP de ${hours}h`,question:`Donner ${numeric} Double XP de ${hours}h (${numeric*hours}h au total) à ${username} ?`};
+  }
+  if(action==='remove_xp_boost_inventory'){
+    const hours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value)||2;
+    return {username,actionText:`Retirer ${numeric} boost(s) Double XP de ${hours}h`,question:`Retirer ${numeric} boost(s) Double XP de ${hours}h de l’inventaire de ${username} ? Les heures déjà activées resteront intactes.`};
+  }
+  if(action==='remove_active_xp_boost_hours')return {username,actionText:`Retirer ${numeric}h de Double XP actif`,question:`Retirer ${numeric} heure(s) du Double XP déjà actif de ${username} ? Les boosts de l’inventaire resteront intacts.`};
   if(action==='grant_egg') return {username,actionText:`Donner ${Number(numeric)||0} œuf(s)`,question:`Êtes-vous sûr de vouloir donner ${Number(numeric)||0} œuf(s) à ${username} ?`};
   if(action==='prestige') return {username,actionText:`Régler le Prestige sur ${Number(numeric)||0}`,question:`Êtes-vous sûr de vouloir régler le Prestige de ${username} sur ${Number(numeric)||0} ?`};
   if(action==='lovys_fragments'){
@@ -8270,6 +8284,15 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
   const verb=numeric<0?'Retirer':'Donner';
   const labels={cash:"LoVeR’Cash",global_xp:'XP globale',pending_xp:'XP Lovys en réserve',egg_fragments:'fragments d’œuf',universal_fragments:'fragments universels'};
   if(labels[action])return {username,actionText:`${verb} ${qty} ${labels[action]}`,question:`${verb} ${qty} ${labels[action]} à ${username} ?`};
+  if(action==='grant_xp_boost_hours'){
+    const hours=Number(editor.querySelector('[data-admin-boost-hours]')?.value)||2;
+    return {username,actionText:`Donner ${numeric} Double XP de ${hours}h`,question:`Donner ${numeric} Double XP de ${hours}h (${numeric*hours}h au total) à ${username} ?`};
+  }
+  if(action==='remove_xp_boost_inventory'){
+    const hours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value)||2;
+    return {username,actionText:`Retirer ${numeric} boost(s) Double XP de ${hours}h`,question:`Retirer ${numeric} boost(s) Double XP de ${hours}h de l’inventaire de ${username} ? Les heures déjà activées resteront intactes.`};
+  }
+  if(action==='remove_active_xp_boost_hours')return {username,actionText:`Retirer ${numeric}h de Double XP actif`,question:`Retirer ${numeric} heure(s) du Double XP déjà actif de ${username} ? Les boosts de l’inventaire resteront intacts.`};
   if(action==='grant_egg')return {username,actionText:`Donner ${qty} œuf(s) mystère`,question:`Donner ${qty} œuf(s) mystère à ${username} ?`};
   if(action==='prestige')return {username,actionText:`Régler le Prestige à ${numeric}`,question:`Régler le Prestige de ${username} à ${numeric} ?`};
   if(action==='lovys_fragments'){
@@ -8282,8 +8305,8 @@ function desktopAdminActionConfirmationDetails(action,amount,button,editor){
 function validateDesktopAdminAmount(action,amount){
   if(['reset_battle','reset_pve','reset_account'].includes(action))return;
   const value=Number(amount);
-  const limit=action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
-  if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (action==='grant_egg' && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
+  const limit=['grant_xp_boost_hours','remove_xp_boost_inventory'].includes(action)?20:action==='remove_active_xp_boost_hours'?200:action==='grant_egg'?20:action==='prestige'?99:action.includes('fragments')?100000:1000000;
+  if(String(amount??'').trim()==='' || !Number.isSafeInteger(value) || Math.abs(value)>limit || (['grant_egg','grant_xp_boost_hours','remove_xp_boost_inventory','remove_active_xp_boost_hours'].includes(action) && value<1) || (action==='prestige' && value<0) || (action!=='prestige' && value===0)){
     throw new Error(`Saisis un nombre entier ${action==='grant_egg'?`entre 1 et ${limit}`:action==='prestige'?`entre 0 et ${limit}`:`non nul entre −${limit.toLocaleString('fr-FR')} et ${limit.toLocaleString('fr-FR')}`}.`);
   }
 }
@@ -8302,6 +8325,9 @@ function desktopAdminPlayerSuccessMessage(action,amount,details){
   const name=details.username,qty=Math.abs(Number(amount)||0).toLocaleString('fr-FR');
   const removing=Number(amount)<0;
   if(action==='cash')return removing?`Retrait de ${qty} LoVeR’Cash effectué pour ${name}.`:`${qty} LoVeR’Cash bien crédités à ${name}.`;
+  if(action==='grant_xp_boost_hours')return `${qty} booster(s) Double XP donnés à ${name}.`;
+  if(action==='remove_xp_boost_inventory')return `${qty} booster(s) Double XP retirés de l’inventaire de ${name}.`;
+  if(action==='remove_active_xp_boost_hours')return `${qty}h de Double XP actif retirées à ${name}.`;
   if(action==='grant_egg')return `${qty} œuf(s) mystère bien donnés à ${name}.`;
   if(action==='pending_xp')return removing?`Réserve d’XP Lovys de ${name} mise à jour.`:`${qty} XP Lovys bien créditées à la réserve de ${name}.`;
   if(action==='global_xp')return `XP globale de ${name} bien mise à jour.`;
@@ -8329,7 +8355,7 @@ async function runAdminPlayerAction(button){
   if(!approved)return;
   button.disabled=true;const old=button.textContent;button.textContent='…';
   try{
-    const body={action,reason,amount};if(action==='reset_account')body.confirmUsername=details.username;if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+    const body={action,reason,amount};if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);if(action==='remove_xp_boost_inventory')body.boostHours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value);if(action==='reset_account')body.confirmUsername=details.username;if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
     const data=await adminFetch(`/api/admin/players/${encodeURIComponent(accountId)}/action`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const msg=$('adminPlayerActionMessage');if(msg){msg.textContent=`✅ ${data.summary}`;msg.className='admin-action-message success';}
     await openAdminPlayerEditor(accountId);await loadAdminPlayers();
@@ -8347,6 +8373,7 @@ async function runDesktopAdminPlayerAction(button){
   const body={action,reason:$('adminPlayerActionReason')?.value?.trim()||''};
   if(amount!==undefined)body.amount=Number(amount);
   if(action==='lovys_fragments')body.lovysId=button.dataset.lovysId;
+  if(action==='grant_xp_boost_hours')body.boostHours=Number(editor.querySelector('[data-admin-boost-hours]')?.value);if(action==='remove_xp_boost_inventory')body.boostHours=Number(editor.querySelector('[data-admin-remove-boost-hours]')?.value);
   const details=desktopAdminActionConfirmationDetails(action,amount,button,editor);
   const old=button.textContent;button.disabled=true;
   try{

@@ -2,7 +2,7 @@ name: Vérification du jeu
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, performance-safe-modules-20261029]
   workflow_dispatch:
 
 permissions:
@@ -23,17 +23,12 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Vérifier les feuilles CSS allégées
         run: npm run check:css
-      - name: Vérifier la syntaxe JavaScript côté client
-        run: node --check public/app.js
-      - name: Vérifier que le JS allégé correspond au source
-        run: |
-          npx --yes terser@5.44.1 public/app.js --format comments=false --output /tmp/app-generated.min.js
-          cmp public/app.min.js /tmp/app-generated.min.js
-          node --check public/app.min.js
-          npx --yes terser@5.44.1 public/bot-studio.js --format comments=false --output /tmp/bot-generated.min.js
-          cmp public/bot-studio.min.js /tmp/bot-generated.min.js
-          node --check public/bot-studio.min.js
-          node --check public/bot-page.js
+      - name: Vérifier la synchronisation JavaScript
+        run: npm run check:js
+      - name: Vérifier les ressources réellement publiées
+        run: npm run check:deploy
+      - name: Vérifier la syntaxe JavaScript complémentaire
+        run: node --check public/bot-page.js
       - name: Vérifier la syntaxe des serveurs
         run: |
           node --check server.js
