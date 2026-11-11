@@ -1,6 +1,5 @@
-import { grantSharedWatchStreak } from './watch-streak-rewards.js';
-
-// Compteur privé du diffuseur, indépendant des séries Twitch des spectateurs.
+// Compteur privé du diffuseur. Aucune attribution de cadeau ici :
+// seuls les événements Twitch EventSub de partage watch_streak validés donnent un cadeau.
 export async function initBroadcasterStreak(pool, twitchId) {
   await pool.query(`CREATE TABLE IF NOT EXISTS broadcaster_watch_streak (
     twitch_id TEXT PRIMARY KEY,
@@ -16,7 +15,6 @@ export async function initBroadcasterStreak(pool, twitchId) {
     const player=(await client.query('SELECT id FROM users WHERE twitch_id=$1 FOR UPDATE',[id])).rows[0];
     if(player){
       await client.query('INSERT INTO broadcaster_watch_streak(twitch_id) VALUES($1) ON CONFLICT DO NOTHING',[id]);
-      await grantSharedWatchStreak(client,{twitchId:id,count:200,messageId:'broadcaster-initial-200'});
     }
     await client.query('COMMIT');
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
@@ -36,11 +34,7 @@ export async function registerBroadcasterLive(pool,twitchId,startedAt){
       await client.query('COMMIT');return false;
     }
     const next=Number(state.count)+1;
-    // Le compteur avance à chaque nouveau direct, sans offrir un cadeau à
-    // chaque live : après 10, seulement les multiples de 5 (jusqu'à 350).
-    if(next<=350 && (next<=10 || next%5===0)){
-      await grantSharedWatchStreak(client,{twitchId:id,count:next,messageId:`broadcaster-live-${started.toISOString()}`});
-    }
+    // Démarrer un live ne distribue pas de récompense.
     await client.query('UPDATE broadcaster_watch_streak SET count=$2,last_stream_started_at=$3,updated_at=CURRENT_TIMESTAMP WHERE twitch_id=$1',[id,next,started]);
     await client.query('COMMIT');return true;
   }catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
