@@ -63,6 +63,13 @@ jobs:
           old="firstWin,replayReward,reward,events:"
           assert old in src
           src=src.replace(old,"firstWin,firstLovysWin:Boolean(firstWin||replayReward),replayReward,reward,events:",1)
+          # Also check won battles if this zone has no final boss (test fixtures).
+          old="const lovysWins=victory&&lovysId&&bossKey?(await client.query("
+          assert old in src
+          src=src.replace(old,"const lovysWins=victory&&lovysId?(await client.query(",1)
+          old="[user.id,lovysId,[fight.key,bossKey]])"
+          assert old in src
+          src=src.replace(old,"[user.id,lovysId,bossKey?[fight.key,bossKey]:[fight.key]])",1)
           old="won:lovysWins.has(fight.key), accountWon:"
           assert old in src
           src=src.replace(old,"won:lovysWins.has(fight.key), wonWithLovys:lovysWins.has(fight.key), cashRange:(fight.boss||fight.miniBoss||fight.finalBoss)?{min:10,max:10}:{min:3,max:5}, accountWon:",1)
