@@ -3,6 +3,9 @@ on:
   push:
     branches:
       - integration/main-unification-20261111
+  pull_request:
+    branches:
+      - main
 permissions:
   contents: write
 jobs:
@@ -112,7 +115,7 @@ jobs:
       - name: Tester la version fusionnée
         run: npm test
       - name: Enregistrer seulement la branche de travail après tests verts
-        if: github.event_name == 'push'
+        if: github.event_name == 'pull_request'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
