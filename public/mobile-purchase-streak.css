@@ -153,8 +153,19 @@
 
   /* Fond des récompenses 100/250 lives : médaille entière sur une carte portrait.
      La source SVG garde ses proportions, contrairement à background-size:cover. */
-  .player-visit-card:is(.streak-100-background,.streak-250-background),
+  /* Carte réellement affichée sur l'accueil : cadrage large qui garde les
+     noms, rangs et boutons lisibles, sans grand médaillon derrière le texte. */
+  .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background),
   .player-profile-hero:is(.streak-100-background,.streak-250-background) {
+    background-size:auto 100%,cover,cover,cover!important;
+    background-position:left center,center,center,center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  /* Les aperçus sont indépendants : on conserve l'illustration complète. */
+  .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
+  #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
+  .inventory-visit-preview .player-visit-card:is(.streak-100-background,.streak-250-background) {
     background-size:100% auto,cover,cover,cover!important;
     background-position:center top,center,center,center!important;
     background-repeat:no-repeat!important;
