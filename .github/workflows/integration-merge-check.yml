@@ -24,7 +24,7 @@ jobs:
           git config user.name "Integration Check"
           git config user.email "integration-check@users.noreply.github.com"
           git fetch origin main performance-safe-modules-20261029
-          git merge -X ours --no-commit --no-ff origin/performance-safe-modules-20261029
+          git merge -X theirs --no-commit --no-ff origin/performance-safe-modules-20261029
           python3 - <<'PY'
           from pathlib import Path
           p=Path('src/routes/pve.js')
