@@ -42,6 +42,43 @@ jobs:
           PY
           echo "APERCU_PVE"
           sed -n '85,135p' src/routes/pve.js
+          python3 - <<'PY'
+          from pathlib import Path
+          # Harmonise the PvE reward persistence with both historic schemas.
+          p=Path('src/combat/rewards.js')
+          src=p.read_text()
+          old="    await client.query('COMMIT');"
+          insert="""    await client.query(`CREATE TABLE IF NOT EXISTS user_lovys_pve_progress (
+              user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+              lovys_id INTEGER NOT NULL REFERENCES user_lovys(id) ON DELETE CASCADE,
+              fight_key TEXT NOT NULL, first_won_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+              PRIMARY KEY(user_id,lovys_id,fight_key))`);
+              await client.query(`INSERT INTO user_lovys_pve_progress(user_id,lovys_id,fight_key)
+                SELECT user_id,lovys_id,fight_key FROM user_pve_lovys_wins ON CONFLICT DO NOTHING`);
+          """
+          assert src.count(old)==1
+          p.write_text(src.replace(old,insert+old))
+          # Expose compatible result fields and per-Lovys status without removing replay protections.
+          p=Path('src/routes/pve.js'); src=p.read_text()
+          old="firstWin,replayReward,reward,events:"
+          assert old in src
+          src=src.replace(old,"firstWin,firstLovysWin:Boolean(firstWin||replayReward),replayReward,reward,events:",1)
+          old="won:lovysWins.has(fight.key), accountWon:"
+          assert old in src
+          src=src.replace(old,"won:lovysWins.has(fight.key), wonWithLovys:lovysWins.has(fight.key), cashRange:(fight.boss||fight.miniBoss||fight.finalBoss)?{min:10,max:10}:{min:3,max:5}, accountWon:",1)
+          p.write_text(src)
+          # Keep the new reward preview helper alongside feature-branch UI logic.
+          p=Path('public/app.js');src=p.read_text()
+          helper="function pveRewardPreview(fight){\n  if(!fight)return '';\n  if(fight.wonWithLovys)return 'Déjà gagné avec ce Lovys : aucune nouvelle récompense.';\n  const r=fight.rewards||{},range=fight.cashRange||(fight.boss?{min:10,max:10}:{min:3,max:5});\n  const cash=range.min===range.max?range.min:`${range.min} à ${range.max}`;\n  const base=`+${Number(r.creatureXp||0)} XP Lovys · +${cash} LoVeR’Cash`;\n  return fight.won?`Première victoire avec ce Lovys : ${base}`:`Première victoire : ${base} · +${Number(r.globalXp||0)} XP globale · +${Number(r.fragments||0)} fragments d’œuf`;\n}\nfunction pveResultRewardText(result){\n  if(!result.victory)return '';\n  if(!result.firstLovysWin)return 'Déjà gagné avec ce Lovys : aucune nouvelle récompense.';\n  const r=result.reward||{};\n  const base=`+${Number(r.creatureXp||0)} XP Lovys · +${Number(r.cash||0)} LoVeR’Cash`;\n  return result.firstWin?`Première victoire : ${base} · +${Number(r.globalXp||0)} XP globale · +${Number(r.fragments||0)} fragments d’œuf`:`Première victoire avec ce Lovys : ${base}`;\n}\n"
+          assert 'function pveRewardPreview(' not in src
+          assert 'function pveFightDetailMarkup(' in src
+          src=src.replace('function pveFightDetailMarkup(',helper+'function pveFightDetailMarkup(',1)
+          p.write_text(src)
+          # Keep explicit "une seule fois" wording in PvE badge descriptions.
+          p=Path('src/achievements.js');src=p.read_text()
+          src=src.replace("Chaque adversaire ne compte qu’une fois, même si tu rejoues le combat.", "Chaque adversaire compte une seule fois, même si tu rejoues le combat.")
+          p.write_text(src)
+          PY
           echo "CONFLITS_RESTANTS"
           git diff --name-only --diff-filter=U
           echo "FONCTIONNALITES_VERIFIEES"
