@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import {PGlite} from '@electric-sql/pglite';
-import {WATCH_STREAK_REWARDS,grantSharedWatchStreak,initWatchStreakRewards} from '../src/watch-streak-rewards.js';
+import {WATCH_STREAK_REWARDS,grantSharedWatchStreak,initWatchStreakRewards,watchStreakRewardForCount} from '../src/watch-streak-rewards.js';
 import {createGameBot} from '../src/routes/game-bot.js';
 
 test('un partage Twitch crédite son palier une seule fois, à un compte lié',async()=>{
@@ -24,20 +24,26 @@ test('un partage Twitch crédite son palier une seule fois, à un compte lié',a
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:351,messageId:'b'}),false);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:3,messageId:'c'}),true);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:3,messageId:'d'}),false);
-    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,10);
+    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,13);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:5,messageId:'e'}),true);
     // Les récompenses de série Twitch sont mises en banque, pas sur le Lovys actif.
     assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,0);
     assert.equal((await db.query('SELECT xp,pending_xp FROM users WHERE id=1')).rows[0].xp,0);
-    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,50);
+    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,65);
     assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:10,messageId:'f'}),true);
     assert.equal((await db.query("SELECT quantity FROM shop_inventory WHERE item_key='mystery_egg'")).rows[0].quantity,1);
-    // Partager 10 lives valide aussi le palier 7 encore non réclamé.
-    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,4);
-    assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:4,messageId:'other'}),true);
-    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,30);
+    // Le partage valide chaque petit palier 1..10 et jamais deux fois.
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,10);
+    for (const count of [4,10,11,12,13,14,16,201,349]){
+      assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count,messageId:'ignored-'+count}),false);
+    }
+    assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,43);
     assert.equal((await db.query('SELECT xp FROM user_lovys WHERE id=1')).rows[0].xp,0);
-    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,75);
+    assert.equal((await db.query('SELECT pending_xp FROM users WHERE id=1')).rows[0].pending_xp,90);
+    assert.equal((await db.query('SELECT egg_fragments FROM users WHERE id=1')).rows[0].egg_fragments,5);
+    assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:15,messageId:'fifteen'}),true);
+    assert.equal(await grantSharedWatchStreak(db,{twitchId:'viewer',count:15,messageId:'fifteen-2'}),false);
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards')).rows[0].total,11);
   }finally{await db.close();}
 });
 
@@ -105,7 +111,7 @@ test('le webhook n’accorde un cadeau que pour une notification de série Twitc
       assert.equal(await invoke({...shared,subscription:{...shared.subscription,id:'foreign-sub'}}),204);
       assert.equal((await db.query('SELECT COUNT(*)::int count FROM user_watch_streak_rewards')).rows[0].count,0);
       assert.equal(await invoke(shared),204);
-      assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,10);
+      assert.equal((await db.query('SELECT points FROM users WHERE id=1')).rows[0].points,13);
     }finally{if(previous===undefined)delete process.env.TWITCH_BROADCASTER_ID;else process.env.TWITCH_BROADCASTER_ID=previous;}
   }finally{await db.close();}
 });
@@ -131,13 +137,47 @@ test('la félicitation attend le retour du joueur et ne peut être acquittée qu
     const pending=handler('/watch-streak/notifications/pending');
     const ack=handler('/watch-streak/notifications/acknowledge');
     const before=response();await pending({session:{account:{id:1}}},before);
-    assert.deepEqual(before.body.rewards,[{count:3,description:'10 LoVeR’Cash'}]);
+    assert.deepEqual(before.body.rewards.map(reward=>reward.count),[1,2,3]);
     await ack({session:{account:{id:2}},body:{count:3}},response());
     const stillPending=response();await pending({session:{account:{id:1}}},stillPending);
-    assert.equal(stillPending.body.rewards.length,1);
+    assert.equal(stillPending.body.rewards.length,3);
     const confirmed=response();await ack({session:{account:{id:1}},body:{count:3}},confirmed);
     assert.equal(confirmed.body.acknowledged,1);
     const after=response();await pending({session:{account:{id:1}}},after);
-    assert.deepEqual(after.body.rewards,[]);
+    assert.deepEqual(after.body.rewards.map(reward=>reward.count),[1,2]);
+    for(const count of [1,2]) await ack({session:{account:{id:1}},body:{count}},response());
+    const cleared=response();await pending({session:{account:{id:1}}},cleared);
+    assert.deepEqual(cleared.body.rewards,[]);
+  }finally{await db.close();}
+});
+
+test('paliers officiels : 1 à 10, puis tous les cinq lives jusqu’à 350',()=>{
+  const counts=WATCH_STREAK_REWARDS.map(reward=>reward.count);
+  const expected=[...Array.from({length:10},(_,index)=>index+1),...Array.from({length:68},(_,index)=>(index+3)*5)];
+  assert.deepEqual(counts,expected);
+  assert.ok(WATCH_STREAK_REWARDS.find(reward=>reward.count===100)?.cosmetic==='streak_bg_100');
+  assert.ok(WATCH_STREAK_REWARDS.find(reward=>reward.count===250)?.cosmetic==='streak_bg_250');
+  assert.equal(watchStreakRewardForCount(201)?.description,'25 XP Lovys · 5 LoVeR’Cash (ancien palier)');
+});
+
+test('un partage de 201 lives ne crée aucun nouveau cadeau, mais le prochain palier 205 oui',async()=>{
+  const db=new PGlite();
+  try{
+    await db.exec(`CREATE TABLE accounts(id integer PRIMARY KEY,twitch_id text UNIQUE);
+      CREATE TABLE users(id integer PRIMARY KEY,twitch_id text UNIQUE,points double precision DEFAULT 0,
+        lifetime_lovercash_earned double precision DEFAULT 0,egg_fragments integer DEFAULT 0,
+        xp double precision DEFAULT 0,pending_xp double precision DEFAULT 0,updated_at timestamptz DEFAULT now());
+      CREATE TABLE shop_inventory(account_id integer,item_key text,quantity integer DEFAULT 1,
+        purchased_at timestamptz DEFAULT now(),PRIMARY KEY(account_id,item_key));
+      INSERT INTO accounts VALUES(1,'streamer'); INSERT INTO users(id,twitch_id) VALUES(1,'streamer');`);
+    await initWatchStreakRewards(db);
+    for(const count of [201,202,203,204,206]){
+      assert.equal(await grantSharedWatchStreak(db,{twitchId:'streamer',count,messageId:'streamer-'+count}),false);
+    }
+    assert.equal((await db.query('SELECT COUNT(*)::int total FROM user_watch_streak_rewards')).rows[0].total,0);
+    assert.equal(await grantSharedWatchStreak(db,{twitchId:'streamer',count:205,messageId:'streamer-205'}),true);
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,1);
+    assert.equal(await grantSharedWatchStreak(db,{twitchId:'streamer',count:205,messageId:'streamer-205-again'}),false);
+    assert.equal((await db.query('SELECT count(*)::int total FROM user_watch_streak_rewards WHERE milestone=205')).rows[0].total,1);
   }finally{await db.close();}
 });
