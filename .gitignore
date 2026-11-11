@@ -1,0 +1,9 @@
+# Dépendances installées et fichiers générés localement
+node_modules/
+# Secrets et données locales, hors dépôt
+.env
+.env.*
+!.env.example
+*.dump
+*.sqlite
+*.sqlite3
