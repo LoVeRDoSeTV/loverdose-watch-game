@@ -204,44 +204,69 @@
   display:none!important;
 }
 
-/* Fonds 100/250 lives : SVG original panoramique, rendu plein cadre.
-   Le cover et le cadrage à 82% gardent le cercle entier à droite : pas
-   de jointure rectangulaire entre le SVG et le dégradé sous-jacent.
-   Règles isolées pour la carte réelle et les prévisualisations badges. */
+/* Les fonds mobiles 100/250 sont des SVG 700x470 PLEINE CARTE :
+   aucun raccord rectangulaire, anneaux vectoriels d'origine conservés.
+   Aucun zoom de l'ancien fond panoramique ni agrandissement du bloc joueur. */
 @media (max-width:900px), (max-width:1366px) and (hover:none) and (pointer:coarse) {
-  body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background),
-  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
-  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
-  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) {
-    background-size:cover,cover,cover,cover!important;
-    background-position:82% center,center,center,center!important;
-    background-repeat:no-repeat!important;
-    animation:none!important;
-  }
   body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background) {
-    display:flex;
-    flex-direction:column;
-    min-height:295px;
+    display:block!important;
+    min-height:0!important;
     box-sizing:border-box;
   }
   body .dashboard-left-stack > .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-actions {
-    margin-top:auto;
-    padding-top:22px;
-    position:relative;
-    z-index:2;
+    margin-top:22px!important;
+    padding-top:0!important;
   }
-  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background),
-  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background),
-  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) {
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card:is(.streak-100-background,.streak-250-background) {
+    display:block!important;
+    min-height:0!important;
+    box-sizing:border-box;
+  }
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges {
+    margin-top:14px!important;
+    padding-top:0!important;
+  }
+  body .dashboard-left-stack > .player-visit-card.streak-100-background,
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-100-background {
+    background-image:url("/assets/streak-100-mobile.svg?v=4")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body .dashboard-left-stack > .player-visit-card.streak-250-background,
+  body :is(#badgeVisitPreviewVisual,#inventoryVisitPreviewVisual,.watch-streak-preview-art) .player-visit-card.streak-250-background {
+    background-image:url("/assets/streak-250-mobile.svg?v=4")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body #shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background) {
+    min-height:220px!important;
+    box-sizing:border-box!important;
     display:flex;
     flex-direction:column;
-    box-sizing:border-box;
-    min-height:260px;
   }
-  body #badgeVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges,
-  body .watch-streak-preview-art .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges,
-  body #inventoryVisitPreviewVisual .player-visit-card:is(.streak-100-background,.streak-250-background) > .player-card-rankbadges {
-    margin-top:auto!important;
-    padding-top:12px;
+  body #shopItemPreviewVisual .shop-profile-preview-card.streak-100-background::before {
+    background-image:url("/assets/streak-100-mobile.svg?v=4")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body #shopItemPreviewVisual .shop-profile-preview-card.streak-250-background::before {
+    background-image:url("/assets/streak-250-mobile.svg?v=4")!important;
+    background-size:cover!important;
+    background-position:center!important;
+    background-repeat:no-repeat!important;
+    animation:none!important;
+  }
+  body #shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background) .shop-profile-preview-note {
+    margin-top:auto;
+  }
+  body #shopItemPreviewVisual .shop-profile-preview-card:is(.streak-100-background,.streak-250-background) :is(.shop-profile-preview-name,.shop-profile-preview-title,.shop-profile-preview-level) {
+    max-width:calc(100% - 85px);
+    overflow-wrap:anywhere;
   }
 }
