@@ -25,6 +25,23 @@ jobs:
           git config user.email "integration-check@users.noreply.github.com"
           git fetch origin main performance-safe-modules-20261029
           git merge -X ours --no-commit --no-ff origin/performance-safe-modules-20261029
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/routes/pve.js')
+          lines=p.read_text().splitlines(keepends=True)
+          seen=False
+          result=[]
+          for line in lines:
+              if 'const lovysId=Number(resolved.state.player.lovysId||0);' in line:
+                  if seen:
+                      continue
+                  seen=True
+              result.append(line)
+          p.write_text(''.join(result))
+          print('Nombre de déclarations de lovysId :',sum('const lovysId=Number(resolved.state.player.lovysId||0);' in line for line in result))
+          PY
+          echo "APERCU_PVE"
+          sed -n '85,135p' src/routes/pve.js
           echo "CONFLITS_RESTANTS"
           git diff --name-only --diff-filter=U
           echo "FONCTIONNALITES_VERIFIEES"
