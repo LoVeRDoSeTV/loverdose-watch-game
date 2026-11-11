@@ -6607,7 +6607,7 @@ app.get('/api/shop', async (req, res) => {
 
     const broadcasterId = String(process.env.TWITCH_BROADCASTER_ID || '').trim();
     const isBroadcaster = broadcasterId && String(account.twitch_id || '') === broadcasterId;
-    const catalog = SHOP_ITEMS.map(item => ({
+    const catalog = SHOP_ITEMS.filter(item => item.key !== BETA_TESTER_TITLE.key || inventory.get(item.key) > 0).map(item => ({
       ...item,
       owned: item.category === 'object' ? inventory.get(item.key) > 0 : inventory.has(item.key),
       quantity: item.category === 'object' ? (inventory.get(item.key) || 0) : undefined,
