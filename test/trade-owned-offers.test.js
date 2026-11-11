@@ -21,7 +21,7 @@ class FakeSelect {
   constructor(options=[]){this.options=options.map(([value,textContent])=>({value,textContent}));this.value=this.options[0]?.value||'';this.disabled=false;this._html='';}
   set innerHTML(value){
     this._html=value;
-    this.options=[...value.matchAll(/<option value="([^"]*)">([^<]*)<\/option>/g)]
+    this.options=[...value.matchAll(/<option value="([^"]*)"[^>]*>([^<]*)<\/option>/g)]
       .map(match=>({value:match[1],textContent:match[2]}));
     this.value=this.options[0]?.value||'';
   }
