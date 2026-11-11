@@ -25,12 +25,22 @@ test('purchase modal remains hidden when closed and scrollable within a dynamic 
   assert.ok(responsive&&hidden&&scroll&&sticky,'Mobile purchase layout must keep dialogs usable');
 });
 
-test('100 and 250 live backgrounds retain their artwork proportions on narrow cards',()=>{
+test('100 and 250 lives use separate crops on actual mobile cards and full artwork in previews',()=>{
   const root=postcss.parse(css);
-  const bgRules=[];
-  root.walkRules(rule=>{if(rule.selector.includes('streak-100-background')&&rule.selector.includes('streak-250-background'))bgRules.push(rule);});
-  assert.ok(bgRules.length>=3);
-  assert.ok(bgRules.every(rule=>rule.nodes.some(decl=>decl.prop==='background-size'&&decl.value.includes('100% auto'))));
+  const rules=[];
+  root.walkRules(rule=>{
+    if(rule.selector.includes('streak-100-background')&&rule.selector.includes('streak-250-background')){
+      const size=rule.nodes.find(node=>node.prop==='background-size')?.value;
+      rules.push({selector:rule.selector,size});
+    }
+  });
+  const real=rules.find(rule=>rule.selector.includes('.dashboard-left-stack > .player-visit-card'));
+  const preview=rules.find(rule=>rule.selector.includes('.watch-streak-preview-art .player-visit-card'));
+  const shop=rules.find(rule=>rule.selector.includes('.shop-profile-preview-card'));
+  assert.ok(real?.size?.includes('auto 100%'),'The actual card should crop its wide background');
+  assert.ok(preview?.size?.includes('100% auto'),'The card preview should show the complete artwork');
+  assert.ok(shop?.size?.includes('100% auto'),'The shop preview must preserve its separate rendering');
+  assert.ok(!real.selector.includes('.watch-streak-preview-art'),'Real card styling must not control previews');
 });
 
 test('200 live avatar frame preview stays visibly gold and bounded on mobile',()=>{
