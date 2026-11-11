@@ -9420,7 +9420,7 @@ function tradeCreatureImageUrl(l){
   const aliases={mossy:'/Mossy.webp',plant:'/Mossy.webp',nymea:'/Nymea.webp',water:'/Nymea.webp',voltis:'/Voltis.webp',lightning:'/Voltis.webp',brumee:'/Brumee.webp',mist:'/Brumee.webp',flamby:'/Flamby.webp',fire:'/Flamby.webp',crysal:'/Crysal.webp',crystal:'/Crysal.webp',ferox:'/Ferox.webp',forge:'/Ferox.webp',nocty:'/Nocty.webp',dark:'/Nocty.webp',solka:'/Solka.webp',solar:'/Solka.webp',mimo:'/Mimo.webp',dream:'/Mimo.webp'};
   return aliases[id]||aliases[name]||String(l.image||'');
 }
-function tradeCreatureOptions(selected=''){return (tradeInventory.lovys||[]).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
+function tradeCreatureOptions(selected='',ownedOnly=false){return (tradeInventory.lovys||[]).filter(l=>!ownedOnly||Number(l.fragments||0)>0).map(l=>`<option value="${escapeHtml(l.creatureId)}" ${l.creatureId===selected?'selected':''}>${escapeHtml(l.name)} · ${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments</option>`).join('');}
 function tradeCreaturePreviewMarkup(creatureId,egg=false,bottle=false,gourd=false,boost=0){if(boost)return `<span class="trade-preview-egg">⚡</span><span><strong>Double XP</strong><small>${boost} h actives sur le live</small></span>`;if(gourd)return `<span class="trade-preview-egg">🫙</span><span><strong>Gourde de 500 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(bottle)return `<span class="trade-preview-egg">🧪</span><span><strong>Fiole de 100 XP</strong><small>À utiliser dans la banque d’XP</small></span>`;if(egg)return `<span class="trade-preview-egg">🥚</span><span><strong>Œuf mystère</strong><small>Objet d’incubation</small></span>`;const l=tradeLovysById(creatureId);if(!l)return '';return `<img src="${escapeHtml(tradeCreatureImageUrl(l))}" alt=""><span><strong>${escapeHtml(l.name)}</strong><small>${escapeHtml(l.rarity||'')} · ${Number(l.fragments||0)} fragments disponibles</small></span>`;}
 function syncTradeAssetRow(row) {
   const type = row.querySelector('[data-trade-type]')?.value || 'fragment';
@@ -9442,15 +9442,47 @@ function syncTradeAssetRow(row) {
 }
 function tradeOptionRow(index){return `<div class="trade-option-edit" data-trade-option-row><span class="trade-option-number">${index}</span><select data-trade-type><option value="fragment">🧩 Fragments</option><option value="egg">🥚 Œuf mystère</option><option value="xp_bottle">🧪 Fiole de 100 XP</option><option value="xp_gourd">🫙 Gourde de 500 XP</option><option value="xp_boost">⚡ Double XP · 2 h de live</option><option value="xp_boost_5h">⚡ Double XP · 5 h de live</option><option value="xp_boost_10h">⚡ Double XP · 10 h de live</option></select><select data-trade-creature>${tradeCreatureOptions()}</select><div class="trade-selected-preview" data-trade-preview></div><input data-trade-quantity type="number" min="1" max="999" value="10" inputmode="numeric"><button data-trade-remove type="button" aria-label="Retirer">×</button></div>`;}
 function renderTradeOptions(){const list=$('tradeOptionsList');if(!list)return;const current=[...list.querySelectorAll('[data-trade-option-row]')].map(row=>({type:row.querySelector('[data-trade-type]')?.value,creatureId:row.querySelector('[data-trade-creature]')?.value,quantity:row.querySelector('[data-trade-quantity]')?.value}));list.innerHTML=Array.from({length:tradeOptionCount},(_,i)=>tradeOptionRow(i+1)).join('');[...list.querySelectorAll('[data-trade-option-row]')].forEach((row,i)=>{const old=current[i];if(old){row.querySelector('[data-trade-type]').value=old.type||'fragment';row.querySelector('[data-trade-creature]').value=old.creatureId||row.querySelector('[data-trade-creature]').value;row.querySelector('[data-trade-quantity]').value=old.quantity||10;}syncTradeAssetRow(row);});$('tradeOptionAdd').disabled=tradeOptionCount>=3;}
+// The public trade composer lists only inventory assets the player can give.
+// Requested alternatives remain unrestricted by their own inventory.
+function tradeAvailableOfferTypes(inventory) {
+  const lovys=Array.isArray(inventory?.lovys)?inventory.lovys:[];
+  const stocks={
+    fragment:lovys.some(l=>Number(l.fragments||0)>0),
+    egg:Number(inventory?.eggs||0)>0,
+    xp_bottle:Number(inventory?.xpBottles||0)>0,
+    xp_gourd:Number(inventory?.xpGourds||0)>0,
+    xp_boost:Number(inventory?.xpBoosts||0)>0,
+    xp_boost_5h:Number(inventory?.xpBoosts5h||0)>0,
+    xp_boost_10h:Number(inventory?.xpBoosts10h||0)>0
+  };
+  return Object.keys(stocks).filter(type=>stocks[type]);
+}
+const TRADE_OFFER_TYPE_OPTIONS=[...($('tradeOfferType')?.options||[])].map(option=>({value:option.value,label:option.textContent}));
+function syncTradeOfferInventoryChoices(){
+  const select=$('tradeOfferType'),creature=$('tradeOfferCreature');
+  if(!select||!creature)return false;
+  const available=tradeAvailableOfferTypes(tradeInventory);
+  const originalType=select.value,originalCreature=creature.value;
+  select.innerHTML=TRADE_OFFER_TYPE_OPTIONS.filter(option=>available.includes(option.value))
+    .map(option=>`<option value="${escapeHtml(option.value)}">${escapeHtml(option.label)}</option>`).join('');
+  if(available.includes(originalType))select.value=originalType;
+  creature.innerHTML=tradeCreatureOptions(originalCreature,true);
+  if(creature.querySelector(`option[value="${CSS.escape(originalCreature)}"]`))creature.value=originalCreature;
+  select.disabled=!available.length;
+  const publish=$('tradePublish'),next=$('tradeComposerNext');
+  if(publish)publish.disabled=!available.length;
+  if(next)next.disabled=!available.length;
+  return available.length>0;
+}
 function syncTradeOfferFields() {
-  const type = $('tradeOfferType')?.value || 'fragment', creature = $('tradeOfferCreature');
+  const type = $('tradeOfferType')?.value || '', creature = $('tradeOfferCreature');
   if (creature) { creature.classList.toggle('hidden', type !== 'fragment'); creature.disabled = type !== 'fragment'; }
   const preview = $('tradeOfferPreview');
   if (preview) preview.innerHTML = tradeCreaturePreviewMarkup(creature?.value, type === 'egg',type === 'xp_bottle',type === 'xp_gourd',tradeBoostHours(type));
   const balance = tradeBalanceFor({ type, creatureId: creature?.value });
   const input = $('tradeOfferQuantity');
-  input.max = String(Math.max(1, Math.min(999, balance)));
-  input.value = String(Math.max(1, Math.min(Number(input.value || 1), Number(input.max))));
+  input.max = String(Math.max(0, Math.min(999, balance)));
+  input.value = String(balance>0 ? Math.max(1, Math.min(Number(input.value || 1), Number(input.max))) : 0);
   if ($('tradeOfferBalance')) $('tradeOfferBalance').textContent = type === 'xp_bottle' ? `Disponible : ${balance} fiole(s) de 100 XP` : type === 'xp_gourd' ? `Disponible : ${balance} gourde(s) de 500 XP` : tradeBoostHours(type) ? `Disponible : ${balance} booster(s) double XP` : type === 'egg' ? `Disponible : ${balance} œuf${balance > 1 ? 's' : ''}` : `Disponible : ${balance} fragment${balance > 1 ? 's' : ''}`;
 }
 let desktopTradeComposerStep = 1;
@@ -9476,7 +9508,7 @@ function desktopTradeAssetLabel(asset) {
 function validateDesktopTradeComposer(includeRequests = false) {
   const { offer, options, durationDays } = tradeComposerAssets();
   const valid = asset => Number.isSafeInteger(asset.quantity) && asset.quantity >= 1 && asset.quantity <= 999 && (['egg','xp_bottle','xp_gourd','xp_boost','xp_boost_5h','xp_boost_10h'].includes(asset.type) || Boolean(tradeLovysById(asset.creatureId)));
-  if (!valid(offer)) return 'Choisis un objet à proposer et une quantité entière entre 1 et 999.';
+  if (!tradeAvailableOfferTypes(tradeInventory).includes(offer.type) || !valid(offer)) return 'Tu ne possèdes pas cet objet à proposer. Choisis un objet disponible dans ton inventaire.';
   const balance = tradeBalanceFor(offer);
   if (offer.quantity > balance) return `Tu disposes de ${balance} ${offer.type === 'xp_bottle' ? 'fiole(s)' : offer.type === 'xp_gourd' ? 'gourde(s)' : tradeBoostHours(offer.type) ? 'booster(s)' : offer.type === 'egg' ? 'œuf(s)' : 'fragment(s)'} pour cette proposition.`;
   if (!includeRequests) return '';
@@ -9533,22 +9565,14 @@ function setupDesktopTradeComposer() {
   composer.classList.toggle('desktop-trade-wizard', isDesktopGameUi());
   if (!isDesktopGameUi()) return;
   $('tradeOfferType').setAttribute('data-trade-type', '');
-  $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments Lovys';
+  const fragmentOption=$('tradeOfferType').querySelector('[value="fragment"]');
+  if(fragmentOption)fragmentOption.textContent='🧩 Fragments Lovys';
   $('tradeOfferPreview').setAttribute('data-trade-preview', '');
-  const stocked = (tradeInventory.lovys || []).filter(item => Number(item.fragments) > 0);
-  const current = $('tradeOfferCreature').value;
-  $('tradeOfferCreature').innerHTML = stocked.map(item => `<option value="${escapeHtml(item.creatureId)}">${escapeHtml(item.name)}</option>`).join('');
-  if (stocked.some(item => item.creatureId === current)) $('tradeOfferCreature').value = current;
-  $('tradeOfferType').querySelector('[value="fragment"]').disabled = !stocked.length;
-  $('tradeOfferType').querySelector('[value="egg"]').disabled = Number(tradeInventory.eggs || 0) < 1;
-  $('tradeOfferType').querySelector('[value="xp_bottle"]').disabled=Number(tradeInventory.xpBottles||0)<1;
-  $('tradeOfferType').querySelector('[value="xp_gourd"]').disabled=Number(tradeInventory.xpGourds||0)<1;
-  $('tradeOfferType').querySelector('[value="xp_boost"]').disabled=Number(tradeInventory.xpBoosts||0)<1;
-  for(const h of [5,10]) $('tradeOfferType').querySelector(`[value="xp_boost_${h}h"]`).disabled=Number(tradeInventory[`xpBoosts${h}h`]||0)<1;
-  if (!stocked.length) $('tradeOfferType').value = Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':Number(tradeInventory.xpBoosts||0)>0?'xp_boost':Number(tradeInventory.xpBoosts5h||0)>0?'xp_boost_5h':'xp_boost_10h';
+  syncTradeOfferInventoryChoices();
   const offer = { type: $('tradeOfferType').value, creatureId: $('tradeOfferCreature').value };
-  $('tradeOfferQuantity').max = String(Math.max(1, Math.min(999, tradeBalanceFor(offer))));
-  $('tradeOfferQuantity').value = String(offer.type === 'egg' ? 1 : Math.max(1, Math.min(10, tradeBalanceFor(offer))));
+  const balance=tradeBalanceFor(offer);
+  $('tradeOfferQuantity').max = String(Math.min(999, balance));
+  $('tradeOfferQuantity').value = String(Math.min(10,balance));
   setupDesktopTradeQuantity($('tradeOfferQuantity'), true);
   const firstRequest = $('tradeOptionsList').querySelector('[data-trade-option-row]');
   if (firstRequest) {
@@ -9587,7 +9611,26 @@ $('tradeComposer')?.addEventListener('click', event => {
   input.dispatchEvent(new Event('input', { bubbles: true }));
 });
 async function openTradeComposer(prefillCreature=''){
-  try{hideTradePublishConfirmation();await loadTradeInventory();await refreshLobbyCounts();tradeOptionCount=1;$('tradeOfferCreature').innerHTML=tradeCreatureOptions();$('tradeOfferType').value=(tradeInventory.lovys||[]).some(l=>Number(l.fragments||0)>0)?'fragment':Number(tradeInventory.eggs||0)>0?'egg':Number(tradeInventory.xpBottles||0)>0?'xp_bottle':Number(tradeInventory.xpGourds||0)>0?'xp_gourd':Number(tradeInventory.xpBoosts||0)>0?'xp_boost':Number(tradeInventory.xpBoosts5h||0)>0?'xp_boost_5h':'xp_boost_10h';if(prefillCreature&&$('tradeOfferCreature'))$('tradeOfferCreature').value=prefillCreature;$('tradeOfferQuantity').value='10';$('tradeComposerMessage').textContent='';renderTradeOptions();setupDesktopTradeComposer();syncTradeOfferFields();updateTradeComposerRecap();$('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';$('tradeComposer')?.classList.remove('hidden');}catch(error){alert(error.message);}
+  try{
+    hideTradePublishConfirmation();
+    await loadTradeInventory();
+    await refreshLobbyCounts();
+    tradeOptionCount=1;
+    const hasStock=syncTradeOfferInventoryChoices();
+    const requestedCreature=tradeInventory.lovys?.find(item=>item.creatureId===prefillCreature&&Number(item.fragments)>0);
+    if(requestedCreature){
+      $('tradeOfferType').value='fragment';
+      $('tradeOfferCreature').value=prefillCreature;
+    }
+    $('tradeOfferQuantity').value='1';
+    $('tradeComposerMessage').textContent=hasStock?'':'Tu n’as aucun objet disponible à proposer pour le moment.';
+    renderTradeOptions();
+    setupDesktopTradeComposer();
+    syncTradeOfferFields();
+    updateTradeComposerRecap();
+    $('tradePublish').textContent=isDesktopGameUi()?'Vérifier et publier mon offre':'Publier l’offre';
+    $('tradeComposer')?.classList.remove('hidden');
+  }catch(error){alert(error.message);}
 }
 function closeTradeComposer(){hideTradePublishConfirmation();$('tradeComposer')?.classList.add('hidden');}
 $('tradeCreateOpen')?.addEventListener('click',openTradeComposer);$('tradeCreateOpenMine')?.addEventListener('click',openTradeComposer);$('tradeComposerClose')?.addEventListener('click',closeTradeComposer);$('tradeOfferType')?.addEventListener('change',syncTradeOfferFields);$('tradeOfferCreature')?.addEventListener('change',syncTradeOfferFields);
@@ -9611,9 +9654,10 @@ window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
       wrapper.before(input);wrapper.remove();
     });
     $('tradeOfferQuantity').max = '999';
-    $('tradeOfferType').querySelectorAll('option').forEach(option => option.disabled = false);
+    // The owned-only options are kept on mobile; do not re-enable unavailable items.
     $('tradeOfferType').removeAttribute('data-trade-type');
-    $('tradeOfferType').querySelector('[value="fragment"]').textContent = '🧩 Fragments d’un Lovys';
+    const fragmentOption=$('tradeOfferType').querySelector('[value="fragment"]');
+    if(fragmentOption)fragmentOption.textContent='🧩 Fragments d’un Lovys';
     $('tradeOfferPreview').removeAttribute('data-trade-preview');
     $('tradeOfferPreview').removeAttribute('tabindex');
     $('tradeOfferPreview').removeAttribute('role');
@@ -9623,7 +9667,8 @@ window.matchMedia(DESKTOP_GAME_MEDIA).addEventListener('change', event => {
 let pendingTradePublication=null;
 function hideTradePublishConfirmation(){const box=$('tradePublishConfirm'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(box)box.classList.add('hidden');if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');pendingTradePublication=null;}
 $('tradePublish')?.addEventListener('click',()=>{
-  if(isDesktopGameUi()){const error=validateDesktopTradeComposer(true);if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}}
+  const error=validateDesktopTradeComposer(true);
+  if(error){$('tradeComposerMessage').textContent=error;$('tradeComposerMessage').classList.add('error');return;}
   const offerType=$('tradeOfferType').value;const offer={type:offerType,creatureId:offerType==='fragment'?$('tradeOfferCreature').value:null,quantity:Number($('tradeOfferQuantity').value||0)};const options=[...$('tradeOptionsList').querySelectorAll('[data-trade-option-row]')].map(row=>{const type=row.querySelector('[data-trade-type]').value;return {type,creatureId:type==='fragment'?row.querySelector('[data-trade-creature]').value:null,quantity:Number(row.querySelector('[data-trade-quantity]').value||0)};});
   pendingTradePublication={offer,options,durationDays:Number($('tradeDuration').value||3)};const box=$('tradePublishConfirm'),txt=$('tradePublishConfirmText'),normal=$('tradePublishConfirmNormal'),success=$('tradePublishSuccess');if(txt)txt.textContent=isDesktopGameUi()?`Tu proposes ${desktopTradeAssetLabel(offer)}. Tu recevras ${options.map(desktopTradeAssetLabel).join(' OU ')}. Durée : ${$('tradeDuration').selectedOptions[0].textContent}.`:tradeComposerSummary();if(normal)normal.classList.remove('hidden');if(success)success.classList.add('hidden');if(box)box.classList.remove('hidden');
 });
